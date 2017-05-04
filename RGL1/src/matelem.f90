@@ -809,10 +809,11 @@ real(dprec)       inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn)
 real(dprec)       inv_tAkltAl(nn,nn),inv_tAkltAlM(nn,nn)
 real(dprec)       inv_tAklAk(nn,nn),inv_tAklAkM(nn,nn)
 real(dprec)       eta2(nn,nn)
-real(dprec)       W1(nn,nn),W2(nn,nn),W3(nn,nn),W4(nn,nn)
+real(dprec)       W0(nn,nn),W1(nn,nn),W2(nn,nn),W3(nn,nn),W4(nn,nn), Jij(nn,nn)
 real(dprec)       inv_tAkltvl(nn),tvkinv_tAkl(nn),tvkinv_tAkltAlM(nn)
 real(dprec)       u1(nn),u2(nn),u3(nn)
-real(dprec)       temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8,temp9
+real(dprec)       tr0, tr1, tr2, tr3
+real(dprec)       temp0,temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8,temp9
 real(dprec)       temp10,temp11,temp12,temp13,temp14
 real(dprec)       det_Lk, det_Ll, det_tAkl
 real(dprec)       tau1,tau2,tau3,inv_tau3
@@ -1445,8 +1446,151 @@ drach_MVkl=ZERO
 
 !!ME_d_X_over_rij_d(p,q,Glob_MassMatrix,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,trAJ(p,q),tau3,eta2(p,q),Skl)
 
-!Orbit-Orbit is yet to be implemented
+
+!Evaluating Orbit-Orbit (OO) matrix element (without the factor of alpha**2)
 OOkl=ZERO
+!First double loop for OO
+do i=1,n
+  do j=1,n    
+    tr0=tvk(j)*tvl(j)
+    tr1=2*tAl(j,i)
+    if(i==j) then
+        tr2 = tr1
+    else
+        tr2 = tAl(i,j)
+    endif
+    tr3=3*tAl(j,j)
+    
+    !W0 = Eji vl vk' Ejj Al  +  tr0 Eji Al
+    W0(1:n,1:n)=ZERO
+    do p=1,n
+      W0(j,p)=tvk(j)*tvl(i)*tAl(p,j)+tr0*tAl(p,i)      
+    enddo      
+    
+    call symmetrize(W0)
+    
+    !W1 = Al Eij Al + Al Ejj Eji Al 
+    do p=1,n
+      do q=1,n
+        W1(p,q)=tAl(p,i)*tAl(q,j)+tAl(p,j)*tAl(q,i)
+      enddo
+    enddo
+    
+    !W1 = W1 + Akl Ejj Al Eij 
+    do p=1,n
+      W1(p,j)=W1(p,j)+tAkl(p,j)*tAl(i,j)      
+    enddo
+    
+    !W1 = W1 + Eji Al Ejj Al + tr3 Eji Al 
+    do p=1,n
+      W1(j,p)=W1(j,p)+tAl(i,j)*tAl(p,j)+tr3*tAl(p,i)      
+    enddo    
+    
+    call symmetrize(W1)
+    
+    !W2 = Akl Ejj Al
+    do p=1,n
+      do q=1,n
+        W2(p,q)=tAkl(p,j)*tAl(q,j)
+      enddo
+    enddo
+    
+    call symmetrize(W2)
+
+    !W3 = Eji Al
+    W3(1:n,1:n)=ZERO
+    do p=1,n
+      W3(j,p)=tAl(p,i)
+    enddo
+    
+   
+    call symmetrize(W3)
+    
+    !compute integrals
+    temp0=simple_ME_rXr_over_rij(j,j,W0,inv_tAkl,tau3,Skl)
+    temp1=ME_rXr_over_rij(j,j,W1,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,tau3,Skl)
+    temp2=ME_rXr_rYr_over_rij(j,j,W2,W3,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,tau3,Skl) 
+    temp3=-3*(tr1+tr2)*rmkl(j,j)-2*temp0+4*temp1-8*temp2
+    OOkl=OOkl-temp3*ScaledChargeProd(Glob_PseudoCharge(j),Glob_PseudoCharge0)/Glob_Mass(j+1)
+  enddo
+enddo
+OOkl=OOkl/Glob_Mass(1)
+
+
+!Second double loop for OO
+do i=1,n
+  do j=i+1,n
+    tr0=tvk(j)*tvl(j)
+    tr1=2*tAl(j,i)
+    tr2=tAl(j,i) 
+    tr3=3*tAl(j,j)
+    
+    
+    !W0 = (Eji - Eii) vl vk' Ejj Al  +  tr0 (Eji - Eii) Al
+    W0(1:n,1:n)=ZERO
+    do p=1,n
+      temp1=tvk(j)*tvl(i)*tAl(j,p)+tr0*tAl(i,p)
+      W0(j,p)=W0(j,p)+temp1
+      W0(i,p)=W0(i,p)-temp1
+    enddo   
+    
+    call symmetrize(W0)
+    
+    
+    !W1 = Al Eij Al + Al Ejj (Eji - Eii) Al 
+    do p=1,n
+      do q=1,n
+        W1(p,q)=tAl(p,i)*tAl(q,j)+tAl(p,j)*tAl(q,i)
+      enddo
+    enddo
+    
+    !W1 = W1 + Akl Ejj Al (Eij - Eii) 
+    do p=1,n
+      W1(p,j)=W1(p,j)+tAkl(p,j)*tAl(j,i)
+      W1(p,i)=W1(p,i)-tAkl(p,j)*tAl(j,i)    
+    enddo
+    
+    !W1 = W1 + (Eji - Eii) Al Ejj Al + tr3 (Eji - Eii) Al 
+    do p=1,n
+      temp1=tAl(i,j)*tAl(p,j)+tr3*tAl(p,i)
+      W1(j,p)=W1(j,p)+temp1
+      W1(i,p)=W1(i,p)-temp1    
+    enddo   
+    
+    call symmetrize(W1)
+
+    
+    !W2 = Akl Ejj Al
+    do p=1,n
+      do q=1,n
+        W2(p,q)=tAkl(p,j)*tAl(q,j)
+      enddo
+    enddo
+    
+    call symmetrize(W2)
+
+    
+    !W3 = (Eji - Eii) Al
+    W3(1:n,1:n)=ZERO
+    do p=1,n
+      W3(j,p)=tAl(p,i)
+      W3(i,p)=-tAl(p,i)
+    enddo
+    
+    call symmetrize(W3)
+
+    
+    !compute integrals
+    temp0=simple_ME_rXr_over_rij(i,j,W0,inv_tAkl,tau3,Skl)
+    temp1=ME_rXr_over_rij(i,j,W1,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,tau3,Skl)
+    temp2=ME_rXr_rYr_over_rij(i,j,W2,W3,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,tau3,Skl) 
+    temp3=-3*(tr1+tr2)*rmkl(i,j)-2*temp0+4*temp1-8*temp2
+    OOkl=OOkl+&
+      temp3*ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))/(Glob_Mass(i+1)*Glob_Mass(j+1))
+  enddo
+enddo
+OOkl=OOkl/2
+
 
 !Evaluation of correlation functions
 if (AreCorrFuncNeeded) then
@@ -1501,6 +1645,34 @@ if (ArePartDensNeeded) then
 endif
 
 end subroutine MatrixElementsL1ForExpcVals
+
+subroutine symmetrize(W)
+!subroutine symmetrize makes an arbitrary square matrix W
+!symmetric by the following procedure:
+!Z = (1/2)*(W + W')
+!Input:
+!   W :: n x n real matrix
+
+integer, parameter :: nn = Glob_MaxAllowedNumOfPseudoParticles
+real(dprec)           W(nn, nn), Z (nn,nn)
+integer               i,j,n
+
+n = Glob_n
+
+do i = 1,n
+    do j = 1,n
+        Z(i,j) = W(i,j) + W(j,i)
+    end do
+end do
+
+do i = 1,n
+    do j = 1,n
+        W(i,j) = Z(i,j)*ONEHALF
+    end do
+end do
+
+end subroutine symmetrize
+
 
 
 function ScaledChargeProd(q1,q2)
@@ -1789,6 +1961,84 @@ ME_dWd2=16*ME_rXr_rYr(tAkWtAk,tAlWtAl,inv_tAkl,inv_tAkltvl,tvkinv_tAkl,inv_tau3,
 end function ME_dWd2
 
 
+function simple_ME_rXr_over_rij(i,j,X,inv_tAkl,t_V,Skl)
+!function simple_ME_rXr_over_rij computes the following matrix element:
+!<\tilde psi_k| (r' X r)/r_ij |\tilde psi_l>
+!where psi_k = exp[-(r' Ak r)] is a simple Gaussian wavefunction
+!Here X is a some real symmetric matrix. If matrix X is not symmetric
+!then user needs to symmetrize it before calling this function.
+!Input:
+!            X  :: n x n real matrix
+!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
+!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
+!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
+real(dprec)   simple_ME_rXr_over_rij
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+!Arguments:
+real(dprec)   X(nn,nn),inv_tAkl(nn,nn)
+integer       i,j
+real(dprec)   t_V,Skl
+!Local variables:
+integer       p,q,n
+real(dprec)   temp1,temp2,temp3
+real(dprec)   Aj(nn),AjX(nn)
+real(dprec)   t_J,t_X,t_XJ
+
+n=Glob_n
+
+!Form Aj=inv_tAkl*ji        j/=i 
+!     Aj=inv_tAkl*(ji-jj)   j/=i 
+!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
+if (i==j) then
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)
+ enddo
+else
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
+ enddo
+endif 
+
+!Compute AjX'=Aj'*X
+do p=1,n
+  temp1=ZERO
+  do q=1,n
+    temp1=temp1+Aj(q)*X(q,p)
+  enddo
+  AjX(p)=temp1
+enddo
+
+!Compute t_J=tr[inv_tAkl*Jij] 
+if (i==j) then
+  t_J=inv_tAkl(i,i)
+else
+  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
+endif
+
+!Compute t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
+t_XJ=ZERO
+do p=1,n
+  t_XJ=t_XJ+AjX(p)*Aj(p)
+enddo
+
+!Compute t_X=tr[inv_tAkl*X]
+t_X=ZERO
+do p=1,n
+  do q=1,n
+    t_X=t_X+inv_tAkl(q,p)*X(q,p)
+  enddo
+enddo
+
+temp1=(TWO/SQRTPI)*Skl
+temp2=1/t_V
+temp3=1/t_J
+simple_ME_rXr_over_rij=temp1*temp2*temp3*sqrt(temp3)*( &
+THREE*t_J*t_X - t_XJ &
+)
+
+end function simple_ME_rXr_over_rij
+
+
 function ME_rXr_over_rij(i,j,X,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,t_V,Skl)
 !function ME_rXr_over_rij computes the following matrix element:
 !<\tilde phi_k| (r' X r)/r_ij |\tilde phi_l>
@@ -1882,10 +2132,9 @@ temp1=(TWO/SQRTPI)*Skl
 temp2=1/t_V
 temp3=1/t_J
 ME_rXr_over_rij=temp1*temp2*temp3*sqrt(temp3)*( &
-THREEHALF*t_J*t_V*t_X - ONEHALF*(t_X*t_JV + t_V*t_XJ) + t_J*t_XV - (ONE/SIX)*temp3*t_JV*t_XJ  &
-- (TWO*ONETHIRD)*temp2*t_JV*t_XV + ONETHIRD*t_JXV +ONETHIRD*t_XJV &
+THREEHALF*t_J*t_V*t_X - ONEHALF*(t_X*t_JV + t_V*t_XJ) + t_J*t_XV + ONEHALF*temp3*t_JV*t_XJ  &
+- ONETHIRD*(t_JXV + t_XJV) &
 )
-
 end function ME_rXr_over_rij
 
 
@@ -2085,18 +2334,14 @@ temp2=1/t_V
 temp3=1/t_J
 ME_rXr_rYr_over_rij=temp1*temp2*temp3*sqrt(temp3)*(  &
 NINE*ONEFOURTH*t_J*t_V*t_X*t_Y   &
--THREE*ONEFOURTH*(t_X*t_Y*t_JV+t_V*t_Y*t_XJ+t_V*t_X*t_YJ)  &
-+ THREEHALF*(t_J*t_Y*t_XV+t_J*t_X*t_YV-t_J*t_V*t_XY)  &
-+ONEHALF*(t_JV*t_XY-t_XV*t_YJ-t_XJ*t_YV)  &
--ONEFOURTH*temp3*(t_Y*t_JV*t_XJ+t_X*t_JV*t_YJ+t_V*t_XJ*t_YJ)  &
--ONEFOURTH*temp3*temp3*t_JV*t_XJ*t_YJ   &
-+temp2*(TWO*t_J*t_XV*t_YV-t_Y*t_JV*t_XV-t_X*t_JV*t_YV)  &
--ONETHIRD*temp2*temp3*(t_JV*t_XV*t_YJ+t_JV*t_XJ*t_YV)  &
--TWO*temp2*temp2*t_JV*t_XV*t_YV  &
-+ONEHALF*(t_X*t_JYV+t_V*t_XYJ+t_Y*t_JXV+t_Y*t_XJV+t_X*t_YJV+t_V*t_YXJ)-t_J*t_XYV-t_J*t_YXV  &
-+ONEHALF*ONETHIRD*temp3*(t_XJ*t_JYV+t_JV*t_XYJ+t_YJ*t_JXV+t_YJ*t_XJV+t_XJ*t_YJV+t_JV*t_YXJ) &
-+TWO*ONETHIRD*temp2*(t_XV*t_JYV+t_JV*t_XYV+t_XV*t_YJV+t_YV*t_JXV+t_YV*t_XJV+t_JV*t_YXV)  &
--ONETHIRD*(t_YJXV+t_XYJV+t_YXJV+t_JXYV+t_JYXV+t_XJYV)  &
+-THREE*ONEFOURTH*(t_X*t_Y*t_JV + t_V*t_Y*t_XJ + t_V*t_X*t_YJ)  &
++THREEHALF*(t_J*t_Y*t_XV + t_J*t_X*t_YV + t_J*t_V*t_XY)  &
+-ONEHALF*(t_JV*t_XY + t_XV*t_YJ + t_XJ*t_YV)  &
++THREE*ONEFOURTH*temp3*(t_Y*t_JV*t_XJ+t_X*t_JV*t_YJ+t_V*t_XJ*t_YJ)  &
+-FIVE*ONEFOURTH*temp3*temp3*t_JV*t_XJ*t_YJ   &
+-ONEHALF*(t_X*t_JYV + t_V*t_XYJ + t_Y*t_JXV + t_Y*t_XJV + t_X*t_YJV + t_V*t_YXJ) + t_J*t_XYV + t_J*t_YXV  &
++ONEHALF*temp3*(t_XJ*t_JYV + t_JV*t_XYJ + t_YJ*t_JXV + t_YJ*t_XJV + t_XJ*t_YJV + t_JV*t_YXJ) &
+-ONETHIRD*(t_YJXV + t_XYJV + t_YXJV + t_JXYV + t_JYXV + t_XJYV)  &
 )
 !    t_J    t_X    t_Y  (t_V is passed)
 !    t_XJ   t_YJ   t_JV   t_XV   t_YV   t_XY
