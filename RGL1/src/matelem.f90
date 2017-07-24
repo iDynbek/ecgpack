@@ -1517,13 +1517,13 @@ do i=1,n
       W7(j,q) = tvl(i)*tvk(q)
     enddo
     
-    call symmetrize(W1)
-    call symmetrize(W2)
-    call symmetrize(W3)
-    call symmetrize(W4)
-    call symmetrize(W5)
-    call symmetrize(W6)
-    call symmetrize(W7)
+    call symmetrize_matrix(W1)
+    call symmetrize_matrix(W2)
+    call symmetrize_matrix(W3)
+    call symmetrize_matrix(W4)
+    call symmetrize_matrix(W5)
+    call symmetrize_matrix(W6)
+    call symmetrize_matrix(W7)
     !compute integrals
     temp1=ME_rXr_over_rij(j,j,W1,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,tau3,Skl)
     temp2=ME_rXr_rYr_over_rij(j,j,W2,W3,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,tau3,Skl) 
@@ -1614,13 +1614,13 @@ do i=1,n
       W7(i,q) = -tvl(i)*tvk(q)
     enddo
     
-    call symmetrize(W1)
-    call symmetrize(W2)
-    call symmetrize(W3)
-    call symmetrize(W4)
-    call symmetrize(W5)
-    call symmetrize(W6)
-    call symmetrize(W7)
+    call symmetrize_matrix(W1)
+    call symmetrize_matrix(W2)
+    call symmetrize_matrix(W3)
+    call symmetrize_matrix(W4)
+    call symmetrize_matrix(W5)
+    call symmetrize_matrix(W6)
+    call symmetrize_matrix(W7)
     
     !compute integrals
     temp1=ME_rXr_over_rij(i,j,W1,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,tau3,Skl)
@@ -1635,49 +1635,6 @@ do i=1,n
   enddo
 enddo
 OOkl=OOkl/2
-
-!Checking procedure
-!
-! OOkl = ZERO
-! do i=1,n
-!   do j=i+1,n
-!     W7(1:n,1:n)=ZERO
-!     W7(i,i)=1
-!     W7(j,j)=1
-!     W7(i,j)=-1
-!     W7(j,i)=-1
-!     
-!     OOkl=OOkl + SG_ME_rXr_over_rij(i,j,W7,inv_tAkl,tau3,Skl)
-!   enddo
-! enddo
- 
-!Alternative version
-! do i=1,n
-!   do j=1,n
-!     !First part 
-!     W1(1:n,1:n)=ZERO
-!     do p=1,n
-!       do q=1,n
-!         W1(p,q) = tAl(p,i)*tAl(j,q) + &
-!                   tAl(p,j)*tAl(i,q)
-!         W1(p,q) = ONEHALF*W1(p,q)
-!       enddo
-!     enddo
-!     
-!     tr1 = THREE*tAl(j,i)
-!     
-!     W2(1:n,1:n)=ZERO
-!     do p=1,n
-!       do q=1,n
-!         W2(p,q) = tAl(p,i)*tvl(j)*tvk(q) + &
-!                   tAl(p,j)*tvl(i)*tvk(q)
-!     
-!     temp1 = ME_rXr_over_rij(j,j,W1,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,tau3,Skl)
-!     temp2 = tr1*rmkl(j,j)
-!     temp3 = ONETHIRD*SG_ME_rXr_over_rij(j,j,W2,inv_tAkl,tau3,Skl)
-!     
-!     temp4 = 4*temp1-2*temp2-2*temp3
-
     
 
 !Evaluation of correlation functions
@@ -1734,33 +1691,28 @@ endif
 
 end subroutine MatrixElementsL1ForExpcVals
 
-subroutine symmetrize(W)
-!subroutine symmetrize makes an arbitrary square matrix W
+subroutine symmetrize_matrix(W)
+!subroutine symmetrize_matrix makes an arbitrary square matrix W
 !symmetric by the following procedure:
-!Z = (1/2)*(W + W')
+!W = (1/2)*(W + W')
 !Input:
 !   W :: n x n real matrix
 
 integer, parameter :: nn = Glob_MaxAllowedNumOfPseudoParticles
-real(dprec)           W(nn, nn), Z (nn,nn)
+real(dprec)           W(nn, nn), t
 integer               i,j,n
 
 n = Glob_n
 
 do i = 1,n
     do j = i+1,n
-        Z(i,j) = W(i,j) + W(j,i)
+	    t=ONEHALF*(W(j,i)+W(i,j))
+        W(j,i) = t
+        W(i,j) = t
     end do
 end do
 
-do i = 1,n
-    do j = i+1,n
-        W(i,j) = Z(i,j)*ONEHALF
-        W(j,i) = W(i,j)
-    end do
-end do
-
-end subroutine symmetrize
+end subroutine symmetrize_matrix
 
 
 
@@ -1827,7 +1779,7 @@ function ME_rXr_rYr(X,Y,inv_tAkl,inv_tAkltvl,tvkinv_tAkl,inv_tau3,Skl)
 !function ME_rXr_rYr computes the following matrix element:
 !<\tilde phi_k| r'Xr r'Yr |\tilde phi_l>
 !Here X and Y are symmetric real matrices. If matrices are not symmetric
-!then user need to symmetrize them before calling this function.
+!then user needs to symmetrize them before calling this function.
 !Input:
 !            X  :: n x n real matrix
 !            Y  :: n x n real matrix
@@ -2129,7 +2081,7 @@ function SG_ME_rXr_rYr_over_rij(i,j,X,Y,inv_tAkl,t_V,Skl)
 !function ME_rXr_rYr_over_rij computes the following matrix element:
 !<\tilde phi_k| (r' X r)(r' Y r)/r_ij |\tilde phi_l>
 !Here X and Y are some real symmetric matrices. If matrices X or Y are not symmetric
-!then user need to symmetrize them before calling this function.
+!then user needs to symmetrize them before calling this function.
 !Input:
 !            X  :: n x n real matrix
 !            Y  :: n x n real matrix
@@ -2254,7 +2206,7 @@ function ME_rXr_over_rij(i,j,X,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,t_V,Skl)
 !function ME_rXr_over_rij computes the following matrix element:
 !<\tilde phi_k| (r' X r)/r_ij |\tilde phi_l>
 !Here X is a some real symmetric matrix. If matrix X is not symmetric
-!then user need to symmetrize it before calling this function.
+!then user needs to symmetrize it before calling this function.
 !Input:
 !            X  :: n x n real matrix
 !      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
@@ -2353,7 +2305,7 @@ function ME_rXr_rYr_over_rij(i,j,X,Y,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,t_
 !function ME_rXr_rYr_over_rij computes the following matrix element:
 !<\tilde phi_k| (r' X r)(r' Y r)/r_ij |\tilde phi_l>
 !Here X and Y are some real symmetric matrices. If matrices X or Y are not symmetric
-!then user need to symmetrize them before calling this function.
+!then user needs to symmetrize them before calling this function.
 !Input:
 !            X  :: n x n real matrix
 !            Y  :: n x n real matrix
@@ -2566,7 +2518,7 @@ function ME_d_X_over_rij_d(i,j,X,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl, &
 !function ME_d_X_over_rij_d computes the following matrix element:
 !<\nabla_r \tilde phi_k| (1/r_ij) X | \nabla_r \tilde phi_l>
 !Here X is a some real symmetric matrix. If matrix X is not symmetric
-!then user need to symmetrize it before calling this function.
+!then user needs to symmetrize it before calling this function.
 !Input:
 !           i,j :: indicies of r_ij
 !            X  :: n x n real matrix
