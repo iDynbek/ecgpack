@@ -1653,7 +1653,6 @@ if (AreCorrFuncNeeded) then
         temp7=temp6+CFGrid(1,k)*CFGrid(1,k)   !this is  \xi^2
         temp8=ONE+(temp4*temp6-ONE)*temp5
         CFkl(p,k)=temp2*temp8*exp(temp7*temp3)
-        !CFkl(p,k)=temp2*temp8*temp7*exp(temp7*temp3) !Multiplied by \xi^2
       enddo
     enddo
   enddo
@@ -1684,7 +1683,6 @@ if (ArePartDensNeeded) then
       temp10=temp9+DensGrid(1,k)*DensGrid(1,k)   !this is -\xi^2
       temp11=ONE+(temp7*temp9-ONE)*temp5
       Denskl(i,k)=temp8*temp11*exp(temp10*temp6)
-      !Denskl(i,k)=temp8*temp11*temp10*exp(temp10*temp6) !Multiplied by \xi^2
     enddo
   enddo
 endif
@@ -2077,6 +2075,7 @@ SG_ME_rXr_over_rij=temp1*temp2*temp3*sqrt(temp3)*(THREE*t_J*t_X - t_XJ)
 
 end function SG_ME_rXr_over_rij
 
+
 function SG_ME_rXr_rYr_over_rij(i,j,X,Y,inv_tAkl,t_V,Skl)
 !function ME_rXr_rYr_over_rij computes the following matrix element:
 !<\tilde phi_k| (r' X r)(r' Y r)/r_ij |\tilde phi_l>
@@ -2201,6 +2200,7 @@ t_J*t_XY  - ONETHIRD*(t_XYJ + t_YXJ) + ONEHALF*temp3*t_XJ*t_YJ&
 )
 
 end function SG_ME_rXr_rYr_over_rij
+
 
 function ME_rXr_over_rij(i,j,X,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,t_V,Skl)
 !function ME_rXr_over_rij computes the following matrix element:
