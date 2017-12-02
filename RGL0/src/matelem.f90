@@ -603,10 +603,11 @@ end subroutine MatrixElements
 
 
 
-subroutine MatrixElementsForExpcVals(vechLk, vechLl, Pbra, Pket, Hkl, Skl, Tkl, Vkl, &
-               rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, MVkl, drach_MVkl, Darwinkl, &
-               drach_Darwinkl, OOkl, rmrmkl, del2kl, prvalkl, wforiginkl, NumCFGridPoints, CFGrid,  &
-               CFkl, NumDensGridPoints, DensGrid, Denskl, AreCorrFuncNeeded, ArePartDensNeeded)
+subroutine MatrixElementsForExpcVals(vechLk, vechLl, Pbra, Pket, &
+           Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
+           MVkl, drach_MVkl, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, del2kl, prvalkl, &
+           wforiginkl, NumCFGridPoints, CFGrid, CFkl, NumDensGridPoints, DensGrid, Denskl, &
+           AreCorrFuncNeeded, ArePartDensNeeded)
 !This subroutine computes symmetry adapted matrix elements 
 !with two real L=0 correlated Gaussians. These matrix elements
 !are used in calculations of expectation values.

@@ -8072,7 +8072,7 @@ real(dprec)                                :: Hkl,Skl,Tkl,Vkl
 real(dprec)                                :: MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
 real(dprec)                                :: H,S,T,V,MV,drach_MV,Darwin,drach_Darwin,OO
 real(dprec)                                :: wf2originkl,wf2origin
-real(dprec),allocatable,dimension(:,:)     :: rm2kl,rmkl,rkl,r2kl, deltarkl,drach_deltarkl ,prvalkl
+real(dprec),allocatable,dimension(:,:)     :: rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,prvalkl
 real(dprec),allocatable,dimension(:,:)     :: rm2,rm,r,r2,deltar,drach_deltar,prval
 real(dprec),allocatable,dimension(:,:,:,:) :: del2kl,rmrmkl
 
