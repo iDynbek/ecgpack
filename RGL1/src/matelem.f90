@@ -748,7 +748,8 @@ end subroutine MatrixElementsL1
 
 subroutine MatrixElementsL1ForExpcVals(m_k, m_l, vechLk, vechLl, Pbra, Pket, &
            Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
-           MVkl, drach_MVkl, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, NumCFGridPoints, CFGrid, &
+           MVkl, drach_MVkl, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, prvalkl, &
+           NumCFGridPoints, CFGrid, &
            CFkl, NumDensGridPoints, DensGrid, Denskl, AreCorrFuncNeeded, ArePartDensNeeded)
 !This subroutine computes symmetry adapted matrix elements 
 !with two real L=1 correlated Gaussians. These matrix elements
@@ -762,22 +763,36 @@ subroutine MatrixElementsL1ForExpcVals(m_k, m_l, vechLk, vechLl, Pbra, Pket, &
 !   Pbra :: The symmetry permutation matrix of size n x n that is applied to bra
 !   Pket :: The symmetry permutation matrix of size n x n that is applied to ket
 !Output (all matrix elements are computed with normilized functions):
-!   Hkl	 ::	Hamiltonian
-!   Skl	 ::	Overlap
-!   Tkl  :: Kinetic energy
-!   Vkl  :: Potential energy
-!   rm2kl :: 1/r_i^2, 1/r_{ij}^2
-!   rmkl :: 1/r_i, 1/r_{ij}
-!   rkl  :: r_i, r_{ij}
-!   r2kl :: r_i^2, r_{ij}^2
-!deltarkl:: delta(r_i), delta(r_{ij})
-!drach_deltarkl:: Drachmanized delta(r_i), delta(r_{ij})           
-!   MVkl :: Mass-velocity correction (without the factor of alpha**2)
-!drach_MVkl :: Drachminized mass-velocity correction (without the factor of alpha**2)           
-!Darwinkl:: Darwin correction (without the factor of alpha**2)
-!drach_Darwinkl:: Drachmanized Darwin correction (without the factor of alpha**2)           
-!   OOkl :: Orbit-Orbit correction (without the factor of alpha**2)
-
+!   Hkl	     ::	Hamiltonian
+!   Skl	     ::	Overlap
+!   Tkl      :: Kinetic energy
+!   Vkl      :: Potential energy
+!   rm2kl    :: 1/r_i^2, 1/r_{ij}^2
+!   rmkl     :: 1/r_i, 1/r_{ij}
+!   rkl      :: r_i, r_{ij}
+!   r2kl     :: r_i^2, r_{ij}^2
+! deltarkl   :: delta(r_i), delta(r_{ij})
+! drach_deltarkl:: Drachmanized delta(r_i), delta(r_{ij})
+!   MVkl     :: Mass-velocity correction (without the factor of alpha**2)
+! drach_MVkl :: Drachminized mass-velocity correction (without the factor of alpha**2)
+! Darwinkl  :: Darwin correction (without the factor of alpha**2)
+! drach_Darwinkl:: Drachmanized Darwin correction (without the factor of alpha**2)
+!   OOkl    :: Orbit-Orbit correction (without the factor of alpha**2)
+! rmrmkl    :: 1/(r_{ij}*r_{pq})      
+! prvalkl   :: P(1/r^3_ij) - principal values of matric element 1/r^3_ij  (appears in the Araki-Sucker term for QED correction)           
+!NumCFGridPoints   :: Number of grid points for correlation function calculations
+!CFGrid            :: Array containing grid points where matrix elements of 
+!                     correlation functions should be computed   
+!CFkl              :: Matrix elements of correlation functions
+!NumDensGridPoints :: Number of grid points for particle density calculations
+!DensGrid          :: Array containing grid points where matrix elements of 
+!                     particle densities should be computed
+!Denskl            :: Matrix elements of particle densities
+!AreCorrFuncNeeded :: flag indicating whether matrix elements of correlation 
+!                     functions need be computed
+!ArePartDensNeeded :: flag indicating whether matrix elements of particle
+!                     densities need be computed
+           
 !Arguments
 integer,intent(in)       :: m_k,m_l
 real(dprec),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
@@ -787,6 +802,7 @@ real(dprec),intent(out)  :: rm2kl(Glob_n,Glob_n),rmkl(Glob_n,Glob_n)
 real(dprec),intent(out)  :: rkl(Glob_n,Glob_n),r2kl(Glob_n,Glob_n)
 real(dprec),intent(out)  :: deltarkl(Glob_n,Glob_n)
 real(dprec),intent(out)  :: drach_deltarkl(Glob_n,Glob_n)
+real(dprec),intent(out)  :: prvalkl(Glob_n,Glob_n)
 real(dprec),intent(out)  :: rmrmkl(Glob_n,Glob_n,Glob_n,Glob_n)
 integer,intent(in)       :: NumCFGridPoints,NumDensGridPoints
 real(dprec),intent(in)   :: CFGrid(2,NumCFGridPoints),DensGrid(2,NumDensGridPoints)
@@ -1079,10 +1095,10 @@ temp5=Skl*TWO
 temp1=temp5/SQRTPI
 temp8=Skl/(PI*SQRTPI)
 do i=1,n
-  TrAJ(i,i)=inv_tAkl(i,i)
-  sqrtTrAJ(i,i)=sqrt(TrAJ(i,i))
   temp2=inv_tAkl(i,i)
-  temp3=sqrtTrAJ(i,i) 
+  TrAJ(i,i)=temp2
+  temp3=sqrt(temp2)
+  sqrtTrAJ(i,i)=temp3
   !u1'=tvk'*inv_tAkl*Jii*inv_tAkl
   do q=1,n
     temp4=ZERO
@@ -1105,15 +1121,16 @@ do i=1,n
   rkl(i,i)=temp1*(ONE+temp6)*temp3
   r2kl(i,i)=Skl*THREEHALF*(ONE+2*temp6)*temp2
   deltarkl(i,i)=temp8*(ONE-temp7)/(temp2*temp3)
+  prvalkl(i,i)=(temp1/(temp2*temp3))*(1-temp7)*(Glob_EulerConst+log(temp2))  
 enddo
 do i=1,n
   do j=i+1,n
-    TrAJ(i,j)=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
-    TrAJ(j,i)=TrAJ(i,j)
-    sqrtTrAJ(j,i)=sqrt(TrAJ(j,i))
-    sqrtTrAJ(i,j)=sqrtTrAJ(j,i)
-    temp2=TrAJ(j,i)
+    temp2=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)  
+    TrAJ(i,j)=temp2
+    TrAJ(j,i)=temp2
     temp3=sqrt(temp2)
+    sqrtTrAJ(j,i)=temp3
+    sqrtTrAJ(i,j)=temp3
     !u1'=tvk'*inv_tAkl*Jij*inv_tAkl
     do q=1,n
       temp4=ZERO
@@ -1141,6 +1158,8 @@ do i=1,n
     r2kl(i,j)=r2kl(j,i)
     deltarkl(j,i)=temp8*(ONE-temp7)/(temp2*temp3)
     deltarkl(i,j)=deltarkl(j,i)
+    prvalkl(j,i)=(temp1/(temp2*temp3))*(1-temp7)*(Glob_EulerConst+log(temp2)) 
+    prvalkl(i,j)=prvalkl(j,i)
   enddo  
 enddo
 

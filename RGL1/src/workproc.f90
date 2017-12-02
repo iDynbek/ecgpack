@@ -8288,8 +8288,8 @@ real(dprec),allocatable,dimension(:)       :: MEkl,MEkl_s
 real(dprec)                                :: Hkl,Skl,Tkl,Vkl
 real(dprec)                                :: MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
 real(dprec)                                :: H,S,T,V,MV,drach_MV,Darwin,drach_Darwin,OO
-real(dprec),allocatable,dimension(:,:)     :: rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl
-real(dprec),allocatable,dimension(:,:)     :: rm2,rm,r,r2,deltar,drach_deltar
+real(dprec),allocatable,dimension(:,:)     :: rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,prvalkl
+real(dprec),allocatable,dimension(:,:)     :: rm2,rm,r,r2,deltar,drach_deltar,prval
 real(dprec),allocatable,dimension(:,:,:,:) :: rmrmkl
 
 if (Glob_ProcID==0) then
@@ -8508,17 +8508,18 @@ enddo
 !r2           ME(3*n*(n+1)/2+1:4*n*(n+1)/2)
 !deltar       ME(4*n*(n+1)/2+1:5*n*(n+1)/2)
 !drach_deltar ME(5*n*(n+1)/2+1:6*n*(n+1)/2)
-!H            ME(6*n*(n+1)/2+1)   
-!S            ME(6*n*(n+1)/2+2) 
-!T            ME(6*n*(n+1)/2+3) 
-!V            ME(6*n*(n+1)/2+4) 
-!MV           ME(6*n*(n+1)/2+5)
-!drach_MVkl   ME(6*n*(n+1)/2+6)
-!Darwin       ME(6*n*(n+1)/2+7)
-!drach_Darwin ME(6*n*(n+1)/2+8)
-!OO           ME(6*n*(n+1)/2+9)   
-!rmrmkl       ME( 6*n*(n+1)/2+10 + (3*n**4+10*n**3+9*n**2+2*n)/24 : 6*n*(n+1)/2+9 + (3*n**4+10*n**3+9*n**2+2*n)/12 )
-NumOfExpcVals=6*n*(n+1)/2+9+(3*n**4+10*n**3+9*n**2+2*n)/12
+!prval        ME(6*n*(n+1)/2+1:7*n*(n+1)/2)
+!H            ME(7*n*(n+1)/2+1)   
+!S            ME(7*n*(n+1)/2+2) 
+!T            ME(7*n*(n+1)/2+3) 
+!V            ME(7*n*(n+1)/2+4) 
+!MV           ME(7*n*(n+1)/2+5)
+!drach_MVkl   ME(7*n*(n+1)/2+6)
+!Darwin       ME(7*n*(n+1)/2+7)
+!drach_Darwin ME(7*n*(n+1)/2+8)
+!OO           ME(7*n*(n+1)/2+9)   
+!rmrmkl       ME( 7*n*(n+1)/2+10 + (3*n**4+10*n**3+9*n**2+2*n)/24 : 6*n*(n+1)/2+9 + (3*n**4+10*n**3+9*n**2+2*n)/12 )
+NumOfExpcVals=7*n*(n+1)/2+9+(3*n**4+10*n**3+9*n**2+2*n)/12
 
 allocate(MEkl(NumOfExpcVals))
 allocate(MEkl_s(NumOfExpcVals))
@@ -8540,6 +8541,9 @@ allocate(deltar(n,n))
 
 allocate(drach_deltarkl(n,n))
 allocate(drach_deltar(n,n))
+
+allocate(prvalkl(n,n))
+allocate(prval(n,n))
 
 allocate(rmrmkl(n,n,n,n))
 
@@ -8663,172 +8667,182 @@ do i=1,cbs
 	  endif
 	  if (SymmAdaptMethod==1) then
 	    do k=1,Glob_NumYHYTerms		
-	      call MatrixElementsL1ForExpcVals(Glob_ZIndex(i),Glob_ZIndex(j),          &
-	        Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                   &
-	        IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl,Skl,Tkl,Vkl,                  &
-                rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,           &
-                Darwinkl,drach_Darwinkl,OOkl,rmrmkl,NumCFGridPoints,CFGrid,CFkl,       &
+	      call MatrixElementsL1ForExpcVals(Glob_ZIndex(i),Glob_ZIndex(j),            &
+	        Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
+	        IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl,Skl,Tkl,Vkl,                    &
+                rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
+                Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
                 NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
               c=0
-          do a=1,n
-		    do b=a,n
-		      c=c+1; MEkl(c)=rm2kl(b,a)
-            enddo
-		  enddo		  
-          do a=1,n
-		    do b=a,n
-		      c=c+1; MEkl(c)=rmkl(b,a)
-            enddo
-		  enddo
-          do a=1,n
-		    do b=a,n
-		      c=c+1; MEkl(c)=rkl(b,a)
-            enddo
-		  enddo
-          do a=1,n
-		    do b=a,n
-		      c=c+1; MEkl(c)=r2kl(b,a)
-            enddo
-		  enddo
-          do a=1,n
-		    do b=a,n
-		      c=c+1; MEkl(c)=deltarkl(b,a)
-            enddo
-		  enddo
-          do a=1,n
-		    do b=a,n
-		      c=c+1; MEkl(c)=drach_deltarkl(b,a)
-            enddo
-		  enddo                  
-          c=c+1; MEkl(c)=Hkl
-          c=c+1; MEkl(c)=Skl  
-          c=c+1; MEkl(c)=Tkl
-          c=c+1; MEkl(c)=Vkl	
-          c=c+1; MEkl(c)=MVkl	
-          c=c+1; MEkl(c)=drach_MVkl          
-          c=c+1; MEkl(c)=Darwinkl
-          c=c+1; MEkl(c)=drach_Darwinkl          
-          c=c+1; MEkl(c)=OOkl	
-          do a=1,n
-            do b=a,n
-              do a1=a,n
-                do b1=a1,n
-                  c=c+1; MEkl(c)=rmrmkl(a,b,a1,b1) 
-                enddo 
+              do a=1,n
+	        do b=a,n
+		  c=c+1; MEkl(c)=rm2kl(b,a)
+                enddo
+              enddo		  
+              do a=1,n
+		do b=a,n
+		  c=c+1; MEkl(c)=rmkl(b,a)
+                enddo
+	      enddo
+              do a=1,n
+		do b=a,n
+		  c=c+1; MEkl(c)=rkl(b,a)
+                enddo
               enddo
-            enddo
-          enddo           
+              do a=1,n
+		do b=a,n
+		  c=c+1; MEkl(c)=r2kl(b,a)
+                enddo
+	      enddo
+              do a=1,n
+		do b=a,n
+		  c=c+1; MEkl(c)=deltarkl(b,a)
+                enddo
+	      enddo
+	      do a=1,n
+		do b=a,n
+		  c=c+1; MEkl(c)=drach_deltarkl(b,a)
+                enddo
+	      enddo
+	      do a=1,n
+		do b=a,n
+		  c=c+1; MEkl(c)=prvalkl(b,a)
+                enddo
+	      enddo                  
+              c=c+1; MEkl(c)=Hkl
+              c=c+1; MEkl(c)=Skl  
+              c=c+1; MEkl(c)=Tkl
+              c=c+1; MEkl(c)=Vkl	
+              c=c+1; MEkl(c)=MVkl	
+              c=c+1; MEkl(c)=drach_MVkl          
+              c=c+1; MEkl(c)=Darwinkl
+              c=c+1; MEkl(c)=drach_Darwinkl          
+              c=c+1; MEkl(c)=OOkl	
+              do a=1,n
+                do b=a,n
+                  do a1=a,n
+                    do b1=a1,n
+                      c=c+1; MEkl(c)=rmrmkl(a,b,a1,b1) 
+                    enddo 
+                  enddo
+                enddo
+              enddo           
 
-          do a=1,NumOfExpcVals
-            MEkl_s(a)=MEkl_s(a)+factor*Glob_YHYCoeff(k)*MEkl(a)
-		  enddo
+              do a=1,NumOfExpcVals
+                MEkl_s(a)=MEkl_s(a)+factor*Glob_YHYCoeff(k)*MEkl(a)
+	      enddo
 
-		  c=0
-		  if (AreCorrFuncNeeded) then
-		    do a=1,NumCFGridPoints
-		      do b=1,n*(n+1)/2
-		        c=c+1
-		        CFDMEkl_s(c)=CFDMEkl_s(c)+factor*Glob_YHYCoeff(k)*CFkl(b,a)
-		      enddo
-		    enddo
-		  endif
-		  if (ArePartDensNeeded) then
-		    do a=1,NumDensGridPoints
-		      do b=1,n+1
-		        c=c+1
-		        CFDMEkl_s(c)=CFDMEkl_s(c)+factor*Glob_YHYCoeff(k)*Denskl(b,a)
-		      enddo
-		    enddo
-		  endif
+	      c=0
+              if (AreCorrFuncNeeded) then
+                do a=1,NumCFGridPoints
+                  do b=1,n*(n+1)/2
+                    c=c+1
+                    CFDMEkl_s(c)=CFDMEkl_s(c)+factor*Glob_YHYCoeff(k)*CFkl(b,a)
+                  enddo
+                enddo
+              endif
+              if (ArePartDensNeeded) then
+                do a=1,NumDensGridPoints
+                  do b=1,n+1
+                    c=c+1
+                    CFDMEkl_s(c)=CFDMEkl_s(c)+factor*Glob_YHYCoeff(k)*Denskl(b,a)
+                  enddo
+                enddo
+              endif
 
-        enddo !k=1,Glob_NumYHYTerms
-      endif !SymmAdaptMethod==1
+            enddo !k=1,Glob_NumYHYTerms
+          endif !SymmAdaptMethod==1
 
 	  if (SymmAdaptMethod==2) then
 
 	    do k=1,Glob_NumYTerms
-          do kk=1,Glob_NumYTerms
-	        call MatrixElementsL1ForExpcVals(Glob_ZIndex(i),Glob_ZIndex(j),          &
-	          Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                   &
-	          Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl,Skl,Tkl,Vkl,          &
-                  rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,           &
-                  Darwinkl,drach_Darwinkl,OOkl,rmrmkl,NumCFGridPoints,CFGrid,CFkl,       &
+              do kk=1,Glob_NumYTerms
+	        call MatrixElementsL1ForExpcVals(Glob_ZIndex(i),Glob_ZIndex(j),            &
+	          Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
+	          Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl,Skl,Tkl,Vkl,            &
+                  rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
+                  Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
                   NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
 		c=0
-            do a=1,n
-		      do b=a,n
-		        c=c+1; MEkl(c)=rm2kl(b,a)
-              enddo
-		    enddo		    
-            do a=1,n
-		      do b=a,n
-		        c=c+1; MEkl(c)=rmkl(b,a)
-              enddo
-		    enddo
-            do a=1,n
-		      do b=a,n
-		        c=c+1; MEkl(c)=rkl(b,a)
-              enddo
-		    enddo
-            do a=1,n
-		      do b=a,n
-		        c=c+1; MEkl(c)=r2kl(b,a)
-              enddo
-		    enddo
-            do a=1,n
-		      do b=a,n
-		        c=c+1; MEkl(c)=deltarkl(b,a)
-              enddo
-		    enddo	
-            do a=1,n
-		      do b=a,n
-		        c=c+1; MEkl(c)=drach_deltarkl(b,a)
-              enddo
-		    enddo                    
-            c=c+1; MEkl(c)=Hkl
-            c=c+1; MEkl(c)=Skl  
-            c=c+1; MEkl(c)=Tkl
-            c=c+1; MEkl(c)=Vkl	
-            c=c+1; MEkl(c)=MVkl	
-            c=c+1; MEkl(c)=drach_MVkl            
-            c=c+1; MEkl(c)=Darwinkl
-            c=c+1; MEkl(c)=drach_Darwinkl            
-            c=c+1; MEkl(c)=OOkl	  
-            do a=1,n
-              do b=a,n
-                do a1=a,n
-                  do b1=a1,n
-                    c=c+1; MEkl(c)=rmrmkl(a,b,a1,b1) 
-                  enddo 
-                enddo
-              enddo
-            enddo              
+                do a=1,n
+		  do b=a,n
+		    c=c+1; MEkl(c)=rm2kl(b,a)
+                  enddo
+		enddo		    
+                do a=1,n
+		  do b=a,n
+		    c=c+1; MEkl(c)=rmkl(b,a)
+                  enddo
+		enddo
+                do a=1,n
+		  do b=a,n
+		    c=c+1; MEkl(c)=rkl(b,a)
+                  enddo
+		enddo
+                do a=1,n
+		  do b=a,n
+		    c=c+1; MEkl(c)=r2kl(b,a)
+                  enddo
+		enddo
+                do a=1,n
+		  do b=a,n
+		    c=c+1; MEkl(c)=deltarkl(b,a)
+                  enddo
+		enddo
+                do a=1,n
+		  do b=a,n
+		    c=c+1; MEkl(c)=drach_deltarkl(b,a)
+                  enddo
+		enddo	
+                do a=1,n
+		  do b=a,n
+		    c=c+1; MEkl(c)=prvalkl(b,a)
+                  enddo
+		enddo                               
+                c=c+1; MEkl(c)=Hkl
+                c=c+1; MEkl(c)=Skl  
+                c=c+1; MEkl(c)=Tkl
+                c=c+1; MEkl(c)=Vkl	
+                c=c+1; MEkl(c)=MVkl	
+                c=c+1; MEkl(c)=drach_MVkl            
+                c=c+1; MEkl(c)=Darwinkl
+                c=c+1; MEkl(c)=drach_Darwinkl            
+                c=c+1; MEkl(c)=OOkl	  
+                do a=1,n
+                  do b=a,n
+                    do a1=a,n
+                      do b1=a1,n
+                        c=c+1; MEkl(c)=rmrmkl(a,b,a1,b1) 
+                      enddo 
+                    enddo
+                  enddo
+                enddo              
 
-            do a=1,NumOfExpcVals
-              MEkl_s(a)=MEkl_s(a)+factor*Glob_YCoeff(k)*Glob_YCoeff(kk)*MEkl(a)
-		    enddo
+                do a=1,NumOfExpcVals
+                  MEkl_s(a)=MEkl_s(a)+factor*Glob_YCoeff(k)*Glob_YCoeff(kk)*MEkl(a)
+		enddo
 
-		    c=0
-		    if (AreCorrFuncNeeded) then
-		      do a=1,NumCFGridPoints
-		        do b=1,n*(n+1)/2
-		          c=c+1
-		          CFDMEkl_s(c)=CFDMEkl_s(c)+factor*Glob_YCoeff(k)*Glob_YCoeff(kk)*CFkl(b,a)
-		        enddo
-		      enddo
-		    endif
-		    if (ArePartDensNeeded) then
-		      do a=1,NumDensGridPoints
-		        do b=1,n+1
-		          c=c+1
-		          CFDMEkl_s(c)=CFDMEkl_s(c)+factor*Glob_YCoeff(k)*Glob_YCoeff(kk)*Denskl(b,a)
-		        enddo
-		      enddo
-		    endif
+		c=0
+                if (AreCorrFuncNeeded) then
+                  do a=1,NumCFGridPoints
+                    do b=1,n*(n+1)/2
+                      c=c+1
+                      CFDMEkl_s(c)=CFDMEkl_s(c)+factor*Glob_YCoeff(k)*Glob_YCoeff(kk)*CFkl(b,a)
+                    enddo
+                  enddo
+                endif
+                if (ArePartDensNeeded) then
+                  do a=1,NumDensGridPoints
+                    do b=1,n+1
+                      c=c+1
+                      CFDMEkl_s(c)=CFDMEkl_s(c)+factor*Glob_YCoeff(k)*Glob_YCoeff(kk)*Denskl(b,a)
+                    enddo
+                  enddo
+                endif
 
-          enddo !kk=1,Glob_NumYTerms
-        enddo !k=1,Glob_NumYTerms
-      endif !SymmAdaptMethod==2
+              enddo !kk=1,Glob_NumYTerms
+            enddo !k=1,Glob_NumYTerms
+          endif !SymmAdaptMethod==2
 
     endif
   enddo
@@ -8886,6 +8900,12 @@ do a=1,n
   do b=a,n
 	c=c+1
 	drach_deltar(b,a)=MEkl_s(c); drach_deltar(a,b)=MEkl_s(c)
+  enddo
+enddo
+do a=1,n
+  do b=a,n
+	c=c+1
+	prval(b,a)=MEkl_s(c); prval(a,b)=MEkl_s(c)
   enddo
 enddo
 c=c+1; H=MEkl_s(c)
@@ -8985,7 +9005,7 @@ if (Glob_ProcID==0) then
     do j=i+1,n
       write(*,'(1x,a21,i1,i1)',advance='no') '               1/r^2_',i,j
       write(*,*) '=',rm2(i,j)
-	enddo
+    enddo
   enddo  
   do i=1,n
     write(*,'(1x,a22,i1)',advance='no') '                  1/r_',i
@@ -8993,7 +9013,7 @@ if (Glob_ProcID==0) then
     do j=i+1,n
       write(*,'(1x,a21,i1,i1)',advance='no') '                 1/r_',i,j
       write(*,*)'=',rm(i,j)
-	enddo
+    enddo
   enddo
   write(*,*)
   do i=1,n
@@ -9002,7 +9022,7 @@ if (Glob_ProcID==0) then
     do j=i+1,n
       write(*,'(1x,a21,i1,i1)',advance='no') '                   r_',i,j
       write(*,*) '=',r(i,j)
-	enddo
+    enddo
   enddo
   write(*,*)
   do i=1,n
@@ -9011,7 +9031,7 @@ if (Glob_ProcID==0) then
     do j=i+1,n
       write(*,'(1x,a21,i1,i1)',advance='no') '                 r^2_',i,j
       write(*,*) '=',r2(i,j)
-	enddo
+    enddo
   enddo
   write(*,*)
   do i=1,n
@@ -9020,17 +9040,25 @@ if (Glob_ProcID==0) then
     do j=i+1,n
       write(*,'(1x,a20,i1,i1,a1)',advance='no') '            delta(r_',i,j,')'
       write(*,*) '=',deltar(i,j)
-	enddo
+    enddo
   enddo
-  write(*,*)
+  write(*,*)  
   do i=1,n
     write(*,'(1x,a21,i1,a1)',advance='no') '       drach_delta(r_',i,')'
     write(*,*) '=',drach_deltar(i,i)
     do j=i+1,n
       write(*,'(1x,a20,i1,i1,a1)',advance='no') '      drach_delta(r_',i,j,')'
       write(*,*) '=',drach_deltar(i,j)
-	enddo
-  enddo 
+    enddo
+  enddo  
+  do i=1,n
+    write(*,'(1x,a21,i1,a1)',advance='no') '             prval(r_',i,')'
+    write(*,*) '=',prval(i,i)
+    do j=i+1,n
+      write(*,'(1x,a20,i1,i1,a1)',advance='no') '            prval(r_',i,j,')'
+      write(*,*) '=',prval(i,j)
+    enddo
+  enddo   
   write(*,*)
   do i=1,n
     do j=i,n
@@ -9086,7 +9114,7 @@ if (Glob_ProcID==0) then
       if (a==b) write(2,'(a,i1,1x)',advance='no')    '                1/r^2_',a
       call writerealadv(2,beta/k)
     enddo	
-	write(*,*)    
+    write(*,*)    
     do i=1,Glob_NumOfNoneqvPairSets
 	  beta=ZERO
 	  mu=ZERO
@@ -9110,7 +9138,7 @@ if (Glob_ProcID==0) then
       if (a==b) write(2,'(a,i1,1x)',advance='no')    '                  1/r_',a
       call writerealadv(2,beta/k)
     enddo
-	write(*,*)
+    write(*,*)
     do i=1,Glob_NumOfNoneqvPairSets
 	  beta=ZERO
 	  mu=ZERO
@@ -9134,7 +9162,7 @@ if (Glob_ProcID==0) then
       if (a==b) write(2,'(a,i1,1x)',advance='no')    '                    r_',a
       call writerealadv(2,beta/k)
     enddo
-	write(*,*)
+    write(*,*)
     do i=1,Glob_NumOfNoneqvPairSets
 	  beta=ZERO
 	  mu=ZERO
@@ -9154,11 +9182,11 @@ if (Glob_ProcID==0) then
       !write to file
       a=Glob_EqvPairList(1,1,i)
       b=Glob_EqvPairList(2,1,i)
-      if (a/=b) write(2,'(a,i1,i1,1x)',advance='no') '                 r^2_',a,b
+      if (a/=b) write(2,'(a,i1,i1.1x)',advance='no') '                 r^2_',a,b
       if (a==b) write(2,'(a,i1,1x)',advance='no')    '                  r^2_',a
-      call writerealadv(2,beta/k) 
+      call writerealadv(2,beta/k)
     enddo
-	write(*,*)
+    write(*,*)
     do i=1,Glob_NumOfNoneqvPairSets
 	  beta=ZERO
 	  mu=ZERO
@@ -9182,7 +9210,7 @@ if (Glob_ProcID==0) then
       if (a==b) write(2,'(a,i1,a1,1x)',advance='no')    '             delta(r_',a,')'
       call writerealadv(2,beta/k)
     enddo
-	write(*,*) 
+    write(*,*)
     do i=1,Glob_NumOfNoneqvPairSets
 	  beta=ZERO
 	  mu=ZERO
@@ -9205,7 +9233,32 @@ if (Glob_ProcID==0) then
       if (a/=b) write(2,'(a,i1,i1,a1,1x)',advance='no') '      drach_delta(r_',a,b,')'
       if (a==b) write(2,'(a,i1,a1,1x)',advance='no')    '       drach_delta(r_',a,')'
       call writerealadv(2,beta/k)
-    enddo        
+    enddo
+    write(*,*)	
+    do i=1,Glob_NumOfNoneqvPairSets
+	  beta=ZERO
+	  mu=ZERO
+	  k=Glob_NumOfPairsInEqvPairSet(i)
+	  write(*,'(1x)',advance='no')
+	  do j=1,k
+	    a=Glob_EqvPairList(1,j,i)
+		b=Glob_EqvPairList(2,j,i)
+	    if (a==b) then
+          write(*,'(a8,i1,a4)',advance='no') 'prval(r_',a,') = '
+        else
+          write(*,'(a8,i1,i1,a4)',advance='no') 'prval(r_',a,b,') = '
+		endif
+		beta=beta+prval(a,b)
+	  enddo
+      call writerealadv(6,beta/k)
+      !write to file
+      a=Glob_EqvPairList(1,1,i)
+      b=Glob_EqvPairList(2,1,i)
+      if (a/=b) write(2,'(a,i1,i1,a1,1x)',advance='no') '            prval(r_',a,b,')'
+      if (a==b) write(2,'(a,i1,a1,1x)',advance='no')    '             prval(r_',a,')'
+      call writerealadv(2,beta/k)
+    enddo
+    write(*,*)	    
   endif
 
   close(2)
@@ -9298,6 +9351,12 @@ deallocate(r2)
 
 deallocate(deltarkl)
 deallocate(deltar)
+
+deallocate(drach_deltarkl)
+deallocate(drach_deltar)
+
+deallocate(prvalkl)
+deallocate(prval)
 
 deallocate(MEkl)
 deallocate(MEkl_s)
