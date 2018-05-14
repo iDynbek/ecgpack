@@ -218,8 +218,8 @@ ifeq ($(MACHINE), ocelote)
       export LINKFLAGS+=-C -O0 -g
     endif
     ifeq ($(CONFIG), release)
-      export FCFLAGS+=-O2
-      export LINKFLAGS+=-O2
+      export FCFLAGS+=-O3
+      export LINKFLAGS+=-O3
     endif
     ifeq ($(PREC), 8)
       COMPILER_SUPPORTED=yes
