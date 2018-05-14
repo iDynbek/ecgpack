@@ -8362,6 +8362,23 @@ if (GSEPSolMethod=='G') then
     enddo
     Glob_S(i,i)=ONE
   enddo
+!========================================
+!Saving matrices H and S:
+open(7,file='H.dat')
+do i=1,cbs
+  do j=1,cbs
+    write(7,'(1x,i4,1x,i4,1x,e23.16)') i,j, Glob_H(i,j)
+  enddo
+enddo
+close(7)
+open(7,file='S.dat')
+do i=1,cbs
+  do j=1,cbs
+    write(7,'(1x,i4,1x,i4,1x,e23.16)') i,j, Glob_S(i,j)
+  enddo
+enddo
+close(7)
+!========================================  
 
   if (Glob_ProcID==0) then
     write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
