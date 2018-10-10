@@ -110,11 +110,11 @@ do i=1,Glob_NumOfBBOPSteps
 	  select case (Glob_BBOP(i)%GSEPSolutionMethod)
       case('G')      
 	    call FullOpt1G(Glob_BBOP(i)%B,Glob_BBOP(i)%C,Glob_BBOP(i)%D,Glob_BBOP(i)%Q, &
-	           Glob_BBOP(i)%R,real(Glob_BBOP(i)%E,dprec),real(Glob_BBOP(i)%F,dprec), &
+	           Glob_BBOP(i)%R,real(Glob_BBOP(i)%E,4),real(Glob_BBOP(i)%F,4), &
 	           Glob_BBOP(i)%FileName1)	 
       case('I')
 	    call FullOpt1I(Glob_BBOP(i)%B,Glob_BBOP(i)%C,Glob_BBOP(i)%D,Glob_BBOP(i)%Q, &
-	           Glob_BBOP(i)%R,real(Glob_BBOP(i)%E,dprec),real(Glob_BBOP(i)%F,dprec), &
+	           Glob_BBOP(i)%R,real(Glob_BBOP(i)%E,4),real(Glob_BBOP(i)%F,4), &
 	           Glob_BBOP(i)%FileName1)	 
 	  endselect
 	else

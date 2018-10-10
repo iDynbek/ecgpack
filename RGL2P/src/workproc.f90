@@ -4044,6 +4044,7 @@ do while (K<Kstop)
           if (abs(Glob_S(i,j))>OverlapThreshold) then
             ii=ii+1
 			IsOverlapBad=.true.
+                        Glob_CurrEnergy=E_init
 	        if (Glob_ProcID==0) then
 	          if (ii==1) then
                 write(*,*) 'Warning: overlap of the following functions exceeds threshold'
@@ -4065,6 +4066,7 @@ do while (K<Kstop)
         if(abs(Glob_c(i))>LinCoeffThreshold) then
           ii=ii+1
 		  IsAnyLinCoeffBad=.true.
+                  Glob_CurrEnergy=E_init
 		  if (Glob_ProcID==0) then
             if (ii==1) then
               write(*,*) 'Warning: absolute value of linear parameters of the'
@@ -4658,6 +4660,7 @@ do while (K<Kstop)
           if (abs(Glob_S(i,j))>OverlapThreshold) then
             ii=ii+1
 			IsOverlapBad=.true.
+                        Glob_CurrEnergy=E_init
 	        if (Glob_ProcID==0) then
 	          if (ii==1) then
                 write(*,*) 'Warning: overlap of the following functions exceeds threshold'
@@ -4679,6 +4682,7 @@ do while (K<Kstop)
         if(abs(Glob_c(i))>LinCoeffThreshold) then
           ii=ii+1
 		  IsAnyLinCoeffBad=.true.
+                  Glob_CurrEnergy=E_init
 		  if (Glob_ProcID==0) then
             if (ii==1) then
               write(*,*) 'Warning: absolute value of linear parameters of the'
@@ -5917,7 +5921,7 @@ subroutine FullOpt1G(InitFunc,FinalFunc,MaxEnergyEval,OverlapThreshold,MaxOverla
 !Arguments:
 integer,intent(in)     :: InitFunc,FinalFunc,MaxEnergyEval
 real(dprec),intent(in) :: OverlapThreshold,MaxOverlapPenalty
-real(dprec),intent(in) :: DataSaveMinTimeInterv,HessianSaveMinTimeInterv
+real(4),intent(in)     :: DataSaveMinTimeInterv,HessianSaveMinTimeInterv
 character(Glob_FileNameLength),intent(in) :: HessFileName
 !Local variables:
 integer      i,j
@@ -5928,7 +5932,7 @@ integer      BlockSizeForDSYGVX
 logical      IsSwapFileOK,ExitNeeded
 logical      SaveHessian,IsHessFileOK,IsHessSaveSuccess
 real(dprec)  Evalue,CurrentEnergy
-real(dprec)  TimeOfLastSave, TimeOfLastHessSave
+real(4)      TimeOfLastSave, TimeOfLastHessSave
 real(dprec)  t
 integer      tas,InitFuncNew
 real(dprec)  MaxAbsOverlap,MinAbsOverlap,AverageAbsOverlap
@@ -6403,7 +6407,7 @@ subroutine FullOpt1I(InitFunc,FinalFunc,MaxEnergyEval,OverlapThreshold,MaxOverla
 !Arguments:
 integer,intent(in)     :: InitFunc,FinalFunc,MaxEnergyEval
 real(dprec),intent(in) :: OverlapThreshold,MaxOverlapPenalty
-real(dprec),intent(in) :: DataSaveMinTimeInterv,HessianSaveMinTimeInterv
+real(4),intent(in)     :: DataSaveMinTimeInterv,HessianSaveMinTimeInterv
 character(Glob_FileNameLength),intent(in) :: HessFileName
 !Local variables:
 integer      i,j
@@ -6413,7 +6417,7 @@ integer      NumOfEnergyEvalDuringFullOpt_Init
 logical      IsSwapFileOK,ExitNeeded
 logical      SaveHessian,IsHessFileOK,IsHessSaveSuccess
 real(dprec)  Evalue,CurrentEnergy
-real(dprec)  TimeOfLastSave, TimeOfLastHessSave
+real(4)      TimeOfLastSave, TimeOfLastHessSave
 real(dprec)  t
 integer      tas,InitFuncNew
 real(dprec)  MaxAbsOverlap,MinAbsOverlap,AverageAbsOverlap

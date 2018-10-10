@@ -513,7 +513,6 @@ integer     Glob_MPIErrCode !Error code for MPI routines
 !Declaring external functions
 !=============================================================
 
-real(4), external     :: DTIME
 real(dprec), external :: DLAMCH
 integer, external     :: ILAENV
 

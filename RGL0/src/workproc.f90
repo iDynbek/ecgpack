@@ -3997,6 +3997,7 @@ do while (K<Kstop)
           if (abs(Glob_S(i,j))>OverlapThreshold) then
             ii=ii+1
 			IsOverlapBad=.true.
+                        Glob_CurrEnergy=E_init
 	        if (Glob_ProcID==0) then
 	          if (ii==1) then
                 write(*,*) 'Warning: overlap of the following functions exceeds threshold'
@@ -4018,6 +4019,7 @@ do while (K<Kstop)
         if(abs(Glob_c(i))>LinCoeffThreshold) then
           ii=ii+1
 		  IsAnyLinCoeffBad=.true.
+                  Glob_CurrEnergy=E_init
 		  if (Glob_ProcID==0) then
             if (ii==1) then
               write(*,*) 'Warning: absolute value of linear parameters of the'
@@ -4560,6 +4562,7 @@ do while (K<Kstop)
           if (abs(Glob_S(i,j))>OverlapThreshold) then
             ii=ii+1
 			IsOverlapBad=.true.
+                        Glob_CurrEnergy=E_init
 	        if (Glob_ProcID==0) then
 	          if (ii==1) then
                 write(*,*) 'Warning: overlap of the following functions exceeds threshold'
@@ -4581,6 +4584,7 @@ do while (K<Kstop)
         if(abs(Glob_c(i))>LinCoeffThreshold) then
           ii=ii+1
 		  IsAnyLinCoeffBad=.true.
+                  Glob_CurrEnergy=E_init
 		  if (Glob_ProcID==0) then
             if (ii==1) then
               write(*,*) 'Warning: absolute value of linear parameters of the'
