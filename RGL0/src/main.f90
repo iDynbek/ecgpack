@@ -194,7 +194,7 @@ do i=1,Glob_NumOfBBOPSteps
 	else
       if (Glob_ProcID==0) then
         write(*,*) 'Error in main: incorrect BBOP step ',i
-		write(*,*) 'Second parameters in EXPC_VALS is incorrect'
+		write(*,*) 'Second parameter in EXPC_VALS is incorrect'
       endif
 	endif
 	
@@ -205,7 +205,7 @@ do i=1,Glob_NumOfBBOPSteps
 	else
       if (Glob_ProcID==0) then
         write(*,*) 'Error in main: incorrect BBOP step ',i
-		write(*,*) 'Second parameters in DENSITIES is incorrect'
+		write(*,*) 'Second parameter in DENSITIES is incorrect'
       endif
 	endif	
 	
@@ -219,7 +219,19 @@ do i=1,Glob_NumOfBBOPSteps
 	    write(*,*) ' done'
 	    write(*,*)
 	  endif  
-    endif	
+    endif
+    
+  case('SAVE_HSWF')
+    if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then     
+	  call SaveHSWF(Glob_BBOP(i)%FileName1,Glob_BBOP(i)%FileName2, &
+	           Glob_BBOP(i)%FileName3,Glob_BBOP(i)%FileName4, &
+                   Glob_BBOP(i)%GSEPSolutionMethod)
+	else
+      if (Glob_ProcID==0) then
+        write(*,*) 'Error in main: incorrect BBOP step ',i
+		write(*,*) 'Second parameter in SAVE_HSEV is incorrect'
+      endif
+	endif	    
 	
   endselect
 enddo

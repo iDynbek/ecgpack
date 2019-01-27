@@ -257,7 +257,8 @@ if (Glob_ProcID==0) then
 	    (ReadChar(1:9)=='FULL_OPT1').or.(ReadChar(1:9)=='EXPC_VALS').or.  &
 		(ReadChar(1:9)=='ELIM_LCFN').or.(ReadChar(1:9)=='ELIM_LND1').or.  &
 		(ReadChar(1:9)=='SEPR_LND1').or.(ReadChar(1:9)=='SEPR_FLCF').or.  &
-		(ReadChar(1:9)=='DENSITIES').or.(ReadChar(1:9)=='SAVE_FILE')) then
+		(ReadChar(1:9)=='DENSITIES').or.(ReadChar(1:9)=='SAVE_FILE').or.  &
+                (ReadChar(1:9)=='SAVE_HSWF')) then
 	  Glob_NumOfBBOPSteps=Glob_NumOfBBOPSteps+1
     else
       IsBBOPStep=.false.
@@ -375,7 +376,17 @@ if (Glob_ProcID==0) then
                 Glob_BBOP(i)%FileName1(1:Glob_FileNameLength)   
       j=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
       !write(*,'(1x,a9,1x,i6,1x)',advance='no') Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%A
-      !call writestringadv(6,Glob_BBOP(i)%FileName1,j)                
+      !call writestringadv(6,Glob_BBOP(i)%FileName1,j)   
+    case('SAVE_HSWF')
+      read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &
+            Glob_BBOP(i)%A,Glob_BBOP(i)%FileName1(1:Glob_FileNameLength), &
+            Glob_BBOP(i)%FileName2(1:Glob_FileNameLength),                &
+            Glob_BBOP(i)%FileName3(1:Glob_FileNameLength),                &
+            Glob_BBOP(i)%FileName4(1:Glob_FileNameLength)
+      j1=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
+      j2=len_trim(Glob_BBOP(i)%FileName2(1:Glob_FileNameLength))
+      j3=len_trim(Glob_BBOP(i)%FileName3(1:Glob_FileNameLength)) 
+      j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength))       
 	endselect			     
   enddo
   read(1,'(a70)')   ReadChar(1:70)
@@ -657,7 +668,18 @@ if (Glob_ProcID==0) then
     case('SAVE_FILE')
 	  j=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
       write(1,'(1x,a9,1x,i6,1x)',advance='no') Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%A
-      call writestringadv(1,Glob_BBOP(i)%FileName1,j)              
+      call writestringadv(1,Glob_BBOP(i)%FileName1,j)
+    case('SAVE_HSWF')
+	  j1=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))  
+	  j2=len_trim(Glob_BBOP(i)%FileName2(1:Glob_FileNameLength)) 
+	  j3=len_trim(Glob_BBOP(i)%FileName3(1:Glob_FileNameLength)) 
+	  j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength))           
+      write(1,'(1x,a9,1x,a1,1x,i6)',advance='no')              &
+            Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
+      call writestring(1,Glob_BBOP(i)%FileName1,j1) 
+      call writestring(1,Glob_BBOP(i)%FileName2,j2)   
+      call writestring(1,Glob_BBOP(i)%FileName3,j3)  
+      call writestringadv(1,Glob_BBOP(i)%FileName4,j4)     
 	endselect			     
   enddo
   write(1,*) '=============================='
@@ -8219,6 +8241,382 @@ stop
 
 end subroutine SeparateFuncLargeCoeff
 
+
+subroutine SaveHSWF(FileName1,FileName2,FileName3,FileName4,GSEPSolMethod)
+!Subroutine SaveHSWF computes the Hamiltonian and overlap matrices, as well
+!as the eigenvector corresponding to the normalized wave function and save
+!them into files. Depending on the argument GSEPsolMethod, it can use 
+!either LAPACK subroutine DSYGVX or the inverse iteration method to solve GSEP.
+!Input parameters:
+!  FileName1 - the name of the file where the Hamiltonian matrix will be saved.
+!              If FileName1 is equal to 'none','NONE', or 'None' then nothing
+!              is saved.
+!  FileName2 - the name of the file where the overlap matrix will be saved.
+!              If FileName2 is equal to 'none','NONE', or 'None' then nothing
+!              is saved.
+!  FileName3 - the name of the file where the eigenvector (linear variational 
+!              parameters) will be saved. If FileName3 is equal to 'none','NONE', 
+!              or 'None' then nothing is saved.
+!  FileName4 - the name of the file where the entire wave function (both
+!              linear and nonlinear variational parameters) will be saved. If 
+!              FileName4 is equal to 'none','NONE',or 'None' then nothing is saved.    
+!  GSEPsolMethod - can be either 'G' or 'I'. It defines the method used to solve GSEP 
+!The format of the files that contains the Hamiltonian and overlap is such that each 
+!matrix element is placed in a separate line and is preceeded by two integer indicies, e.g.
+!    23  78   0.123456789E+02
+!The file that contains the eigenvector also contains one entry per line, preceded by its 
+!index, e.g.
+!    57  0.123456789E+02 
+!The file that contains the wave function consists of a short header (containing the 
+!number of particles, masses, charges, and Young operator) and then 
+!lines containing the index i, linear coefficient of basis function i, and, after a
+!colon, parameters of that function:
+!   57  0.123456789E+02  :  0.987654321E+02 ......... 
+    
+!Parameters:
+character(Glob_FileNameLength),intent(in) :: FileName1
+character(Glob_FileNameLength),intent(in) :: FileName2
+character(Glob_FileNameLength),intent(in) :: FileName3   
+character(Glob_FileNameLength),intent(in) :: FileName4
+character(1)        ::    GSEPSolMethod
+
+!Local variables:
+integer        i,j
+integer        n,np,npt,cbs
+integer        ErrorCode
+logical        IsHNeeded,IsSNeeded,IsEVNeeded,IsWFNeeded
+logical        IsSwapFileOK
+integer        BlockSizeForDSYGVX
+integer        NumOfEigvecs,NumOfEigvalsFound
+real(dprec)    Evalue
+real(dprec),allocatable,dimension(:)      :: Eigvals
+real(dprec),allocatable,dimension(:,:)    :: Eigvecs
+integer,allocatable,dimension(:)          :: IFAIL
+integer        NumOfIterations
+
+if (Glob_ProcID==0) then
+  write(*,*)
+  write(*,*) 'Routine SaveHSWF has started'
+  write(*,*) 'Number of basis functions',Glob_CurrBasisSize
+  write(*,*) 'GSEP solution method ',GSEPsolMethod
+endif
+if ((GSEPsolMethod/='G').and.(GSEPsolMethod/='I')) then
+  if (Glob_ProcID==0) then
+    write(*,*) 'Error in SaveHSWF: wrong GSEP solution method'
+  endif
+  stop
+endif
+
+!Setting the values of some global and local variables
+Glob_GSEPSolutionMethod=GSEPsolMethod
+Glob_OverlapPenaltyAllowed=.false.
+Glob_HSLeadDim=Glob_CurrBasisSize
+n=Glob_n
+np=Glob_np
+npt=Glob_npt
+Glob_HSBuffLen=max(min(Glob_CurrBasisSize*(Glob_CurrBasisSize+1)/2,1000),30*Glob_CurrBasisSize)
+cbs=Glob_CurrBasisSize
+if (GSEPsolMethod=='G') NumOfEigvecs=min(cbs,Glob_WhichEigenvalue+10)
+if (GSEPsolMethod=='I') NumOfEigvecs=1
+
+!Setting logical variables that determine if everything (H, S, eigenvector, wave function) 
+!needs to be saved
+if ((FileName1==' ').or.(FileName1=='none').or. &
+    (FileName1=='NONE').or.(FileName1=='None')) then
+  IsHNeeded=.false.
+else
+  IsHNeeded=.true.
+endif
+if ((FileName2==' ').or.(FileName2=='none').or. &
+    (FileName2=='NONE').or.(FileName2=='None')) then
+  IsSNeeded=.false.
+else
+  IsSNeeded=.true.
+endif
+if ((FileName3==' ').or.(FileName3=='none').or. &
+    (FileName3=='NONE').or.(FileName3=='None')) then
+  IsEVNeeded=.false.
+else
+  IsEVNeeded=.true.
+endif
+if ((FileName4==' ').or.(FileName4=='none').or. &
+    (FileName4=='NONE').or.(FileName4=='None')) then
+  IsWFNeeded=.false.
+else
+  IsWFNeeded=.true.
+endif
+
+!Allocate global arrays
+allocate(Glob_H(cbs,cbs))
+allocate(Glob_S(cbs,cbs))
+if (GSEPsolMethod=='G') allocate(Glob_diagH(cbs))
+allocate(Glob_diagS(cbs))
+if (GSEPsolMethod=='I') allocate(Glob_invD(cbs))
+allocate(Glob_c(cbs))
+allocate(Glob_HklBuff1(Glob_HSBuffLen))
+allocate(Glob_HklBuff2(Glob_HSBuffLen))
+allocate(Glob_SklBuff1(Glob_HSBuffLen))
+allocate(Glob_SklBuff2(Glob_HSBuffLen))
+
+!Allocate workspace for DSYGVX
+if (GSEPsolMethod=='G') then
+  BlockSizeForDSYGVX=ILAENV(1,'DSYTRD','VIU',cbs,cbs,cbs,cbs)
+  Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*cbs,8*cbs)
+  allocate(Glob_WorkForDSYGVX(Glob_LWorkForDSYGVX))
+  allocate(Glob_IWorkForDSYGVX(5*cbs))
+endif
+
+!Allocate workspace for subroutine GSEPIIS
+if (GSEPsolMethod=='I') then
+  allocate(Glob_WorkForGSEPIIS(cbs))
+  allocate(Glob_LastEigvector(cbs))
+  Glob_LastEigvector(1:cbs)=ONE
+endif
+
+!Allocate local arrays
+if (GSEPsolMethod=='G') then
+  allocate(Eigvals(NumOfEigvecs))
+  allocate(Eigvecs(cbs,NumOfEigvecs))
+  allocate(IFAIL(cbs))
+endif
+
+call ReadSwapFileAndDistributeData(IsSwapFileOK)
+
+if (.not.IsSwapFileOK) then
+  if (Glob_ProcID==0) write(*,'(1x,a52)',advance='no') &
+    'Computing Hamiltonian and overlap matrix elements...'
+  call ComputeMatElem(1,cbs)
+  if (Glob_ProcID==0) write(*,*) 'done'
+endif
+
+if (GSEPSolMethod=='G') then
+  do i=1,cbs
+    do j=1,i-1
+      Glob_H(j,i)=Glob_H(i,j)
+    enddo
+    Glob_H(i,i)=Glob_diagH(i)
+  enddo
+  do i=1,cbs
+    do j=1,i-1
+      Glob_S(j,i)=Glob_S(i,j)
+    enddo
+    Glob_S(i,i)=ONE
+  enddo
+  
+  !Saving matrices H and S:
+  if (Glob_ProcID==0) then
+    if (IsHNeeded) then
+      write(*,'(1x,a)',advance='no') 'Saving the Hamiltonian matrix...'          
+      open(2,file=FileName1)
+        do i=1,cbs
+          do j=1,cbs
+            write(2,'(1x,i6,1x,i6,1x)',advance='no') i,j 
+            call writerealadv(2,Glob_H(i,j)) 
+          enddo
+        enddo      
+      close(2)
+      write(*,*) 'done'
+    endif    
+    if (IsSNeeded) then
+            write(*,'(1x,a)',advance='no') 'Saving the overlap matrix...'    
+      open(2,file=FileName2)
+        do i=1,cbs
+          do j=1,cbs
+            write(2,'(1x,i6,1x,i6,1x)',advance='no') i,j 
+            call writerealadv(2,Glob_S(i,j)) 
+          enddo
+        enddo      
+      close(2) 
+      write(*,*) 'done'
+    endif       
+  endif
+
+  if ((IsEVNeeded).or.(IsWFNeeded)) then
+    if (Glob_ProcID==0) then
+      write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
+      call DSYGVX(1,'V','I','U',cbs,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,  &
+         ZERO,ZERO,1,NumOfEigvecs,Glob_AbsTolForDSYGVX, &
+         NumOfEigvalsFound,Eigvals,Eigvecs,cbs,Glob_WorkForDSYGVX,Glob_LWorkForDSYGVX, &
+         Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
+      !SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
+      !$                   VL, VU, IL, IU, ABSTOL,
+      !$                   M, W, Z, LDZ, WORK, LWORK,
+      !$                   IWORK, IFAIL, INFO )
+    endif
+    call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    if (ErrorCode/=0) then
+      if (Glob_ProcID==0) then
+        write(*,*) 'failed'
+        write(*,*) &
+       'Error in SaveHSWF: routine DSYGVX failed with error code',ErrorCode
+      endif
+      stop
+    endif
+  
+    !sending the eigenvalue and the eigenvector to all processes
+    if (Glob_ProcID==0) then
+      Evalue=Eigvals(Glob_WhichEigenvalue)
+      Glob_c(1:cbs)=Eigvecs(1:cbs,Glob_WhichEigenvalue)
+    endif
+    call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_c,cbs,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    Glob_CurrEnergy=Evalue
+
+    if (Glob_ProcID==0) then
+      write(*,*) 'done'
+      write(*,*) 'Energy: ',Evalue
+    endif    
+    
+  endif  
+    
+endif !if (GSEPSolMethod=='G')  
+
+if (GSEPSolMethod=='I') then
+  !Saving matrices H and S:
+  if (Glob_ProcID==0) then
+    if (IsHNeeded) then
+      write(*,'(1x,a)',advance='no') 'Saving Hamiltonian matrix...'          
+      open(2,file=FileName1)
+        do i=1,cbs
+          do j=1,cbs
+            write(2,'(1x,i6,1x,i6,1x)',advance='no') i,j 
+            if (i==j) call writerealadv(2,Glob_H(i,j)+Glob_ApproxEnergy)
+            if (i>j) call writerealadv(2,Glob_H(i,j)+Glob_ApproxEnergy*Glob_S(i,j)) 
+            if (i<j) call writerealadv(2,Glob_H(j,i)+Glob_ApproxEnergy*Glob_S(j,i))
+          enddo
+        enddo      
+      close(2)
+      write(*,*) 'done'
+    endif    
+    if (IsSNeeded) then
+      write(*,'(1x,a)',advance='no') 'Saving overlap matrix...'    
+      open(2,file=FileName2)
+        do i=1,cbs
+          do j=1,cbs
+            write(2,'(1x,i6,1x,i6,1x)',advance='no') i,j 
+            if (i==j) then
+              call writerealadv(2,ONE)
+            else  
+              call writerealadv(2,Glob_S(i,j)) 
+            endif  
+          enddo
+        enddo      
+      close(2) 
+      write(*,*) 'done'
+    endif       
+  endif    
+  
+  if ((IsEVNeeded).or.(IsWFNeeded)) then  
+    if (Glob_ProcID==0) write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
+    if (cbs==1) then
+      Glob_CurrEnergy=Glob_diagH(1)
+      NumOfIterations=1
+      ErrorCode=0
+    else
+      call GSEPIIS(1,cbs,Glob_H,Glob_HSLeadDim,Glob_invD,Glob_S,Glob_HSLeadDim, &
+                 Glob_ApproxEnergy,Glob_LastEigvector,Glob_WorkForGSEPIIS,Glob_EigvalTol, &
+                 Evalue,Glob_c,Glob_LastEigvalTol,Glob_MaxIterForGSEPIIS, &
+                 0,NumOfIterations,ErrorCode)
+      !GSEPIIS(k,n,M,nM,invD,B,nB, &
+      !        apprlambda,v,w,Tol, &
+      !        lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode)
+      if (Glob_LastEigvalTol>Glob_WorstEigvalTol) Glob_WorstEigvalTol=Glob_LastEigvalTol
+      if (Glob_LastEigvalTol>Glob_BestEigvalTol) Glob_BestEigvalTol=Glob_LastEigvalTol
+      call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(Glob_c,cbs,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    endif
+    Glob_InvItTempCounter1=Glob_InvItTempCounter1+1
+    Glob_InvItTempCounter2=Glob_InvItTempCounter2+NumOfIterations
+    Glob_CurrEnergy=Evalue
+    if (ErrorCode/=0) then
+      if (Glob_ProcID==0) then
+        write(*,*) 'failed'
+        write(*,*) 'Error in SaveHSWF: the energy cannot be computed'
+      endif
+      stop
+    endif
+    !print the energy
+    if (Glob_ProcID==0) then
+      write(*,*) 'done'
+      write(*,*) 'Energy: ',Evalue
+    endif
+  endif
+endif
+
+!Saving the eigenvector
+if ((IsEVNeeded).and.(Glob_ProcID==0)) then  
+  write(*,'(1x,a)',advance='no') 'Saving eigenvector...'
+  open(2,file=FileName3)
+  do i=1,cbs
+    write(2,'(1x,i6,1x)',advance='no') i 
+    call writerealadv(2,Glob_c(i))         
+  enddo    
+  close(2)
+  write(*,*) 'done'
+endif
+
+!Saving the wave function
+if ((IsWFNeeded).and.(Glob_ProcID==0)) then  
+  write(*,'(1x,a)',advance='no') 'Saving wave function...'
+  open(2,file=FileName4)
+  write(2,'(1x,a)') 'RGL1 WAVE FUNCTION FILE'
+  write(2,'(1x,a9,1x,i6)') 'PARTICLES',Glob_n+1
+  write(2,'(1x,a6)',advance='no') 'MASSES'
+  call writerealarradv(2,Glob_Mass,Glob_n+1)
+  write(2,'(1x,a7)',advance='no') 'CHARGES'
+  call writereal(2,Glob_PseudoCharge0)
+  call writerealarradv(2,Glob_PseudoCharge,Glob_n)  
+  j=len_trim(Glob_YOperatorString)
+  write(2,'(1x,a8)',advance='no') 'SYMMETRY'
+  call writestringadv(2,Glob_YOperatorString,j)
+  write(2,'(1x,a10,1x,i6)') 'BASIS_SIZE',Glob_CurrBasisSize
+  write(2,'(1x,a14)',advance='no') 'CURRENT_ENERGY'
+  call writerealadv(2,Glob_CurrEnergy)  
+  write(2,*) '=============================='
+  do i=1,cbs
+    write(2,'(1x,i6,1x)',advance='no') i 
+    call writereal(2,Glob_c(i))  
+    write(2,'(1x,a1,1x)',advance='no') ':'
+    write(2,'(i6,1x)',advance='no') Glob_ZIndex(i)
+    call writerealarradv(2,Glob_NonlinParam(1:Glob_npt,i),Glob_npt)
+  enddo    
+  close(2)
+  write(*,*) 'done'
+endif
+
+if (GSEPSolMethod=='G') then
+  deallocate(IFAIL)
+  deallocate(Eigvecs)
+  deallocate(Eigvals)
+endif
+
+if (GSEPsolMethod=='I') then
+  deallocate(Glob_LastEigvector)
+  deallocate(Glob_WorkForGSEPIIS)
+endif
+
+!dellocate workspace for DSYGVX
+if (GSEPSolMethod=='G') then
+  deallocate(Glob_WorkForDSYGVX)
+  deallocate(Glob_IWorkForDSYGVX)
+endif
+
+!deallocate global arrays
+deallocate(Glob_SklBuff2)
+deallocate(Glob_SklBuff1)
+deallocate(Glob_HklBuff2)
+deallocate(Glob_HklBuff1)
+deallocate(Glob_c)
+if (GSEPSolMethod=='I') deallocate(Glob_invD)
+deallocate(Glob_diagS)
+if (GSEPSolMethod=='G') deallocate(Glob_diagH)
+deallocate(Glob_S)
+deallocate(Glob_H)
+
+if (Glob_ProcID==0) write (*,*) 'Routine SaveHSWF has finished'
+
+end subroutine SaveHSWF
 
 
 subroutine ExpectationValues(SymmAdaptMethod,FileName1,FileName2,FileName3,FileName4,GSEPSolMethod)
