@@ -1,0 +1,301 @@
+# This is a makefile to compile an ECG code. Examples of compilations with this
+# makefile:
+#    make release COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg  
+#    make debug   COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg  
+#    make all     COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg  
+
+# Set default compiler type (intel, gnu, sun, etc..)
+COMPILER_TYPE=intel
+
+# Set default machine where the compilation takes place (mylinuxbox, ice, marin, etc.)
+MACHINE=mylinuxbox
+
+# Set the default precision (kind of real type, 8, 10, or 16)
+# Value PREC=8 corresponds to standard double precision
+# Value PREC=16 corresponds to quadruple precision
+PREC=8
+
+# Set the default name for the generated executable file
+EXEFILE=ecg
+
+# Directory where all source files are located
+SRC_DIR=./src
+
+# Compiler flags for each machine and compiler type (for both release and debug builds). 
+
+# My work desktop computer 
+ifeq ($(MACHINE), mylinuxbox) 
+  # Intel Fortran and Open MPI (mylinuxbox)
+  ifeq ($(COMPILER_TYPE), intel)
+    FC=mpif90
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-module $(CONFIG)
+    export LINKFLAGS=-module $(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g -traceback -debug extended
+      export LINKFLAGS+=-C -O0 -g -traceback -debug extended
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3 -ipo -xhost -fp-model precise
+      export LINKFLAGS+=-O3 -ipo -xhost -fp-model precise
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+    endif
+    ifeq ($(PREC), 16)
+      COMPILER_SUPPORTED=yes
+    endif
+  endif
+  # gfortran and Open MPI (mylinuxbox)
+  ifeq ($(COMPILER_TYPE), gnu)
+    FC=mpif90
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-J$(CONFIG)
+    export LINKFLAGS=-J$(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan
+      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3
+      export LINKFLAGS+=-O3
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+    endif
+    ifeq ($(PREC), 10)
+      COMPILER_SUPPORTED=yes
+    endif
+  endif
+  # Sun Fortran and Sun MPI (mylinuxbox)
+  ifeq ($(COMPILER_TYPE), sun)
+    FC=/opt/sun/sunstudio12.1/bin/f90
+    export MPICOMPFLAGS=$(shell /opt/SUNWhpc/HPC8.2.1/sun/bin/mpif90 --showme:compile)
+    export MPILINKFLAGS=$(shell /opt/SUNWhpc/HPC8.2.1/sun/bin/mpif90 --showme:link)
+    export FCFLAGS=-M$(CONFIG) -moddir=$(CONFIG)
+    export LINKFLAGS=-M$(CONFIG) -moddir=$(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g
+      export LINKFLAGS+=-C -O0 -g
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-fast
+      export LINKFLAGS+=-fast
+    endif
+    ifeq ($(PREC), 8)
+      export COMPILER_SUPPORTED=yes
+    endif
+  endif
+endif
+
+ifeq ($(MACHINE), ocelote) 
+  # Intel Fortran and Intel MPI (ocelote)
+  ifeq ($(COMPILER_TYPE), intel)
+    FC=mpiifort
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-module $(CONFIG)
+    export LINKFLAGS=-module $(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g -traceback -debug extended
+      export LINKFLAGS+=-C -O0 -g -traceback -debug extended
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3 -ipo -xhost -fp-model precise
+      export LINKFLAGS+=-O3 -ipo -xhost -fp-model precise
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+    endif
+    ifeq ($(PREC), 16)
+      COMPILER_SUPPORTED=yes
+    endif
+  endif
+  # gfortran and Open MPI (ocelote, same as mylinuxbox)
+  ifeq ($(COMPILER_TYPE), gnu)
+    FC=mpif90
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-J$(CONFIG)
+    export LINKFLAGS=-J$(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan
+      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3
+      export LINKFLAGS+=-O3
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+    endif
+    ifeq ($(PREC), 10)
+      COMPILER_SUPPORTED=yes
+    endif
+  endif
+endif
+
+ifeq ($(MACHINE), elgato) 
+  # Intel Fortran and Open MPI (elgato)
+  ifeq ($(COMPILER_TYPE), intel)
+    FC=mpiifort
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-module $(CONFIG)
+    export LINKFLAGS=-module $(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g -traceback -debug extended
+      export LINKFLAGS+=-C -O0 -g -traceback -debug extended
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3 -ipo -xhost -fp-model precise
+      export LINKFLAGS+=-O3 -ipo -xhost -fp-model precise
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+    endif
+    ifeq ($(PREC), 16)
+      COMPILER_SUPPORTED=yes
+    endif
+  endif
+  # gfortran and Open MPI (elgato, same as mylinuxbox)
+  ifeq ($(COMPILER_TYPE), gnu)
+    FC=mpif90
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-J$(CONFIG)
+    export LINKFLAGS=-J$(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan
+      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O2
+      export LINKFLAGS+=-O2
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+    endif
+    ifeq ($(PREC), 10)
+      COMPILER_SUPPORTED=yes
+    endif
+  endif
+endif
+
+ifeq ($(MACHINE), bluehive) 
+  # Intel Fortran and Intel MPI (bluehive)
+  ifeq ($(COMPILER_TYPE), intel)
+    FC=mpiifort
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-module $(CONFIG)
+    export LINKFLAGS=-module $(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g
+      export LINKFLAGS+=-C -O0 -g
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3 -ipo -xhost -fp-model precise
+      export LINKFLAGS+=-O3 -ipo -xhost -fp-model precise
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+    endif
+    ifeq ($(PREC), 16)
+      COMPILER_SUPPORTED=yes
+    endif
+  endif
+  # gfortran and Open MPI (bluehive)
+  ifeq ($(COMPILER_TYPE), gnu)
+    FC=gfortran
+    export MPICOMPFLAGS=$(shell mpif90 --showme:compile)
+    export MPILINKFLAGS=$(shell mpif90 --showme:link)
+    export FCFLAGS=-J$(CONFIG)
+    export LINKFLAGS=-J$(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g
+      export LINKFLAGS+=-C -O0 -g
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3 -march=native -mtune=native
+      export LINKFLAGS+=-O3 -march=native -mtune=native
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+    endif
+    ifeq ($(PREC), 10)
+      COMPILER_SUPPORTED=yes
+    endif
+  endif
+endif
+
+# Creating lists of objects for convenience
+
+export BARE_OBJS=wp_def_$(PREC).o globvars.o matelem.o workproc.o main.o
+export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS))
+
+
+.PHONY: release debug all clean cleaner cleanest cleandebug cleanrelease ptarg
+
+release:
+ifndef CONFIG
+	-@mkdir -p $(@)
+	@$(MAKE) $(MAKEFILE) --no-print-directory $(@) CONFIG=$(@)
+else
+	@$(MAKE) $(MAKEFILE) --no-print-directory $(CONFIG)/$(EXEFILE)
+endif
+
+debug:
+ifndef CONFIG
+	-@mkdir -p $(@)
+	@$(MAKE) $(MAKEFILE) --no-print-directory $(@) CONFIG=$(@)
+else
+	@$(MAKE) $(MAKEFILE) --no-print-directory $(CONFIG)/$(EXEFILE)
+endif
+
+all: release debug
+
+cleanrelease:
+	-rm -rf release/*.o release/*.mod	
+cleandebug:
+	-rm -rf debug/*.o debug/*.mod
+clean: cleanrelease cleandebug
+cleaner:
+	-rm -rf debug/*.o debug/*.mod debug/$(EXEFILE)
+	-rm -rf release/*.o release/*.mod release/$(EXEFILE)
+cleanest:
+	-rm -rf debug release
+
+# This phony target is just used to output some info and error check 
+
+ptarg:
+	@echo CONFIG=$(CONFIG)
+ifeq ($(COMPILER_SUPPORTED), yes)
+	@echo Using COMPILER_TYPE=$(COMPILER_TYPE) and settings for MACHINE=$(MACHINE) PREC=$(PREC) ...
+else
+	@echo Error - there is no support for COMPILER_TYPE=$(COMPILER_TYPE) and MACHINE=$(MACHINE) PREC=$(PREC)
+	@false
+endif
+
+# The real targets
+
+$(CONFIG)/$(EXEFILE): ptarg $(OBJS)
+	$(FC) $(OBJS) -o $(CONFIG)/$(EXEFILE) $(LINKFLAGS) $(MPILINKFLAGS)
+
+$(CONFIG)/wp_def_$(PREC).o: $(SRC_DIR)/wp_def_$(PREC).f90
+	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/wp_def_$(PREC).f90 -o $(CONFIG)/wp_def_$(PREC).o
+
+$(CONFIG)/globvars.o: $(SRC_DIR)/globvars.f90 $(CONFIG)/wp_def_$(PREC).o
+	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/globvars.f90 -o $(CONFIG)/globvars.o
+
+$(CONFIG)/matelem.o: $(SRC_DIR)/matelem.f90 $(CONFIG)/globvars.o
+	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem.f90 -o $(CONFIG)/matelem.o
+
+$(CONFIG)/workproc.o: $(SRC_DIR)/workproc.f90 $(CONFIG)/matelem.o
+	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/workproc.f90 -o $(CONFIG)/workproc.o
+
+$(CONFIG)/main.o: $(SRC_DIR)/main.f90 $(CONFIG)/workproc.o
+	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/main.f90 -o $(CONFIG)/main.o
+
