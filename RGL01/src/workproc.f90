@@ -162,7 +162,6 @@ if (Glob_ProcID==0) then
     backspace 1
   enddo
 endif
-!if (Glob_ProcID==0) Glob_NumOfDRMCSteps=1
 call MPI_BCAST(Glob_NumOfDRMCSteps,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 allocate(Glob_DRMC(1:Glob_NumOfDRMCSteps))
 
@@ -176,7 +175,7 @@ if (Glob_ProcID==0) then
   do i=1,Glob_NumOfDRMCSteps
     select case (Glob_DRMC(i)%Action(1:9))
     case('OP_DIPOLE')
-      read(1,*) Glob_DRMC(i)%Action(1:9),  &
+      read(1,*) Glob_DRMC(i)%Action(1:9),Glob_DRMC(i)%A,   &
             Glob_DRMC(i)%FileName1(1:Glob_FileNameLength), &
             Glob_DRMC(i)%FileName2(1:Glob_FileNameLength), &
             Glob_DRMC(i)%FileName3(1:Glob_FileNameLength), &
@@ -188,6 +187,7 @@ if (Glob_ProcID==0) then
      endselect
   enddo
 endif
+
 do i=1,Glob_NumOfDRMCSteps
   do j=1,9
     WorkInt(j)=ichar(Glob_DRMC(i)%Action(j:j))
@@ -1050,34 +1050,38 @@ real(dprec) :: temp0,temp0Loc,temp1,temp1Loc
 n=Glob_n
 np=Glob_np
 
-ExpValLoc=ZERO
-temp0Loc=ZERO
-temp1Loc=ZERO
-indx=0
-do k=1,Glob_CurrBasisSize
-   do l=1,Glob_CurrBasisSize
-     indx=indx+1
-     if(mod(indx,Glob_NumOfProcs)==Glob_ProcID) then
-       Hkl=ZERO
-       temp0Loc=temp0Loc+Glob_c0(k)*Glob_S0(k,l)*Glob_c0(l)
-       temp1Loc=temp1Loc+Glob_c1(k)*Glob_S1(k,l)*Glob_c1(l)
-       do i=1,Glob_NumYTerms0
-         do j=1,Glob_NumYTerms1
-	    call MatrixElementsL0L1(Glob_ZIndex(l),Glob_NonlinParam0(1:np,k), &
-	            Glob_NonlinParam1(1:np,l),Glob_YMatr0(1:n,1:n,i),Glob_YMatr1(1:n,1:n,j),Hklij)
-	    Hkl=Hkl+Glob_YCoeff0(i)*Hklij*Glob_YCoeff1(j)
-         enddo
-       enddo
-       ExpValLoc=ExpValLoc+Glob_c0(k)*Hkl*Glob_c1(l)
-     endif
+if(Glob_DRMC(Glob_CurrDRMCStep)%A==0) then
+   ExpValLoc=ZERO
+   temp0Loc=ZERO
+   temp1Loc=ZERO
+   indx=0
+   do k=1,Glob_CurrBasisSize
+      do l=1,Glob_CurrBasisSize
+        indx=indx+1
+        if(mod(indx,Glob_NumOfProcs)==Glob_ProcID) then
+          Hkl=ZERO
+          temp0Loc=temp0Loc+Glob_c0(k)*Glob_S0(k,l)*Glob_c0(l)
+          temp1Loc=temp1Loc+Glob_c1(k)*Glob_S1(k,l)*Glob_c1(l)
+          do i=1,Glob_NumYTerms0
+            do j=1,Glob_NumYTerms1
+   	       call MatrixElementsL0L1(Glob_ZIndex(l),Glob_NonlinParam0(1:np,k), &
+   	            Glob_NonlinParam1(1:np,l),Glob_YMatr0(1:n,1:n,i),Glob_YMatr1(1:n,1:n,j),Hklij)
+   	       Hkl=Hkl+Glob_YCoeff0(i)*Hklij*Glob_YCoeff1(j)
+            enddo
+          enddo
+          ExpValLoc=ExpValLoc+Glob_c0(k)*Hkl*Glob_c1(l)
+        endif
+      enddo
    enddo
-enddo
-call MPI_ALLREDUCE(ExpValLoc,ExpVal,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_ALLREDUCE(temp0Loc,temp0,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_ALLREDUCE(temp1Loc,temp1,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-
-temp0=sqrt(temp0*temp1)
-Glob_ExpVals(Glob_CurrDRMCStep)=ExpVal/temp0
+   call MPI_ALLREDUCE(ExpValLoc,ExpVal,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+   call MPI_ALLREDUCE(temp0Loc,temp0,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+   call MPI_ALLREDUCE(temp1Loc,temp1,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+   
+   temp0=sqrt(temp0*temp1)
+   Glob_ExpVals(Glob_CurrDRMCStep)=ExpVal/temp0
+else
+   if (Glob_ProcID==0) write(*,*) 'Glob_DRMC(Glob_CurrDRMCStep)%A is not 0!'
+endif
 
 end subroutine ComputeExpValL0L1
 

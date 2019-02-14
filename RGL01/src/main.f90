@@ -21,6 +21,15 @@ endif
 call ReadIOFile()
 call ProgramDataInit()
 
+if (Glob_ProcID==0) then
+open(1,file=Glob_DataFileName,status='old',action='readwrite')
+   do j=1,7
+      read(1,*) ReadChar
+   enddo
+   write(1,*) 'Expectation Value(s):'
+   close(1)
+endif
+
 allocate(Glob_ExpVals(1:Glob_NumOfDRMCSteps))
 do i=1,Glob_NumOfDRMCSteps
 
@@ -70,15 +79,12 @@ do i=1,Glob_NumOfDRMCSteps
 	   write(*,*) 'Glob_YMatr1(1): ',Glob_YMatr1(1:Glob_n,1:Glob_n,1)
 	   write(*,*) 'Glob_YMatr1(2): ',Glob_YMatr1(1:Glob_n,1:Glob_n,2)
 	   write(*,*) ' '
-	   write(*,*) 'Expectation Value (DIPOLE): ',Glob_ExpVals(Glob_CurrDRMCStep)
+	   write(*,*) '<|vec_x|>=<|vec_y|>=<|vec_z|> (DIPOLE): ',Glob_ExpVals(Glob_CurrDRMCStep)
+	   write(*,*) '|<|vec|>| (DIPOLE): ',sqrt(3._dprec*Glob_ExpVals(Glob_CurrDRMCStep)**2._dprec)
 	   open(1,file=Glob_DataFileName,status='old',action='readwrite')
-	   do j=1,6+Glob_CurrDRMCStep
+	   do j=1,7+Glob_CurrDRMCStep
 	      read(1,*) ReadChar
 	   enddo
-	   if(Glob_CurrDRMCStep==1) then
-	      write(1,*) 'Expectation Value(s):'
-	      write(1,*) ''
-	   endif
 	   write(1,*) Glob_ExpVals(Glob_CurrDRMCStep)
 	   close(1)
 	endif

@@ -213,14 +213,14 @@ enddo
 !Computing tml, the index of nonzero (=1) component of vector tvl=Pl'*vl,
 !where vl(i) = 1 if i=ml and 0 otherwise
 do i=1,n
-   if(Pl(ml,i)==1) tml=i
+   if(abs(Pl(ml,i))==1) tml=i
 enddo
 
 !Evaluating Matrix Elements
 select case (Glob_DRMC(Glob_CurrDRMCStep)%Action(1:9))
    case('OP_DIPOLE')
       temp1=(abs(det_Ll*det_Lk)/det_tAkl)**THREEHALF
-      Hklij=sqrt(NINE/TWO)*temp1/sqrt(inv_All(ml,ml))
+      Hklij=SIX*temp1/sqrt(inv_All(ml,ml))
       temp1=ZERO
       do i=1,n
          temp1=temp1+Glob_PseudoCharge(i)*inv_tAkl(tml,i)
