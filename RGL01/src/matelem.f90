@@ -51,7 +51,7 @@ real(dprec)       :: det_Lk,det_Ll
 real(dprec)       :: tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn)
 real(dprec)       :: inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn)
 real(dprec)       :: det_tAkl
-integer           :: tml
+real(dprec)       :: tvl(nn)
 
 integer           :: i,j,k,indx
 real(dprec)       :: temp1, temp2
@@ -210,20 +210,23 @@ do i=1,n
    enddo
 enddo
 
-!Computing tml, the index of nonzero (=1) component of vector tvl=Pl'*vl,
-!where vl(i) = 1 if i=ml and 0 otherwise
+!tvl = Pl' * vl
 do i=1,n
-   if(abs(Pl(ml,i))==1) tml=i
+   tvl(i)=Pl(ml,i)
 enddo
 
 !Evaluating Matrix Elements
 select case (Glob_DRMC(Glob_CurrDRMCStep)%Action(1:9))
    case('OP_DIPOLE')
       temp1=(abs(det_Ll*det_Lk)/det_tAkl)**THREEHALF
-      Hklij=SIX*temp1/sqrt(inv_All(ml,ml))
+      Hklij=Glob_NumTmp1*temp1/sqrt(inv_All(ml,ml))
       temp1=ZERO
-      do i=1,n
-         temp1=temp1+Glob_PseudoCharge(i)*inv_tAkl(tml,i)
+      do i=1,n !pseudo-particles
+         temp2=ZERO
+	 do j=1,n !trace elements
+            temp2=temp2+inv_tAkl(j,i)*tvl(j)
+	 enddo
+	 temp1=temp1+Glob_PseudoCharge(i)*temp2
       enddo
       Hklij=Hklij*temp1
 endselect

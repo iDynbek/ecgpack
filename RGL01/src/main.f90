@@ -61,11 +61,11 @@ do i=1,Glob_NumOfDRMCSteps
            write(*,*) 'S1(2,1:5):'
            write(*,*) Glob_S1(2,1:5)
            write(*,*) ' '
-           write(*,*) 'c0'
-           write(*,*) Glob_c0
+           write(*,*) 'c0(1:5)'
+           write(*,*) Glob_c0(1:5)
            write(*,*) ' '
-           write(*,*) 'c1'
-           write(*,*) Glob_c1
+           write(*,*) 'c1(1:5)'
+           write(*,*) Glob_c1(1:5)
            write(*,*) ' '
            write(*,*) 'Glob_YCoeff0: ',Glob_YCoeff0
            write(*,*) ' '
@@ -80,7 +80,7 @@ do i=1,Glob_NumOfDRMCSteps
 	   write(*,*) 'Glob_YMatr1(2): ',Glob_YMatr1(1:Glob_n,1:Glob_n,2)
 	   write(*,*) ' '
 	   write(*,*) '<|vec_x|>=<|vec_y|>=<|vec_z|> (DIPOLE): ',Glob_ExpVals(Glob_CurrDRMCStep)
-	   write(*,*) '|<|vec|>| (DIPOLE): ',sqrt(3._dprec*Glob_ExpVals(Glob_CurrDRMCStep)**2._dprec)
+	   write(*,*) '|<|vec|>| (DIPOLE): ',sqrt(THREE)*abs(Glob_ExpVals(Glob_CurrDRMCStep))
 	   open(1,file=Glob_DataFileName,status='old',action='readwrite')
 	   do j=1,7+Glob_CurrDRMCStep
 	      read(1,*) ReadChar

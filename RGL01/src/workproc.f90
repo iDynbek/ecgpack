@@ -66,6 +66,7 @@ call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 Glob_np=Glob_n*(Glob_n+1)/2
 Glob_npt=Glob_np
 Glob_2raised3n2=TWO**((3*Glob_n)/TWO)
+Glob_NumTmp1=THREE*Glob_2raised3n2/sqrt(TWO)
 
 allocate(Glob_Mass(Glob_n+1))
 if (Glob_ProcID==0) then
@@ -1035,7 +1036,8 @@ subroutine ComputeExpValL0L1()
 !       k,l = 1,Glob_CurrBasisSize
 !       N0 = c0 * S0 * c0
 !       N1 = c1 * S1 * c1
-!       Glob_ExpVals(cs) = (Sum_{k,l} c0_k * H_kl * Glob_c1(l))/sqrt(N0*N1)
+!       N2 = MaxNumOfTermsY0 * MaxNumTermsY1
+!       Glob_ExpVals(cs) = (Sum_{k,l} c0_k * H_kl * Glob_c1(l))/sqrt(N0*N1)/N2
 !       i = 1,Glob_NumYTerms0 / j = 1,Glob_NumYTerms1
 !       H_kl = Sum_{i,j} YCoeff0_i * H_klij * YCoeff1_j
 !       H_klij = < f_ki | Operator | f_lj >/sqrt(<f_k|f_k>*<f_l|f_l>)
@@ -1045,11 +1047,13 @@ real(dprec) :: ExpVal,ExpValLoc
 real(dprec) :: Hklij,Hkl
 
 integer     :: k,l,i,j,indx
-real(dprec) :: temp0,temp0Loc,temp1,temp1Loc
+real(dprec) :: temp0,temp0Loc,temp1,temp1Loc,temp0Lock,temp1Lock
 
 n=Glob_n
 np=Glob_np
 
+!Glob_DRMC(Glob_CurrDRMCStep)%A==0 if the form <Yf|.|Yf> is used.
+!Glob_DRMC(Glob_CurrDRMCStep)%A/=0 if the form <f|.|YHYf> is used.
 if(Glob_DRMC(Glob_CurrDRMCStep)%A==0) then
    ExpValLoc=ZERO
    temp0Loc=ZERO
@@ -1077,10 +1081,31 @@ if(Glob_DRMC(Glob_CurrDRMCStep)%A==0) then
    call MPI_ALLREDUCE(temp0Loc,temp0,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
    call MPI_ALLREDUCE(temp1Loc,temp1,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
    
-   temp0=sqrt(temp0*temp1)
+   !sqrt(N0*N1)
+   temp0=sqrt(abs(temp0*temp1))
    Glob_ExpVals(Glob_CurrDRMCStep)=ExpVal/temp0
+   
+   !N2 = MaxNumOfTermsY0 * MaxNumTermsY1
+   temp0Loc=ZERO
+   do i=1,Glob_NumYTerms0
+      if(mod(i,Glob_NumOfProcs)==Glob_ProcID) then
+         temp0Loc=temp0Loc+abs(Glob_YCoeff0(i))
+	  endif
+   enddo
+   call MPI_ALLREDUCE(temp0Loc,temp0,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+   Glob_ExpVals(Glob_CurrDRMCStep)=Glob_ExpVals(Glob_CurrDRMCStep)/temp0
+   
+   temp0Loc=ZERO
+   do i=1,Glob_NumYTerms1
+      if(mod(i,Glob_NumOfProcs)==Glob_ProcID) then
+         temp0Loc=temp0Loc+abs(Glob_YCoeff1(i))
+	  endif
+   enddo
+   call MPI_ALLREDUCE(temp0Loc,temp0,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+   Glob_ExpVals(Glob_CurrDRMCStep)=Glob_ExpVals(Glob_CurrDRMCStep)/temp0
 else
-   if (Glob_ProcID==0) write(*,*) 'Glob_DRMC(Glob_CurrDRMCStep)%A is not 0!'
+   if (Glob_ProcID==0) write(*,*) 'Glob_DRMC(Glob_CurrDRMCStep)%A is not 0! Reduced YHY will be used!'
+   stop
 endif
 
 end subroutine ComputeExpValL0L1
