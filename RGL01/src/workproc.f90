@@ -66,7 +66,6 @@ call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 Glob_np=Glob_n*(Glob_n+1)/2
 Glob_npt=Glob_np
 Glob_2raised3n2=TWO**((3*Glob_n)/TWO)
-Glob_NumTmp1=THREE*Glob_2raised3n2/sqrt(TWO)
 
 allocate(Glob_Mass(Glob_n+1))
 if (Glob_ProcID==0) then
@@ -1082,27 +1081,14 @@ if(Glob_DRMC(Glob_CurrDRMCStep)%A==0) then
    call MPI_ALLREDUCE(temp1Loc,temp1,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
    
    !sqrt(N0*N1)
+   if (Glob_ProcID==0) then
+      write (*,*)
+      write (*,*) 'c0*S0*c0',temp0
+      write (*,*) 'c1*S1*c1',temp1
+      write (*,*)
+   endif
    temp0=sqrt(abs(temp0*temp1))
    Glob_ExpVals(Glob_CurrDRMCStep)=ExpVal/temp0
-   
-   !N2 = MaxNumOfTermsY0 * MaxNumTermsY1
-   temp0Loc=ZERO
-   do i=1,Glob_NumYTerms0
-      if(mod(i,Glob_NumOfProcs)==Glob_ProcID) then
-         temp0Loc=temp0Loc+abs(Glob_YCoeff0(i))
-	  endif
-   enddo
-   call MPI_ALLREDUCE(temp0Loc,temp0,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-   Glob_ExpVals(Glob_CurrDRMCStep)=Glob_ExpVals(Glob_CurrDRMCStep)/temp0
-   
-   temp0Loc=ZERO
-   do i=1,Glob_NumYTerms1
-      if(mod(i,Glob_NumOfProcs)==Glob_ProcID) then
-         temp0Loc=temp0Loc+abs(Glob_YCoeff1(i))
-	  endif
-   enddo
-   call MPI_ALLREDUCE(temp0Loc,temp0,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-   Glob_ExpVals(Glob_CurrDRMCStep)=Glob_ExpVals(Glob_CurrDRMCStep)/temp0
 else
    if (Glob_ProcID==0) write(*,*) 'Glob_DRMC(Glob_CurrDRMCStep)%A is not 0! Reduced YHY will be used!'
    stop

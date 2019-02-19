@@ -79,8 +79,9 @@ do i=1,Glob_NumOfDRMCSteps
 	   write(*,*) 'Glob_YMatr1(1): ',Glob_YMatr1(1:Glob_n,1:Glob_n,1)
 	   write(*,*) 'Glob_YMatr1(2): ',Glob_YMatr1(1:Glob_n,1:Glob_n,2)
 	   write(*,*) ' '
-	   write(*,*) '<|vec_x|>=<|vec_y|>=<|vec_z|> (DIPOLE): ',Glob_ExpVals(Glob_CurrDRMCStep)
-	   write(*,*) '|<|vec|>| (DIPOLE): ',sqrt(THREE)*abs(Glob_ExpVals(Glob_CurrDRMCStep))
+	   write(*,*) 'Dipole:'
+	   write(*,*) '<|vec_x|>=<|vec_y|>=0'
+	   write(*,*) '<|vec_z|>=',Glob_ExpVals(Glob_CurrDRMCStep)
 	   open(1,file=Glob_DataFileName,status='old',action='readwrite')
 	   do j=1,7+Glob_CurrDRMCStep
 	      read(1,*) ReadChar

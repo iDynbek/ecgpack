@@ -210,7 +210,7 @@ do i=1,n
    enddo
 enddo
 
-!tvl = Pl' * vl
+!tvl=Pl'*vl
 do i=1,n
    tvl(i)=Pl(ml,i)
 enddo
@@ -219,7 +219,7 @@ enddo
 select case (Glob_DRMC(Glob_CurrDRMCStep)%Action(1:9))
    case('OP_DIPOLE')
       temp1=(abs(det_Ll*det_Lk)/det_tAkl)**THREEHALF
-      Hklij=Glob_NumTmp1*temp1/sqrt(inv_All(ml,ml))
+      Hklij=Glob_2raised3n2*temp1/sqrt(TWO*inv_All(ml,ml))
       temp1=ZERO
       do i=1,n !pseudo-particles
          temp2=ZERO
