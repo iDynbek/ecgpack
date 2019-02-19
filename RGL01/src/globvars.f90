@@ -160,7 +160,7 @@ real(dprec),allocatable,dimension(:),save :: Glob_diagH
 
 !Array Glob_diagS is used to store the diagonal elements
 !of the overlap matrix 
-real(dprec),allocatable,dimension(:),save :: Glob_diagS
+real(dprec),allocatable,dimension(:),save :: Glob_diagS,Glob_diagS0,Glob_diagS1
 
 !Array Glob_c is used to store the eigenvector
 real(dprec),allocatable,dimension(:),save :: Glob_c
@@ -200,6 +200,8 @@ type Glob_DRMCStep
   character(Glob_FileNameLength) FileName2
   character(Glob_FileNameLength) FileName3
   character(Glob_FileNameLength) FileName4
+  character(Glob_FileNameLength) FileName5
+  character(Glob_FileNameLength) FileName6
 endtype Glob_DRMCStep
 
 type(Glob_DRMCStep),allocatable,dimension(:),save :: Glob_DRMC

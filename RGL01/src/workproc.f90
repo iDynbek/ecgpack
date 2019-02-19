@@ -21,7 +21,7 @@ integer        :: ReadInt,ReadErr
 integer        :: WorkInt(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
 integer        :: WorkInt0(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
 integer        :: WorkInt1(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
-integer        :: i,j,k,l,Line,j1,j2,j3,j4
+integer        :: i,j,k,l,Line,j1,j2,j3,j4,j5,j6
 character(70)  :: ReadChar
 logical        :: ErrorInDataFile,IsDRMCStep
 
@@ -179,11 +179,15 @@ if (Glob_ProcID==0) then
             Glob_DRMC(i)%FileName1(1:Glob_FileNameLength), &
             Glob_DRMC(i)%FileName2(1:Glob_FileNameLength), &
             Glob_DRMC(i)%FileName3(1:Glob_FileNameLength), &
-            Glob_DRMC(i)%FileName4(1:Glob_FileNameLength)
+            Glob_DRMC(i)%FileName4(1:Glob_FileNameLength), &
+	    Glob_DRMC(i)%FileName5(1:Glob_FileNameLength), &
+            Glob_DRMC(i)%FileName6(1:Glob_FileNameLength)
         j1=len_trim(Glob_DRMC(i)%FileName1(1:Glob_FileNameLength))
         j2=len_trim(Glob_DRMC(i)%FileName2(1:Glob_FileNameLength))
         j3=len_trim(Glob_DRMC(i)%FileName3(1:Glob_FileNameLength)) 
         j4=len_trim(Glob_DRMC(i)%FileName4(1:Glob_FileNameLength))       
+	j5=len_trim(Glob_DRMC(i)%FileName5(1:Glob_FileNameLength)) 
+        j6=len_trim(Glob_DRMC(i)%FileName6(1:Glob_FileNameLength))       
      endselect
   enddo
 endif
@@ -233,7 +237,21 @@ do i=1,Glob_NumOfDRMCSteps
   call MPI_BCAST(WorkInt,Glob_FileNameLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   do j=1,Glob_FileNameLength
      Glob_DRMC(i)%FileName4(j:j)=char(WorkInt(j))
-  enddo  
+  enddo
+  do j=1,Glob_FileNameLength
+    WorkInt(j)=ichar(Glob_DRMC(i)%FileName5(j:j))
+  enddo
+  call MPI_BCAST(WorkInt,Glob_FileNameLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  do j=1,Glob_FileNameLength
+     Glob_DRMC(i)%FileName5(j:j)=char(WorkInt(j))
+  enddo
+  do j=1,Glob_FileNameLength
+    WorkInt(j)=ichar(Glob_DRMC(i)%FileName6(j:j))
+  enddo
+  call MPI_BCAST(WorkInt,Glob_FileNameLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  do j=1,Glob_FileNameLength
+     Glob_DRMC(i)%FileName6(j:j)=char(WorkInt(j))
+  enddo
 enddo
 close(1)
 
@@ -251,6 +269,8 @@ allocate(Glob_c1(Glob_CurrBasisSize))
 allocate(Glob_FuncNum1(Glob_CurrBasisSize))
 allocate(Glob_ZIndex(Glob_CurrBasisSize))
 allocate(Glob_NonlinParam1(Glob_npt,Glob_CurrBasisSize))
+allocate(Glob_diagS0(Glob_CurrBasisSize))
+allocate(Glob_diagS1(Glob_CurrBasisSize))
 	
 if (Glob_ProcID==0) then
   do k=1,Glob_NumOfDRMCSteps
@@ -345,6 +365,33 @@ if (Glob_ProcID==0) then
         enddo
 	close(1)
 	
+	! Glob_diagS0 and Glob_diagS1
+	ErrorInDataFile=.false.
+       	open(1,file=Glob_DRMC(k)%FileName5,status='old',iostat=OpenFileErr)
+  	if (OpenFileErr/=0) then
+	   write (*,*) 'Error in DataFileInit: data file not found - ',Glob_DRMC(k)%FileName5
+           ErrorInDataFile=.true.
+  	endif
+        if (ErrorInDataFile) stop
+	
+	do i=1,Glob_CurrBasisSize
+           read(1,*) Glob_diagS0(i)
+        enddo
+        close(1)
+	
+	ErrorInDataFile=.false.
+       	open(1,file=Glob_DRMC(k)%FileName6,status='old',iostat=OpenFileErr)
+  	if (OpenFileErr/=0) then
+	   write (*,*) 'Error in DataFileInit: data file not found - ',Glob_DRMC(k)%FileName6
+           ErrorInDataFile=.true.
+  	endif
+        if (ErrorInDataFile) stop
+	
+	do i=1,Glob_CurrBasisSize
+           read(1,*) Glob_diagS1(i)
+        enddo
+        close(1)
+	
      endselect			     
   enddo
 endif
@@ -364,6 +411,8 @@ do i=1,Glob_YOperatorStringLength
    Glob_YOperatorString0(i:i)=char(WorkInt0(i))
    Glob_YOperatorString1(i:i)=char(WorkInt1(i))
 enddo
+call MPI_BCAST(Glob_diagS0,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_diagS1,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 end subroutine ReadIOFile
 
@@ -1054,6 +1103,7 @@ np=Glob_np
 !Glob_DRMC(Glob_CurrDRMCStep)%A==0 if the form <Yf|.|Yf> is used.
 !Glob_DRMC(Glob_CurrDRMCStep)%A/=0 if the form <f|.|YHYf> is used.
 if(Glob_DRMC(Glob_CurrDRMCStep)%A==0) then
+   if(Glob_ProcID==0) write(*,'(1x,a)',advance='no') 'Computing expectation values...'
    ExpValLoc=ZERO
    temp0Loc=ZERO
    temp1Loc=ZERO
@@ -1072,6 +1122,7 @@ if(Glob_DRMC(Glob_CurrDRMCStep)%A==0) then
    	       Hkl=Hkl+Glob_YCoeff0(i)*Hklij*Glob_YCoeff1(j)
             enddo
           enddo
+	  Hkl=Hkl/sqrt(Glob_diagS0(k)*Glob_diagS1(l))
           ExpValLoc=ExpValLoc+Glob_c0(k)*Hkl*Glob_c1(l)
         endif
       enddo
@@ -1080,12 +1131,13 @@ if(Glob_DRMC(Glob_CurrDRMCStep)%A==0) then
    call MPI_ALLREDUCE(temp0Loc,temp0,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
    call MPI_ALLREDUCE(temp1Loc,temp1,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
    
+   if(Glob_ProcID==0) write(*,*) 'done'
    !sqrt(N0*N1)
    if (Glob_ProcID==0) then
-      write (*,*)
+      write (*,*) ' '
       write (*,*) 'c0*S0*c0',temp0
       write (*,*) 'c1*S1*c1',temp1
-      write (*,*)
+      write (*,*) ' '
    endif
    temp0=sqrt(abs(temp0*temp1))
    Glob_ExpVals(Glob_CurrDRMCStep)=ExpVal/temp0
