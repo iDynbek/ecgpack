@@ -139,10 +139,24 @@ call MPI_BCAST(Glob_AttrScalParamSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MP
 call MPI_BCAST(Glob_AttractionScalingParam,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 if (Glob_ProcID==0) then
-  read(1,*) ReadChar(1:10),Glob_CurrBasisSize
-  write(*,'(1x,a10,1x,i6)')  ReadChar(1:10),Glob_CurrBasisSize
-endif
-call MPI_BCAST(Glob_CurrBasisSize,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+   read(1,*) ReadChar(1:9),Glob_YOperatorString0
+   do i=1,Glob_YOperatorStringLength
+      WorkInt(i)=ichar(Glob_YOperatorString0(i:i))
+   enddo
+   workInt0=WorkInt
+   read(1,*) ReadChar(1:9),Glob_YOperatorString1
+   do i=1,Glob_YOperatorStringLength
+      WorkInt(i)=ichar(Glob_YOperatorString1(i:i))
+   enddo
+   workInt1=WorkInt
+end if
+call MPI_BCAST(WorkInt0,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(WorkInt1,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+do i=1,Glob_YOperatorStringLength
+   Glob_YOperatorString0(i:i)=char(WorkInt0(i))
+   Glob_YOperatorString1(i:i)=char(WorkInt1(i))
+enddo
+
 if (Glob_ProcID==0) read(1,*) ReadChar
 
 !Reading Data Reader and Matrix Calculator Program
@@ -164,6 +178,9 @@ if (Glob_ProcID==0) then
 endif
 call MPI_BCAST(Glob_NumOfDRMCSteps,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 allocate(Glob_DRMC(1:Glob_NumOfDRMCSteps))
+allocate(Glob_CurrBasisSizeInDRMCSteps(1:Glob_NumOfDRMCSteps))
+allocate(Glob_E0(1:Glob_NumOfDRMCSteps))
+allocate(Glob_E1(1:Glob_NumOfDRMCSteps))
 
 if (Glob_ProcID==0) then
   do i=1,Glob_NumOfDRMCSteps
@@ -175,7 +192,7 @@ if (Glob_ProcID==0) then
   do i=1,Glob_NumOfDRMCSteps
     select case (Glob_DRMC(i)%Action(1:9))
     case('OP_DIPOLE')
-      read(1,*) Glob_DRMC(i)%Action(1:9),Glob_DRMC(i)%A,   &
+      read(1,*) Glob_DRMC(i)%Action(1:9),Glob_DRMC(i)%A,Glob_DRMC(i)%B,   &
             Glob_DRMC(i)%FileName1(1:Glob_FileNameLength), &
             Glob_DRMC(i)%FileName2(1:Glob_FileNameLength), &
             Glob_DRMC(i)%FileName3(1:Glob_FileNameLength), &
@@ -189,8 +206,11 @@ if (Glob_ProcID==0) then
 	j5=len_trim(Glob_DRMC(i)%FileName5(1:Glob_FileNameLength)) 
         j6=len_trim(Glob_DRMC(i)%FileName6(1:Glob_FileNameLength))       
      endselect
+     Glob_CurrBasisSizeInDRMCSteps(i)=Glob_DRMC(i)%A
   enddo
 endif
+call MPI_BCAST(Glob_CurrBasisSizeInDRMCSteps,Glob_NumOfDRMCSteps,MPI_INTEGER,&
+                0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 do i=1,Glob_NumOfDRMCSteps
   do j=1,9
@@ -260,8 +280,40 @@ if (Glob_CurrBasisSize==0) then
    return
 endif
 
+end subroutine ReadIOFile
+
+
+subroutine ReadIOFileForDRMCAction()
+!Subroutine ReadIOFileForDRMCAction reads data input
+!file whose name is specified by global variable 
+!Glob_DataFileName. If there is no such a file in the 
+!current directory then the program stops.
+
+!Local variables:
+integer        :: OpenFileErr
+real(dprec)    :: ReadRealA,RealE0,RealE1
+integer        :: ReadInt,ReadErr
+integer        :: WorkInt(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
+integer        :: i,j,k,l,Line
+character(70)  :: ReadChar
+logical        :: ErrorInDataFile,IsDRMCStep
+
+
+Glob_CurrBasisSize=Glob_CurrBasisSizeInDRMCSteps(Glob_CurrDRMCStep)
+
+if(Glob_CurrDRMCStep>1) then
+   if(Glob_DRMC(Glob_CurrDRMCStep-1)%B/=1) deallocate(Glob_S0,Glob_S1)
+   deallocate(Glob_c0,Glob_c1)
+   deallocate(Glob_FuncNum0,Glob_FuncNum1)
+   deallocate(Glob_ZIndex)
+   deallocate(Glob_NonlinParam0,Glob_NonlinParam1)
+   deallocate(Glob_diagS0,Glob_diagS1)
+endif
+
+if(Glob_DRMC(Glob_CurrDRMCStep)%B/=1) then
 allocate(Glob_S0(Glob_CurrBasisSize,Glob_CurrBasisSize))
 allocate(Glob_S1(Glob_CurrBasisSize,Glob_CurrBasisSize))
+endif
 allocate(Glob_c0(Glob_CurrBasisSize))
 allocate(Glob_FuncNum0(Glob_CurrBasisSize))
 allocate(Glob_NonlinParam0(Glob_npt,Glob_CurrBasisSize))
@@ -273,62 +325,25 @@ allocate(Glob_diagS0(Glob_CurrBasisSize))
 allocate(Glob_diagS1(Glob_CurrBasisSize))
 	
 if (Glob_ProcID==0) then
-  do k=1,Glob_NumOfDRMCSteps
-    select case (Glob_DRMC(k)%Action(1:9))
+    select case (Glob_DRMC(Glob_CurrDRMCStep)%Action(1:9))
     case('OP_DIPOLE')
         
-	! Read S matrix for L=0
-        ErrorInDataFile=.false.
-       	open(1,file=Glob_DRMC(k)%FileName1,status='old',iostat=OpenFileErr)
-  	if (OpenFileErr/=0) then
-	   write (*,*) 'Error in DataFileInit: data file not found - ',Glob_DRMC(k)%FileName1
-           ErrorInDataFile=.true.
-  	endif
-        if (ErrorInDataFile) stop
-	
-        do l=1,Glob_CurrBasisSize*Glob_CurrBasisSize
-           read(1,*) i,j,Glob_S0(i,j)
-        enddo
-	close(1)
-	
-	! Read S matrix for L=1
-        ErrorInDataFile=.false.
-       	open(1,file=Glob_DRMC(k)%FileName2,status='old',iostat=OpenFileErr)
-  	if (OpenFileErr/=0) then
-	   write (*,*) 'Error in DataFileInit: data file not found - ',Glob_DRMC(k)%FileName2
-           ErrorInDataFile=.true.
-  	endif
-        if (ErrorInDataFile) stop
-	
-        do l=1,Glob_CurrBasisSize*Glob_CurrBasisSize
-           read(1,*) i,j,Glob_S1(i,j)
-        enddo
-	close(1)
-	
 	! Read Symmetry, Wavefunction, and Eigenvector for L=0
         ErrorInDataFile=.false.
-       	open(1,file=Glob_DRMC(k)%FileName3,status='old',iostat=OpenFileErr)
+       	open(1,file=Glob_DRMC(Glob_CurrDRMCStep)%FileName1,status='old',iostat=OpenFileErr)
   	if (OpenFileErr/=0) then
-	   write (*,*) 'Error in DataFileInit: data file not found - ',Glob_DRMC(k)%FileName3
+	   write (*,*) 'Error in DataFileInit: data file not found - ',&
+	                   Glob_DRMC(Glob_CurrDRMCStep)%FileName1
            ErrorInDataFile=.true.
   	endif
         if (ErrorInDataFile) stop
 	
-	do l=1,4
+	do i=1,6
            read(1,*) ReadChar
         enddo
 	
-        read(1,*) ReadChar(1:8),Glob_YOperatorString0
-        j=len_trim(Glob_YOperatorString0)
-        call writestringadv(6,Glob_YOperatorString0,j)
-        do i=1,Glob_YOperatorStringLength
-           WorkInt(i)=ichar(Glob_YOperatorString0(i:i))
-        enddo
-	WorkInt0=WorkInt
-	
-	do l=1,3
-           read(1,*) ReadChar
-        enddo
+	read(1,*) ReadChar(1:14),RealE0
+	read(1,*) ReadChar
 	
         do i=1,Glob_CurrBasisSize
            read(1,*) Glob_FuncNum0(i),Glob_c0(i),ReadChar(1:2),Glob_NonlinParam0(1:Glob_npt,i)
@@ -337,28 +352,20 @@ if (Glob_ProcID==0) then
 	
 	! Read Symmetry, Wavefunction, and Eigenvector for L=1
         ErrorInDataFile=.false.
-       	open(1,file=Glob_DRMC(k)%FileName4,status='old',iostat=OpenFileErr)
+       	open(1,file=Glob_DRMC(Glob_CurrDRMCStep)%FileName2,status='old',iostat=OpenFileErr)
   	if (OpenFileErr/=0) then
-	   write (*,*) 'Error in DataFileInit: data file not found - ',Glob_DRMC(k)%FileName4
+	   write (*,*) 'Error in DataFileInit: data file not found - ',&
+	                   Glob_DRMC(Glob_CurrDRMCStep)%FileName2
            ErrorInDataFile=.true.
   	endif
         if (ErrorInDataFile) stop
 	
-	do l=1,4
+	do l=1,6
            read(1,*) ReadChar
         enddo
-        read(1,*) ReadChar(1:8),Glob_YOperatorString1
 	
-        j=len_trim(Glob_YOperatorString1)
-        call writestringadv(6,Glob_YOperatorString1,j)
-        do i=1,Glob_YOperatorStringLength
-           WorkInt(i)=ichar(Glob_YOperatorString1(i:i))
-        enddo
-	WorkInt1=WorkInt
-	
-	do l=1,3
-           read(1,*) ReadChar
-        enddo
+	read(1,*) ReadChar(1:14),RealE1
+	read(1,*) ReadChar
 	
         do i=1,Glob_CurrBasisSize
            read(1,*) Glob_FuncNum1(i),Glob_c1(i),ReadChar(1:2),Glob_ZIndex(i),Glob_NonlinParam1(1:Glob_npt,i)
@@ -367,9 +374,10 @@ if (Glob_ProcID==0) then
 	
 	! Glob_diagS0 and Glob_diagS1
 	ErrorInDataFile=.false.
-       	open(1,file=Glob_DRMC(k)%FileName5,status='old',iostat=OpenFileErr)
+       	open(1,file=Glob_DRMC(Glob_CurrDRMCStep)%FileName3,status='old',iostat=OpenFileErr)
   	if (OpenFileErr/=0) then
-	   write (*,*) 'Error in DataFileInit: data file not found - ',Glob_DRMC(k)%FileName5
+	   write (*,*) 'Error in DataFileInit: data file not found - ',&
+	                   Glob_DRMC(Glob_CurrDRMCStep)%FileName3
            ErrorInDataFile=.true.
   	endif
         if (ErrorInDataFile) stop
@@ -380,9 +388,10 @@ if (Glob_ProcID==0) then
         close(1)
 	
 	ErrorInDataFile=.false.
-       	open(1,file=Glob_DRMC(k)%FileName6,status='old',iostat=OpenFileErr)
+       	open(1,file=Glob_DRMC(Glob_CurrDRMCStep)%FileName4,status='old',iostat=OpenFileErr)
   	if (OpenFileErr/=0) then
-	   write (*,*) 'Error in DataFileInit: data file not found - ',Glob_DRMC(k)%FileName6
+	   write (*,*) 'Error in DataFileInit: data file not found - ',&
+	                   Glob_DRMC(Glob_CurrDRMCStep)%FileName4
            ErrorInDataFile=.true.
   	endif
         if (ErrorInDataFile) stop
@@ -392,12 +401,46 @@ if (Glob_ProcID==0) then
         enddo
         close(1)
 	
-     endselect			     
-  enddo
+	! Read S matrix for L=0
+	if(Glob_DRMC(Glob_CurrDRMCStep)%B/=1) then
+        ErrorInDataFile=.false.
+       	open(1,file=Glob_DRMC(Glob_CurrDRMCStep)%FileName5,status='old',iostat=OpenFileErr)
+  	if (OpenFileErr/=0) then
+	   write (*,*) 'Error in DataFileInit: data file not found - ',&
+	                   Glob_DRMC(Glob_CurrDRMCStep)%FileName5
+           ErrorInDataFile=.true.
+  	endif
+        if (ErrorInDataFile) stop
+	
+        do l=1,Glob_CurrBasisSize*Glob_CurrBasisSize
+           read(1,*) i,j,Glob_S0(i,j)
+        enddo
+	close(1)
+	endif
+	
+	! Read S matrix for L=1
+	if(Glob_DRMC(Glob_CurrDRMCStep)%B/=1) then
+        ErrorInDataFile=.false.
+       	open(1,file=Glob_DRMC(Glob_CurrDRMCStep)%FileName6,status='old',iostat=OpenFileErr)
+  	if (OpenFileErr/=0) then
+	   write (*,*) 'Error in DataFileInit: data file not found - ',&
+	                   Glob_DRMC(Glob_CurrDRMCStep)%FileName6
+           ErrorInDataFile=.true.
+  	endif
+        if (ErrorInDataFile) stop
+	
+        do l=1,Glob_CurrBasisSize*Glob_CurrBasisSize
+           read(1,*) i,j,Glob_S1(i,j)
+        enddo
+	close(1)
+	endif
+	
+     endselect
 endif
-call MPI_BCAST(Glob_S0,Glob_CurrBasisSize*Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+if(Glob_DRMC(Glob_CurrDRMCStep)%B/=1) then
 call MPI_BCAST(Glob_S0,Glob_CurrBasisSize*Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 call MPI_BCAST(Glob_S1,Glob_CurrBasisSize*Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+endif
 call MPI_BCAST(Glob_c0,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 call MPI_BCAST(Glob_c1,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 call MPI_BCAST(Glob_NonlinParam0,Glob_npt*Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -405,16 +448,15 @@ call MPI_BCAST(Glob_NonlinParam1,Glob_npt*Glob_CurrBasisSize,MPI_DPREC,0,MPI_COM
 call MPI_BCAST(Glob_FuncNum0,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 call MPI_BCAST(Glob_FuncNum1,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 call MPI_BCAST(Glob_ZIndex,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(WorkInt0,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(WorkInt1,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-do i=1,Glob_YOperatorStringLength
-   Glob_YOperatorString0(i:i)=char(WorkInt0(i))
-   Glob_YOperatorString1(i:i)=char(WorkInt1(i))
-enddo
 call MPI_BCAST(Glob_diagS0,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 call MPI_BCAST(Glob_diagS1,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(RealE0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(RealE1,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+Glob_E0(Glob_CurrDRMCStep)=RealE0
+Glob_E1(Glob_CurrDRMCStep)=RealE1
 
-end subroutine ReadIOFile
+end subroutine ReadIOFileForDRMCAction
+
 
 subroutine DataInitForAYoungOp(YOpInput,AreYsIdentical)
 !Subroutine DataInitForAYoungOp initializes Young operators and on the outpis it gives
@@ -1100,9 +1142,36 @@ real(dprec) :: temp0,temp0Loc,temp1,temp1Loc,temp0Lock,temp1Lock
 n=Glob_n
 np=Glob_np
 
-!Glob_DRMC(Glob_CurrDRMCStep)%A==0 if the form <Yf|.|Yf> is used.
-!Glob_DRMC(Glob_CurrDRMCStep)%A/=0 if the form <f|.|YHYf> is used.
-if(Glob_DRMC(Glob_CurrDRMCStep)%A==0) then
+!Glob_DRMC(Glob_CurrDRMCStep)%B is == 1 if c'*S*c=1 normalization was used,
+!                                  /= 1 otherwise.
+if(Glob_DRMC(Glob_CurrDRMCStep)%B==1) then
+   if(Glob_ProcID==0) write(*,*) 'c*S*c = 1 normalization. Overlap matrix will not be used.'
+   if(Glob_ProcID==0) write(*,'(1x,a)',advance='no') 'Computing expectation values...'
+   ExpValLoc=ZERO
+   indx=0
+   do k=1,Glob_CurrBasisSize
+      do l=1,Glob_CurrBasisSize
+        indx=indx+1
+        if(mod(indx,Glob_NumOfProcs)==Glob_ProcID) then
+          Hkl=ZERO
+          do i=1,Glob_NumYTerms0
+            do j=1,Glob_NumYTerms1
+   	       call MatrixElementsL0L1(Glob_ZIndex(l),Glob_NonlinParam0(1:np,k), &
+   	            Glob_NonlinParam1(1:np,l),Glob_YMatr0(1:n,1:n,i),Glob_YMatr1(1:n,1:n,j),Hklij)
+   	       Hkl=Hkl+Glob_YCoeff0(i)*Hklij*Glob_YCoeff1(j)
+            enddo
+          enddo
+	  Hkl=Hkl/sqrt(Glob_diagS0(k)*Glob_diagS1(l))
+          ExpValLoc=ExpValLoc+Glob_c0(k)*Hkl*Glob_c1(l)
+        endif
+      enddo
+   enddo
+   call MPI_ALLREDUCE(ExpValLoc,ExpVal,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+   
+   Glob_ExpVals(Glob_CurrDRMCStep)=ExpVal
+   if(Glob_ProcID==0) write(*,*) 'done'
+else
+   if(Glob_ProcID==0) write(*,*) 'c*S*c /= 1 normalization. Overlap matrix will be used.'
    if(Glob_ProcID==0) write(*,'(1x,a)',advance='no') 'Computing expectation values...'
    ExpValLoc=ZERO
    temp0Loc=ZERO
@@ -1134,6 +1203,7 @@ if(Glob_DRMC(Glob_CurrDRMCStep)%A==0) then
    if(Glob_ProcID==0) write(*,*) 'done'
    !sqrt(N0*N1)
    if (Glob_ProcID==0) then
+      write (*,*) 'Normalization test:'
       write (*,*) ' '
       write (*,*) 'c0*S0*c0',temp0
       write (*,*) 'c1*S1*c1',temp1
@@ -1141,9 +1211,6 @@ if(Glob_DRMC(Glob_CurrDRMCStep)%A==0) then
    endif
    temp0=sqrt(abs(temp0*temp1))
    Glob_ExpVals(Glob_CurrDRMCStep)=ExpVal/temp0
-else
-   if (Glob_ProcID==0) write(*,*) 'Glob_DRMC(Glob_CurrDRMCStep)%A is not 0! Reduced YHY will be used!'
-   stop
 endif
 
 end subroutine ComputeExpValL0L1

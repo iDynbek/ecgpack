@@ -61,7 +61,8 @@ real(dprec)   Glob_2raised3n2  !2^(3n/2)
 
 !Glob_CurrBasisSize is a variable whose value equals the current 
 !size of the basis
-integer       Glob_CurrBasisSize
+integer                               :: Glob_CurrBasisSize
+integer,allocatable,dimension(:),save :: Glob_CurrBasisSizeInDRMCSteps
 
 !Glob_MassMatrix is the mass matrix, M 
 real(dprec),allocatable,dimension(:,:),save ::  Glob_MassMatrix
@@ -210,6 +211,9 @@ type(Glob_DRMCStep),allocatable,dimension(:),save :: Glob_DRMC
 integer    Glob_NumOfDRMCSteps,Glob_CurrDRMCStep
 
 real(dprec),allocatable,dimension(:),save :: Glob_ExpVals
+
+! CURRENT_ENERGYs from wave function files
+real(dprec),allocatable,dimension(:),save :: Glob_E0,Glob_E1
 
 !Array Glob_S is used to store the overlap matrices for L=0 and L=1 cases
 real(dprec),allocatable,dimension(:,:),save  :: Glob_S0, Glob_S1

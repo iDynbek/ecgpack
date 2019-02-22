@@ -1,0 +1,16 @@
+He
+1S 3th eval - 1P 1st eval
+1s2p 1P - 1s3s 1S
+
+FNM
+
+Transition Dipole Moment:  |< L=0 | Dipole | L=1 >|
+Oscillator Strength:       f_01 = 2/3*(E_0-E_1)*|<L=0|Dipole|L=1>|**2
+
+Literature:
+W. L. Wiese and J. R. Fuhra, J. Phys. Chem. Ref. Data, Vol. 38, No. 3, 2009 (617 page, No. 48)
+f_01 = 4.8509E-02
+
+Basis Size   Trans. Dip. Mom.       Oscillator Strength
+
+1000         1.0785379479934620     4.8512375582047573E-002
