@@ -14,7 +14,7 @@ integer,parameter    :: MPI_DPREC=MPI_DOUBLE_PRECISION
 !This is the maximal allowed number of particles in the system. If needed,
 !this number can be increased. However it is not recommended to use a number 
 !that is larger than necessary as it may affect the performance of the program.
-integer,parameter :: Glob_MaxAllowedNumOfParticles=7
+integer,parameter :: Glob_MaxAllowedNumOfParticles=6
 
 contains
 
@@ -61,7 +61,7 @@ end subroutine writerealarradv
 
 subroutine writestring(u,s,k)
 integer u          !i/o unit 
-character(k) s     !string that needs to be written
+character(*) s     !string that needs to be written
 integer k          !the length of the string (k first charachters) to write.
 integer i
 write(u,'(1x)',advance='no')
@@ -72,7 +72,7 @@ end subroutine writestring
 
 subroutine writestringadv(u,s,k)
 integer u          !i/o unit 
-character(k) s     !string that needs to be written
+character(*) s     !string that needs to be written
 integer k          !the length of the string (k first charachters) to write.
 integer i
 write(u,'(1x)',advance='no')

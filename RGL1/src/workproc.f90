@@ -8865,7 +8865,7 @@ if (ArePartDensNeeded) then
 endif
 
 !Allocate global arrays
-allocate(Glob_H(cbs,cbs))
+allocate(Glob_H(cbs,cbs)) 
 allocate(Glob_S(cbs,cbs))
 if (GSEPsolMethod=='G') allocate(Glob_diagH(cbs))
 allocate(Glob_diagS(cbs))

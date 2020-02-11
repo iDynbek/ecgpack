@@ -61,7 +61,7 @@ end subroutine writerealarradv
 
 subroutine writestring(u,s,k)
 integer u          !i/o unit 
-character(k) s     !string that needs to be written
+character(*) s     !string that needs to be written
 integer k          !the length of the string (k first charachters) to write.
 integer i
 write(u,'(1x)',advance='no')
@@ -72,7 +72,7 @@ end subroutine writestring
 
 subroutine writestringadv(u,s,k)
 integer u          !i/o unit 
-character(k) s     !string that needs to be written
+character(*) s     !string that needs to be written
 integer k          !the length of the string (k first charachters) to write.
 integer i
 write(u,'(1x)',advance='no')

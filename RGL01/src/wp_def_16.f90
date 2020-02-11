@@ -9,7 +9,7 @@ integer,parameter     :: dprec=16
 integer,parameter     :: wp=dprec
 
 !This is data type identifier for MPI corresponding to real type of kind dprec
-integer,parameter    :: MPI_DPREC=MPI_DOUBLE_PRECISION
+integer,parameter    :: MPI_DPREC=MPI_REAL16
 
 !This is the maximal allowed number of particles in the system. If needed,
 !this number can be increased. However it is not recommended to use a number
@@ -61,7 +61,7 @@ end subroutine writerealarradv
 
 subroutine writestring(u,s,k)
 integer u          !i/o unit 
-character(k) s     !string that needs to be written
+character(*) s     !string that needs to be written
 integer k          !the length of the string (k first charachters) to write.
 integer i
 write(u,'(1x)',advance='no')
@@ -72,7 +72,7 @@ end subroutine writestring
 
 subroutine writestringadv(u,s,k)
 integer u          !i/o unit 
-character(k) s     !string that needs to be written
+character(*) s     !string that needs to be written
 integer k          !the length of the string (k first charachters) to write.
 integer i
 write(u,'(1x)',advance='no')
