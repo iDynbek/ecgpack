@@ -9,12 +9,12 @@ integer,parameter     :: dprec=10
 integer,parameter     :: wp=dprec
 
 !This is data type identifier for MPI corresponding to real type of kind dprec
-integer,parameter    :: MPI_DPREC=MPI_REAL16
+integer,parameter    :: MPI_DPREC=MPI_DOUBLE_PRECISION
 
 !This is the maximal allowed number of particles in the system. If needed,
 !this number can be increased. However it is not recommended to use a number 
 !that is larger than necessary as it may affect the performance of the program.
-integer,parameter :: Glob_MaxAllowedNumOfParticles=6
+integer,parameter :: Glob_MaxAllowedNumOfParticles=5
 
 contains
 
