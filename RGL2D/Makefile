@@ -69,8 +69,8 @@ ifeq ($(MACHINE), mylinuxbox)
     export FCFLAGS=-J$(CONFIG)
     export LINKFLAGS=-J$(CONFIG)
     ifeq ($(CONFIG), debug)
-      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan
-      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan
+      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
+      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
     endif
     ifeq ($(CONFIG), release)
       export FCFLAGS+=-O3
@@ -153,8 +153,8 @@ ifeq ($(MACHINE), ocelote)
     export FCFLAGS=-J$(CONFIG)
     export LINKFLAGS=-J$(CONFIG)
     ifeq ($(CONFIG), debug)
-      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan
-      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan
+      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
+      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
     endif
     ifeq ($(CONFIG), release)
       export FCFLAGS+=-O3
@@ -214,8 +214,8 @@ ifeq ($(MACHINE), elgato)
     export FCFLAGS=-J$(CONFIG)
     export LINKFLAGS=-J$(CONFIG)
     ifeq ($(CONFIG), debug)
-      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan
-      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan
+      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
+      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
     endif
     ifeq ($(CONFIG), release)
       export FCFLAGS+=-O2
