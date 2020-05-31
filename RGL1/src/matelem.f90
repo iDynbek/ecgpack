@@ -824,7 +824,7 @@ real(dprec)       eta2(nn,nn),inv_tAkltAlM(nn,nn)
 real(dprec)       W1(nn,nn),W2(nn,nn),W3(nn,nn),W4(nn,nn),W5(nn,nn),W6(nn,nn),W7(nn,nn)
 real(dprec)       inv_tAkltvl(nn),tvkinv_tAkl(nn),tvkinv_tAkltAlM(nn),u1(nn)  
 real(dprec)       temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8,temp9
-real(dprec)       temp10,temp11,temp12,temp13,temp14,tr1, tr2, tr3, tr4
+real(dprec)       temp10,temp11,temp12,temp13,temp14,threshold,tr1, tr2, tr3, tr4
 real(dprec)       det_Lk, det_Ll, det_tAkl,tau1,tau2,tau3,inv_tau3 ,V2kl
 integer           i,j,k,t,indx,p,q
 real(dprec)       TrAJ(nn,nn),sqrtTrAJ(nn,nn),TrAJAJ(nn,nn,nn,nn)
@@ -1297,12 +1297,22 @@ do i=1,n
           temp6=tvkAj(p,q)         !         g          
           temp7=jAtvl(i,j)         !         u
           temp8=jAtvl(p,q)         !         v
-          temp9=sqrt(temp2*temp3)  !         sqrt(ab)
-          temp10=temp4/temp9       !         x=c/sqrt(ab)
-          temp11=sqrt(ONE-temp10*temp10)  !sqrt(1-x^2)
-          temp12=(temp6*temp7+temp5*temp8)/(temp2*temp3*tau3)   !h
-          temp13=(temp2*temp6*temp8+temp3*temp5*temp7)/(temp2*temp3*temp9*tau3)   !t
-          temp14=(temp1/temp11)*(THREE/temp9-temp13+(temp12-temp10*THREE/temp9)*ftransaux(temp10))
+          temp9 = sqrt(temp2*temp3)
+          temp10 = temp4/temp9
+          threshold = ONE - temp10*temp10
+          if ( threshold  < TEN * EPSILON(threshold) )then
+            ! employed expression
+            ! expansion_term_2 = 2*Skl* (Sqrt(a*b)*g*u + Sqrt(a*b)*f*v - 3*a*b*tau3) / (3*a*b*Sqrt(a*b)*tau3)   
+            temp11 = temp9 * temp6 * temp7                                                              ! Sqrt(a*b)*g*u
+            temp12 = temp9 * temp5 * temp8                                                              ! Sqrt(a*b)*f*v	 
+            temp13 = THREE * temp2 * temp3 * tau3                                                       ! 3*a*b*tau3
+            temp14 = (TWO * Skl) * (temp11 + temp12 - temp13) / (temp13 * temp9)
+          else
+            temp11=sqrt(ONE-temp10*temp10)                                                                              ! sqrt(1-x^2)
+            temp12=(temp6*temp7+temp5*temp8)/(temp2*temp3*tau3)                                                         ! h
+            temp13=(temp2*temp6*temp8+temp3*temp5*temp7)/(temp2*temp3*temp9*tau3)                                       ! t
+            temp14=(temp1/temp11)*(THREE/temp9-temp13+(temp12-temp10*THREE/temp9)*ftransaux(temp10))
+          endif
           rmrmkl(i,j,p,q)=temp14
           rmrmkl(j,i,p,q)=temp14
           rmrmkl(i,j,q,p)=temp14
