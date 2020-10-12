@@ -7,6 +7,417 @@ implicit none
 contains
 
 
+
+subroutine Readwf0wf1()
+!Subroutine Readwf0wf1 reads data (number of particle,
+!mass, charge, nonlinear variational
+!parameters and other information) from the wave function 
+!file whose name is specified by global variable 
+!Glob_wf File files. 
+
+!Local variables:
+integer        :: OpenFileErr
+integer        :: ReadInt,ReadErr
+integer        :: particle_n_0,particle_n_1
+real(dprec)    :: Mass_0,Mass_1
+real(dprec)    :: PseudoCharge_0,PseudoCharge_1
+real(dprec)    :: PseudoCharge_0_0,PseudoCharge_1_0 
+real(dprec)    :: ReadReal_0,ReadReal_1
+real(dprec)    :: RepulsionScalingParamPlus_0,RepulsionScalingParamPlus_1
+real(dprec)    :: RepulsionScalingParamMinus_0,RepulsionScalingParamMinus_1
+real(dprec)    :: RepulsionScalingParam_0,RepulsionScalingParam_1
+real(dprec)    :: AttractionScalingParam_0,AttractionScalingParam_1
+logical        :: AttrScalParamSupplied_0,AttrScalParamSupplied_1
+integer        :: WorkInt(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
+integer        :: WorkInt_0(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
+integer        :: WorkInt_1(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
+integer        :: i,j,k,l,Line_0,Line_1
+character(70)  :: ReadChar
+logical        :: ErrorInDataFile !,IsDRMCStep
+
+ErrorInDataFile=.false.
+
+! opening the wave function files of initial and final states
+! Glob_wfFile_0 initial state's file
+! Glob_wfFile_1 final state's file
+if (Glob_ProcID==0) then
+
+!	initial state
+	open(1,file=Glob_wfFile_0,status='old',iostat=OpenFileErr)
+	if (OpenFileErr/=0) then
+		write (*,*) ' Error in wave function of inital state, '
+		write (*,*) ' "',Glob_wfFile_0, '"  file not found !!!'
+		ErrorInDataFile=.true.
+	endif
+	
+!	final state
+	open(2,file=Glob_wfFile_1,status='old',iostat=OpenFileErr)
+	if (OpenFileErr/=0) then
+		write (*,*) ' Error in wave function of final state.  '
+		write (*,*) ' "',Glob_wfFile_1, '" file not found !!!'
+		ErrorInDataFile=.true.
+	endif
+endif
+call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+if (ErrorInDataFile) stop
+
+
+if (Glob_ProcID==0) Line_0=0,Line_1=0
+
+!Reading the number of particle from the wave function files
+if (Glob_ProcID==0) then
+
+!	initial state
+	read(1,*) ReadChar(1:30)
+	write(*,*) 'Reading "',ReadChar(1:19) ,'" of the initial state from : ', Glob_wfFile_0
+	read(1,*) ReadChar(1:9),ReadInt
+	Line_0=Line_0+1
+!	particle_n_0 is the number of pseudoparticles in Glob_wfFile_0 
+	particle_n_0=ReadInt-1 						
+	if ((particle_n_0<1).or.(ReadChar(1:9)/='PARTICLES')) then
+		write(*,*) 'Error in the file of initial state, line: ',Line_0   
+		ErrorInDataFile=.true.
+	endif
+	
+!	final state
+	read(2,*) ReadChar(1:30)
+	write(*,*) 'Reading "',ReadChar(1:19) ,'" of the final state from : ', Glob_wfFile_1
+	read(2,*) ReadChar(1:9),ReadInt		
+	Line_1=Line_1+1
+!	particle_n_1 is the number of pseudoparticles in Glob_wfFile_1
+	particle_n_1=ReadInt-1 							
+	if ((particle_n_1<1).or.(ReadChar(1:9)/='PARTICLES')) then
+		write(*,*) 'Error in the file of final state, line: ',Line_1   
+		ErrorInDataFile=.true.
+	endif
+	
+!	comaring the number of particle in Glob_wfFile_0 and Glob_wfFile_1 files
+	if (particle_n_0/=particle_n_1) then
+		write(*,*) 'the number of particle in the wave function files of initial(',Glob_wfFile_0, ')'
+		write(*,*) 'and  final states (',Glob_wfFile_1, ') is not the same.'
+		ErrorInDataFile=.true.
+	else
+		if (Glob_n>Glob_MaxAllowedNumOfPseudoParticles) then
+			write (*,*) 'The version of the code you are running was compiled for the case'
+			write (*,*) 'when the number of particles in the system is smaller or equal to', &
+					Glob_MaxAllowedNumOfParticles
+			write (*,*) 'while the number of particles specified in the wave function files is',Glob_n+1		
+			write (*,*) 'Please make appropriate changes. Program will now stop.'
+			ErrorInDataFile=.true.
+		endif
+!		Glob_n=particle_n_0=particle_n_1
+		Glob_n=particle_n_0
+		Glob_2raised3n2=TWO**((3*Glob_n)/TWO)
+	endif
+	write(*,'(1x,a9,1x,i6)') ReadChar(1:9),Glob_n		
+
+endif
+if (ErrorInDataFile) stop
+call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+Glob_np=Glob_n*(Glob_n+1)/2
+Glob_npt=Glob_np
+
+
+! Reading the masses of particles from the wave function files
+! Mass_0 masses which are read from the Glob_wfFile_0
+! Mass_1 masses which are read from the Glob_wfFile_1
+allocate(Glob_Mass(Glob_n+1))
+allocate(Mass_0(Glob_n+1))
+allocate(Mass_1(Glob_n+1))
+if (Glob_ProcID==0) then
+
+!	inital state
+	read(1,*) ReadChar(1:6),Mass_0(1:Glob_n+1)
+	Line_0=Line_0+1
+!	final state
+	read(2,*) ReadChar(1:6),Mass_1(1:Glob_n+1)
+	Line_1=Line_1+1
+!	comparison of the masses of two files
+	Do i=1,Glob_n+1
+		if (Mass_0(i)/=Mass_1(i))then
+			write(*,*) 'the mass of the (',i,'th) particle in the wave function files of initial(',Glob_wfFile_0, ')'
+			write(*,*) 'and  final states (',Glob_wfFile_1, ') is not the same.'
+			ErrorInDataFile=.true.
+		endif
+	enddo
+!	Glob_Mass=Mass_0=Mass_1
+	Glob_Mass=Mass_0
+	call writerealarradv(6,Glob_Mass,Glob_n+1)
+	
+endif
+if (ErrorInDataFile) stop
+call MPI_BCAST(Glob_Mass,Glob_n+1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+deallocate(Mass_0(Glob_n+1))
+deallocate(Mass_1(Glob_n+1))
+
+
+! Reading the charges of particles from the wave function files
+! PseudoCharge_0   charges of the electrons which are read from the Glob_wfFile_0
+! PseudoCharge_1   charges of the electrons which are read from the Glob_wfFile_1
+! PseudoCharge_0_0 charge  of the nucleus   which are read from the Glob_wfFile_0
+! PseudoCharge_1_0 charge  of the nucleus   which are read from the Glob_wfFile_0
+allocate(Glob_PseudoCharge(Glob_n))
+allocate(PseudoCharge_0(Glob_n))
+allocate(PseudoCharge_1(Glob_n))
+if (Glob_ProcID==0) then
+
+!	inital state
+	read(1,*) ReadChar(1:7),PseudoCharge_0_0,PseudoCharge_0(1:Glob_n)
+	Line_0=Line_0+1
+!	final state
+	read(2,*) ReadChar(1:7),PseudoCharge_1_0,PseudoCharge_1(1:Glob_n)
+	Line_1=Line_1+1
+	
+!	comparing charges of the two files
+	if (PseudoCharge_0_0/=PseudoCharge_1_0)then
+		write(*,*) 'the charge of first particle in the wave function files of initial(',Glob_wfFile_1, ')'
+		write(*,*) 'and  final states (',Glob_wfFile_1, ') is not the same.'
+		ErrorInDataFile=.true.
+	endif
+	Do=i,Glob_n
+		if (PseudoCharge_0(i)/=PseudoCharge_1(i))then
+		  	write(*,*) 'the charge of the (',i,') particle in the wave function files of initial(',Glob_wfFile_1, ')'
+			write(*,*) 'and  final states (',Glob_wfFile_1, ') is not the same.'
+			ErrorInDataFile=.true.
+		endif
+	enddo
+!	Glob_PseudoCharge_0=PseudoCharge_0_0=PseudoCharge_1_0
+	Glob_PseudoCharge_0=PseudoCharge_0_0
+!	Glob_PseudoCharge=PseudoCharge_0=PseudoCharge_1
+	Glob_PseudoCharge=PseudoCharge_0
+	write(*,'(1x,a7)',advance='no') ReadChar(1:7)
+	write(*,'(1x,a9,1x,i6)') ReadChar(1:9),ReadInt
+	call writereal(6,Glob_PseudoCharge_0)
+	call writerealarradv(6,Glob_PseudoCharge,Glob_n_1)
+endif
+if (ErrorInDataFile) stop
+call MPI_BCAST(Glob_PseudoCharge_0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_PseudoCharge,Glob_n,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+deallocate(PseudoCharge_0(Glob_n))
+deallocate(PseudoCharge_1(Glob_n))
+
+
+! Reading Repulsion Scaling Parameters
+if (Glob_ProcID==0) then
+  Glob_RepulsionScalingParam=1.0_dprec
+  Glob_RepScalParamSupplied=.false.
+  Glob_RepulsionScalingParamPlus=1.0_dprecas
+  Glob_RepScalParamPlusSupplied=.false.  
+  Glob_RepulsionScalingParamMinus=1.0_dprec
+  Glob_RepScalParamMinusSupplied=.false. 
+  
+!initial state
+  do i=1,3
+    read(1,*,iostat=ReadErr) ReadChar(1:29),ReadReal_0  
+    if ((ReadErr/=0).or.(ReadChar(1:23)/='REPULSION_SCALING_PARAM')) then
+		backspace 1
+    else
+		if (ReadChar(1:28)=='REPULSION_SCALING_PARAM_PLUS') then
+			RepulsionScalingParamPlus_0=ReadReal_0
+			Line_0=Line_0+1
+		elseif (ReadChar(1:29)=='REPULSION_SCALING_PARAM_MINUS') then
+			RepulsionScalingParamMinus_0=ReadReal_0
+			Line_0=Line_0+1
+		else
+			RepulsionScalingParam_0=ReadReal_0 
+			Line_0=Line_0+1
+		endif
+    endif 
+  enddo
+
+! final state and comparing the data 
+  do i=1,3
+    read(2,*,iostat=ReadErr) ReadChar(1:29),ReadReal_1  
+    if ((ReadErr/=0).or.(ReadChar(1:23)/='REPULSION_SCALING_PARAM')) then
+		backspace 1
+    else
+		if (ReadChar(1:28)=='REPULSION_SCALING_PARAM_PLUS') then
+			RepulsionScalingParamPlus_1=ReadReal_1
+			if (RepulsionScalingParamPlus_0==RepulsionScalingParamPlus_1) then
+!				Glob_RepulsionScalingParamPlus=RepulsionScalingParamPlus_0=RepulsionScalingParamPlus_1	
+				Glob_RepulsionScalingParamPlus=RepulsionScalingParamPlus_0
+				Glob_RepScalParamPlusSupplied=.true.
+				write(*,'(1x,a28)',advance='no') ReadChar(1:28)
+				call writerealadv(6,Glob_RepulsionScalingParamPlus)
+			else
+				write(*,*) 'the "REPULSION_SCALING_PARAM_PLUS" in the wave function files of initial(',Glob_wfFile_0, ')'
+				write(*,*) 'and  final states (',Glob_wfFile_1, ') are not the same.'
+				ErrorInDataFile=.true.
+			endif
+			Line_1=Line_1+1			
+		elseif (ReadChar(1:29)=='REPULSION_SCALING_PARAM_MINUS') then
+			RepulsionScalingParamMinus_1=ReadReal_1
+			if (RepulsionScalingParamMinus_0==RepulsionScalingParamMinus_1) then
+!				Glob_RepulsionScalingParamMinus=RepulsionScalingParamMinus_0=RepulsionScalingParamMinus_1
+				Glob_RepulsionScalingParamMinus=RepulsionScalingParamMinus_0
+				Glob_RepScalParamMinusSupplied=.true.
+				write(*,'(1x,a28)',advance='no') ReadChar(1:29)
+				call writerealadv(6,Glob_RepulsionScalingParamMinus)
+			else
+				write(*,*) 'the "REPULSION_SCALING_PARAM_MINUS" in the wave function files of initial(',Glob_wfFile_0, ')'
+				write(*,*) 'and  final states (',Glob_wfFile_1, ') are not the same.'
+				ErrorInDataFile=.true.
+			endif
+			Line_1=Line_1+1
+		else
+			RepulsionScalingParam_1=ReadReal_1
+			if (RepulsionScalingParam_0==RepulsionScalingParam_1) then
+!				Glob_RepulsionScalingParam=RepulsionScalingParam_0=RepulsionScalingParam_1
+				Glob_RepulsionScalingParam=RepulsionScalingParam_0
+				Glob_RepScalParamSupplied=.true.
+				write(*,'(1x,a23)',advance='no') ReadChar(1:23)
+				call writerealadv(6,Glob_RepulsionScalingParam)
+			else
+				write(*,*) 'the "Repulsion_Scaling_Param" in the wave function files of initial(',Glob_wfFile_0, ')'
+				write(*,*) 'and  final states (',Glob_wfFile_1, ') are not the same.'
+				ErrorInDataFile=.true.
+			endif
+			Line_1=Line_1+1
+		endif
+    endif 
+  enddo  
+endif
+if (ErrorInDataFile) stop
+call MPI_BCAST(Glob_RepScalParamSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_RepulsionScalingParam,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_RepScalParamPlusSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_RepulsionScalingParamPlus,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_RepScalParamMinusSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_RepulsionScalingParamMinus,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+
+
+
+! Reading attraction Scaling Parameters
+if (Glob_ProcID==0) then
+! initial state
+	read(1,*,iostat=ReadErr) ReadChar(1:24),AttractionScalingParam_0
+	if ((ReadErr/=0).or.(ReadChar(1:24)/='ATTRACTION_SCALING_PARAM')) then
+		AttractionScalingParam_0=1.0_dprec
+		backspace 1
+	else
+		AttrScalParamSupplied_0=.true.
+		Line_0=Line_0+1
+	endif
+  
+! final state
+	read(2,*,iostat=ReadErr) ReadChar(1:24),AttractionScalingParam_1
+	if ((ReadErr/=0).or.(ReadChar(1:24)/='ATTRACTION_SCALING_PARAM')) then
+		AttractionScalingParam_1=1.0_dprec
+		if (AttractionScalingParam_0==AttractionScalingParam_1) then
+			! Glob_AttractionScalingParam=AttractionScalingParam_0=AttractionScalingParam_1
+			Glob_AttractionScalingParam=AttractionScalingParam_0
+			Glob_AttrScalParamSupplied=.false.
+		else
+			write(*,*) 'the "ATTRACTION_SCALING_PARAM" in the wave function files of initial(',Glob_wfFile_0, ')'
+			write(*,*) 'and  final states (',Glob_wfFile_1, ') are not the same.'
+			ErrorInDataFile=.true.
+		endif
+		backspace 1
+	else
+		AttrScalParamSupplied_1=.true.
+		if (AttrScalParamSupplied_0==AttrScalParamSupplied_1) then
+			Glob_AttrScalParamSupplied=.true.
+			write(*,'(1x,a24)',advance='no') ReadChar(1:24)
+			call writerealadv(6,Glob_AttractionScalingParam)
+		endif
+		Line_1=Line_1+1
+	endif
+  
+endif
+if (ErrorInDataFile) stop
+call MPI_BCAST(Glob_AttrScalParamSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_AttractionScalingParam,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+
+
+
+! Reading Young opertators
+if (Glob_ProcID==0) then
+
+!	initial state
+	read(1,*) ReadChar(1:9),Glob_YOperatorString_0
+	do i=1,Glob_YOperatorStringLength
+		WorkInt(i)=ichar(Glob_YOperatorString_0(i:i))
+	enddo
+	WorkInt_0=WorkInt
+!	final state   
+	read(2,*) ReadChar(1:9),Glob_YOperatorString_1
+	do i=1,Glob_YOperatorStringLength
+		WorkInt(i)=ichar(Glob_YOperatorString_1(i:i))
+	enddo
+	WorkInt_1=WorkInt
+	
+end if
+call MPI_BCAST(WorkInt_0,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(WorkInt_1,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+do i=1,Glob_YOperatorStringLength
+   Glob_YOperatorString_0(i:i)=char(WorkInt_0(i))
+   Glob_YOperatorString_1(i:i)=char(WorkInt_1(i))
+enddo
+
+
+! Reading number of the basis functions for each state 
+if (Glob_ProcID==0) then
+!	initial state
+	read(1,*) ReadChar(1:10),Glob_CurrBasisSize_1
+	write(*,'(1x,a10,1x,i6)')  ReadChar(1:10),' INITIAL_STATE',Glob_CurrBasisSize_1
+! 	final state
+	read(2,*) ReadChar(1:10),Glob_CurrBasisSize_0
+	write(*,'(1x,a10,1x,i6)')  ReadChar(1:10),' FINAL_STATE',Glob_CurrBasisSize_1
+endif
+call MPI_BCAST(Glob_CurrBasisSize_0,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_CurrBasisSize_1,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+
+
+! Reading energy of each state 
+if (Glob_ProcID==0) then
+!	initial state
+	read(1,*) ReadChar(1:14),Glob_CurrEnergy_0
+	write(*,'(1x,a14)',advance='no')  ReadChar(1:14),' INITIAL_STATE' 
+	call writerealadv(6,Glob_CurrEnergy_1)
+!	final state
+	read(2,*) ReadChar(1:14),Glob_CurrEnergy_1
+	write(*,'(1x,a14)',advance='no')  ReadChar(1:14),' FINAL_STATE'
+	call writerealadv(6,Glob_CurrEnergy_2)  
+endif
+call MPI_BCAST(Glob_CurrEnergy_0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_CurrEnergy_1,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+
+read(1,*) ReadChar
+read(2,*) ReadChar
+
+
+! Reading the parameters of the basis functions
+allocate(Glob_c_0(Glob_CurrBasisSize_0))
+allocate(Glob_FuncNum_0(Glob_CurrBasisSize_0))
+allocate(Glob_NonlinParam_0(Glob_npt,Glob_CurrBasisSize_0))
+allocate(Glob_c_1(Glob_CurrBasisSize_1))
+allocate(Glob_FuncNum_1(Glob_CurrBasisSize_1))
+allocate(Glob_NonlinParam_1(Glob_npt,Glob_CurrBasisSize_1))
+allocate(Glob_ZIndex(Glob_CurrBasisSize_1))
+
+if (Glob_ProcID==0) then
+	do i=1,Glob_CurrBasisSize_0
+		read(1,*) Glob_FuncNum_0(i),Glob_c_0(i),ReadChar(1:2),Glob_NonlinParam_0(1:Glob_npt,i)
+	enddo
+	do i=1,Glob_CurrBasisSize_1
+		read(2,*) Glob_FuncNum_1(i),Glob_c_1(i),ReadChar(1:2),Glob_ZIndex(i),Glob_NonlinParam_1(1:Glob_npt,i)
+	enddo
+endif
+
+call MPI_BCAST(Glob_c_0,Glob_CurrBasisSize_0,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_c_1,Glob_CurrBasisSize_1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_NonlinParam_0,Glob_npt*Glob_CurrBasisSize_0,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_NonlinParam_1,Glob_npt*Glob_CurrBasisSize_1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_FuncNum_0,Glob_CurrBasisSize_0,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_FuncNum_1,Glob_CurrBasisSize_1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_ZIndex,Glob_CurrBasisSize_1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+
+			   
+end subroutine Readwf0wf1
+
+
+
+
 subroutine ReadIOFile()
 !Subroutine ReadIOFile reads data (nonlinear variational
 !parameters and other information) from the input/output 
