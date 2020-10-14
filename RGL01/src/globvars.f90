@@ -185,50 +185,60 @@ real(4)           :: Glob_TimeSinceStart=0.0
 integer,parameter :: Glob_FileNameLength=70
 
 !The definition of a new type, Glob_DRMCStep
-type Glob_DRMCStep
-  character(9)  Action
-  integer       A
-  integer       B
-  integer       C
-  integer       D
-  integer       E
-  integer       F
-  integer       G
-  integer       H
-  real(dprec)   Q
-  real(dprec)   R
-  character(Glob_FileNameLength) FileName1
-  character(Glob_FileNameLength) FileName2
-  character(Glob_FileNameLength) FileName3
-  character(Glob_FileNameLength) FileName4
-  character(Glob_FileNameLength) FileName5
-  character(Glob_FileNameLength) FileName6
-endtype Glob_DRMCStep
+!type Glob_DRMCStep
+!  character(9)  Action
+!  integer       A
+!  integer       B
+!  integer       C
+!  integer       D
+!  integer       E
+!  integer       F
+!  integer       G
+!  integer       H
+!  real(dprec)   Q
+!  real(dprec)   R
+!  character(Glob_FileNameLength) FileName1
+!  character(Glob_FileNameLength) FileName2
+!  character(Glob_FileNameLength) FileName3
+!  character(Glob_FileNameLength) FileName4
+!  character(Glob_FileNameLength) FileName5
+!  character(Glob_FileNameLength) FileName6
+!endtype Glob_DRMCStep
 
-type(Glob_DRMCStep),allocatable,dimension(:),save :: Glob_DRMC
+!type(Glob_DRMCStep),allocatable,dimension(:),save :: Glob_DRMC
 
 !Number of Data Reading and Matrix Calculator Program Steps
-integer    Glob_NumOfDRMCSteps,Glob_CurrDRMCStep
+!integer    Glob_NumOfDRMCSteps,Glob_CurrDRMCStep
+
+!Glob_CurrBasisSize is a variable whose value equals the current 
+!size of the basis
+integer													:: Glob_CurrBasisSize_0
+integer													:: Glob_CurrBasisSize_1
 
 real(dprec),allocatable,dimension(:),save :: Glob_ExpVals
 
 ! CURRENT_ENERGYs from wave function files
-real(dprec),allocatable,dimension(:),save :: Glob_E0,Glob_E1
+real(dprec),allocatable,dimension(:),save				:: Glob_CurrEnergy_0,Glob_CurrEnergy_1
 
 !Array Glob_S is used to store the overlap matrices for L=0 and L=1 cases
-real(dprec),allocatable,dimension(:,:),save  :: Glob_S0, Glob_S1
+real(dprec),allocatable,dimension(:,:),save  			:: Glob_S_0, Glob_S_1
 
-character(Glob_YOperatorStringLength)  Glob_YOperatorString0, Glob_YOperatorString1
+!Array Glob_diag_S is used to store the diagonal elements
+!of the overlap matrix 
+real(dprec),allocatable,dimension(:),save				:: Glob_diag_S_0,Glob_diag_S_1
+
+
+character(Glob_YOperatorStringLength)  					:: Glob_YOperatorString_0, Glob_YOperatorString_1
 
 !Array Glob_c is used to store the eigenvector
-real(dprec),allocatable,dimension(:),save :: Glob_c0, Glob_c1
+real(dprec),allocatable,dimension(:),save				:: Glob_c_0, Glob_c_1
 
 !Array Glob_FuncNum contains the basis function numbers 
-integer,allocatable,dimension(:),save :: Glob_FuncNum0, Glob_FuncNum1
+integer,allocatable,dimension(:),save 					:: Glob_FuncNum_0, Glob_FuncNum_1
 
 !Array Glob_NonlinParam contains the nonlinear parameters of basis 
 !functions (elements of the Cholesky matrix, L_k)
-real(dprec),allocatable,dimension(:,:),save :: Glob_NonlinParam0, Glob_NonlinParam1
+real(dprec),allocatable,dimension(:,:),save 			:: Glob_NonlinParam_0, Glob_NonlinParam_1
 
 !Variables Glob_NumYTerms and Glob_NumYHYTerms are the number of 
 !independent terms in the Y operator respectively
@@ -239,14 +249,14 @@ integer Glob_NumYTerms0, Glob_NumYTerms1
 !The structure is as follows:
 !   Glob_YMatr(1:Glob_n,1:Glob_n,5) is the matrix corresponding to the 
 !   5-th term of Y operator.
-real(dprec),allocatable,dimension(:,:,:),save  :: Glob_YMatr0, Glob_YMatr1
+real(dprec),allocatable,dimension(:,:,:),save			:: Glob_YMatr_0, Glob_YMatr_1
 
 !Arrays Glob_YCoeff contain all coefficients 
 !(coefficients of permutations) in the Y operators
-real(dprec),allocatable,dimension(:),save  :: Glob_YCoeff0, Glob_YCoeff1
+real(dprec),allocatable,dimension(:),save				:: Glob_YCoeff_0, Glob_YCoeff_1
 
-integer Glob_NumFactY0, Glob_NumFactY1
-integer,allocatable,dimension(:),save :: Glob_NumTermsInYOpFact0, Glob_NumTermsInYOpFact1
+integer Glob_NumFactY_0, Glob_NumFactY_1
+integer,allocatable,dimension(:),save					:: Glob_NumTermsInYOpFact_0, Glob_NumTermsInYOpFact_1
 character(Glob_YOperatorStringLength),allocatable,dimension(:) :: Glob_YOpStr0
 
 !=============================================================
@@ -263,7 +273,9 @@ character(Glob_FileNameLength),parameter :: Glob_FileNameNone='none'
 !Glob_Glob_BlackListFileName is the name of the file containing
 !the list of functions that are not supposed to be optimized 
 !(this concerns only cyclic optimization, routines OptCycleG and OptCycleI).
-character(Glob_FileNameLength)          :: Glob_DataFileName='inout.txt'
+!character(Glob_FileNameLength)          :: Glob_DataFileName='inout.txt'
+character(Glob_wfFile_0)								 :: Glob_DataFileName='wf_state_0.txt'
+character(Glob_wfFile_1)								 :: Glob_DataFileName='wf_state_1.txt'
 
 !=============================================================
 !Global variables that contain information about
