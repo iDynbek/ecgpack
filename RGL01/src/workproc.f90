@@ -7,868 +7,368 @@ implicit none
 contains
 
 
-
 subroutine Readwf0wf1()
 !Subroutine Readwf0wf1 reads data (number of particle,
 !mass, charge, nonlinear variational
 !parameters and other information) from the wave function 
-!file whose name is specified by global variable 
+!file whose name is specIFied by global variable 
 !Glob_wf File files. 
 
 !Local variables:
 integer        :: OpenFileErr
 integer        :: ReadInt,ReadErr
-integer        :: particle_n_0,particle_n_1
-real(dprec)    :: Mass_0,Mass_1
-real(dprec)    :: PseudoCharge_0,PseudoCharge_1
-real(dprec)    :: PseudoCharge_0_0,PseudoCharge_1_0 
-real(dprec)    :: ReadReal_0,ReadReal_1
-real(dprec)    :: RepulsionScalingParamPlus_0,RepulsionScalingParamPlus_1
-real(dprec)    :: RepulsionScalingParamMinus_0,RepulsionScalingParamMinus_1
-real(dprec)    :: RepulsionScalingParam_0,RepulsionScalingParam_1
-real(dprec)    :: AttractionScalingParam_0,AttractionScalingParam_1
-logical        :: AttrScalParamSupplied_0,AttrScalParamSupplied_1
+integer        :: particle_n0,particle_n1
+real(dprec)    :: Mass0(Glob_MaxAllowedNumOfParticles),Mass1(Glob_MaxAllowedNumOfParticles)
+real(dprec)    :: PseudoCharge0(Glob_MaxAllowedNumOfParticles),PseudoCharge1(Glob_MaxAllowedNumOfParticles)
+real(dprec)    :: PseudoCharge00,PseudoCharge01 
+real(dprec)    :: ReadReal0,ReadReal1
+real(dprec)    :: RepulsionScalingParamPlus0,RepulsionScalingParamPlus1
+real(dprec)    :: RepulsionScalingParamMinus0,RepulsionScalingParamMinus1
+real(dprec)    :: RepulsionScalingParam0,RepulsionScalingParam1
+real(dprec)    :: AttractionScalingParam0,AttractionScalingParam1
+logical        :: AttrScalParamSupplied0,AttrScalParamSupplied1
 integer        :: WorkInt(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
-integer        :: WorkInt_0(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
-integer        :: WorkInt_1(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
-integer        :: i,j,k,l,Line_0,Line_1
+integer        :: WorkInt0(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
+integer        :: WorkInt1(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
+integer        :: i,j,k,l,Line0,Line1
 character(70)  :: ReadChar
 logical        :: ErrorInDataFile !,IsDRMCStep
 
 ErrorInDataFile=.false.
 
 ! opening the wave function files of initial and final states
-! Glob_wfFile_0 initial state's file
-! Glob_wfFile_1 final state's file
-if (Glob_ProcID==0) then
+! Glob_WFfile0 initial state's file
+! Glob_WFfile1 final state's file
+IF (Glob_ProcID==0) then
 
 !	initial state
-	open(1,file=Glob_wfFile_0,status='old',iostat=OpenFileErr)
-	if (OpenFileErr/=0) then
-		write (*,*) ' Error in wave function of inital state, '
-		write (*,*) ' "',Glob_wfFile_0, '"  file not found !!!'
+	open(1,file=Glob_WFfile0,status='old',iostat=OpenFileErr)
+	IF (OpenFileErr/=0) then
+		write(*,*) ' '
+		write (*,*) ' Error in opening wave function of inital state, '
+		write (*,*) ' "',Glob_WFfile0, '"  file not found !!!'
+		write(*,*) ' '
 		ErrorInDataFile=.true.
-	endif
+	EndIF
 	
 !	final state
-	open(2,file=Glob_wfFile_1,status='old',iostat=OpenFileErr)
-	if (OpenFileErr/=0) then
-		write (*,*) ' Error in wave function of final state.  '
-		write (*,*) ' "',Glob_wfFile_1, '" file not found !!!'
+	open(2,file=Glob_WFfile1,status='old',iostat=OpenFileErr)
+	IF (OpenFileErr/=0) then
+		write(*,*) ' '
+		write (*,*) ' Error in opening wave function of final state, '
+		write (*,*) ' "',Glob_WFfile1, '" file not found !!!'
+		write(*,*) ' '
 		ErrorInDataFile=.true.
-	endif
-endif
+	EndIF
+	
+EndIF
 call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-if (ErrorInDataFile) stop
+IF (ErrorInDataFile) stop
 
 
-if (Glob_ProcID==0) Line_0=0,Line_1=0
+IF (Glob_ProcID==0) Line0=0
+IF (Glob_ProcID==0) Line1=0
 
-!Reading the number of particle from the wave function files
-if (Glob_ProcID==0) then
-
+! Reading Header
+IF (Glob_ProcID==0) then
 !	initial state
 	read(1,*) ReadChar(1:30)
-	write(*,*) 'Reading "',ReadChar(1:19) ,'" of the initial state from : ', Glob_wfFile_0
-	read(1,*) ReadChar(1:9),ReadInt
-	Line_0=Line_0+1
-!	particle_n_0 is the number of pseudoparticles in Glob_wfFile_0 
-	particle_n_0=ReadInt-1 						
-	if ((particle_n_0<1).or.(ReadChar(1:9)/='PARTICLES')) then
-		write(*,*) 'Error in the file of initial state, line: ',Line_0   
-		ErrorInDataFile=.true.
-	endif
+	write(*,*) 'Reading " ',ReadChar(1:5) ,'" of the initial state from :    ', Glob_WFfile0
+	Line0=Line0+1
 	
 !	final state
 	read(2,*) ReadChar(1:30)
-	write(*,*) 'Reading "',ReadChar(1:19) ,'" of the final state from : ', Glob_wfFile_1
-	read(2,*) ReadChar(1:9),ReadInt		
-	Line_1=Line_1+1
-!	particle_n_1 is the number of pseudoparticles in Glob_wfFile_1
-	particle_n_1=ReadInt-1 							
-	if ((particle_n_1<1).or.(ReadChar(1:9)/='PARTICLES')) then
-		write(*,*) 'Error in the file of final state, line: ',Line_1   
+	write(*,*) 'Reading " ',ReadChar(1:5) ,'" of the final   state from :    ', Glob_WFfile1
+	Line1=Line1+1
+	write (*,*)
+
+EndIF
+
+!Reading the number of particle from the wave function files
+IF (Glob_ProcID==0) then
+
+!	initial state
+	read(1,*) ReadChar(1:9),ReadInt
+	Line0=Line0+1
+!	particle_n0 is the number of pseudoparticles in Glob_WFfile0 
+	particle_n0=ReadInt-1
+	IF ((particle_n0<1).or.(ReadChar(1:9)/='PARTICLES')) then
+		write(*,*) ' '
+		write(*,*) 'Error in reading thee number of particle of initial state, line: ',Line0
+		write(*,*) ' '
 		ErrorInDataFile=.true.
-	endif
+	EndIF
 	
-!	comaring the number of particle in Glob_wfFile_0 and Glob_wfFile_1 files
-	if (particle_n_0/=particle_n_1) then
-		write(*,*) 'the number of particle in the wave function files of initial(',Glob_wfFile_0, ')'
-		write(*,*) 'and  final states (',Glob_wfFile_1, ') is not the same.'
+!	final state
+	read(2,*) ReadChar(1:9),ReadInt
+	Line1=Line1+1
+!	particle_n1 is the number of pseudoparticles in Glob_WFfile1
+	particle_n1=ReadInt-1
+	IF ((particle_n1<1).or.(ReadChar(1:9)/='PARTICLES')) then
+		write(*,*) ' '
+		write(*,*) 'Error in reading the number of particle of final state, line: ',Line1
+		write(*,*) ' '
 		ErrorInDataFile=.true.
-	else
-		if (Glob_n>Glob_MaxAllowedNumOfPseudoParticles) then
+	EndIF
+	
+!	comaring the number of particle in Glob_WFfile0 and Glob_WFfile1 files
+	IF (particle_n0/=particle_n1) then
+		write(*,*) ' '
+		write(*,*) 'the number of particles in initial and final states is not the same !!!'
+		write(*,*) ' '
+		ErrorInDataFile=.true.
+	Else
+		IF (Glob_n>Glob_MaxAllowedNumOfPseudoParticles) then
+			write(*,*) ' '
 			write (*,*) 'The version of the code you are running was compiled for the case'
 			write (*,*) 'when the number of particles in the system is smaller or equal to', &
 					Glob_MaxAllowedNumOfParticles
-			write (*,*) 'while the number of particles specified in the wave function files is',Glob_n+1		
+			write (*,*) 'while the number of particles specIFied in the wave function files is',Glob_n+1		
 			write (*,*) 'Please make appropriate changes. Program will now stop.'
+			write(*,*) ' '
 			ErrorInDataFile=.true.
-		endif
-!		Glob_n=particle_n_0=particle_n_1
-		Glob_n=particle_n_0
-		Glob_2raised3n2=TWO**((3*Glob_n)/TWO)
-	endif
-	write(*,'(1x,a9,1x,i6)') ReadChar(1:9),Glob_n		
+		EndIF
+!		Glob_n=particle_n0=particle_n1
+		Glob_n=particle_n0
+	EndIF
 
-endif
-if (ErrorInDataFile) stop
+EndIF
+IF (ErrorInDataFile) stop
 call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+Glob_2raised3n2=TWO**((3*Glob_n)/TWO)
 Glob_np=Glob_n*(Glob_n+1)/2
 Glob_npt=Glob_np
 
 
+
 ! Reading the masses of particles from the wave function files
-! Mass_0 masses which are read from the Glob_wfFile_0
-! Mass_1 masses which are read from the Glob_wfFile_1
+! Mass0 masses which are read from the Glob_WFfile0
+! Mass1 masses which are read from the Glob_WFfile1
 allocate(Glob_Mass(Glob_n+1))
-allocate(Mass_0(Glob_n+1))
-allocate(Mass_1(Glob_n+1))
-if (Glob_ProcID==0) then
+IF (Glob_ProcID==0) then
 
 !	inital state
-	read(1,*) ReadChar(1:6),Mass_0(1:Glob_n+1)
-	Line_0=Line_0+1
+	read(1,*) ReadChar(1:6),Mass0(1:Glob_n+1)
+	Line0=Line0+1
+	IF (ReadChar(1:6)/='MASSES') then
+		write(*,*) ' '
+		write(*,*) 'Error in reading masses of particles of initial state, line: ',Line0
+		write(*,*) ' '
+	EndIF
 !	final state
-	read(2,*) ReadChar(1:6),Mass_1(1:Glob_n+1)
-	Line_1=Line_1+1
+	read(2,*) ReadChar(1:6),Mass1(1:Glob_n+1)
+	Line1=Line1+1
+	IF (ReadChar(1:6)/='MASSES') then
+		write(*,*) ' '
+		write(*,*) 'Error in reading masses of particles of final state, line: ',Line1
+		write(*,*) ' '
+	EndIF
+
 !	comparison of the masses of two files
 	Do i=1,Glob_n+1
-		if (Mass_0(i)/=Mass_1(i))then
-			write(*,*) 'the mass of the (',i,'th) particle in the wave function files of initial(',Glob_wfFile_0, ')'
-			write(*,*) 'and  final states (',Glob_wfFile_1, ') is not the same.'
+		IF (Mass0(i)/=Mass1(i))then
+			write(*,*) ' '
+			write(*,*) 'the mass of the',i,'th particle in initial and final states is not the same !!! '
+			write(*,*) ' '
 			ErrorInDataFile=.true.
-		endif
-	enddo
-!	Glob_Mass=Mass_0=Mass_1
-	Glob_Mass=Mass_0
+		EndIF
+	EndDo
+!	Glob_Mass=Mass0=Mass1
+	Glob_Mass=Mass0
+	write(*,'(1x,a6)',advance='no') ReadChar(1:6)
 	call writerealarradv(6,Glob_Mass,Glob_n+1)
 	
-endif
-if (ErrorInDataFile) stop
+EndIF
+IF (ErrorInDataFile) stop
 call MPI_BCAST(Glob_Mass,Glob_n+1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-deallocate(Mass_0(Glob_n+1))
-deallocate(Mass_1(Glob_n+1))
+
 
 
 ! Reading the charges of particles from the wave function files
-! PseudoCharge_0   charges of the electrons which are read from the Glob_wfFile_0
-! PseudoCharge_1   charges of the electrons which are read from the Glob_wfFile_1
-! PseudoCharge_0_0 charge  of the nucleus   which are read from the Glob_wfFile_0
-! PseudoCharge_1_0 charge  of the nucleus   which are read from the Glob_wfFile_0
+! PseudoCharge0   charges of the electrons which are read from the Glob_WFfile0
+! PseudoCharge1   charges of the electrons which are read from the Glob_WFfile1
+! PseudoCharge00 charge  of the nucleus   which are read from the Glob_WFfile0
+! PseudoCharge01 charge  of the nucleus   which are read from the Glob_WFfile0
 allocate(Glob_PseudoCharge(Glob_n))
-allocate(PseudoCharge_0(Glob_n))
-allocate(PseudoCharge_1(Glob_n))
-if (Glob_ProcID==0) then
+IF (Glob_ProcID==0) then
 
 !	inital state
-	read(1,*) ReadChar(1:7),PseudoCharge_0_0,PseudoCharge_0(1:Glob_n)
-	Line_0=Line_0+1
+	read(1,*) ReadChar(1:7),PseudoCharge00,PseudoCharge0(1:Glob_n)
+	Line0=Line0+1
+	IF (ReadChar(1:7)/='CHARGES') then
+		write(*,*) ' '
+		write(*,*) 'Error in reading charges of particles of initial state, line: ',Line0
+		write(*,*) ' '
+	EndIF
+	
 !	final state
-	read(2,*) ReadChar(1:7),PseudoCharge_1_0,PseudoCharge_1(1:Glob_n)
-	Line_1=Line_1+1
+	read(2,*) ReadChar(1:7),PseudoCharge01,PseudoCharge1(1:Glob_n)
+	Line1=Line1+1
+	IF (ReadChar(1:7)/='CHARGES') then
+		write(*,*) ' '
+		write(*,*) 'Error in reading charges of particles of final state, line: ',Line1
+		write(*,*) ' '
+	EndIF
 	
 !	comparing charges of the two files
-	if (PseudoCharge_0_0/=PseudoCharge_1_0)then
-		write(*,*) 'the charge of first particle in the wave function files of initial(',Glob_wfFile_1, ')'
-		write(*,*) 'and  final states (',Glob_wfFile_1, ') is not the same.'
+	IF (PseudoCharge00/=PseudoCharge01)then
+		write(*,*) ' '
+		write(*,*) 'the charge of first particle in initial and final states is not the same !!!'
+		write(*,*) ' '
 		ErrorInDataFile=.true.
-	endif
-	Do=i,Glob_n
-		if (PseudoCharge_0(i)/=PseudoCharge_1(i))then
-		  	write(*,*) 'the charge of the (',i,') particle in the wave function files of initial(',Glob_wfFile_1, ')'
-			write(*,*) 'and  final states (',Glob_wfFile_1, ') is not the same.'
+	EndIF
+	
+	Do i=1,Glob_n
+		IF (PseudoCharge0(i)/=PseudoCharge1(i))then
+			write(*,*) ' '
+		  	write(*,*) 'the charge of the',i+1,' in initial and final states is not the same !!! '
+			write(*,*) ' '
 			ErrorInDataFile=.true.
-		endif
-	enddo
-!	Glob_PseudoCharge_0=PseudoCharge_0_0=PseudoCharge_1_0
-	Glob_PseudoCharge_0=PseudoCharge_0_0
-!	Glob_PseudoCharge=PseudoCharge_0=PseudoCharge_1
-	Glob_PseudoCharge=PseudoCharge_0
+		EndIF
+	EndDo
+!	Glob_PseudoCharge0=PseudoCharge00=PseudoCharge01
+	Glob_PseudoCharge0=PseudoCharge00
+!	Glob_PseudoCharge=PseudoCharge0=PseudoCharge1
+	Glob_PseudoCharge=PseudoCharge0
 	write(*,'(1x,a7)',advance='no') ReadChar(1:7)
-	write(*,'(1x,a9,1x,i6)') ReadChar(1:9),ReadInt
-	call writereal(6,Glob_PseudoCharge_0)
-	call writerealarradv(6,Glob_PseudoCharge,Glob_n_1)
-endif
-if (ErrorInDataFile) stop
-call MPI_BCAST(Glob_PseudoCharge_0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+	call writereal(6,Glob_PseudoCharge0)
+	call writerealarradv(6,Glob_PseudoCharge,Glob_n)
+EndIF
+
+IF (ErrorInDataFile) stop
+call MPI_BCAST(Glob_PseudoCharge0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 call MPI_BCAST(Glob_PseudoCharge,Glob_n,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-deallocate(PseudoCharge_0(Glob_n))
-deallocate(PseudoCharge_1(Glob_n))
-
-
-! Reading Repulsion Scaling Parameters
-if (Glob_ProcID==0) then
-  Glob_RepulsionScalingParam=1.0_dprec
-  Glob_RepScalParamSupplied=.false.
-  Glob_RepulsionScalingParamPlus=1.0_dprecas
-  Glob_RepScalParamPlusSupplied=.false.  
-  Glob_RepulsionScalingParamMinus=1.0_dprec
-  Glob_RepScalParamMinusSupplied=.false. 
-  
-!initial state
-  do i=1,3
-    read(1,*,iostat=ReadErr) ReadChar(1:29),ReadReal_0  
-    if ((ReadErr/=0).or.(ReadChar(1:23)/='REPULSION_SCALING_PARAM')) then
-		backspace 1
-    else
-		if (ReadChar(1:28)=='REPULSION_SCALING_PARAM_PLUS') then
-			RepulsionScalingParamPlus_0=ReadReal_0
-			Line_0=Line_0+1
-		elseif (ReadChar(1:29)=='REPULSION_SCALING_PARAM_MINUS') then
-			RepulsionScalingParamMinus_0=ReadReal_0
-			Line_0=Line_0+1
-		else
-			RepulsionScalingParam_0=ReadReal_0 
-			Line_0=Line_0+1
-		endif
-    endif 
-  enddo
-
-! final state and comparing the data 
-  do i=1,3
-    read(2,*,iostat=ReadErr) ReadChar(1:29),ReadReal_1  
-    if ((ReadErr/=0).or.(ReadChar(1:23)/='REPULSION_SCALING_PARAM')) then
-		backspace 1
-    else
-		if (ReadChar(1:28)=='REPULSION_SCALING_PARAM_PLUS') then
-			RepulsionScalingParamPlus_1=ReadReal_1
-			if (RepulsionScalingParamPlus_0==RepulsionScalingParamPlus_1) then
-!				Glob_RepulsionScalingParamPlus=RepulsionScalingParamPlus_0=RepulsionScalingParamPlus_1	
-				Glob_RepulsionScalingParamPlus=RepulsionScalingParamPlus_0
-				Glob_RepScalParamPlusSupplied=.true.
-				write(*,'(1x,a28)',advance='no') ReadChar(1:28)
-				call writerealadv(6,Glob_RepulsionScalingParamPlus)
-			else
-				write(*,*) 'the "REPULSION_SCALING_PARAM_PLUS" in the wave function files of initial(',Glob_wfFile_0, ')'
-				write(*,*) 'and  final states (',Glob_wfFile_1, ') are not the same.'
-				ErrorInDataFile=.true.
-			endif
-			Line_1=Line_1+1			
-		elseif (ReadChar(1:29)=='REPULSION_SCALING_PARAM_MINUS') then
-			RepulsionScalingParamMinus_1=ReadReal_1
-			if (RepulsionScalingParamMinus_0==RepulsionScalingParamMinus_1) then
-!				Glob_RepulsionScalingParamMinus=RepulsionScalingParamMinus_0=RepulsionScalingParamMinus_1
-				Glob_RepulsionScalingParamMinus=RepulsionScalingParamMinus_0
-				Glob_RepScalParamMinusSupplied=.true.
-				write(*,'(1x,a28)',advance='no') ReadChar(1:29)
-				call writerealadv(6,Glob_RepulsionScalingParamMinus)
-			else
-				write(*,*) 'the "REPULSION_SCALING_PARAM_MINUS" in the wave function files of initial(',Glob_wfFile_0, ')'
-				write(*,*) 'and  final states (',Glob_wfFile_1, ') are not the same.'
-				ErrorInDataFile=.true.
-			endif
-			Line_1=Line_1+1
-		else
-			RepulsionScalingParam_1=ReadReal_1
-			if (RepulsionScalingParam_0==RepulsionScalingParam_1) then
-!				Glob_RepulsionScalingParam=RepulsionScalingParam_0=RepulsionScalingParam_1
-				Glob_RepulsionScalingParam=RepulsionScalingParam_0
-				Glob_RepScalParamSupplied=.true.
-				write(*,'(1x,a23)',advance='no') ReadChar(1:23)
-				call writerealadv(6,Glob_RepulsionScalingParam)
-			else
-				write(*,*) 'the "Repulsion_Scaling_Param" in the wave function files of initial(',Glob_wfFile_0, ')'
-				write(*,*) 'and  final states (',Glob_wfFile_1, ') are not the same.'
-				ErrorInDataFile=.true.
-			endif
-			Line_1=Line_1+1
-		endif
-    endif 
-  enddo  
-endif
-if (ErrorInDataFile) stop
-call MPI_BCAST(Glob_RepScalParamSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_RepulsionScalingParam,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_RepScalParamPlusSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_RepulsionScalingParamPlus,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_RepScalParamMinusSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_RepulsionScalingParamMinus,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-
-
-
-! Reading attraction Scaling Parameters
-if (Glob_ProcID==0) then
-! initial state
-	read(1,*,iostat=ReadErr) ReadChar(1:24),AttractionScalingParam_0
-	if ((ReadErr/=0).or.(ReadChar(1:24)/='ATTRACTION_SCALING_PARAM')) then
-		AttractionScalingParam_0=1.0_dprec
-		backspace 1
-	else
-		AttrScalParamSupplied_0=.true.
-		Line_0=Line_0+1
-	endif
-  
-! final state
-	read(2,*,iostat=ReadErr) ReadChar(1:24),AttractionScalingParam_1
-	if ((ReadErr/=0).or.(ReadChar(1:24)/='ATTRACTION_SCALING_PARAM')) then
-		AttractionScalingParam_1=1.0_dprec
-		if (AttractionScalingParam_0==AttractionScalingParam_1) then
-			! Glob_AttractionScalingParam=AttractionScalingParam_0=AttractionScalingParam_1
-			Glob_AttractionScalingParam=AttractionScalingParam_0
-			Glob_AttrScalParamSupplied=.false.
-		else
-			write(*,*) 'the "ATTRACTION_SCALING_PARAM" in the wave function files of initial(',Glob_wfFile_0, ')'
-			write(*,*) 'and  final states (',Glob_wfFile_1, ') are not the same.'
-			ErrorInDataFile=.true.
-		endif
-		backspace 1
-	else
-		AttrScalParamSupplied_1=.true.
-		if (AttrScalParamSupplied_0==AttrScalParamSupplied_1) then
-			Glob_AttrScalParamSupplied=.true.
-			write(*,'(1x,a24)',advance='no') ReadChar(1:24)
-			call writerealadv(6,Glob_AttractionScalingParam)
-		endif
-		Line_1=Line_1+1
-	endif
-  
-endif
-if (ErrorInDataFile) stop
-call MPI_BCAST(Glob_AttrScalParamSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_AttractionScalingParam,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 
 
 ! Reading Young opertators
-if (Glob_ProcID==0) then
+IF (Glob_ProcID==0) then
 
 !	initial state
-	read(1,*) ReadChar(1:9),Glob_YOperatorString_0
-	do i=1,Glob_YOperatorStringLength
-		WorkInt(i)=ichar(Glob_YOperatorString_0(i:i))
-	enddo
-	WorkInt_0=WorkInt
-!	final state   
-	read(2,*) ReadChar(1:9),Glob_YOperatorString_1
-	do i=1,Glob_YOperatorStringLength
-		WorkInt(i)=ichar(Glob_YOperatorString_1(i:i))
-	enddo
-	WorkInt_1=WorkInt
+	read(1,*) ReadChar(1:9),Glob_YOperatorString0
+	Line0=Line0+1
+	IF (ReadChar(1:9)/='SYMMETRY') then
+		write(*,*) ' '
+		write(*,*) ReadChar(1:9)
+		write(*,*) 'Error in reding symmetry of initial state, line: ',Line0
+		write(*,*) ' '
+	EndIF
+	Do i=1,Glob_YOperatorStringLength
+		WorkInt(i)=ichar(Glob_YOperatorString0(i:i))
+	EndDo
+	WorkInt0=WorkInt
 	
-end if
-call MPI_BCAST(WorkInt_0,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(WorkInt_1,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-do i=1,Glob_YOperatorStringLength
-   Glob_YOperatorString_0(i:i)=char(WorkInt_0(i))
-   Glob_YOperatorString_1(i:i)=char(WorkInt_1(i))
-enddo
+!	final state   
+	read(2,*) ReadChar(1:9),Glob_YOperatorString1
+	Line1=Line1+1
+	IF (ReadChar(1:9)/='SYMMETRY') then
+		write(*,*) ' '
+		write(*,*) 'Error in reding symmetry of final state, line: ',Line1
+		write(*,*) ' '
+	EndIF
+	Do i=1,Glob_YOperatorStringLength
+		WorkInt(i)=ichar(Glob_YOperatorString1(i:i))
+	EndDo
+	WorkInt1=WorkInt
+
+EndIF
+call MPI_BCAST(WorkInt0,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(WorkInt1,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+Do i=1,Glob_YOperatorStringLength
+   Glob_YOperatorString0(i:i)=char(WorkInt0(i))
+   Glob_YOperatorString1(i:i)=char(WorkInt1(i))
+EndDo
 
 
 ! Reading number of the basis functions for each state 
-if (Glob_ProcID==0) then
+IF (Glob_ProcID==0) then
+
 !	initial state
-	read(1,*) ReadChar(1:10),Glob_CurrBasisSize_1
-	write(*,'(1x,a10,1x,i6)')  ReadChar(1:10),' INITIAL_STATE',Glob_CurrBasisSize_1
+	read(1,*) ReadChar(1:10),Glob_CurrBasisSize0
+	Line0=Line0+1
+	IF (ReadChar(1:10)/='BASIS_SIZE') then
+		write(*,*) ' '
+		write(*,*) 'Error in reading BASIS_SIZE of initial state, line: ',Line0
+		write(*,*) ' '
+	EndIF
+	write(*,*) 'INITIAL STATE BASIS SIZE:  ',Glob_CurrBasisSize0
+
 ! 	final state
-	read(2,*) ReadChar(1:10),Glob_CurrBasisSize_0
-	write(*,'(1x,a10,1x,i6)')  ReadChar(1:10),' FINAL_STATE',Glob_CurrBasisSize_1
-endif
-call MPI_BCAST(Glob_CurrBasisSize_0,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_CurrBasisSize_1,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+	read(2,*) ReadChar(1:10),Glob_CurrBasisSize1
+	Line1=Line1+1
+	IF (ReadChar(1:10)/='BASIS_SIZE') then
+		write(*,*) ' '
+		write(*,*) 'Error in reading BASIS_SIZE of initial state, line: ',Line1
+		write(*,*) ' '
+	EndIF
+	write(*,*) 'FINAL STATE BASIS SIZE:    ',Glob_CurrBasisSize1
+EndIF
+call MPI_BCAST(Glob_CurrBasisSize0,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_CurrBasisSize1,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 
 ! Reading energy of each state 
-if (Glob_ProcID==0) then
+IF (Glob_ProcID==0) then
 !	initial state
-	read(1,*) ReadChar(1:14),Glob_CurrEnergy_0
-	write(*,'(1x,a14)',advance='no')  ReadChar(1:14),' INITIAL_STATE' 
-	call writerealadv(6,Glob_CurrEnergy_1)
+	read(1,*) ReadChar(1:14),Glob_CurrEnergy0
+	Line0=Line0+1
+        IF (ReadChar(1:14)/='CURRENT_ENERGY') then
+			write(*,*) ' '
+            write(*,*) 'Error in reading CURRENT_ENERGY of initial state, line: ',Line0
+			write(*,*) ' '
+        EndIF
+	write(*,'(a33)',advance='no')  ' INITIAL STATE CURRENT_ENERGY:    ' 
+	call writerealadv(6,Glob_CurrEnergy0)
+
 !	final state
-	read(2,*) ReadChar(1:14),Glob_CurrEnergy_1
-	write(*,'(1x,a14)',advance='no')  ReadChar(1:14),' FINAL_STATE'
-	call writerealadv(6,Glob_CurrEnergy_2)  
-endif
-call MPI_BCAST(Glob_CurrEnergy_0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_CurrEnergy_1,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+	read(2,*) ReadChar(1:14),Glob_CurrEnergy1
+        Line1=Line1+1
+        IF (ReadChar(1:14)/='CURRENT_ENERGY') then
+			write(*,*) ' '
+            write(*,*) 'Error in reading CURRENT_ENERGY of final state, line: ',Line1
+			write(*,*) ' '
+        EndIF
+	write(*,'(a33)',advance='no')  ' FINAL STATE  CURRENT_ENERGY:    '
+	call writerealadv(6,Glob_CurrEnergy1)  
+EndIF
+call MPI_BCAST(Glob_CurrEnergy0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_CurrEnergy1,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
-read(1,*) ReadChar
-read(2,*) ReadChar
-
+IF (Glob_ProcID==0) then
+	read(1,*) ReadChar
+	read(2,*) ReadChar
+EndIF
 
 ! Reading the parameters of the basis functions
-allocate(Glob_c_0(Glob_CurrBasisSize_0))
-allocate(Glob_FuncNum_0(Glob_CurrBasisSize_0))
-allocate(Glob_NonlinParam_0(Glob_npt,Glob_CurrBasisSize_0))
-allocate(Glob_c_1(Glob_CurrBasisSize_1))
-allocate(Glob_FuncNum_1(Glob_CurrBasisSize_1))
-allocate(Glob_NonlinParam_1(Glob_npt,Glob_CurrBasisSize_1))
-allocate(Glob_ZIndex(Glob_CurrBasisSize_1))
+allocate(Glob_c0(Glob_CurrBasisSize0))
+allocate(Glob_FuncNum0(Glob_CurrBasisSize0))
+allocate(Glob_NonlinParam0(Glob_npt,Glob_CurrBasisSize0))
+allocate(Glob_c1(Glob_CurrBasisSize1))
+allocate(Glob_FuncNum1(Glob_CurrBasisSize1))
+allocate(Glob_NonlinParam1(Glob_npt,Glob_CurrBasisSize1))
+allocate(Glob_ZIndex(Glob_CurrBasisSize1))
 
-if (Glob_ProcID==0) then
-	do i=1,Glob_CurrBasisSize_0
-		read(1,*) Glob_FuncNum_0(i),Glob_c_0(i),ReadChar(1:2),Glob_NonlinParam_0(1:Glob_npt,i)
-	enddo
-	do i=1,Glob_CurrBasisSize_1
-		read(2,*) Glob_FuncNum_1(i),Glob_c_1(i),ReadChar(1:2),Glob_ZIndex(i),Glob_NonlinParam_1(1:Glob_npt,i)
-	enddo
-endif
+IF (Glob_ProcID==0) then
+	Do i=1,Glob_CurrBasisSize0
+		read(1,*) Glob_FuncNum0(i),Glob_c0(i),ReadChar(1:2),Glob_NonlinParam0(1:Glob_npt,i)
+	EndDo
+	Do i=1,Glob_CurrBasisSize1
+		read(2,*) Glob_FuncNum1(i),Glob_c1(i),ReadChar(1:2),Glob_ZIndex(i),Glob_NonlinParam1(1:Glob_npt,i)
+	EndDo
+EndIF
 
-call MPI_BCAST(Glob_c_0,Glob_CurrBasisSize_0,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_c_1,Glob_CurrBasisSize_1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_NonlinParam_0,Glob_npt*Glob_CurrBasisSize_0,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_NonlinParam_1,Glob_npt*Glob_CurrBasisSize_1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_FuncNum_0,Glob_CurrBasisSize_0,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_FuncNum_1,Glob_CurrBasisSize_1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_ZIndex,Glob_CurrBasisSize_1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-
-			   
+call MPI_BCAST(Glob_c0,Glob_CurrBasisSize0,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_c1,Glob_CurrBasisSize1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_NonlinParam0,Glob_npt*Glob_CurrBasisSize0,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_NonlinParam1,Glob_npt*Glob_CurrBasisSize1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_FuncNum0,Glob_CurrBasisSize0,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_FuncNum1,Glob_CurrBasisSize1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_ZIndex,Glob_CurrBasisSize1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+	   
 end subroutine Readwf0wf1
 
 
-
-
-subroutine ReadIOFile()
-!Subroutine ReadIOFile reads data (nonlinear variational
-!parameters and other information) from the input/output 
-!file whose name is specified by global variable 
-!Glob_DataFileName and other files. If there is no such a file in the 
-!current directory then the program stops.
-
-!Local variables:
-integer        :: OpenFileErr
-real(dprec)    :: ReadRealA
-integer        :: ReadInt,ReadErr
-integer        :: WorkInt(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
-integer        :: WorkInt0(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
-integer        :: WorkInt1(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
-integer        :: i,j,k,l,Line,j1,j2,j3,j4,j5,j6
-character(70)  :: ReadChar
-logical        :: ErrorInDataFile,IsDRMCStep
-
-ErrorInDataFile=.false.
-
-if (Glob_ProcID==0) then
-  open(1,file=Glob_DataFileName,status='old',iostat=OpenFileErr)
-  if (OpenFileErr/=0) then
-    write (*,*) 'Error in DataFileInit: data file not found - ',Glob_DataFileName
-    ErrorInDataFile=.true.
-  endif
-endif
-
-call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-if (ErrorInDataFile) stop
-
-!Reading information
-if (Glob_ProcID==0) Line=0
-if (Glob_ProcID==0) then
-  write(*,*) 'Reading initial conditions from data file ',Glob_DataFileName
-  read(1,*) ReadChar(1:9),ReadInt
-  write(*,'(1x,a9,1x,i6)') ReadChar(1:9),ReadInt
-  Line=Line+1
-  Glob_n=ReadInt-1 !Glob_n is the number of pseudoparticles
-  if ((Glob_n<1).or.(ReadChar(1:9)/='PARTICLES')) then
-    write(*,*) 'Error in data file, line ',Line   
-    ErrorInDataFile=.true.
-  endif
-endif 
-if (Glob_n>Glob_MaxAllowedNumOfPseudoParticles) then
-  if (Glob_ProcID==0) then
-    write (*,*) 'The version of the code you are running was compiled for the case'
-    write (*,*) 'when the number of particles in the system is smaller or equal to', &
-                 Glob_MaxAllowedNumOfParticles
-    write (*,*) 'while the number of particles specified in the input file is',Glob_n+1
-    write (*,*) 'Please make appropriate changes. Program will now stop.'
-  endif
-  ErrorInDataFile=.true.
-endif
-if (ErrorInDataFile) stop
-call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-Glob_np=Glob_n*(Glob_n+1)/2
-Glob_npt=Glob_np
-Glob_2raised3n2=TWO**((3*Glob_n)/TWO)
-
-allocate(Glob_Mass(Glob_n+1))
-if (Glob_ProcID==0) then
-  read(1,*) ReadChar(1:6),Glob_Mass(1:Glob_n+1)
-  write(*,'(1x,a6)',advance='no') ReadChar(1:6)
-  call writerealarradv(6,Glob_Mass,Glob_n+1)
-endif
-call MPI_BCAST(Glob_Mass,Glob_n+1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-
-allocate(Glob_PseudoCharge(Glob_n))
-if (Glob_ProcID==0) then
-  read(1,*) ReadChar(1:7),Glob_PseudoCharge0,Glob_PseudoCharge(1:Glob_n)
-  write(*,'(1x,a7)',advance='no') ReadChar(1:7)
-  call writereal(6,Glob_PseudoCharge0)
-  call writerealarradv(6,Glob_PseudoCharge,Glob_n)
-endif
-call MPI_BCAST(Glob_PseudoCharge0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_PseudoCharge,Glob_n,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-
-if (Glob_ProcID==0) then
-  Glob_RepulsionScalingParam=1.0_dprec
-  Glob_RepScalParamSupplied=.false.
-  Glob_RepulsionScalingParamPlus=1.0_dprec
-  Glob_RepScalParamPlusSupplied=.false.  
-  Glob_RepulsionScalingParamMinus=1.0_dprec
-  Glob_RepScalParamMinusSupplied=.false.  
-  do i=1,3
-    read(1,*,iostat=ReadErr) ReadChar(1:29),ReadRealA  
-    if ((ReadErr/=0).or.(ReadChar(1:23)/='REPULSION_SCALING_PARAM')) then
-      backspace 1
-    else
-      if (ReadChar(1:28)=='REPULSION_SCALING_PARAM_PLUS') then
-        Glob_RepulsionScalingParamPlus=ReadRealA
-        Glob_RepScalParamPlusSupplied=.true.
-        write(*,'(1x,a28)',advance='no') ReadChar(1:28)
-        call writerealadv(6,Glob_RepulsionScalingParamPlus)      
-      elseif (ReadChar(1:29)=='REPULSION_SCALING_PARAM_MINUS') then
-        Glob_RepulsionScalingParamMinus=ReadRealA
-        Glob_RepScalParamMinusSupplied=.true.
-        write(*,'(1x,a28)',advance='no') ReadChar(1:29)
-        call writerealadv(6,Glob_RepulsionScalingParamMinus)        
-      else
-        Glob_RepulsionScalingParam=ReadRealA
-        Glob_RepScalParamSupplied=.true.
-        write(*,'(1x,a23)',advance='no') ReadChar(1:23)
-        call writerealadv(6,Glob_RepulsionScalingParam)      
-      endif
-    endif 
-  enddo 
-endif
-call MPI_BCAST(Glob_RepScalParamSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_RepulsionScalingParam,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_RepScalParamPlusSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_RepulsionScalingParamPlus,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_RepScalParamMinusSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_RepulsionScalingParamMinus,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-
-if (Glob_ProcID==0) then
-  read(1,*,iostat=ReadErr) ReadChar(1:24),Glob_AttractionScalingParam
-  if ((ReadErr/=0).or.(ReadChar(1:24)/='ATTRACTION_SCALING_PARAM')) then
-    Glob_AttractionScalingParam=1.0_dprec
-    Glob_AttrScalParamSupplied=.false.
-    backspace 1
-  else
-    Glob_AttrScalParamSupplied=.true.
-    write(*,'(1x,a24)',advance='no') ReadChar(1:24)
-    call writerealadv(6,Glob_AttractionScalingParam)
-  endif
-endif
-call MPI_BCAST(Glob_AttrScalParamSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_AttractionScalingParam,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-
-if (Glob_ProcID==0) then
-   read(1,*) ReadChar(1:9),Glob_YOperatorString0
-   do i=1,Glob_YOperatorStringLength
-      WorkInt(i)=ichar(Glob_YOperatorString0(i:i))
-   enddo
-   workInt0=WorkInt
-   read(1,*) ReadChar(1:9),Glob_YOperatorString1
-   do i=1,Glob_YOperatorStringLength
-      WorkInt(i)=ichar(Glob_YOperatorString1(i:i))
-   enddo
-   workInt1=WorkInt
-end if
-call MPI_BCAST(WorkInt0,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(WorkInt1,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-do i=1,Glob_YOperatorStringLength
-   Glob_YOperatorString0(i:i)=char(WorkInt0(i))
-   Glob_YOperatorString1(i:i)=char(WorkInt1(i))
-enddo
-
-if (Glob_ProcID==0) read(1,*) ReadChar
-
-!Reading Data Reader and Matrix Calculator Program
-ReadChar(1:70)=' '
-if (Glob_ProcID==0) then
-  Glob_NumOfDRMCSteps=0
-  IsDRMCStep=.true.
-  do while (IsDRMCStep)
-    read(1,*) ReadChar(1:9)
-    if (ReadChar(1:9)=='OP_DIPOLE') then
-	Glob_NumOfDRMCSteps=Glob_NumOfDRMCSteps+1
-    else
-      IsDRMCStep=.false.
-    endif
-  enddo
-  do i=1,Glob_NumOfDRMCSteps+1 
-    backspace 1
-  enddo
-endif
-call MPI_BCAST(Glob_NumOfDRMCSteps,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-allocate(Glob_DRMC(1:Glob_NumOfDRMCSteps))
-allocate(Glob_CurrBasisSizeInDRMCSteps(1:Glob_NumOfDRMCSteps))
-allocate(Glob_E0(1:Glob_NumOfDRMCSteps))
-allocate(Glob_E1(1:Glob_NumOfDRMCSteps))
-
-if (Glob_ProcID==0) then
-  do i=1,Glob_NumOfDRMCSteps
-    read(1,*) Glob_DRMC(i)%Action(1:9)
-  enddo
-  do i=1,Glob_NumOfDRMCSteps
-    backspace 1
-  enddo
-  do i=1,Glob_NumOfDRMCSteps
-    select case (Glob_DRMC(i)%Action(1:9))
-    case('OP_DIPOLE')
-      read(1,*) Glob_DRMC(i)%Action(1:9),Glob_DRMC(i)%A,Glob_DRMC(i)%B,   &
-            Glob_DRMC(i)%FileName1(1:Glob_FileNameLength), &
-            Glob_DRMC(i)%FileName2(1:Glob_FileNameLength), &
-            Glob_DRMC(i)%FileName3(1:Glob_FileNameLength), &
-            Glob_DRMC(i)%FileName4(1:Glob_FileNameLength), &
-	    Glob_DRMC(i)%FileName5(1:Glob_FileNameLength), &
-            Glob_DRMC(i)%FileName6(1:Glob_FileNameLength)
-        j1=len_trim(Glob_DRMC(i)%FileName1(1:Glob_FileNameLength))
-        j2=len_trim(Glob_DRMC(i)%FileName2(1:Glob_FileNameLength))
-        j3=len_trim(Glob_DRMC(i)%FileName3(1:Glob_FileNameLength)) 
-        j4=len_trim(Glob_DRMC(i)%FileName4(1:Glob_FileNameLength))       
-	j5=len_trim(Glob_DRMC(i)%FileName5(1:Glob_FileNameLength)) 
-        j6=len_trim(Glob_DRMC(i)%FileName6(1:Glob_FileNameLength))       
-     endselect
-     Glob_CurrBasisSizeInDRMCSteps(i)=Glob_DRMC(i)%A
-  enddo
-endif
-call MPI_BCAST(Glob_CurrBasisSizeInDRMCSteps,Glob_NumOfDRMCSteps,MPI_INTEGER,&
-                0,MPI_COMM_WORLD,Glob_MPIErrCode)
-
-do i=1,Glob_NumOfDRMCSteps
-  do j=1,9
-    WorkInt(j)=ichar(Glob_DRMC(i)%Action(j:j))
-  enddo
-  call MPI_BCAST(WorkInt,9,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  do j=1,9
-     Glob_DRMC(i)%Action(j:j)=char(WorkInt(j))
-  enddo
-  call MPI_BCAST(Glob_DRMC(i)%A,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
-  call MPI_BCAST(Glob_DRMC(i)%B,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
-  call MPI_BCAST(Glob_DRMC(i)%C,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
-  call MPI_BCAST(Glob_DRMC(i)%D,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
-  call MPI_BCAST(Glob_DRMC(i)%E,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
-  call MPI_BCAST(Glob_DRMC(i)%F,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
-  call MPI_BCAST(Glob_DRMC(i)%G,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
-  call MPI_BCAST(Glob_DRMC(i)%H,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)   
-  call MPI_BCAST(Glob_DRMC(i)%Q,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
-  call MPI_BCAST(Glob_DRMC(i)%R,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
-  do j=1,Glob_FileNameLength
-    WorkInt(j)=ichar(Glob_DRMC(i)%FileName1(j:j))
-  enddo
-  call MPI_BCAST(WorkInt,Glob_FileNameLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  do j=1,Glob_FileNameLength
-     Glob_DRMC(i)%FileName1(j:j)=char(WorkInt(j))
-  enddo
-  do j=1,Glob_FileNameLength
-    WorkInt(j)=ichar(Glob_DRMC(i)%FileName2(j:j))
-  enddo
-  call MPI_BCAST(WorkInt,Glob_FileNameLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  do j=1,Glob_FileNameLength
-     Glob_DRMC(i)%FileName2(j:j)=char(WorkInt(j))
-  enddo  
-  do j=1,Glob_FileNameLength
-    WorkInt(j)=ichar(Glob_DRMC(i)%FileName3(j:j))
-  enddo
-  call MPI_BCAST(WorkInt,Glob_FileNameLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  do j=1,Glob_FileNameLength
-     Glob_DRMC(i)%FileName3(j:j)=char(WorkInt(j))
-  enddo  
-  do j=1,Glob_FileNameLength
-    WorkInt(j)=ichar(Glob_DRMC(i)%FileName4(j:j))
-  enddo
-  call MPI_BCAST(WorkInt,Glob_FileNameLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  do j=1,Glob_FileNameLength
-     Glob_DRMC(i)%FileName4(j:j)=char(WorkInt(j))
-  enddo
-  do j=1,Glob_FileNameLength
-    WorkInt(j)=ichar(Glob_DRMC(i)%FileName5(j:j))
-  enddo
-  call MPI_BCAST(WorkInt,Glob_FileNameLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  do j=1,Glob_FileNameLength
-     Glob_DRMC(i)%FileName5(j:j)=char(WorkInt(j))
-  enddo
-  do j=1,Glob_FileNameLength
-    WorkInt(j)=ichar(Glob_DRMC(i)%FileName6(j:j))
-  enddo
-  call MPI_BCAST(WorkInt,Glob_FileNameLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  do j=1,Glob_FileNameLength
-     Glob_DRMC(i)%FileName6(j:j)=char(WorkInt(j))
-  enddo
-enddo
-close(1)
-
-if (Glob_CurrBasisSize==0) then
-   !Stop reading if basis size is zero
-   return
-endif
-
-end subroutine ReadIOFile
-
-
-subroutine ReadIOFileForDRMCAction()
-!Subroutine ReadIOFileForDRMCAction reads data input
-!file whose name is specified by global variable 
-!Glob_DataFileName. If there is no such a file in the 
-!current directory then the program stops.
-
-!Local variables:
-integer        :: OpenFileErr
-real(dprec)    :: ReadRealA,RealE0,RealE1
-integer        :: ReadInt,ReadErr
-integer        :: WorkInt(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
-integer        :: i,j,k,l,Line
-character(70)  :: ReadChar
-logical        :: ErrorInDataFile,IsDRMCStep
-
-
-Glob_CurrBasisSize=Glob_CurrBasisSizeInDRMCSteps(Glob_CurrDRMCStep)
-
-if(Glob_CurrDRMCStep>1) then
-   if(Glob_DRMC(Glob_CurrDRMCStep-1)%B/=1) deallocate(Glob_S0,Glob_S1)
-   deallocate(Glob_c0,Glob_c1)
-   deallocate(Glob_FuncNum0,Glob_FuncNum1)
-   deallocate(Glob_ZIndex)
-   deallocate(Glob_NonlinParam0,Glob_NonlinParam1)
-   deallocate(Glob_diagS0,Glob_diagS1)
-endif
-
-if(Glob_DRMC(Glob_CurrDRMCStep)%B/=1) then
-allocate(Glob_S0(Glob_CurrBasisSize,Glob_CurrBasisSize))
-allocate(Glob_S1(Glob_CurrBasisSize,Glob_CurrBasisSize))
-endif
-allocate(Glob_c0(Glob_CurrBasisSize))
-allocate(Glob_FuncNum0(Glob_CurrBasisSize))
-allocate(Glob_NonlinParam0(Glob_npt,Glob_CurrBasisSize))
-allocate(Glob_c1(Glob_CurrBasisSize))
-allocate(Glob_FuncNum1(Glob_CurrBasisSize))
-allocate(Glob_ZIndex(Glob_CurrBasisSize))
-allocate(Glob_NonlinParam1(Glob_npt,Glob_CurrBasisSize))
-allocate(Glob_diagS0(Glob_CurrBasisSize))
-allocate(Glob_diagS1(Glob_CurrBasisSize))
-	
-if (Glob_ProcID==0) then
-    select case (Glob_DRMC(Glob_CurrDRMCStep)%Action(1:9))
-    case('OP_DIPOLE')
-        
-	! Read Symmetry, Wavefunction, and Eigenvector for L=0
-        ErrorInDataFile=.false.
-       	open(1,file=Glob_DRMC(Glob_CurrDRMCStep)%FileName1,status='old',iostat=OpenFileErr)
-  	if (OpenFileErr/=0) then
-	   write (*,*) 'Error in DataFileInit: data file not found - ',&
-	                   Glob_DRMC(Glob_CurrDRMCStep)%FileName1
-           ErrorInDataFile=.true.
-  	endif
-        if (ErrorInDataFile) stop
-	
-	do i=1,6
-           read(1,*) ReadChar
-        enddo
-	
-	read(1,*) ReadChar(1:14),RealE0
-	read(1,*) ReadChar
-	
-        do i=1,Glob_CurrBasisSize
-           read(1,*) Glob_FuncNum0(i),Glob_c0(i),ReadChar(1:2),Glob_NonlinParam0(1:Glob_npt,i)
-        enddo
-	close(1)
-	
-	! Read Symmetry, Wavefunction, and Eigenvector for L=1
-        ErrorInDataFile=.false.
-       	open(1,file=Glob_DRMC(Glob_CurrDRMCStep)%FileName2,status='old',iostat=OpenFileErr)
-  	if (OpenFileErr/=0) then
-	   write (*,*) 'Error in DataFileInit: data file not found - ',&
-	                   Glob_DRMC(Glob_CurrDRMCStep)%FileName2
-           ErrorInDataFile=.true.
-  	endif
-        if (ErrorInDataFile) stop
-	
-	do l=1,6
-           read(1,*) ReadChar
-        enddo
-	
-	read(1,*) ReadChar(1:14),RealE1
-	read(1,*) ReadChar
-	
-        do i=1,Glob_CurrBasisSize
-           read(1,*) Glob_FuncNum1(i),Glob_c1(i),ReadChar(1:2),Glob_ZIndex(i),Glob_NonlinParam1(1:Glob_npt,i)
-        enddo
-	close(1)
-	
-	! Glob_diagS0 and Glob_diagS1
-	ErrorInDataFile=.false.
-       	open(1,file=Glob_DRMC(Glob_CurrDRMCStep)%FileName3,status='old',iostat=OpenFileErr)
-  	if (OpenFileErr/=0) then
-	   write (*,*) 'Error in DataFileInit: data file not found - ',&
-	                   Glob_DRMC(Glob_CurrDRMCStep)%FileName3
-           ErrorInDataFile=.true.
-  	endif
-        if (ErrorInDataFile) stop
-	
-	do i=1,Glob_CurrBasisSize
-           read(1,*) Glob_diagS0(i)
-        enddo
-        close(1)
-	
-	ErrorInDataFile=.false.
-       	open(1,file=Glob_DRMC(Glob_CurrDRMCStep)%FileName4,status='old',iostat=OpenFileErr)
-  	if (OpenFileErr/=0) then
-	   write (*,*) 'Error in DataFileInit: data file not found - ',&
-	                   Glob_DRMC(Glob_CurrDRMCStep)%FileName4
-           ErrorInDataFile=.true.
-  	endif
-        if (ErrorInDataFile) stop
-	
-	do i=1,Glob_CurrBasisSize
-           read(1,*) Glob_diagS1(i)
-        enddo
-        close(1)
-	
-	! Read S matrix for L=0
-	if(Glob_DRMC(Glob_CurrDRMCStep)%B/=1) then
-        ErrorInDataFile=.false.
-       	open(1,file=Glob_DRMC(Glob_CurrDRMCStep)%FileName5,status='old',iostat=OpenFileErr)
-  	if (OpenFileErr/=0) then
-	   write (*,*) 'Error in DataFileInit: data file not found - ',&
-	                   Glob_DRMC(Glob_CurrDRMCStep)%FileName5
-           ErrorInDataFile=.true.
-  	endif
-        if (ErrorInDataFile) stop
-	
-        do l=1,Glob_CurrBasisSize*Glob_CurrBasisSize
-           read(1,*) i,j,Glob_S0(i,j)
-        enddo
-	close(1)
-	endif
-	
-	! Read S matrix for L=1
-	if(Glob_DRMC(Glob_CurrDRMCStep)%B/=1) then
-        ErrorInDataFile=.false.
-       	open(1,file=Glob_DRMC(Glob_CurrDRMCStep)%FileName6,status='old',iostat=OpenFileErr)
-  	if (OpenFileErr/=0) then
-	   write (*,*) 'Error in DataFileInit: data file not found - ',&
-	                   Glob_DRMC(Glob_CurrDRMCStep)%FileName6
-           ErrorInDataFile=.true.
-  	endif
-        if (ErrorInDataFile) stop
-	
-        do l=1,Glob_CurrBasisSize*Glob_CurrBasisSize
-           read(1,*) i,j,Glob_S1(i,j)
-        enddo
-	close(1)
-	endif
-	
-     endselect
-endif
-if(Glob_DRMC(Glob_CurrDRMCStep)%B/=1) then
-call MPI_BCAST(Glob_S0,Glob_CurrBasisSize*Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_S1,Glob_CurrBasisSize*Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-endif
-call MPI_BCAST(Glob_c0,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_c1,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_NonlinParam0,Glob_npt*Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_NonlinParam1,Glob_npt*Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_FuncNum0,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_FuncNum1,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_ZIndex,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_diagS0,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_diagS1,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(RealE0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(RealE1,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-Glob_E0(Glob_CurrDRMCStep)=RealE0
-Glob_E1(Glob_CurrDRMCStep)=RealE1
-
-end subroutine ReadIOFileForDRMCAction
-
-
+  
 subroutine DataInitForAYoungOp(YOpInput,AreYsIdentical)
 !Subroutine DataInitForAYoungOp initializes Young operators and on the outpis it gives
 !Glob_NumYTerms0, Glob_YCoeff0, Glob_YMatr0, and Glob_NumYTerms1, Glob_YCoeff1, Glob_YMatr1.
@@ -881,17 +381,19 @@ integer                               :: n,npart
 integer                               :: i,j,k,p,q,t,s,w,ii,jj,kk
 character(1)                          :: c1
 integer                               :: StrLen,NumFactY
-integer                               :: TotNumOfYTerms,CurrNumOfTerms
+integer                               :: TotNumOfYTerms,CurrNumOfTerms,TotNumOfYHYTerms
 integer                               :: L,R,FirstLPos,LastRPos
 integer,allocatable,dimension(:)      :: TempSymCoeff,TempSymCoeff1,NumTermsInYOpFact
 integer,allocatable,dimension(:,:,:)  :: TempSymMatr,TempSymMatr1
 integer,allocatable,dimension(:,:)    :: Matr1,Matr2,Matr3,Matr4
 integer                               :: Coeff,Cf3
 logical                               :: AreTermsIdentical
-character(Glob_YOperatorStringLength),allocatable,dimension(:) :: YOpStr
+character(Glob_YOperatorStringLength),allocatable,dimension(:) :: YOpStr,YHOpStr
 
-if (Glob_ProcID==0) write(*,*) 'Initializing Young operator for L=',YOpInput
-
+if (Glob_ProcID==0) Then
+	write(*,*) ' '
+	write(*,*) 'Initializing Young operator for L=',YOpInput
+EndIF
 select case (YOpInput)
    case(0)
       Glob_YOperatorString=Glob_YOperatorString0
@@ -1058,6 +560,42 @@ if ((YOpInput==1).and.(Glob_NumFactY0==NumFactY)) then
     end if
 endif
 
+!!!
+!Creating an array that contains all the factors of the 
+!Y^{\dagger} operator. Basically, Y^{\dagger} is the reversed Y (i.e.
+!the order of all factors is reversed as well as 
+!permutation products (if there are any) in each factor come
+!in reverse order.
+allocate(YHOpStr(NumFactY))
+do i=1,NumFactY
+	YHOpStr(i)=' '
+enddo 
+do i=NumFactY,1,-1
+	s=NumFactY-i+1
+	j=1
+	c1=YOpStr(s)(j:j)
+	do while (c1/=' ')
+		if (c1=='P') then
+			k=0 !k counts the number of Permutations in the current term
+			t=0
+			do while ((c1/='+').and.(c1/='-').and.(c1/=' '))
+				if (c1=='P') k=k+1
+				t=t+1
+				c1=YOpStr(s)(j+t:j+t)
+			enddo
+			do t=1,k
+				YHOpStr(i)(j+3*(k-t):j+3*(k-t)+2)=YOpStr(s)(j+3*(t-1):j+3*(t-1)+2)
+			enddo
+			j=j+3*k
+		else
+			YHOpStr(i)(j:j)=c1
+			j=j+1
+		endif
+		c1=YOpStr(s)(j:j)
+	enddo
+enddo
+
+
 !Counting how many terms there are in each factor of the Young
 !operator, as well as the total number of terms in the nonsimplified
 !Young operator
@@ -1070,9 +608,12 @@ do k=1,NumFactY
   enddo
   NumTermsInYOpFact(k)=j
   TotNumOfYTerms=TotNumOfYTerms*j
+  !!!
+  TotNumOfYHYTerms=TotNumOfYTerms*TotNumOfYTerms
 enddo
 if (Glob_ProcID==0) then
-  write(*,*)  'Total number of terms in the nonsimplified Y operator:',TotNumOfYTerms
+  write(*,*)  'Total number of terms in the nonsimplified Y operator:     ',TotNumOfYTerms
+  write(*,*)  'Total number of terms in the nonsimplified Y^{+}Y operator:',TotNumOfYHYTerms
 endif
 
 select case (YOpInput)
@@ -1252,17 +793,201 @@ enddo
 deallocate(TempSymCoeff)
 deallocate(TempSymMatr)
 if (Glob_ProcID==0) then
-  write(*,*)  'Total number of terms in the simplified Y operator:   ',Glob_NumYTerms
+  write(*,*)  'Total number of terms in the simplified Y operator:        ',Glob_NumYTerms
 endif
+
+
+
+!Now doing the same thing for Y^{\dagger}Y operator, that
+!is expanding it and collecting identical terms
+
+!Multiplying all factors in YHOpStr by already existing
+!matrices and coefficients of Y. and placing actual matrices
+!and coefficients in arrays Glob_YHYMatr and Glob_YHYCoeff
+!One should remember one important fact here: a product of
+!of actual pair permutation operators corresponds to the reversed
+!product of matrices that act on the matrix of nonlinear parameters.
+!Thus, when doing multiplication we will simultaneously be changing
+!the order of permutation matrices.  
+CurrNumOfTerms=NumTermsInYOpFact(1)*Glob_NumYTerms
+allocate(TempSymCoeff(CurrNumOfTerms)) 
+allocate(TempSymMatr(n,n,CurrNumOfTerms))  
+!TempSymCoeff(1:Glob_NumYTerms)=Glob_YCoeff(1:Glob_NumYTerms)
+!TempSymMatr(1:n,1:n,1:Glob_NumYTerms)=Glob_YMatr(1:n,1:n,1:Glob_NumYTerms)
+! TempSymCoeff(1:Glob_NumYTerms)=Glob_YCoeff(1:Glob_NumYTerms)
+! TempSymMatr(1:n,1:n,1:Glob_NumYTerms)=Glob_YMatr(1:n,1:n,1:Glob_NumYTerms)
+
+select case (YOpInput)
+	case(0)
+		TempSymCoeff(1:Glob_NumYTerms)=Glob_YCoeff0(1:Glob_NumYTerms)
+		TempSymMatr(1:n,1:n,1:Glob_NumYTerms)=Glob_YMatr0(1:n,1:n,1:Glob_NumYTerms)
+	case(1)
+		TempSymCoeff(1:Glob_NumYTerms)=Glob_YCoeff1(1:Glob_NumYTerms)
+		TempSymMatr(1:n,1:n,1:Glob_NumYTerms)=Glob_YMatr1(1:n,1:n,1:Glob_NumYTerms)
+endselect
+
+t=Glob_NumYTerms
+do j=NumFactY,1,-1
+  !reading the current factor
+  k=0
+  i=1
+  c1=YHOpStr(j)(i:i)
+  p=i
+  do while (c1/=' ')
+    i=i+1
+    c1=YHOpStr(j)(i:i)
+    do while ((c1/='P').and.(c1/='+').and.(c1/='-').and.(i<Glob_YOperatorStringLength))
+      i=i+1
+      c1=YHOpStr(j)(i:i)
+    enddo
+    if (i-p>1) then
+      read(YHOpStr(j)(p:i-1),*) Coeff
+    else
+      if (YHOpStr(j)(i-1:i-1)=='+') then
+        Coeff=1
+	  else
+        Coeff=-1
+	  endif
+    endif 
+    Matr1=Glob_Transposit(1:n,1:n,1,1)
+    do while (c1=='P')
+      read(YHOpStr(j)(i+1:i+1),*) p
+      read(YHOpStr(j)(i+2:i+2),*) q
+	  Matr2(1:n,1:n)=Glob_Transposit(1:n,1:n,p,q)
+	  Matr4(1:n,1:n)=Matr1(1:n,1:n)
+	  do ii=1,n
+	    do jj=1,n
+	      w=0
+	      do kk=1,n
+	        w=w+Matr2(ii,kk)*Matr4(kk,jj)
+	      enddo
+	      Matr1(ii,jj)=w
+	    enddo
+	  enddo
+	  i=i+3
+      c1=YHOpStr(j)(i:i)
+    enddo
+    k=k+1
+    p=i
+    if (k==1) then
+	  Matr3(1:n,1:n)=Matr1(1:n,1:n)
+      Cf3=Coeff
+	else
+	  do s=1,t
+        Matr2(1:n,1:n)=TempSymMatr(1:n,1:n,s)
+        q=t*(k-1)+s
+	    do ii=1,n
+	      do jj=1,n
+	          w=0
+	          do kk=1,n
+	            w=w+Matr2(ii,kk)*Matr1(kk,jj)
+	          enddo
+	          TempSymMatr(ii,jj,q)=w
+	      enddo
+	    enddo
+	    TempSymCoeff(q)=Coeff*TempSymCoeff(s)
+	  enddo
+    endif
+  enddo
+  do s=1,t
+    Matr2(1:n,1:n)=TempSymMatr(1:n,1:n,s)
+	do ii=1,n
+	   do jj=1,n
+	      w=0
+	      do kk=1,n
+	        w=w+Matr2(ii,kk)*Matr3(kk,jj)
+	      enddo
+	      TempSymMatr(ii,jj,s)=w
+	   enddo
+	enddo        
+	TempSymCoeff(s)=Cf3*TempSymCoeff(s)
+  enddo
+  !mark the identical terms (adding their coefficients
+  !and setting all of them but one to zero)
+  t=CurrNumOfTerms
+  do i=1,CurrNumOfTerms
+    if (TempSymCoeff(i)==0) cycle
+    do s=i+1,CurrNumOfTerms
+      if (TempSymCoeff(s)==0) cycle    
+      if (all(TempSymMatr(1:n,1:n,i)==TempSymMatr(1:n,1:n,s))) then
+        TempSymCoeff(i)=TempSymCoeff(i)+TempSymCoeff(s)
+        if (TempSymCoeff(i)==0) t=t-1
+	    TempSymCoeff(s)=0
+	    t=t-1
+	  endif
+    enddo
+  enddo     
+  !reallocate arrays containing symmetry terms
+  !to allow for multiplication by the next factor
+  if (j/=1) then   
+    allocate(TempSymCoeff1(t)) 
+    allocate(TempSymMatr1(n,n,t)) 
+    s=0
+    do i=1,CurrNumOfTerms
+      if (TempSymCoeff(i)/=0) then
+        s=s+1
+        TempSymCoeff1(s)=TempSymCoeff(i)
+        TempSymMatr1(1:n,1:n,s)=TempSymMatr(1:n,1:n,i)
+      endif
+    enddo
+    CurrNumOfTerms=t*NumTermsInYOpFact(NumFactY-j+2)
+    deallocate(TempSymCoeff)
+    deallocate(TempSymMatr)
+    allocate(TempSymCoeff(CurrNumOfTerms)) 
+    allocate(TempSymMatr(n,n,CurrNumOfTerms))     
+    TempSymCoeff(1:t)=TempSymCoeff1(1:t)
+    TempSymMatr(1:n,1:n,1:t)=TempSymMatr1(1:n,1:n,1:t)
+    deallocate(TempSymCoeff1)
+    deallocate(TempSymMatr1)     
+  endif  
+enddo
+
+Glob_NumYHYTerms=t
+select case (YOpInput)
+	case(0)
+		Glob_NumYHYTerms0=Glob_NumYHYTerms
+		allocate(Glob_YHYCoeff0(Glob_NumYHYTerms0)) 
+		allocate(Glob_YHYMatr0(n,n,Glob_NumYHYTerms0))
+	case(1)
+		Glob_NumYHYTerms1=Glob_NumYHYTerms
+		allocate(Glob_YHYCoeff1(Glob_NumYHYTerms1)) 
+		allocate(Glob_YHYMatr1(n,n,Glob_NumYHYTerms1))
+endselect
+
+s=0
+do i=1,CurrNumOfTerms
+	if (TempSymCoeff(i)/=0) then
+		s=s+1
+		select case (YOpInput)
+			case(0)
+				Glob_YHYCoeff0(s)=TempSymCoeff(i)
+				Glob_YHYMatr0(1:n,1:n,s)=TempSymMatr(1:n,1:n,i)
+			case(1)
+				Glob_YHYCoeff1(s)=TempSymCoeff(i)
+				Glob_YHYMatr1(1:n,1:n,s)=TempSymMatr(1:n,1:n,i)
+		endselect
+	endif
+enddo	
+deallocate(TempSymCoeff)
+deallocate(TempSymMatr)
+if (Glob_ProcID==0) then
+  write(*,*)  'Total number of terms in the simplified Y^{+}Y operator:   ',Glob_NumYHYTerms
+endif
+
 
 deallocate(Matr4)
 deallocate(Matr3)
 deallocate(Matr2)
 deallocate(Matr1)
 deallocate(NumTermsInYOpFact)
+deallocate(YHOpStr)
 deallocate(YOpStr)
 
+
 end subroutine DataInitForAYoungOp
+
+
+
 
 subroutine ProgramDataInit()
 !Subroutine ProgramDataInit initializes some data needed for
@@ -1277,50 +1002,52 @@ real(dprec)                           :: mk,mi,m0
 integer,allocatable,dimension(:)      :: IdentParticleSet
 integer,allocatable,dimension(:,:)    :: IdentPseudoPartPairSet
 
-if (Glob_ProcID==0) write(*,*) 'Initializing program data'
-
+IF (Glob_ProcID==0)then
+	write(*,*)''
+	write(*,*) 'Initializing program data ... '
+EndIF
 n=Glob_n
 npart=n+1
 
 !Constructing Glob_MassMatrix
 allocate(Glob_MassMatrix(n,n))
 Glob_MassMatrix(1:n,1:n)=ONEHALF/Glob_Mass(1)
-do i=1,n
-  Glob_MassMatrix(i,i)=Glob_MassMatrix(i,i)+ONEHALF/Glob_Mass(i+1)
-enddo
+Do i=1,n
+	Glob_MassMatrix(i,i)=Glob_MassMatrix(i,i)+ONEHALF/Glob_Mass(i+1)
+EndDo
 
 !Determine the components of vector Glob_bvc
 !that is used in evaluation of particle densities
 allocate(Glob_bvc(n,npart))
 Glob_MassTotal=sum(Glob_Mass(1:npart))
-do i=1,npart
+Do i=1,npart
   Glob_bvc(1:n,i)=-Glob_Mass(2:n+1)/Glob_MassTotal
-enddo
-do i=2,npart
+EndDo
+Do i=2,npart
   Glob_bvc(i-1,i)=Glob_bvc(i-1,i)+ONE
-enddo
+EndDo
 
 !Determine the mass and the index of the the lightest particle 
 !(reference particle excluded). 
 !and its index
 k=0
 mk=2*Glob_MassTotal
-do i=1,n
-  if (Glob_Mass(i+1)<mk) then
+Do i=1,n
+  IF (Glob_Mass(i+1)<mk) then
     k=i
     mk=Glob_Mass(i+1)
-  endif    
-enddo  
+  EndIF    
+EndDo  
 
 m0=Glob_Mass(1)
-!alpha = sqrt( 0.5 * (m_0^3 + m_k^3)/(m_0*m_k*(m_0 + m_k)^2) )
+!alpha = sqrt( 0.5 * (m0^3 + m_k^3)/(m0*m_k*(m0 + m_k)^2) )
 Glob_dmva2 = (m0**3 + mk**3)/(TWO*m0*mk*(m0+mk)**2) 
 !Glob_dmvB(i,i) = (beta^2 + gamma_i^2)/(alpha^2 * M_ii) - M_ii
 Glob_dmvB(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
-do i=1,n
+Do i=1,n
   mi=Glob_Mass(i+1)
   Glob_dmvB(i,i)=( (m0**3+mi**3)*mk*(m0+mk)**2 - (m0**3+mk**3)*mi*(m0+mi)**2 ) / ( TWO*(m0+mi)*(m0**3+mk**3)*m0*mi**2 )
-enddo  
+EndDo  
 Glob_dmvM(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
 Glob_dmvM(1:n,1:n)=Glob_MassMatrix(1:n,1:n)
 Glob_dmvMB=Glob_dmvM+Glob_dmvB
@@ -1367,19 +1094,19 @@ Glob_dmvMB=Glob_dmvM+Glob_dmvB
 allocate(Glob_Transposit(n,n,npart,npart))
 !First set all of them to be unit matrices
 Glob_Transposit(1:n,1:n,1:npart,1:npart)=0
-do i=1,npart
-  do j=1,npart
-    do k=1,n
+Do i=1,npart
+  Do j=1,npart
+    Do k=1,n
       Glob_Transposit(k,k,i,j)=1	  
-	enddo
-  enddo
-enddo
+	EndDo
+  EndDo
+EndDo
 !Now continue depending on type of transposition (P1i or Pij)
-do i=2,npart
+Do i=2,npart
   Glob_Transposit(1:n,i-1,1,i)=-1
-enddo
-do i=2,npart
-  do j=i+1,npart
+EndDo
+Do i=2,npart
+  Do j=i+1,npart
     Glob_Transposit(i-1,i-1,i,j)=0
 	Glob_Transposit(j-1,j-1,i,j)=0
 	Glob_Transposit(j-1,i-1,i,j)=1
@@ -1388,24 +1115,33 @@ do i=2,npart
 	Glob_Transposit(j-1,j-1,j,i)=0
 	Glob_Transposit(j-1,i-1,j,i)=1
 	Glob_Transposit(i-1,j-1,j,i)=1
-  enddo
-enddo
+  EndDo
+EndDo
 
 !Calculate Glob_YCoeff and Glob_YMatr for both case L=0 and L=1.
 !The order of calling is important, it must be 0,1.
-do i=0,1
-call DataInitForAYoungOp(i,AreYsIdentical)
-enddo
-if(AreYsIdentical) then
+Do i=0,1
+	call DataInitForAYoungOp(i,AreYsIdentical)
+EndDo
+IF(AreYsIdentical) then
    Glob_NumFactY1=Glob_NumFactY0
    allocate(Glob_NumTermsInYOpFact1(Glob_NumFactY1))
    Glob_NumTermsInYOpFact1=Glob_NumTermsInYOpFact0
+
    Glob_NumYTerms1=Glob_NumYTerms0
+   Glob_NumYHYTerms1=Glob_NumYHYTerms0
+   
    allocate(Glob_YCoeff1(Glob_NumYTerms1)) 
    allocate(Glob_YMatr1(n,n,Glob_NumYTerms1))
    Glob_YCoeff1=Glob_YCoeff0
    Glob_YMatr1=Glob_YMatr0
-endif
+   
+   allocate(Glob_YHYCoeff1(Glob_NumYTerms1)) 
+   allocate(Glob_YHYMatr1(n,n,Glob_NumYTerms1))
+   Glob_YHYCoeff1=Glob_YHYCoeff0
+   Glob_YHYMatr1=Glob_YHYMatr0
+
+EndIF
 
 !Now we determine which particles are identical. This determination
 !is based on the input values of masses and charges only. The information
@@ -1413,82 +1149,82 @@ endif
 !symmetrization of expectation values of operators that involve
 !two-paricle quantities (such as interparticle distances).
 !The set of particles to which particle i belongs is labelled by IdentParticleSet(i)
-!If IdentParticleSet(i)=IdentParticleSet(j) then it means that
+!IF IdentParticleSet(i)=IdentParticleSet(j) then it means that
 !particles i and j are identical. The largest value in IdentParticleSet
 !gives the total number of identical particle sets 
 allocate(IdentParticleSet(npart))
 IdentParticleSet(1)=1
 k=1
-do i=2,npart
+Do i=2,npart
   s=0
   j=0
   do while ((j<i-1).and.(s==0))
     j=j+1
-    if (j>1) then
-      if ((Glob_Mass(j)==Glob_Mass(i)).and.(Glob_PseudoCharge(j-1)==Glob_PseudoCharge(i-1))) then
+    IF (j>1) then
+      IF ((Glob_Mass(j)==Glob_Mass(i)).and.(Glob_PseudoCharge(j-1)==Glob_PseudoCharge(i-1))) then
         IdentParticleSet(i)=IdentParticleSet(j)
 		s=1
-	  endif
-    else 
+	  EndIF
+    Else 
 	  !j=1 case
-      if ((Glob_Mass(j)==Glob_Mass(i)).and.(Glob_PseudoCharge0==Glob_PseudoCharge(i-1))) then
+      IF ((Glob_Mass(j)==Glob_Mass(i)).and.(Glob_PseudoCharge0==Glob_PseudoCharge(i-1))) then
         IdentParticleSet(i)=IdentParticleSet(j)
 		s=1
-	  endif
-	endif
-  enddo	
-  if (s==0) then
+	  EndIF
+	EndIF
+  EndDo	
+  IF (s==0) then
     k=k+1
     IdentParticleSet(i)=k
-  endif
-enddo
+  EndIF
+EndDo
 Glob_NumOfIdentPartSets=maxval(IdentParticleSet(1:npart))
 
 !Below we determine which pairs of pseudoparticles are identical.
 !The information about this is stored in array IdentPseudoPartPairSet(1:n,1:n)
 !Diagonal elements do not actually designate pairs of pseudoparticles but
 !rather a single pseudoparticle, which corresponds to a certain pair of particles. 
-!If IdentPseudoPartPairSet(i,j)=IdentPseudoPartPairSet(k,l) then
+!IF IdentPseudoPartPairSet(i,j)=IdentPseudoPartPairSet(k,l) then
 !it means these pairs ij and kl should be equivalent.
 !The largest value of array IdentPseudoPartPairSet gives the number
 !of nonequivalent pairs.
 allocate(IdentPseudoPartPairSet(1:n,1:n))
 IdentPseudoPartPairSet(1:n,1:n)=0
 k=0
-do i=1,n
-  do j=i,n   
-    if (i==j) then
+Do i=1,n
+  Do j=i,n   
+    IF (i==j) then
       pi=1; pj=j+1
-	else
+	Else
       pi=i+1; pj=j+1
-	endif
+	EndIF
     w=0
     do s=1,i
-	  if (s==i) then
+	  IF (s==i) then
 		q=j-1
-      else
+      Else
         q=n
-	  endif
-      do t=s,q
-	    if (w==1) cycle
-        if (s==t) then
+	  EndIF
+      Do t=s,q
+	    IF (w==1) cycle
+        IF (s==t) then
           ps=1; pt=t+1
-		else
+		Else
           ps=s+1; pt=t+1
-		endif
-        if ((IdentParticleSet(ps)==IdentParticleSet(pi)).and. &
+		EndIF
+        IF ((IdentParticleSet(ps)==IdentParticleSet(pi)).and. &
 		    (IdentParticleSet(pt)==IdentParticleSet(pj))) then
           w=1
           IdentPseudoPartPairSet(i,j)=IdentPseudoPartPairSet(s,t)
-        endif
-	  enddo
-	enddo
-	if (w==0) then
+        EndIF
+	  EndDo
+	EndDo
+	IF (w==0) then
       k=k+1
       IdentPseudoPartPairSet(i,j)=k
-	endif
-	enddo
-enddo
+	EndIF
+	EndDo
+EndDo
 Glob_NumOfNoneqvPairSets=maxval(IdentPseudoPartPairSet(1:n,1:n))
 
 !Now we create arrays Glob_NumOfPartInIdentPartSet
@@ -1497,11 +1233,11 @@ allocate(Glob_NumOfPartInIdentPartSet(Glob_NumOfIdentPartSets))
 allocate(Glob_IdentPartList(npart,Glob_NumOfIdentPartSets))
 Glob_NumOfPartInIdentPartSet(1:Glob_NumOfIdentPartSets)=0
 Glob_IdentPartList(1:npart,1:Glob_NumOfIdentPartSets)=0
-do i=1,npart
+Do i=1,npart
   k=IdentParticleSet(i)
   Glob_NumOfPartInIdentPartSet(k)=Glob_NumOfPartInIdentPartSet(k)+1
   Glob_IdentPartList(Glob_NumOfPartInIdentPartSet(k),k)=i
-enddo
+EndDo
 
 !Create arrays Glob_NumOfPairsInEqvPairSet and
 !Glob_EqvPairList
@@ -1509,121 +1245,135 @@ allocate(Glob_NumOfPairsInEqvPairSet(Glob_NumOfNoneqvPairSets))
 allocate(Glob_EqvPairList(2,n*(n+1)/2,Glob_NumOfNoneqvPairSets))
 Glob_NumOfPairsInEqvPairSet(1:Glob_NumOfNoneqvPairSets)=0
 Glob_EqvPairList(1:2,1:n*(n+1)/2,1:Glob_NumOfNoneqvPairSets)=0
-do i=1,n
-  do j=i,n
+Do i=1,n
+  Do j=i,n
     k=IdentPseudoPartPairSet(i,j)
     Glob_NumOfPairsInEqvPairSet(k)=Glob_NumOfPairsInEqvPairSet(k)+1
     Glob_EqvPairList(1,Glob_NumOfPairsInEqvPairSet(k),k)=i
     Glob_EqvPairList(2,Glob_NumOfPairsInEqvPairSet(k),k)=j
-  enddo
-enddo
+  EndDo
+EndDo
 
 deallocate(IdentPseudoPartPairSet)
 deallocate(IdentParticleSet)
 
+  
 end subroutine ProgramDataInit
 
-subroutine ComputeExpValL0L1()
+subroutine ComputeTranDipoL0L1()
 
-!Subroutine ComputeExpValL0L1 computes expectation value
-!               < L=0 | Operator | L=1 >
-!of the corrections of Hamiltonian for the case Glob_CurrDRMCStep with
-!basis functions whose number ranges from 1 to Glob_CurrBasisSize.
-!The solution is Glob_ExpVals(Glob_CurrDRMCStep).
+!Subroutine ComputeTranDipoL0L1 computes expectation value of < L=0 | D{z} | L=1 >
+!
+!                                            c0*_k * c1_l
+!  <psi0|D{z}|psi1> = SUM{k,l}---------------------------------------*
+!                                Sqrt( <psi0|psi0> * <psi1|psi1> )
+!
+!                        m_i         < Y0*f_k0 | z_i | Y1*f_l1 >
+!  SUM{i}(q_i - Q_tot * -----)*-----------------------------------------------
+!                        m0    Sqrt( <f_k0|f_k0> ) * Sqrt( <f_l1|f_l1> )
+!
+!
+!
+!				<psi{L0}|psi{L0}>   and   <psi{L1}|psi{L10}>
+!					computed by subroutine ElementS0
+!
+!									  m_i         < Y0*f_k0 | z_i | Y1*f_l1 >
+!				SUM{i}(q_i - Q_tot * -----)*-----------------------------------------------
+!									  m0    Sqrt( <f_k0|f_k0> ) * Sqrt( <f_l1|f_l1> )
+!					computed by subroutine MatrixElemenTranDipolMomen
 !
 !Expressions:
 !
-!       cs = Glob_CurrDRMCStep
-!       k,l = 1,Glob_CurrBasisSize
-!       N0 = c0 * S0 * c0
-!       N1 = c1 * S1 * c1
-!       N2 = MaxNumOfTermsY0 * MaxNumTermsY1
-!       Glob_ExpVals(cs) = (Sum_{k,l} c0_k * H_kl * Glob_c1(l))/sqrt(N0*N1)/N2
-!       i = 1,Glob_NumYTerms0 / j = 1,Glob_NumYTerms1
-!       H_kl = Sum_{i,j} YCoeff0_i * H_klij * YCoeff1_j
-!       H_klij = < f_ki | Operator | f_lj >/sqrt(<f_k|f_k>*<f_l|f_l>)
+!	TDkll_1			=	output of the MatrixElemenTranDipolMomen subroutine
+!	TDkl				=	transition dipole momentum after applying Glob_YCoeff
+!							and normalization factor
+!	k,l				=	Glob_CurrBasisSize0,Glob_CurrBasisSize1
+!	Glob_ExpVals 	= (Sum_{k,l} c0_k * TDkl * Glob_c1(l))/sqrt(diagS0*diagS1)
 
-integer     :: n,np
-real(dprec) :: ExpVal,ExpValLoc
-real(dprec) :: Hklij,Hkl
 
-integer     :: k,l,i,j,indx
-real(dprec) :: temp0,temp0Loc,temp1,temp1Loc,temp0Lock,temp1Lock
+integer       ::  n,np
+real(dprec)   ::  ExpVal, ExpValLoc
+real(dprec)   ::  temp0
+real(dprec)   ::  Skk, Sll, TDklelement, TDkl_Loc, TDkl 
+integer       ::  k,l,i,j,indx
+
+real(dprec),allocatable,dimension(:)     ::  diagS0, diagS1, temp1 
+
 
 n=Glob_n
 np=Glob_np
 
-!Glob_DRMC(Glob_CurrDRMCStep)%B is == 1 if c'*S*c=1 normalization was used,
-!                                  /= 1 otherwise.
-if(Glob_DRMC(Glob_CurrDRMCStep)%B==1) then
-   if(Glob_ProcID==0) write(*,*) 'c*S*c = 1 normalization. Overlap matrix will not be used.'
-   if(Glob_ProcID==0) write(*,'(1x,a)',advance='no') 'Computing expectation values...'
-   ExpValLoc=ZERO
-   indx=0
-   do k=1,Glob_CurrBasisSize
-      do l=1,Glob_CurrBasisSize
-        indx=indx+1
-        if(mod(indx,Glob_NumOfProcs)==Glob_ProcID) then
-          Hkl=ZERO
-          do i=1,Glob_NumYTerms0
-            do j=1,Glob_NumYTerms1
-   	       call MatrixElementsL0L1(Glob_ZIndex(l),Glob_NonlinParam0(1:np,k), &
-   	            Glob_NonlinParam1(1:np,l),Glob_YMatr0(1:n,1:n,i),Glob_YMatr1(1:n,1:n,j),Hklij)
-   	       Hkl=Hkl+Glob_YCoeff0(i)*Hklij*Glob_YCoeff1(j)
-            enddo
-          enddo
-	  Hkl=Hkl/sqrt(Glob_diagS0(k)*Glob_diagS1(l))
-          ExpValLoc=ExpValLoc+Glob_c0(k)*Hkl*Glob_c1(l)
-        endif
-      enddo
-   enddo
-   call MPI_ALLREDUCE(ExpValLoc,ExpVal,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-   
-   Glob_ExpVals(Glob_CurrDRMCStep)=ExpVal
-   if(Glob_ProcID==0) write(*,*) 'done'
-else
-   if(Glob_ProcID==0) write(*,*) 'c*S*c /= 1 normalization. Overlap matrix will be used.'
-   if(Glob_ProcID==0) write(*,'(1x,a)',advance='no') 'Computing expectation values...'
-   ExpValLoc=ZERO
-   temp0Loc=ZERO
-   temp1Loc=ZERO
-   indx=0
-   do k=1,Glob_CurrBasisSize
-      do l=1,Glob_CurrBasisSize
-        indx=indx+1
-        if(mod(indx,Glob_NumOfProcs)==Glob_ProcID) then
-          Hkl=ZERO
-          temp0Loc=temp0Loc+Glob_c0(k)*Glob_S0(k,l)*Glob_c0(l)
-          temp1Loc=temp1Loc+Glob_c1(k)*Glob_S1(k,l)*Glob_c1(l)
-          do i=1,Glob_NumYTerms0
-            do j=1,Glob_NumYTerms1
-   	       call MatrixElementsL0L1(Glob_ZIndex(l),Glob_NonlinParam0(1:np,k), &
-   	            Glob_NonlinParam1(1:np,l),Glob_YMatr0(1:n,1:n,i),Glob_YMatr1(1:n,1:n,j),Hklij)
-   	       Hkl=Hkl+Glob_YCoeff0(i)*Hklij*Glob_YCoeff1(j)
-            enddo
-          enddo
-	  Hkl=Hkl/sqrt(Glob_diagS0(k)*Glob_diagS1(l))
-          ExpValLoc=ExpValLoc+Glob_c0(k)*Hkl*Glob_c1(l)
-        endif
-      enddo
-   enddo
-   call MPI_ALLREDUCE(ExpValLoc,ExpVal,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-   call MPI_ALLREDUCE(temp0Loc,temp0,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-   call MPI_ALLREDUCE(temp1Loc,temp1,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-   
-   if(Glob_ProcID==0) write(*,*) 'done'
-   !sqrt(N0*N1)
-   if (Glob_ProcID==0) then
-      write (*,*) 'Normalization test:'
-      write (*,*) ' '
-      write (*,*) 'c0*S0*c0',temp0
-      write (*,*) 'c1*S1*c1',temp1
-      write (*,*) ' '
-   endif
-   temp0=sqrt(abs(temp0*temp1))
-   Glob_ExpVals(Glob_CurrDRMCStep)=ExpVal/temp0
-endif
+IF(Glob_ProcID==0) write(*,'(1x,a)') 'Computing expectation values...'
 
-end subroutine ComputeExpValL0L1
+allocate(diagS0(Glob_CurrBasisSize0))
+allocate(temp1(Glob_CurrBasisSize0))
+diagS0=ZERO
+temp1=ZERO
+Do k=1+Glob_ProcID,Glob_CurrBasisSize0,Glob_NumOfProcs
+    ! computing digoal elements of overlap matrix L=0 
+	temp0=ZERO
+    Do i=1,Glob_NumYHYTerms0
+        call OverLapElementS0(Glob_NonlinParam0(1:np,k),Glob_YHYMatr0(1:n,1:n,i), Skk)
+        temp0=temp0+Glob_YHYCoeff0(i)*Skk
+    EndDo
+    temp1(k)=temp0
+EndDo
+call MPI_ALLREDUCE(temp1,diagS0,Glob_CurrBasisSize0,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+deallocate(temp1)
+
+
+allocate(diagS1(Glob_CurrBasisSize1))
+allocate(temp1(Glob_CurrBasisSize1))
+diagS1=ZERO
+temp1=ZERO
+Do l=1+Glob_ProcID,Glob_CurrBasisSize1,Glob_NumOfProcs
+    ! computing digoal elements of overlap matrix L=1 
+	temp0=ZERO
+    Do i=1,Glob_NumYHYTerms1
+        call OverLapElementS1(Glob_ZIndex(l), Glob_NonlinParam1(1:np,l),Glob_YHYMatr1(1:n,1:n,i), Sll)
+        temp0=temp0+Glob_YHYCoeff1(i)*Sll
+    EndDo
+    temp1(l)=temp0
+EndDo
+call MPI_ALLREDUCE(temp1,diagS1,Glob_CurrBasisSize1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+deallocate(temp1)
+
+
+
+indx=ZERO
+ExpValLoc=ZERO
+TDkl=ZERO			
+Do k=1,Glob_CurrBasisSize0
+	Do l=1,Glob_CurrBasisSize1
+		indx=indx+1
+		IF(mod(indx,Glob_NumOfProcs)==Glob_ProcID) then
+			TDkl_Loc=ZERO
+			TDkl=ZERO
+			Do i=1,Glob_NumYTerms0
+				Do j=1,Glob_NumYTerms1
+                    call MatrixElemenTranDipoleMoment(Glob_ZIndex(l),Glob_NonlinParam0(1:np,k), &
+                    Glob_NonlinParam1(1:np,l),Glob_YMatr0(1:n,1:n,i),Glob_YMatr1(1:n,1:n,j),TDklelement)
+                    TDkl_Loc=TDkl_Loc+Glob_YCoeff0(i)*TDklelement*Glob_YCoeff1(j)
+				EndDo
+			EndDo
+			TDkl=TDkl_Loc/sqrt(diagS0(k)*diagS1(l))
+			ExpValLoc=ExpValLoc+Glob_c0(k)*TDkl*Glob_c1(l)
+		EndIF
+	EndDo
+EndDo
+
+call MPI_ALLREDUCE(ExpValLoc,ExpVal,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+Glob_ExpVals=ExpVal
+deallocate(diagS0)
+deallocate(diagS1)
+IF(Glob_ProcID==0) write(*,*) 'done'
+
+
+end subroutine ComputeTranDipoL0L1
+
+
 
 end module workproc
+
+
+
