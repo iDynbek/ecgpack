@@ -26,13 +26,13 @@ contains
 subroutine writereal(u,r)
 integer u          !i/o unit
 real(dprec) r      !real number that needs to be written
-write(u,'(1x,e27.20)',advance='no') r    
+write(u,'(1x,es27.20)',advance='no') r    
 end subroutine writereal
 
 subroutine writerealadv(u,r)
 integer u          !i/o unit
 real(dprec) r      !real number that needs to be written
-write(u,'(1x,e27.20)') r    
+write(u,'(1x,es27.20)') r    
 end subroutine writerealadv
 
 subroutine writerealarr(u,r,k)
