@@ -30,7 +30,7 @@ else
   source /usr/share/modules/init/csh
 endif
 
-foreach PREC (8 10 16)
+foreach PREC (16)
 
   #This specifies if optimized BLAS/LAPACK should be invoked
   if (${PREC} == 8) then

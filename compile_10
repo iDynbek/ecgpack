@@ -13,6 +13,8 @@ else
   set MACHINE = $argv[1]
 endif
 
+echo "Using settings for " ${MACHINE}
+
 # Set default configuration (debug or release). One should always
 # use release, unless there is a need to debug codes
 set CONFIG = release
@@ -20,7 +22,13 @@ set CONFIG = release
 # Create directory called "bin" in current directory if it does not yet exist
 if (! -e bin/) mkdir bin
 
-source /usr/share/modules/init/csh
+if (${MACHINE} == mylinuxbox) then
+  source /usr/share/modules/init/csh
+else if (${MACHINE} == shabyt) then
+  source /usr/share/Modules/init/csh
+else 
+  source /usr/share/modules/init/csh
+endif
 
 foreach PREC (10)
 
@@ -84,6 +92,21 @@ foreach PREC (10)
     else if (${PREC} == 16) then
       module load intel
       module load intel-mpi
+      set COMPILER=intel
+      set REALX_NAME=MPI_REAL16
+    endif
+  else if (${MACHINE} == shabyt) then
+    if (${PREC} == 8) then
+      module load intel
+      set COMPILER=intel
+      set REALX_NAME=MPI_DOUBLE_PRECISION
+    else if (${PREC} == 10) then
+      module load gcc
+      module load openmpi/gcc9
+      set COMPILER=gnu
+      set REALX_NAME=MPI_REAL16
+    else if (${PREC} == 16) then
+      module load intel
       set COMPILER=intel
       set REALX_NAME=MPI_REAL16
     endif
@@ -167,6 +190,15 @@ foreach PREC (10)
     else if (${PREC} == 16) then
       module unload intel
       module unload intel-mpi
+    endif
+  else if (${MACHINE} == shabyt) then
+    if (${PREC} == 8) then
+      module unload intel
+    else if (${PREC} == 10) then
+      module unload openmpi/gcc9
+      module unload gcc
+    else if (${PREC} == 16) then
+      module unload intel
     endif
   else
     echo "Machine not supported: " ${MACHINE}
