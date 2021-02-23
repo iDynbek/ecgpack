@@ -31,7 +31,7 @@ SRC_DIR=./src
 
 # My work desktop computer 
 ifeq ($(MACHINE), mylinuxbox) 
-  # Intel Fortran and Open MPI (mylinuxbox)
+  # Intel Fortran and Open MPI or Intel MPI (mylinuxbox)
   ifeq ($(COMPILER_TYPE), intel)
     FC=mpif90
     export MPICOMPFLAGS=
@@ -48,6 +48,10 @@ ifeq ($(MACHINE), mylinuxbox)
     endif
     ifeq ($(PREC), 8)
       COMPILER_SUPPORTED=yes
+      ifeq ($(CONFIG), release)
+        export FCFLAGS+=-O3 -ipo -xhost -fp-model precise
+        export LINKFLAGS+=-O3 -ipo -xhost -fp-model precise
+      endif
       ifeq ($(OPTLPKBLS),yes)
         # Link with MKL
         export FCFLAGS+=-I$(MKLROOT)/include
@@ -109,6 +113,71 @@ ifeq ($(MACHINE), mylinuxbox)
       ifeq ($(OPTLPKBLS),yes)
         # Link with Sun Performance Library
         export LINKFLAGS+=-xlic_lib=sunperf
+      endif
+    endif
+  endif
+endif
+
+ifeq ($(MACHINE), puma)
+  # Intel Fortran and Open MPI (puma)
+  ifeq ($(COMPILER_TYPE), intel)
+    FC=mpiifort
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-module $(CONFIG)
+    export LINKFLAGS=-module $(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g -traceback -debug extended
+      export LINKFLAGS+=-C -O0 -g -traceback -debug extended
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3 -ipo -fp-model precise
+      export LINKFLAGS+=-O3 -ipo -fp-model precise
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+      ifeq ($(CONFIG), release)
+        export FCFLAGS+=-O3 -ipo -xhost -fp-model precise
+        export LINKFLAGS+=-O3 -ipo -xhost -fp-model precise
+      endif
+      ifeq ($(OPTLPKBLS),yes)
+        # Link with MKL
+        export FCFLAGS+=-I$(MKLROOT)/include
+        export LINKFLAGS+=-L$(MKLROOT)
+        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/li$
+      endif
+    endif
+    ifeq ($(PREC), 16)
+      ifneq ($(OPTLPKBLS),yes)
+        COMPILER_SUPPORTED=yes
+      endif
+    endif
+  endif
+  # gfortran and Open MPI (puma)
+  ifeq ($(COMPILER_TYPE), gnu)
+    FC=mpif90
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-J$(CONFIG)
+    export LINKFLAGS=-J$(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
+      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3
+      export LINKFLAGS+=-O3
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+      ifeq ($(OPTLPKBLS),yes)
+        # Link with MKL
+        export LINKFLAGS+=-lblas -llapack
+      endif
+    endif
+    ifeq ($(PREC), 10)
+      ifneq ($(OPTLPKBLS),yes)
+        COMPILER_SUPPORTED=yes
       endif
     endif
   endif
@@ -298,7 +367,7 @@ ifeq ($(MACHINE), bluehive)
 endif
 
 ifeq ($(MACHINE), shabyt) 
-  # Intel Fortran and Intel MPI (mylinuxbox)
+  # Intel Fortran and Intel MPI (shabyt)
   ifeq ($(COMPILER_TYPE), intel)
     FC=mpiifort
     export MPICOMPFLAGS=
@@ -310,16 +379,20 @@ ifeq ($(MACHINE), shabyt)
       export LINKFLAGS+=-C -O0 -g -traceback -debug extended
     endif
     ifeq ($(CONFIG), release)
-      export FCFLAGS+=-O3 -ipo -xhost -fp-model precise
-      export LINKFLAGS+=-O3 -ipo -xhost -fp-model precise
+      export FCFLAGS+=-O3 -ipo -fp-model precise
+      export LINKFLAGS+=-O3 -ipo -fp-model precise
     endif
     ifeq ($(PREC), 8)
       COMPILER_SUPPORTED=yes
+      ifeq ($(CONFIG), release)
+        export FCFLAGS+=-O3 -ipo -xhost -fp-model precise
+        export LINKFLAGS+=-O3 -ipo -xhost -fp-model precise
+      endif
       ifeq ($(OPTLPKBLS),yes)
         # Link with MKL
         export FCFLAGS+=-I$(MKLROOT)/include
         export LINKFLAGS+=-L$(MKLROOT)
-        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
+        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/li$
       endif
     endif
     ifeq ($(PREC), 16)
