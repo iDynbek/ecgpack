@@ -56,6 +56,21 @@ foreach PREC (8)
       set COMPILER=intel
       set REALX_NAME=MPI_REAL16
     endif
+  else if (${MACHINE} == puma) then
+    if (${PREC} == 8) then
+      module load intel
+      set COMPILER=intel
+      set REALX_NAME=MPI_DOUBLE_PRECISION
+    else if (${PREC} == 10) then
+      module load gnu8
+      module load openmpi3
+      set COMPILER=gnu
+      set REALX_NAME=MPI_REAL16
+    else if (${PREC} == 16) then
+      module load intel
+      set COMPILER=intel
+      set REALX_NAME=MPI_REAL16
+    endif
   else if (${MACHINE} == bluehive) then
     if (${PREC} == 8) then
       module load intel
@@ -146,50 +161,59 @@ foreach PREC (8)
   # This unloads modules depending on the machine used
   if (${MACHINE} == mylinuxbox) then
     if (${PREC} == 8) then
-      module unload intel
       module unload openmpi-intel
+      module unload intel
     else if (${PREC} == 10) then
       module load openmpi-gcc
     else if (${PREC} == 16) then
-      module unload intel
       module unload openmpi-intel    
+      module unload intel
+    endif
+  else if (${MACHINE} == puma) then
+    if (${PREC} == 8) then
+      module unload intel
+    else if (${PREC} == 10) then
+      module unload openmpi3
+      module unload gnu8
+    else if (${PREC} == 16) then
+      module unload intel
     endif
   else if (${MACHINE} == bluehive) then
     if (${PREC} == 8) then
-      module unload intel
-      module unload mkl
       module unload intel-mpi-3.2
+      module unload mkl
+      module unload intel
     else if (${PREC} == 10) then
-      module unload gcc-4.7.2
       module unload openmpi-1.6.4-gnu
+      module unload gcc-4.7.2
     else if (${PREC} == 16) then
-      module unload intel
-      module unload mkl
       module unload intel-mpi-3.2
+      module unload mkl
+      module unload intel
     endif
   else if (${MACHINE} == ice_8400) then
     if (${PREC} == 8) then
-      module unload intel/xe.2016.u2
       module unload intel-mpi/2013.5.192
+      module unload intel/xe.2016.u2
     else if (${PREC} == 10) then
-      module unload openmpi
-      module unload blas
       module unload lapack
+      module unload blas
+      module unload openmpi
     else if (${PREC} == 16) then
-      module unload intel/xe.2016.u2
       module unload intel-mpi/2013.5.192
+      module unload intel/xe.2016.u2
     endif
   else if (${MACHINE} == elgato) then
     if (${PREC} == 8) then
-      module unload intel
       module unload intel-mpi
+      module unload intel
     else if (${PREC} == 10) then
-      module unload openmpi
-      module unload blas
       module unload lapack
+      module unload blas
+      module unload openmpi
     else if (${PREC} == 16) then
-      module unload intel
       module unload intel-mpi
+      module unload intel
     endif
   else if (${MACHINE} == shabyt) then
     if (${PREC} == 8) then
