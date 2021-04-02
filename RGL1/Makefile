@@ -5,10 +5,10 @@
 #    make all     COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg  
 
 # Set default compiler type (intel, gnu, sun, etc..)
-COMPILER_TYPE=intel
+COMPILER_TYPE=gnu
 
 # Set default machine where the compilation takes place (mylinuxbox, ice, marin, etc.)
-MACHINE=mylinuxbox
+MACHINE=wsl_ubuntu20
 
 # Set the default precision (kind of real type, 8, 10, or 16)
 # Value PREC=8 corresponds to standard double precision
@@ -19,7 +19,7 @@ PREC=8
 # LAPACK/BLAS library (OPTLPKBLS=yes) such as Intel Math Kernel library or Sun Performance
 # Library. Otherwise (OPTLPKBLS=no or any other value) the supplied nonoptimized versions 
 # of these routines will be used.
-OPTLPKBLS=no
+OPTLPKBLS=yes
 
 # Set the default name for the generated executable file
 EXEFILE=ecg
@@ -115,6 +115,43 @@ ifeq ($(MACHINE), mylinuxbox)
         export LINKFLAGS+=-xlic_lib=sunperf
       endif
     endif
+  endif
+endif
+
+# WSL Ubntu 20.04 
+ifeq ($(MACHINE), wsl_ubuntu20) 
+  # gfortran 9.3.0 and Open MPI 4.0.3 (default in WSL Ubuntu 20.04)
+  ifeq ($(COMPILER_TYPE), gnu)
+    FC=mpif90
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-J$(CONFIG)
+    export LINKFLAGS=-J$(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
+      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3 -march=native
+      export LINKFLAGS+=-O3 -march=native
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+      ifeq ($(OPTLPKBLS),yes)
+        # Link with Lapack and BLAS
+        export LINKFLAGS+=-lblas -llapack
+      endif
+    endif
+    ifeq ($(PREC), 10)
+      ifneq ($(OPTLPKBLS),yes)
+        COMPILER_SUPPORTED=yes
+      endif
+    endif
+    ifeq ($(PREC), 16)
+      ifneq ($(OPTLPKBLS),yes)
+        COMPILER_SUPPORTED=yes
+      endif
+    endif	
   endif
 endif
 
