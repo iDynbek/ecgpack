@@ -86,6 +86,11 @@ ifeq ($(MACHINE), mylinuxbox)
         COMPILER_SUPPORTED=yes
       endif
     endif
+    ifeq ($(PREC), 16)
+      ifneq ($(OPTLPKBLS),yes)
+        COMPILER_SUPPORTED=yes
+      endif
+    endif	
   endif
   # Sun Fortran and Sun MPI (mylinuxbox)
   ifeq ($(COMPILER_TYPE), sun)
