@@ -27,7 +27,7 @@ SRC_DIR=./src
 ifeq ($(MACHINE), mylinuxbox)
   # Intel Fortran and Open MPI or Intel MPI (mylinuxbox)
   ifeq ($(COMPILER_TYPE), intel)
-    FC=mpif90
+    FC=mpiifort
     export MPICOMPFLAGS=
     export MPILINKFLAGS=
     export FCFLAGS=-module $(CONFIG)
