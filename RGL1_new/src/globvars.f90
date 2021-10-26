@@ -58,6 +58,7 @@ integer,parameter :: Glob_np_MaxAllowed= &
 integer,parameter :: Glob_npt_MaxAllowed=Glob_np_MaxAllowed
 
 real(dprec)   Glob_2raised3n2  !2^(3n/2)
+real(dprec)   Glob_Piraised3n2 !pi^(3n/2)
 
 !Glob_CurrBasisSize is a variable whose value equals the current 
 !size of the basis
