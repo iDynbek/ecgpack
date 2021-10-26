@@ -1,6 +1,6 @@
 module matelem
 !Module matelem contains subroutines for computing 
-!matrix elements with real L=0 Gaussians.
+!matrix elements with real L=0 Gaussians without normalization.
 use globvars
 implicit none
 
