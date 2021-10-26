@@ -1,6 +1,6 @@
 module matelem
 !Module matelem contains subroutines for computing
-!matrix elements with real L=1 Gaussians.
+!matrix elements with real L=1 Gaussians without normalization
 use globvars
 implicit none
 
@@ -75,7 +75,7 @@ integer           i,j,k,q,t,indx
 
 n=Glob_n
 np=Glob_np
-
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
 indx=0
 do i=1,n
@@ -131,14 +131,16 @@ do i=1,n
   enddo
 enddo
 
+!I delete non-necessary parts of the code
+
 !The determinants of Lk and Ll are just
 !the products of their diagonal elements
-det_Lk=ONE
-det_Ll=ONE
-do i=1,n
-  det_Lk=det_Lk*Lk(i,i)
-  det_Ll=det_Ll*Ll(i,i)
-enddo
+!det_Lk=ONE
+!det_Ll=ONE
+!do i=1,n
+!  det_Lk=det_Lk*Lk(i,i)
+!  det_Ll=det_Ll*Ll(i,i)
+!enddo
 
 !After this we can do Cholesky factorization of tAkl.
 !The Cholesky factor will be temporarily stored in the 
@@ -184,37 +186,39 @@ do i=1,n
    enddo
 enddo  
 
+!I delete non-necessary parts of the code
+
 !Finding the inverse of Akk and All using their Cholesky factors
 !The result is placed in inv_Akk and inv_All
-do i=1,n
-  W1(i,i)=ONE/Lk(i,i)
-  W2(i,i)=ONE/Ll(i,i)  
-  do j=i+1,n
-    temp1=ZERO
-    temp2=ZERO
-    do k=i,j-1
-      temp1=temp1-Lk(j,k)*W1(k,i)
-      temp2=temp2-Ll(j,k)*W2(k,i)
-    enddo
-    W1(j,i)=temp1/Lk(j,j)
-    W2(j,i)=temp2/Ll(j,j)
-  enddo
-enddo 
+!do i=1,n
+!  W1(i,i)=ONE/Lk(i,i)
+!  W2(i,i)=ONE/Ll(i,i)  
+!  do j=i+1,n
+!    temp1=ZERO
+!    temp2=ZERO
+!    do k=i,j-1
+!      temp1=temp1-Lk(j,k)*W1(k,i)
+!      temp2=temp2-Ll(j,k)*W2(k,i)
+!    enddo
+!    W1(j,i)=temp1/Lk(j,j)
+!    W2(j,i)=temp2/Ll(j,j)
+!  enddo
+!enddo 
 
-do i=1,n
-  do j=i,n
-     temp1=ZERO
-     temp2=ZERO
-     do k=j,n
-       temp1=temp1+W1(k,i)*W1(k,j)
-       temp2=temp2+W2(k,i)*W2(k,j)       
-     enddo
-     inv_Akk(i,j)=ONEHALF*temp1
-	 inv_Akk(j,i)=ONEHALF*temp1
-     inv_All(i,j)=ONEHALF*temp2
-	 inv_All(j,i)=ONEHALF*temp2	 
-   enddo
-enddo  
+!do i=1,n
+!  do j=i,n
+!     temp1=ZERO
+!     temp2=ZERO
+!    do k=j,n
+!       temp1=temp1+W1(k,i)*W1(k,j)
+!       temp2=temp2+W2(k,i)*W2(k,j)       
+!     enddo
+!     inv_Akk(i,j)=ONEHALF*temp1
+!	 inv_Akk(j,i)=ONEHALF*temp1
+!     inv_All(i,j)=ONEHALF*temp2
+!	 inv_All(j,i)=ONEHALF*temp2	 
+!   enddo
+!enddo  
 
 !Computing tvl=P'*vl 
 do i=1,n
@@ -242,8 +246,10 @@ do i=1,n
 enddo
 
 !Evaluating overlap
-temp1=abs(det_Ll*det_Lk)/det_tAkl
-Skl=Glob_2raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
+!temp1=abs(det_Ll*det_Lk)/det_tAkl
+temp1=det_tAkl*sqrt(det_tAkl)
+!Skl=Glob_2raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
+Skl=Glob_Piraised3n2*tau3/(TWO*temp1)
 
 !Doing multiplication inv_tAkltAl=inv_tAkl*tAl
 do i=1,n
@@ -364,25 +370,28 @@ if (grad_k.or.grad_l) then
 endif
 
 if (grad_k) then
+    
+  !I delete non-necessary parts of the code  
   !Evaluating two_Fkk = 2*Fkk, where 
   !Fkk = (3/2) * inv_Akk + (inv_Akk * vk * vk' * inv_Akk)/(vk' * inv_Akk * vk)
-  do i=1,n
-    u1(i)=inv_Akk(m_k,i)
-  enddo
-  temp1=TWO/u1(m_k)
-  do i=1,n
-    do j=1,i
-       two_Fkk(i,j)=THREE*inv_Akk(i,j)+temp1*u1(i)*u1(j)
-       two_Fkk(j,i)=two_Fkk(i,j) 
-    enddo
-  enddo
+  !do i=1,n
+  !  u1(i)=inv_Akk(m_k,i)
+  !enddo
+  !temp1=TWO/u1(m_k)
+  !do i=1,n
+  !  do j=1,i
+  !     two_Fkk(i,j)=THREE*inv_Akk(i,j)+temp1*u1(i)*u1(j)
+  !     two_Fkk(j,i)=two_Fkk(i,j) 
+  !  enddo
+  !enddo
   !Evaluating Skl*vech((two_Fkk-twosym_tFkl)*Lk)'
+  !Evaluating -Skl*vech((twosym_tFkl)*Lk)'  !new line
   indx=0
   do i=1,n
     do j=i,n
       temp1=ZERO
       do k=i,n
-        temp1=temp1+(two_Fkk(k,j)-twosym_tFkl(k,j))*Lk(k,i)
+        temp1=temp1-twosym_tFkl(k,j)*Lk(k,i)
       enddo
       indx=indx+1
       Dk(Glob_np+indx)=Skl*temp1
@@ -411,25 +420,28 @@ if (grad_l) then
       twosym_tGkl(j,i)=temp1
     enddo
   enddo  
+  
+  !I delete non-necessary parts of the code
   !Evaluating two_Fll = 2*Fll, where 
   !Fll = (3/2) * inv_All + (inv_All * vl * vl' * inv_All)/(vl' * inv_All * vl)
-  do i=1,n
-    u1(i)=inv_All(m_l,i)
-  enddo
-  temp1=TWO/u1(m_l)
-  do i=1,n
-    do j=1,i
-       two_Fll(i,j)=THREE*inv_All(i,j)+temp1*u1(i)*u1(j)
-       two_Fll(j,i)=two_Fll(i,j) 
-    enddo
-  enddo
+  !do i=1,n
+  !  u1(i)=inv_All(m_l,i)
+  !enddo
+  !temp1=TWO/u1(m_l)
+  !do i=1,n
+  !  do j=1,i
+  !     two_Fll(i,j)=THREE*inv_All(i,j)+temp1*u1(i)*u1(j)
+  !     two_Fll(j,i)=two_Fll(i,j) 
+  !  enddo
+  !enddo
   !Evaluating Skl*vech((two_Fll-twosym_tGkl)*Ll)'
+  !Evaluating -Skl*vech((twosym_tGkl)*Ll)'  !new line
   indx=0
   do i=1,n
     do j=i,n
       temp1=ZERO
       do k=i,n
-        temp1=temp1+(two_Fll(k,j)-twosym_tGkl(k,j))*Ll(k,i)
+        temp1=temp1-twosym_tGkl(k,j)*Ll(k,i)
       enddo
       indx=indx+1
       Dl(Glob_np+indx)=Skl*temp1
@@ -832,7 +844,7 @@ real(dprec)       jAj(nn,nn,nn,nn),jAtvl(nn,nn),tvkAj(nn,nn),Mass_For_Darwin(0:n
 
 n=Glob_n
 np=Glob_np
-
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
 indx=0
 do i=1,n
@@ -898,14 +910,15 @@ do i=1,n
   enddo
 enddo
 
+!I delete non-necessary parts of the code
 !The determinants of Lk and Ll are just
 !the products of their diagonal elements
-det_Lk=ONE
-det_Ll=ONE
-do i=1,n
-  det_Lk=det_Lk*Lk(i,i)
-  det_Ll=det_Ll*Ll(i,i)
-enddo
+!det_Lk=ONE
+!det_Ll=ONE
+!do i=1,n
+!  det_Lk=det_Lk*Lk(i,i)
+!  det_Ll=det_Ll*Ll(i,i)
+!enddo
 
 !After this we can do Cholesky factorization of tAkl.
 !The Cholesky factor will be temporarily stored in the 
@@ -951,37 +964,38 @@ do i=1,n
    enddo
 enddo  
 
+!I delete non-necessary parts of the code
 !Finding the inverse of Akk and All using their Cholesky factors
 !The result is placed in inv_Akk and inv_All
-do i=1,n
-  W1(i,i)=ONE/Lk(i,i)
-  W2(i,i)=ONE/Ll(i,i)  
-  do j=i+1,n
-    temp1=ZERO
-    temp2=ZERO
-    do k=i,j-1
-      temp1=temp1-Lk(j,k)*W1(k,i)
-      temp2=temp2-Ll(j,k)*W2(k,i)
-    enddo
-    W1(j,i)=temp1/Lk(j,j)
-    W2(j,i)=temp2/Ll(j,j)
-  enddo
-enddo 
+!do i=1,n
+!  W1(i,i)=ONE/Lk(i,i)
+!  W2(i,i)=ONE/Ll(i,i)  
+!  do j=i+1,n
+!    temp1=ZERO
+!    temp2=ZERO
+!    do k=i,j-1
+!      temp1=temp1-Lk(j,k)*W1(k,i)
+!      temp2=temp2-Ll(j,k)*W2(k,i)
+!    enddo
+!    W1(j,i)=temp1/Lk(j,j)
+!    W2(j,i)=temp2/Ll(j,j)
+!  enddo
+!enddo 
 
-do i=1,n
-  do j=i,n
-     temp1=ZERO
-     temp2=ZERO
-     do k=j,n
-       temp1=temp1+W1(k,i)*W1(k,j)
-       temp2=temp2+W2(k,i)*W2(k,j)       
-     enddo
-     inv_Akk(i,j)=ONEHALF*temp1
-	 inv_Akk(j,i)=ONEHALF*temp1
-     inv_All(i,j)=ONEHALF*temp2
-	 inv_All(j,i)=ONEHALF*temp2	 
-   enddo
-enddo  
+!do i=1,n
+!  do j=i,n
+!     temp1=ZERO
+!     temp2=ZERO
+!     do k=j,n
+!       temp1=temp1+W1(k,i)*W1(k,j)
+!       temp2=temp2+W2(k,i)*W2(k,j)       
+!     enddo
+!     inv_Akk(i,j)=ONEHALF*temp1
+!	 inv_Akk(j,i)=ONEHALF*temp1
+!     inv_All(i,j)=ONEHALF*temp2
+!	 inv_All(j,i)=ONEHALF*temp2	 
+!   enddo
+!enddo  
 
 !Computing tvk=Pbra'*vk and tvl=Pket'*vl
 do i=1,n
@@ -1019,8 +1033,13 @@ do i=1,n
 enddo
 
 !Evaluating overlap
-temp1=abs(det_Ll*det_Lk)/det_tAkl
-Skl=Glob_2raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
+!temp1=abs(det_Ll*det_Lk)/det_tAkl
+!Skl=Glob_2raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
+temp1=det_tAkl*sqrt(det_tAkl)
+Skl=Glob_Piraised3n2*tau3/(TWO*temp1)
+
+
+
 
 !Doing multiplication inv_tAkltAl=inv_tAkl*tAl, inv_tAkltAk=inv_tAkl*tAk
 do i=1,n
