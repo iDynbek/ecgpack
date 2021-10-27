@@ -1,5 +1,5 @@
 module workproc
-!This module contains basic work subroutines
+!This module contains basic work subroutines 
 use misc
 use matform
 use matelem
@@ -333,7 +333,7 @@ if (Glob_ProcID==0) then
       !      Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
       !call writestring(6,Glob_BBOP(i)%FileName1,j1) 
       !call writestring(6,Glob_BBOP(i)%FileName2,j2)  
-      !call writestring(6,Glob_BBOP(i)%FileName3,j3)  
+      !call writestring(6,Glob_BBOP(i)%FileName3,j3)
       !call writestringadv(6,Glob_BBOP(i)%FileName4,j4)       	              
 	case('ELIM_LCFN') 
 	  read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &		
@@ -446,7 +446,7 @@ call MPI_BCAST(Glob_IsOptCycleScripted,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIEr
 
 allocate(Glob_History(Glob_CurrBasisSize))
 allocate(Glob_FuncNum(Glob_CurrBasisSize))
-allocate(Glob_ZIndex(Glob_CurrBasisSize))
+allocate(Glob_Index(Glob_CurrBasisSize,2))
 allocate(Glob_NonlinParam(Glob_npt,Glob_CurrBasisSize))
 
 if (Glob_CurrBasisSize==0) then
@@ -503,12 +503,12 @@ deallocate(WorkBuffInt)
 !Reading basis functions
 if (Glob_ProcID==0) then
   do i=1,Glob_CurrBasisSize
-    read(1,*) j,Glob_ZIndex(i),Glob_NonlinParam(1:Glob_npt,i)
+    read(1,*) j,Glob_Index(i,1),Glob_Index(i,2),Glob_NonlinParam(1:Glob_npt,i)
   enddo
 endif
 call MPI_BCAST(Glob_NonlinParam,Glob_npt*Glob_CurrBasisSize, &
                MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
-call MPI_BCAST(Glob_ZIndex,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)                 
+call MPI_BCAST(Glob_Index,2*Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
 
 !Setting function numbers as they were read
 do i=1,Glob_CurrBasisSize
@@ -699,12 +699,13 @@ if (Glob_ProcID==0) then
       Glob_IntWorkArrForSaveResults(Glob_FuncNum(i))=i
     enddo
     do i=1,Glob_CurrBasisSize
-      write(1,'(1x,i6,1x,i6)',advance='no') i,Glob_ZIndex(Glob_IntWorkArrForSaveResults(i))
+      write(1,'(1x,i6,1x,i6,1x,i6)',advance='no') i,Glob_Index(Glob_IntWorkArrForSaveResults(i),1)&
+                                                   ,Glob_Index(Glob_IntWorkArrForSaveResults(i),2)
 	  call writerealarradv(1,Glob_NonlinParam(1:Glob_npt,Glob_IntWorkArrForSaveResults(i)),Glob_npt)
     enddo
   else
     do i=1,Glob_CurrBasisSize
-      write(1,'(1x,i6,1x,i6)',advance='no') i,Glob_ZIndex(i)
+      write(1,'(1x,i6,1x,i6,1x,i6)',advance='no') i,Glob_Index(i,1),Glob_Index(i,2)
       call writerealarradv(1,Glob_NonlinParam(1:Glob_npt,i),Glob_npt)
     enddo
   endif
@@ -1617,7 +1618,7 @@ end subroutine ProgramDataInit
 
 
 
-subroutine GenerateTrialParam(nfun,x,m,k,method_used)
+subroutine GenerateTrialParam(nfun,x,m,mm,k,method_used)
 !Subroutine GenerateTrialParam generates nonlinear 
 !parameters for trial functions. It uses three global variables
 !to do that: Glob_RG_p1, Glob_RG_s1, Glob_RG_s2. 
@@ -1656,17 +1657,17 @@ subroutine GenerateTrialParam(nfun,x,m,k,method_used)
 !Arguments :
 integer        nfun
 real(dprec)    x(Glob_npt,nfun)
-integer        m(nfun)
+integer        m(nfun),mm(nfun)
 integer        k, method_used       
 
 !Local variables :
 integer        i,j,p
-real(8)    r,sumf
+real(8)    r,sumf,rr
 !Constants that define the uniform distribution
 !in the case of Glob_CurrBasisSize==0 
 real(8)  :: Lmin=-0.5_8
 real(8)  :: Lmax= 0.5_8
-real(8)  :: ZIndexChangeProb=0.5_8
+real(8)  :: ZIndexChangeProb=0.5_8,ZZIndexChangeProb=0.5_8
 
 if (Glob_CurrBasisSize==0) then !making uniform distribution
   do i=1,nfun
@@ -1674,10 +1675,16 @@ if (Glob_CurrBasisSize==0) then !making uniform distribution
       call random_number(r)
 	  x(j,i)=r*(Lmax-Lmin)+Lmin 
     enddo
+    
     call random_number(r)
     r=r*Glob_n
     m(i)=1+int(r)
     if (m(i)>Glob_n) m(i)=Glob_n
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    call random_number(rr)
+    rr=rr*Glob_n
+    mm(i)=1+int(rr)
+    if (mm(i)>Glob_n) mm(i)=Glob_n
   enddo
   method_used=0
   k=0
@@ -1702,6 +1709,17 @@ else
 		    call random_number(r)
 		    r=r*Glob_n
             m(i)=1+int(r)
+            
+            	call random_number(rr)
+		if (rr>ZZIndexChangeProb) then
+		  mm(i)=Glob_ZZIndex(k)
+		else
+		  j=Glob_ZZIndex(k)
+		  mm(i)=j	  
+		  do while (mm(i)==j)
+		    call random_number(rr)
+		    rr=rr*Glob_n
+            mm(i)=1+int(rr)
 		  enddo
 		endif
       enddo
@@ -2719,7 +2737,7 @@ subroutine PermuteFunctions(fb,fe,FuncNumTemp,NonlinParamTemp)
 !a way that functions fb through fe go to the very end of the
 !basis (which makes their optimization more time efficient). 
 !The subroutine permutes the nonlinear parameters (Glob_NonlinParam) 
-!Z-indicies (Glob_ZIndex), and function numbers (Glob_FuncNum).
+!x,y,z-indicies (Glob_Index), and function numbers (Glob_FuncNum).
 !This subroutine requires workspace, which must be provided by
 !arrays FuncNumTemp and NonlinParamTemp. The length of FuncNumTemp
 !should be at least fe-fb+1, while the lenght of NonlinParamTemp must be
@@ -2741,12 +2759,20 @@ do i=fb,fbn-1
 enddo
 Glob_NonlinParam(1:Glob_npt,fbn:Glob_CurrBasisSize)=NonlinParamTemp(1:Glob_npt,1:nfco)
 
-FuncNumTemp(1:nfco)=Glob_ZIndex(fb:fe)
+
+FuncNumTemp(1:nfco)=Glob_Index(fb:fe,1)
 do i=fb,fbn-1
-  Glob_ZIndex(i)=Glob_ZIndex(nfco+i)
+  Glob_Index(i,1)=Glob_Index(nfco+i,1)
 enddo
-Glob_ZIndex(fbn:Glob_CurrBasisSize)=FuncNumTemp(1:nfco)
+Glob_Index(fbn:Glob_CurrBasisSize,1)=FuncNumTemp(1:nfco)
   
+FuncNumTemp(1:nfco)=Glob_Index(fb:fe,2)
+do i=fb,fbn-1
+  Glob_Index(i,2)=Glob_Index(nfco+i,2)
+enddo
+Glob_Index(fbn:Glob_CurrBasisSize,2)=FuncNumTemp(1:nfco)
+
+
 FuncNumTemp(1:nfco)=Glob_FuncNum(fb:fe)
 do i=fb,fbn-1
   Glob_FuncNum(i)=Glob_FuncNum(nfco+i)
@@ -2762,7 +2788,7 @@ subroutine PermuteFunctions2(fb1,fe1,fe2,FuncNumTemp,NonlinParamTemp)
 !a way that the set of functions fb1 through fe1 exchanges its positions
 !with the set of function fb2 through fe2, where fb2=fe1+1. 
 !The subroutine permutes the nonlinear parameters (Glob_NonlinParam), 
-!Z-indicies (Glob_ZIndex), and function numbers (Glob_FuncNum).
+!x,y,z-indicies (Glob_Index), and function numbers (Glob_FuncNum).
 !This subroutine requires workspace, which must be provided by
 !arrays FuncNumTemp and NonlinParamTemp. The length of FuncNumTemp
 !should be at least fe1-fb1+1, while the lenght of NonlinParamTemp must be
@@ -2784,12 +2810,21 @@ do i=fb1,fbn-1
 enddo
 Glob_NonlinParam(1:Glob_npt,fbn:fe2)=NonlinParamTemp(1:Glob_npt,1:k)
 
-FuncNumTemp(1:k)=Glob_ZIndex(fb1:fe1)
+
+
+FuncNumTemp(1:k)=Glob_Index(fb1:fe1,1)
 do i=fb1,fbn-1
-  Glob_ZIndex(i)=Glob_ZIndex(k+i)
+  Glob_Index(i,1)=Glob_Index(k+i,1)
 enddo
-Glob_ZIndex(fbn:fe2)=FuncNumTemp(1:k)
+Glob_Index(fbn:fe2,1)=FuncNumTemp(1:k)
   
+
+FuncNumTemp(1:k)=Glob_Index(fb1:fe1,2)
+do i=fb1,fbn-1
+  Glob_Index(i,2)=Glob_Index(k+i,2)
+enddo
+Glob_Index(fbn:fe2,2)=FuncNumTemp(1:k)
+
 FuncNumTemp(1:k)=Glob_FuncNum(fb1:fe1)
 do i=fb1,fbn-1
   Glob_FuncNum(i)=Glob_FuncNum(k+i)
@@ -3039,7 +3074,7 @@ subroutine ReverseFuncOrder(fb,fe)
 !Subroutine ReverseFuncOrder changes the order of basis functions 
 !fb through fe to reverse. 
 !The subroutine permutes nonlinear parameters (Glob_NonlinParam), 
-!Z-indicies (Glob_ZIndex), and function numbers (Glob_FuncNum).
+!x,y,z-indicies (Glob_Index), and function numbers (Glob_FuncNum).
 
 !Arguments:
 integer  fb,fe
@@ -3055,11 +3090,20 @@ do i=1,f
   Glob_NonlinParam(1:Glob_npt,fbm+i)=Glob_NonlinParam(1:Glob_npt,fep-i)
   Glob_NonlinParam(1:Glob_npt,fep-i)=temp(1:Glob_npt)
 enddo
+
 do i=1,f
-  t=Glob_ZIndex(fbm+i)
-  Glob_ZIndex(fbm+i)=Glob_ZIndex(fep-i)
-  Glob_ZIndex(fep-i)=t
+  t=Glob_Index(fbm+i,1)
+  Glob_Index(fbm+i,1)=Glob_Index(fep-i,1)
+  Glob_Index(fep-i,1)=t
 enddo
+
+
+do i=1,f
+  t=Glob_Index(fbm+i,2)
+  Glob_Index(fbm+i,2)=Glob_Index(fep-i,2)
+  Glob_Index(fep-i,2)=t
+enddo
+
 do i=1,f
   t=Glob_FuncNum(fbm+i)
   Glob_FuncNum(fbm+i)=Glob_FuncNum(fep-i)
@@ -3241,12 +3285,20 @@ enddo
 do i=fb,cbs
   Glob_NonlinParam(1:Glob_npt,i)=NonlinParamTemp(1:Glob_npt,i-fbm1) 
 enddo
-!We also permute z-indicies of functions
+
+!We also permute x,y,z-indicies of functions
 do i=fb,cbs
-  FuncNumTemp(i-fbm1)=Glob_ZIndex(Glob_FuncNum(i))    
+  FuncNumTemp(i-fbm1)=Glob_Index(Glob_FuncNum(i),1)    
 enddo 
 do i=fb,cbs
-  Glob_ZIndex(i)=FuncNumTemp(i-fbm1) 
+  Glob_Index(i,1)=FuncNumTemp(i-fbm1) 
+enddo
+
+do i=fb,cbs
+  FuncNumTemp(i-fbm1)=Glob_Index(Glob_FuncNum(i),2)    
+enddo 
+do i=fb,cbs
+  Glob_Index(i,2)=FuncNumTemp(i-fbm1) 
 enddo
 
 !Exit if matrix elements are not needed to be permuted 
@@ -3304,7 +3356,7 @@ subroutine SortBasisFuncAndMatElem(fb,fe,FuncNumTemp,NonlinParamTemp,TempR)
 !fb through fe so that they are sorted in decreasing order
 !(that is the values of Glob_FuncNum(i) decrease). It also permutes
 !the corresponding matrix elements. The subroutine permutes the 
-!nonlinear parameters (Glob_NonlinParam), Z-indicies (GLob_ZIndex), 
+!nonlinear parameters (Glob_NonlinParam), x,y,z-indicies (Glob_Index), 
 !function numbers (Glob_FuncNum), the elements of arrays Glob_H, Glob_S,
 !Glob_diagH, and glob_diagS. It is assumed that the set of
 !values Glob_FuncNum(fb:fe) ranges from some minimal value
@@ -3338,10 +3390,19 @@ do i=fb,fe
   NonlinParamTemp(1:Glob_npt,nfco+mf-Glob_FuncNum(i))=Glob_NonlinParam(1:Glob_npt,i)
 enddo
 Glob_NonlinParam(1:Glob_npt,fb:fe)=NonlinParamTemp(1:Glob_npt,1:nfco)
+
 do i=fb,fe
-  TempR(nfco+mf-Glob_FuncNum(i))=Glob_ZIndex(i)
+  TempR(nfco+mf-Glob_FuncNum(i))=Glob_Index(i,1)
 enddo
-Glob_ZIndex(fb:fe)=TempR(1:nfco)
+Glob_Index(fb:fe,1)=TempR(1:nfco)
+
+
+do i=fb,fe
+  TempR(nfco+mf-Glob_FuncNum(i))=Glob_Index(i,2)
+enddo
+Glob_Index(fb:fe,2)=TempR(1:nfco)
+
+
 !Then we sort out the diagonal matrix elements
 if (Glob_GSEPSolutionMethod=='G') then
   do i=fb,fe
@@ -3570,7 +3631,7 @@ integer,allocatable,dimension(:)                :: WorkBuffInt
 type(Glob_HistoryStep),allocatable,dimension(:) :: TempHistory
 real(dprec),allocatable,dimension(:,:)          :: TempParam
 integer,allocatable,dimension(:)                :: TempFunc
-integer,allocatable,dimension(:)                :: TempZInd
+integer,allocatable,dimension(:,:)              :: TempInd
 
 if (NumOfFuncToKeep>FinalSize) then
   if (Glob_ProcID==0) then
@@ -3587,18 +3648,19 @@ if (Glob_UseReallocFile) then
       open(1,file=Glob_ReallocFileName,form='unformatted',status='replace')
       write(1) Glob_History(1:NumOfFuncToKeep)
       write(1) Glob_FuncNum(1:NumOfFuncToKeep)
-      write(1) Glob_ZIndex(1:NumOfFuncToKeep)
+      write(1) Glob_Index(1:NumOfFuncToKeep,1)
+      write(1) Glob_Index(1:NumOfFuncToKeep,2)
       write(1) Glob_NonlinParam(1:Glob_npt,1:NumOfFuncToKeep)
       close(1)
 	endif
   endif
   deallocate(Glob_NonlinParam)
-  deallocate(Glob_ZIndex)
+  deallocate(Glob_Index)
   deallocate(Glob_FuncNum)
   deallocate(Glob_History)
   allocate(Glob_History(FinalSize))
   allocate(Glob_FuncNum(FinalSize))
-  allocate(Glob_ZIndex(FinalSize))
+  allocate(Glob_Index(FinalSize,2))
   allocate(Glob_NonlinParam(Glob_npt,FinalSize))
   if (Glob_ProcID==0) then
     if (NumOfFuncToKeep>0) then
@@ -3606,7 +3668,8 @@ if (Glob_UseReallocFile) then
       if (OpenFileErr==0) then
         read(1) Glob_History(1:NumOfFuncToKeep)
         read(1) Glob_FuncNum(1:NumOfFuncToKeep)
-        read(1) Glob_ZIndex(1:NumOfFuncToKeep)
+        read(1) Glob_Index(1:NumOfFuncToKeep,1)
+        read(1) Glob_Index(1:NumOfFuncToKeep,2)
         read(1,iostat=OpenFileErr) Glob_NonlinParam(1:Glob_npt,1:NumOfFuncToKeep)
       endif
       close(1) 
@@ -3659,7 +3722,7 @@ if (Glob_UseReallocFile) then
   deallocate(WorkBuffReal)
   deallocate(WorkBuffInt)
   call MPI_BCAST(Glob_FuncNum,NumOfFuncToKeep,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
-  call MPI_BCAST(Glob_ZIndex,NumOfFuncToKeep,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
+  call MPI_BCAST(Glob_Index,2*NumOfFuncToKeep,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   call MPI_BCAST(Glob_NonlinParam,Glob_npt*NumOfFuncToKeep, &
                  MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   if (Glob_ProcID==0) then
@@ -3668,26 +3731,28 @@ if (Glob_UseReallocFile) then
 else !if (Glob_UseReallocFile)
   allocate(TempHistory(NumOfFuncToKeep))
   allocate(TempFunc(NumOfFuncToKeep))
-  allocate(TempZInd(NumOfFuncToKeep))  
+  allocate(TempInd(NumOfFuncToKeep,2))  
   allocate(TempParam(Glob_npt,NumOfFuncToKeep))
   TempHistory(1:NumOfFuncToKeep)=Glob_History(1:NumOfFuncToKeep)
   TempFunc(1:NumOfFuncToKeep)=Glob_FuncNum(1:NumOfFuncToKeep)
-  TempZInd(1:NumOfFuncToKeep)=Glob_ZIndex(1:NumOfFuncToKeep)
+  TempInd(1:NumOfFuncToKeep,1)=Glob_Index(1:NumOfFuncToKeep,1)
+  TempInd(1:NumOfFuncToKeep,2)=Glob_Index(1:NumOfFuncToKeep,2)
   TempParam(1:Glob_npt,1:NumOfFuncToKeep)=Glob_NonlinParam(1:Glob_npt,1:NumOfFuncToKeep)
   deallocate(Glob_NonlinParam)
-  deallocate(Glob_ZIndex)
+  deallocate(Glob_Index)
   deallocate(Glob_FuncNum)
   deallocate(Glob_History)
   allocate(Glob_History(FinalSize))
   allocate(Glob_FuncNum(FinalSize))
-  allocate(Glob_ZIndex(FinalSize))
+  allocate(Glob_Index(FinalSize,2))
   allocate(Glob_NonlinParam(Glob_npt,FinalSize))
   Glob_History(1:NumOfFuncToKeep)=TempHistory(1:NumOfFuncToKeep)
   Glob_FuncNum(1:NumOfFuncToKeep)=TempFunc(1:NumOfFuncToKeep)
-  Glob_ZIndex(1:NumOfFuncToKeep)=TempZInd(1:NumOfFuncToKeep)  
+  Glob_Index(1:NumOfFuncToKeep,1)=TempInd(1:NumOfFuncToKeep,1) 
+  Glob_Index(1:NumOfFuncToKeep,2)=TempInd(1:NumOfFuncToKeep,2) 
   Glob_NonlinParam(1:Glob_npt,1:NumOfFuncToKeep)=TempParam(1:Glob_npt,1:NumOfFuncToKeep)
   deallocate(TempParam)
-  deallocate(TempZInd)
+  deallocate(TempInd)
   deallocate(TempFunc)
   deallocate(TempHistory)
 endif
@@ -3698,7 +3763,8 @@ do i=NumOfFuncToKeep+1,FinalSize
   Glob_History(i)%InitFuncAtLastStep=0
   Glob_History(i)%NumOfEnergyEvalDuringFullOpt=0
   Glob_FuncNum(i)=0
-  Glob_ZIndex(i)=0
+  Glob_Index(i,1)=0
+  Glob_Index(i,2)=0
   Glob_NonlinParam(1:Glob_npt,i)=ZERO
 enddo
 
@@ -3714,8 +3780,8 @@ subroutine BasisEnlG(Kstart,Kstop,Kstep,NTrials,OptimizationType,MaxEnergyEval, 
 !trial it generates a set of Kstep functions for NTrials times
 !based on the existing distribution of nonlinear papameters. 
 !Only the set that lowers the energy the most is left. Then 
-!the Z-index of the best candidate is optimized by trying to
-!consequently change Z-indicies. After that the nonlinear parameters
+!the x,y,z-indeces of the best candidate is optimized by trying to
+!consequently change x,y,z-indices. After that the nonlinear parameters
 !are optimized according to the value of OptimizationType.
 !MaxEnergyEval is the maximal number of the energy evaluations allowed
 !for this optimization. 
@@ -3755,9 +3821,9 @@ real(dprec)  ms1,ms2
 real(dprec)  Evalue,E_init,E_best
 real(dprec)  t
 real(dprec),allocatable,dimension(:,:)   :: ParSet,ParSetBest
-integer,allocatable,dimension(:)         :: ZIndSet,ZIndSetBest
+integer,allocatable,dimension(:,:)       :: IndSet,IndSetBest
 real(dprec),allocatable,dimension(:)     :: x,x_best,grad 
-integer,allocatable,dimension(:)         :: ZIndOptSequence
+integer,allocatable,dimension(:,:)       :: IndOptSequence
 !Arrays used by DRMNG
 real(dprec),allocatable,dimension(:)     :: D,V,V_init
 integer,parameter    :: LIV=60
@@ -3769,7 +3835,7 @@ real(dprec),allocatable,dimension(:)            :: WorkBuffReal
 integer,allocatable,dimension(:)                :: WorkBuffInt
 type(Glob_HistoryStep),allocatable,dimension(:) :: TempHistory
 real(dprec),allocatable,dimension(:,:)          :: TempParam
-integer,allocatable,dimension(:)                :: TempZInd
+integer,allocatable,dimension(:,:)              :: TempInd
 integer,allocatable,dimension(:)                :: TempFunc
 !==================================================== 
 !These variables are used when a finite difference gradient is computed               
@@ -3939,14 +4005,17 @@ do while (K<Kstop)
       if (Glob_ProcID==0) call GenerateTrialParam(nfo,ParSet,ZIndSet,wbfu_t,wmu_t) 
 	  call MPI_BCAST(ParSet,npt*nfo,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 	  call MPI_BCAST(ZIndSet,nfo,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+          call MPI_BCAST(ZZIndSet,nfo,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       Glob_NonlinParam(1:npt,nfrup1:K)=ParSet(1:npt,1:nfo)
       Glob_ZIndex(nfrup1:K)=ZIndSet(1:nfo)
+      Glob_ZZIndex(nfrup1:K)=ZZIndSet(1:nfo)
 	  Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
 	  if (ErrCode==0) then
         if (Evalue<Glob_CurrEnergy) then
           Glob_CurrEnergy=Evalue
 		  ParSetBest(1:npt,1:nfo)=ParSet(1:npt,1:nfo)
 		  ZIndSetBest(1:nfo)=ZIndSet(1:nfo)
+                  ZZIndSetBest(1:nfo)=ZZIndSet(1:nfo)
 		  IsEnergyImproved=.true.
 		  wbfu=wbfu_t
 		  wmu=wmu_t
@@ -3973,11 +4042,12 @@ do while (K<Kstop)
     endif
     Glob_NonlinParam(1:npt,nfrup1:K)=ParSetBest(1:npt,1:nfo)
     Glob_ZIndex(nfrup1:K)=ZIndSetBest(1:nfo)
+    Glob_ZZIndex(nfrup1:K)=ZZIndSetBest(1:nfo)
     Glob_CurrEnergy=EnergyGA(nfrup1,K,.true.,ErrCode)
     if (Glob_ProcID==0) then
 	  write (*,*) 'E=',Glob_CurrEnergy,'  prototype function is',wbfu
       do i=1,nfo
-        write(*,'(1x,i6,a1,i6)',advance='no') nfru+i,':',ZIndSetBest(i)
+        write(*,'(1x,i6,a1,i6,1x,i6)',advance='no') nfru+i,':',ZIndSetBest(i),ZZIndSetBest(i)
         call writerealarradv(6,ParSetBest(1:npt,i),npt)        
       enddo
 	  write (*,*) 'Optimizing nonlinear parameters'		    
@@ -3996,7 +4066,8 @@ do while (K<Kstop)
       !Generate a random sequence which will define the order in which 
       !Z-indicies should be optimized (one index at a time)
       call GenerateRndIntSeq(nfo,ZIndOptSequence)
-      !Loop where Z-indicies are optimized. Note: there is some romm fr improvement 
+      call GenerateRndIntSeq(nfo,ZZIndOptSequence)
+      !Loop where Z-indicies are optimized. Note: there is some room for improvement 
       !here as I programmed it in a simple way when all matrix element of functions 
       !nfrup1 thriugh K are computed each time while it is not always necessary.
       do i=1,nfo
@@ -4027,7 +4098,35 @@ do while (K<Kstop)
         enddo 
         Glob_ZIndex(nfru+ii)=jbest
       enddo
-      
+      !Loop where ZZ-indicies are optimized.
+      do i=1,nfo
+        ii=ZZIndOptSequence(i)
+        j=Glob_ZZIndex(nfru+ii)
+        jbest=j
+        do jj=1,Glob_n
+          if (jj/=j) then
+            Glob_ZZIndex(nfru+ii)=jj  
+            Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
+		    if (ErrCode/=0) then
+              NumOfFailures=NumOfFailures+1
+              Glob_ZZIndex(nfru+ii)=jbest
+              if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
+	            if (Glob_ProcID==0) then
+                  write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
+		          write(*,*) 'during the optimization of ZZ-indicies exceeded limit' 
+		        endif
+	            stop      
+              endif
+		    else
+		      if (Evalue<Glob_CurrEnergy) then
+                Glob_CurrEnergy=Evalue
+                jbest=jj    
+              endif
+		    endif                    
+          endif  
+        enddo 
+        Glob_ZZIndex(nfru+ii)=jbest
+      enddo
       !Now we optimize nonlinear parameters
     
 	  !Setting IV and V values as was in their initial copies
@@ -4219,7 +4318,7 @@ do while (K<Kstop)
     write (*,*) 'Number of energy/gradient evaluations',NumOfEnergyEval,NumOfGradEval
     write (*,*) 'E=',Glob_CurrEnergy
     do i=1,nfo
-      write(*,'(1x,i6,a1,i6)',advance='no') nfru+i,':',Glob_ZIndex(nfru+i)
+      write(*,'(1x,i6,a1,i6,1x,i6)',advance='no') nfru+i,':',Glob_ZIndex(nfru+i),Glob_ZZIndex(nfru+i)
       call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt)       
     enddo		    
   endif
@@ -4275,11 +4374,14 @@ deallocate(D)
 
 !Deallocate workspace
 deallocate(ZIndOptSequence)
+deallocate(ZZIndOptSequence)
 deallocate(grad)
 deallocate(x_best)
 deallocate(x)
 deallocate(ZIndSetBest)
+deallocate(ZZIndSetBest)
 deallocate(ZIndSet)
+deallocate(ZZIndSet)
 deallocate(ParSetBest)
 deallocate(ParSet)
 
@@ -4371,9 +4473,9 @@ real(dprec)  ms1,ms2
 real(dprec)  Evalue,E_init,E_best
 real(dprec)  t
 real(dprec),allocatable,dimension(:,:)   :: ParSet,ParSetBest
-integer,allocatable,dimension(:)         :: ZIndSet,ZIndSetBest
+integer,allocatable,dimension(:)         :: ZIndSet,ZIndSetBest,ZZIndSet,ZZIndSetBest
 real(dprec),allocatable,dimension(:)     :: x,x_best,grad 
-integer,allocatable,dimension(:)         :: ZIndOptSequence
+integer,allocatable,dimension(:)         :: ZIndOptSequence,ZZIndOptSequence
 !Arrays used by DRMNG
 real(dprec),allocatable,dimension(:)     :: D,V,V_init
 integer,parameter    :: LIV=60
@@ -4385,7 +4487,7 @@ real(dprec),allocatable,dimension(:)            :: WorkBuffReal
 integer,allocatable,dimension(:)                :: WorkBuffInt
 type(Glob_HistoryStep),allocatable,dimension(:) :: TempHistory
 real(dprec),allocatable,dimension(:,:)          :: TempParam
-integer,allocatable,dimension(:)                :: TempZInd
+integer,allocatable,dimension(:)                :: TempZInd,TempZZInd
 integer,allocatable,dimension(:)                :: TempFunc
 !==================================================== 
 !These variables are used when a finite difference gradient is computed               
@@ -4450,11 +4552,14 @@ allocate(Glob_WkGR(Kstep*npt))
 allocate(ParSet(npt,Kstep))
 allocate(ParSetBest(npt,Kstep))
 allocate(ZIndSet(Kstep))
+allocate(ZZIndSet(Kstep))
 allocate(ZIndSetBest(Kstep))
+allocate(ZZIndSetBest(Kstep))
 allocate(x(nvmax))
 allocate(x_best(nvmax))
 allocate(grad(nvmax))
 allocate(ZIndOptSequence(nfo))
+allocate(ZZIndOptSequence(nfo))
 
 !Allocate arrays used by DRMNG
 nvmax=npt*Kstep
@@ -4558,14 +4663,17 @@ do while (K<Kstop)
       if (Glob_ProcID==0) call GenerateTrialParam(nfo,ParSet,ZIndSet,wbfu_t,wmu_t) 
 	  call MPI_BCAST(ParSet,npt*nfo,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 	  call MPI_BCAST(ZIndSet,nfo,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+          call MPI_BCAST(ZZIndSet,nfo,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       Glob_NonlinParam(1:npt,nfrup1:K)=ParSet(1:npt,1:nfo)
       Glob_ZIndex(nfrup1:K)=ZIndSet(1:nfo)
+      Glob_ZZIndex(nfrup1:K)=ZZIndSet(1:nfo)
 	  Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
 	  if (ErrCode==0) then
         if (Evalue<Glob_CurrEnergy) then
           Glob_CurrEnergy=Evalue
 		  ParSetBest(1:npt,1:nfo)=ParSet(1:npt,1:nfo)
 		  ZIndSetBest(1:nfo)=ZIndSet(1:nfo)
+                  ZZIndSetBest(1:nfo)=ZZIndSet(1:nfo)
 		  IsEnergyImproved=.true.
 		  wbfu=wbfu_t
 		  wmu=wmu_t
@@ -4592,11 +4700,12 @@ do while (K<Kstop)
     endif
     Glob_NonlinParam(1:npt,nfrup1:K)=ParSetBest(1:npt,1:nfo)
     Glob_ZIndex(nfrup1:K)=ZIndSetBest(1:nfo)
+    Glob_ZZIndex(nfrup1:K)=ZZIndSetBest(1:nfo)
     Glob_CurrEnergy=EnergyIA(nfrup1,K,.true.,ErrCode)
     if (Glob_ProcID==0) then
 	  write (*,*) 'E=',Glob_CurrEnergy,'  prototype function is',wbfu
       do i=1,nfo
-        write(*,'(1x,i6,a1,i6)',advance='no') nfru+i,':',ZIndSetBest(i)
+        write(*,'(1x,i6,a1,i6,1x,i6)',advance='no') nfru+i,':',ZIndSetBest(i),ZZIndSetBest(i)
         call writerealarradv(6,ParSetBest(1:npt,i),npt)  
       enddo
 	  write (*,*) 'Optimizing nonlinear parameters'		    
@@ -4615,6 +4724,7 @@ do while (K<Kstop)
       !Generate a random sequence which will define the order in which 
       !Z-indicies should be optimized (one index at a time)
       call GenerateRndIntSeq(nfo,ZIndOptSequence)
+      call GenerateRndIntSeq(nfo,ZZIndOptSequence)
       !Loop where Z-indicies are optimized. Note: there is some room for improvement 
       !here as I programmed it in a simple way when all matrix element of functions 
       !nfrup1 thriugh K are computed each time while it is not always necessary.
@@ -4646,7 +4756,35 @@ do while (K<Kstop)
         enddo 
         Glob_ZIndex(nfru+ii)=jbest
       enddo
-      
+      !Loop where ZZ-indicies are optimized
+      do i=1,nfo
+        ii=ZZIndOptSequence(i)
+        j=Glob_ZZIndex(nfru+ii)
+        jbest=j
+        do jj=1,Glob_n
+          if (jj/=j) then
+            Glob_ZZIndex(nfru+ii)=jj  
+            Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
+		    if (ErrCode/=0) then
+              NumOfFailures=NumOfFailures+1
+              Glob_ZZIndex(nfru+ii)=jbest
+              if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
+	            if (Glob_ProcID==0) then
+                  write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
+		          write(*,*) 'during the optimization of ZZ-indicies exceeded limit' 
+		        endif
+	            stop      
+              endif
+		    else
+		      if (Evalue<Glob_CurrEnergy) then
+                Glob_CurrEnergy=Evalue
+                jbest=jj    
+              endif
+		    endif                    
+          endif  
+        enddo 
+        Glob_ZZIndex(nfru+ii)=jbest
+      enddo
       !Now we optimize nonlinear parameters
     
 	  !Setting IV and V values as was in their initial copies
@@ -4835,7 +4973,7 @@ do while (K<Kstop)
     write (*,*) 'Number of energy/gradient evaluations',NumOfEnergyEval,NumOfGradEval
     write (*,*) 'E=',Glob_CurrEnergy
     do i=1,nfo
-      write(*,'(1x,i6,a1,i6)',advance='no') nfru+i,':',Glob_ZIndex(nfru+i)
+      write(*,'(1x,i6,a1,i6,1x,i6)',advance='no') nfru+i,':',Glob_ZIndex(nfru+i),Glob_ZZIndex(nfru+i)
       call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt) 
     enddo	
     write (*,*) 'Average number of iterations in GSEPIIS: ', &
@@ -4893,11 +5031,14 @@ deallocate(D)
 
 !Deallocate workspace
 deallocate(ZIndOptSequence)
+deallocate(ZZIndOptSequence)
 deallocate(grad)
 deallocate(x_best)
 deallocate(x)
 deallocate(ZIndSetBest)
+deallocate(ZZIndSetBest)
 deallocate(ZIndSet)
+deallocate(ZZIndSet)
 deallocate(ParSetBest)
 deallocate(ParSet)
 
@@ -5207,7 +5348,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
 	  if (Glob_AreParamPrintedInCycleOptX) then
         write (*,*) 'Nonlinear parameters before optimization:'
         do i=1,nfo
-          write(*,'(1x,i6,a1,i6)',advance='no') Glob_FuncNum(nfru+i),':',Glob_ZIndex(nfru+i)
+          write(*,'(1x,i6,a1,i6,1x,i6)',advance='no') Glob_FuncNum(nfru+i),':',Glob_ZIndex(nfru+i),Glob_ZZIndex(nfru+i)
           call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt)            
         enddo	
 	  endif		    
@@ -5360,7 +5501,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
       if (Glob_AreParamPrintedInCycleOptX) then
         write (*,*) 'Nonlinear parameters after optimization:'
         do i=1,nfo
-          write(*,'(1x,i6,a1,i6)',advance='no') Glob_FuncNum(nfru+i),':',Glob_ZIndex(nfru+i)
+          write(*,'(1x,i6,a1,i6,1x,i6)',advance='no') Glob_FuncNum(nfru+i),':',Glob_ZIndex(nfru+i),Glob_ZZIndex(nfru+i)
           call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt) 
         enddo		    
       endif
@@ -5745,7 +5886,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
 	  if (Glob_AreParamPrintedInCycleOptX) then
         write (*,*) 'Nonlinear parameters before optimization:'
         do i=1,nfo
-          write(*,'(1x,i6,a1,i6)',advance='no') Glob_FuncNum(nfru+i),':',Glob_ZIndex(nfru+i)
+          write(*,'(1x,i6,a1,i6,1x,i6)',advance='no') Glob_FuncNum(nfru+i),':',Glob_ZIndex(nfru+i),Glob_ZZIndex(nfru+i)
           call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt) 
         enddo	
 	  endif		    
@@ -5895,7 +6036,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
       if (Glob_AreParamPrintedInCycleOptX) then
         write (*,*) 'Nonlinear parameters after optimization:'
         do i=1,nfo
-          write(*,'(1x,i6,a1,i6)',advance='no') Glob_FuncNum(nfru+i),':',Glob_ZIndex(nfru+i)
+          write(*,'(1x,i6,a1,i6,1x,i6)',advance='no') Glob_FuncNum(nfru+i),':',Glob_ZIndex(nfru+i),Glob_ZZIndex(nfru+i)
           call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt) 
         enddo	
         write (*,'(1x,a41,f8.4)') 'Average number of iterations in GSEPIIS: ', &
@@ -6999,7 +7140,7 @@ real(dprec)  Evalue, EVs(1)
 real(dprec)  Min_c,Max_c
 real(dprec)  Aver_c
 real(dprec),allocatable,dimension(:,:)   :: NonlinParamTemp
-integer,allocatable,dimension(:)         :: ZIndTemp
+integer,allocatable,dimension(:)         :: ZIndTemp,ZIndTemp
 character(Glob_FileNameLength)           :: ch_temp
 
 
@@ -7142,6 +7283,7 @@ Glob_CurrBasisSize=cbs-j
 cbs=Glob_CurrBasisSize
 Glob_NonlinParam(1:npt,1:cbs)=NonlinParamTemp(1:npt,1:cbs)
 Glob_ZIndex(1:cbs)=ZIndTemp(1:cbs)
+Glob_ZZIndex(1:cbs)=ZZIndTemp(1:cbs)
 
 if (Glob_ProcID==0) then
   write(*,*) 'Computing matrix elements and solving eigenvalue problem with the'
@@ -7205,6 +7347,7 @@ if (Glob_ProcID==0) call SaveResults(Sort='no')
 Glob_DataFileName=ch_temp
 
 deallocate(ZIndTemp)
+deallocate(ZZIndTemp)
 deallocate(NonlinParamTemp)
 
 !deallocate global arrays
@@ -7387,10 +7530,10 @@ do i=1,cbs
 	   if (Glob_ProcID==0) then
 	     if (PrintInfoSpec>0) write(*,'(i6,a1,i6,i6,a5,f17.14)') k,':',i,j,'   S=',Glob_S(i,j)
          if (PrintInfoSpec==2) then		   
-           write(*,'(1x,i6,1x,i6)',advance='no') i,Glob_ZIndex(i)
+           write(*,'(1x,i6,1x,i6,1x,i6)',advance='no') i,Glob_ZIndex(i),Glob_ZZIndex(i)
            call writerealarradv(6,Glob_NonlinParam(1:Glob_npt,i),Glob_npt)
 		   write(*,*) '      c=',Glob_c(i)
-           write(*,'(1x,i6,1x,i6)',advance='no') j,Glob_ZIndex(j)
+           write(*,'(1x,i6,1x,i6,1x,i6)',advance='no') j,Glob_ZIndex(j),Glob_ZZIndex(j)
            call writerealarradv(6,Glob_NonlinParam(1:Glob_npt,j),Glob_npt)
 		   write(*,*) '      c=',Glob_c(j)		   
 		 endif
@@ -7446,6 +7589,7 @@ do while (i+j<=cbs)
   else
     Glob_NonlinParam(1:npt,i)=Glob_NonlinParam(1:npt,i+j)
     Glob_ZIndex(i)=Glob_ZIndex(i+j)
+    Glob_ZZIndex(i)=Glob_ZZIndex(i+j)
 	i=i+1
   endif
 enddo
@@ -7727,10 +7871,10 @@ do i=1,cbs
 	   if (Glob_ProcID==0) then
 	     if (PrintInfoSpec>0) write(*,'(i5,a1,i6,i6,a5,f17.14)') k,':',i,j,'   S=',Glob_S(i,j)
          if (PrintInfoSpec==2) then
-           write(*,'(1x,i6,1x,i6)',advance='no') i,Glob_ZIndex(i)
+           write(*,'(1x,i6,1x,i6,1x,i6)',advance='no') i,Glob_ZIndex(i),Glob_ZZIndex(i)
            call writerealarradv(6,Glob_NonlinParam(1:Glob_npt,i),Glob_npt)
 		   write(*,*) '      c=',Glob_c(i)
-           write(*,'(1x,i6,1x,i6)',advance='no') j,Glob_ZIndex(j)
+           write(*,'(1x,i6,1x,i6,1x,i6)',advance='no') j,Glob_ZIndex(j),Glob_ZZIndex(j)
            call writerealarradv(6,Glob_NonlinParam(1:Glob_npt,j),Glob_npt)
 		   write(*,*) '      c=',Glob_c(j)	
 		 endif
@@ -8578,7 +8722,7 @@ if ((IsWFNeeded).and.(Glob_ProcID==0)) then
     write(2,'(1x,i6,1x)',advance='no') i 
     call writereal(2,Glob_c(i))  
     write(2,'(1x,a1,1x)',advance='no') ':'
-    write(2,'(i6,1x)',advance='no') Glob_ZIndex(i)
+    write(2,'(i6,1x,i6,1x)',advance='no') Glob_ZIndex(i),Glob_ZZIndex(i)
     call writerealarradv(2,Glob_NonlinParam(1:Glob_npt,i),Glob_npt)
   enddo    
   close(2)
@@ -9069,7 +9213,7 @@ do i=1,cbs
 	  endif
 	  if (SymmAdaptMethod==1) then
 	    do k=1,Glob_NumYHYTerms		
-	      call MatrixElementsL1ForExpcVals(Glob_ZIndex(i),Glob_ZIndex(j),            &
+	      call MatrixElementsL1ForExpcVals(Glob_ZIndex(i),Glob_ZZIndex(i),Glob_ZIndex(j),Glob_ZZIndex(j),  &
 	        Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
 	        IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl,Skl,Tkl,Vkl,                    &
                 rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
@@ -9159,7 +9303,7 @@ do i=1,cbs
 
 	    do k=1,Glob_NumYTerms
               do kk=1,Glob_NumYTerms
-	        call MatrixElementsL1ForExpcVals(Glob_ZIndex(i),Glob_ZIndex(j),            &
+	        call MatrixElementsL1ForExpcVals(Glob_ZIndex(i),Glob_ZZIndex(i),Glob_ZIndex(j), Glob_ZZIndex(j),  &
 	          Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
 	          Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl,Skl,Tkl,Vkl,            &
                   rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
