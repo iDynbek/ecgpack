@@ -58,6 +58,7 @@ integer,parameter :: Glob_np_MaxAllowed= &
 integer,parameter :: Glob_npt_MaxAllowed=Glob_np_MaxAllowed
 
 real(dprec)   Glob_2raised3n2  !2^(3n/2)
+real(dprec)   Glob_Piraised3n2  !pi^(3n/2)
 
 !Glob_CurrBasisSize is a variable whose value equals the current 
 !size of the basis
@@ -159,9 +160,9 @@ real(dprec)   Glob_WorstEigvalTol
 !functions (elements of the Cholesky matrix, L_k)
 real(dprec),allocatable,dimension(:,:),save :: Glob_NonlinParam
 
-!Array Glob_ZIndex contains the indices of the z-premultiplier
+!Array Glob_Index contains the indices of the x,y,z-premultiplier
 !of the basis functions. The indices generally range grom 1 to Glob_n  
-integer,allocatable,dimension(:),save :: Glob_ZIndex
+integer,allocatable,dimension(:,:),save :: Glob_Index
 
 !Array Glob_FuncNum contains the basis function numbers 
 integer,allocatable,dimension(:),save :: Glob_FuncNum
