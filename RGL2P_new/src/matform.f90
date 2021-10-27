@@ -133,7 +133,7 @@ integer     k,l,i,kk,ll,ii,j,q
 integer     kstart,lstart,kstop,lstop,n,np,np1,npt,nb
 real(dprec) Paramk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
 real(dprec) Paraml(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
-integer     mk,ml
+integer     mk,ml,mmk,mml
 real(dprec) Skl,Hkl
 real(dprec) Ssum,Hsum
 !These arrays are not actually used but needed for proper calling
@@ -152,7 +152,8 @@ i=0
   
 do k=Nmin,Nmax
   Paramk(1:npt)=Glob_NonlinParam(1:npt,k)
-  mk=Glob_ZIndex(k)
+  mk=Glob_Index(k,1)
+  mmk=Glob_Index(k,2)
   do l=k,1,-1
     i=i+1
 	if (i==1) then
@@ -160,12 +161,13 @@ do k=Nmin,Nmax
 	  lstart=l
 	endif	
     Paraml(1:npt)=Glob_NonlinParam(1:npt,l)
-    ml=Glob_ZIndex(l)
+    ml=Glob_Index(l,1)
+    mml=Glob_Index(l,2)
 	Hsum=ZERO; Ssum=ZERO
 	q=(i-1)*Glob_NumYHYTerms-1
 	do j=1,Glob_NumYHYTerms
 	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-        call MatrixElementsL1(mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+        call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                Hkl,Skl,Dk,Dl,.false.,.false.)
 		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
 		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
@@ -251,7 +253,7 @@ integer     k,l,i,kk,ll,ii,j,q
 integer     kstart,lstart,kstop,lstop,n,np,npt,npt2,nb
 real(dprec) Paramk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
 real(dprec) Paraml(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
-integer     mk,ml
+integer     mk,ml,mmk,mml
 real(dprec) Skl,Hkl
 real(dprec) Ssum,Hsum
 real(dprec) Dk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
@@ -274,7 +276,8 @@ i=0
 
 do k=Nmin,Nmax
   Paramk(1:npt)=Glob_NonlinParam(1:npt,k)
-  mk=Glob_ZIndex(k)
+  mk=Glob_Index(k,1)
+  mmk=Glob_Index(k,2)
   do l=k,1,-1
     i=i+1
 	if (i==1) then
@@ -282,7 +285,8 @@ do k=Nmin,Nmax
 	  lstart=l
 	endif	
     Paraml(1:npt)=Glob_NonlinParam(1:npt,l)
-    ml=Glob_ZIndex(l)
+    ml=Glob_Index(l,1)
+    mml=Glob_Index(l,2)
 	Hsum=ZERO 
 	Ssum=ZERO
     Dksum(1:npt2)=ZERO
@@ -295,7 +299,7 @@ do k=Nmin,Nmax
 	q=(i-1)*Glob_NumYHYTerms-1
 	do j=1,Glob_NumYHYTerms
 	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-        call MatrixElementsL1(mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+        call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                Hkl,Skl,Dk,Dl,.true.,grad_l)         
 		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
 		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
