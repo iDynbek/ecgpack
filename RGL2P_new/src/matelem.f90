@@ -52,7 +52,7 @@ integer,parameter :: nnp=nn*(nn+1)/2
 
 !Local variables
 integer           n, np
-integer           tvl(nn)
+integer           tvl(nn),tbl(nn)
 real(dprec)       dHkldvechLk(nnp), dHkldvechLl(nnp)
 real(dprec)       dSkldvechLk(nnp), dSkldvechLl(nnp)
 real(dprec)       Lk(nn,nn),Ll(nn,nn),inv_Lk(nn,nn),inv_Ll(nn,nn)
@@ -61,15 +61,18 @@ real(dprec)       inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn)
 real(dprec)       inv_tAkltAl(nn,nn),inv_tAkltAlM(nn,nn)
 real(dprec)       inv_tAklAk(nn,nn),inv_tAklAkM(nn,nn)
 real(dprec)       eta1(nn,nn),sqrt_eta1(nn,nn),eta2(nn,nn),Rkl(nn,nn)
+real(dprec)       eta11(nn,nn),eta22(nn,nn),eta(nn,nn)
 real(dprec)       W1(nn,nn),W2(nn,nn),W3(nn,nn),W4(nn,nn)
 real(dprec)       twosym_tFkl(nn,nn),two_Fkk(nn,nn),two_Fll(nn,nn),twosym_tGkl(nn,nn)
 real(dprec)       tKkl(nn,nn),tUkl(nn,nn),tWkl(nn,nn)
 real(dprec)       twosym_tQkl(nn,nn),twosym_tDkl(nn,nn)
 real(dprec)       inv_tAkltvl(nn),vkinv_tAkl(nn),vkinv_tAkltAlM(nn)
+real(dprec)       inv_tAkltbl(nn),bkinv_tAkl(nn),bkinv_tAkltAlM(nn)
 real(dprec)       u1(nn),u2(nn),u3(nn)
-real(dprec)       temp1, temp2, temp3, temp4, temp5, temp6
+real(dprec)       u11(nn),u22(nn),u33(nn)
+real(dprec)       temp1, temp2, temp3, temp4, temp5, temp6,temp44,temp444
 real(dprec)       det_Lk, det_Ll, det_tAkl
-real(dprec)       tau1,tau2,tau3,tau11
+real(dprec)       tau1,tau2,tau3,tau11,tau22,tau33
 real(dprec)       Tkl, Vkl
 integer           i,j,k,q,t,indx
 
@@ -220,36 +223,43 @@ enddo
 !   enddo
 !enddo  
 
-!Computing tvl=P'*vl 
+!Computing tvl=P'*vl, tbl=P'*bl 
 do i=1,n
   tvl(i)=P(m_l,i)
+  tbl(i)=P(mm_l,i)
 enddo
 
-!Compute inv_tAkltvl = inv_tAkl * tvl
+!Compute inv_tAkltvl = inv_tAkl * tvl, inv_tAkltbl = inv_tAkl * tbl
 do i=1,n
   temp1=ZERO
+  temp2=ZERO
   do j=1,n
     temp1=temp1+inv_tAkl(j,i)*tvl(j)
+    temp2=temp2+inv_tAkl(j,i)*tbl(j)
   enddo
   inv_tAkltvl(i)=temp1
+  inv_tAkltbl(i)=temp2
 enddo
 
-!Compute vkinv_tAkl=vk'*inv_tAkl
+!Compute vkinv_tAkl=vk'*inv_tAkl, bkinv_tAkl=bk'*inv_tAkl
 do i=1,n
   vkinv_tAkl(i)=inv_tAkl(m_k,i)
+  bkinv_tAkl(i)=inv_tAkl(mm_k,i)
 enddo
 
-!Compute tau3=vkinv_tAkl*tvl
+!Compute tau3=vkinv_tAkl*tvl, tau33=bkinv_tAkl*tbl
 tau3=ZERO
+tau33=ZERO
 do i=1,n
   tau3=tau3+vkinv_tAkl(i)*tvl(i)
+  tau33=tau33+bkinv_tAkl(i)*tbl(i)
 enddo
 
 !Evaluating overlap
 !temp1=abs(det_Ll*det_Lk)/det_tAkl
 temp1=det_tAkl*sqrt(det_tAkl)
 !Skl=Glob_2raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
-Skl=Glob_Piraised3n2*tau3/(TWO*temp1)
+Skl=Glob_Piraised3n2*tau3*tau33/(FOUR*temp1)
 
 !Doing multiplication inv_tAkltAl=inv_tAkl*tAl
 do i=1,n
@@ -286,23 +296,29 @@ enddo
 !We do it by multiplying twice the row-vector on the left
 !by a matrix on the right and computing a dot product in the end.
 
-!vkinv_tAkltAlM'=vk'*inv_tAkltAlM
+!vkinv_tAkltAlM'=vk'*inv_tAkltAlM ,  bkinv_tAkltAlM'=bk'*inv_tAkltAlM
 do i=1,n
   vkinv_tAkltAlM(i)=inv_tAkltAlM(m_k,i)
+  bkinv_tAkltAlM(i)=inv_tAkltAlM(mm_k,i)
 enddo
-!u1=vkinv_tAkltAlM'*Ak
+!u1=vkinv_tAkltAlM'*Ak, u11=bkinv_tAkltAlM'*Ak
 !tau2=u1'*inv_tAkltvl (storage for u1 as such is not needed, we use temp1=u1(i))
+!tau22=u11'*inv_tAkltbl
 tau2=ZERO
+tau22=ZERO
 do i=1,n
   temp1=ZERO
+  temp2=ZERO
   do j=1,n
     temp1=temp1+vkinv_tAkltAlM(j)*Ak(j,i)
+    temp2=temp2+bkinv_tAkltAlM(j)*Ak(j,i)
   enddo
   tau2=tau2+temp1*inv_tAkltvl(i)
+  tau22=tau22+temp2*inv_tAkltbl(i)
 enddo
 
 !Evaluating the kinetic energy
-Tkl=Skl*(SIX*tau1+FOUR*tau2/tau3)
+Tkl=Skl*(SIX*tau1+FOUR*tau2/tau3+FOUR*tau22/tau33)
 
 !Evaluating eta1(i,j), sqrt_eta1(i,j), eta2(i,j), Rkl(i,j),
 !and the potential energy. Notice that only the lower triangles
@@ -318,13 +334,21 @@ do i=1,n
   !as only this row is needed to compute eta2(i,i)
   do k=1,n
     u1(k)=inv_tAkl(i,m_k)*inv_tAkl(k,i) 
+    u11(k)=inv_tAkl(i,mm_k)*inv_tAkl(k,i) 
   enddo
   temp4=ZERO
+  temp44=ZERO
+  temp444=ZERO
   do k=1,n
     temp4=temp4+u1(k)*tvl(k)
+    temp44=temp44+u11(k)*tbl(k)
+    temp444=temp444+temp4*temp44
   enddo
   eta2(i,i)=temp4
-  Rkl(i,i)=temp1*(ONE-temp4/(THREE*temp2*tau3))/temp3
+  eta22(i,i)=temp44
+  eta(i,i)=temp444
+  !Rkl(i,i)=temp1*(ONE-temp4/(THREE*temp2*tau3))/temp3
+  Rkl(i,i)=temp1/temp3*(ONE-(temp4/tau3+temp44/tau33)/(THREE*temp2)+temp4*temp44/(FIVE*temp2*temp2*tau3*tau33))
   Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge0)*Rkl(i,i)
 enddo
 do i=1,n
@@ -337,13 +361,20 @@ do i=1,n
     !as only this row is needed to compute eta2(i,i)
     do k=1,n
       u1(k)=(inv_tAkl(i,m_k)-inv_tAkl(j,m_k))*(inv_tAkl(k,i)-inv_tAkl(k,j))
+      u11(k)=(inv_tAkl(i,mm_k)-inv_tAkl(j,mm_k))*(inv_tAkl(k,i)-inv_tAkl(k,j))
     enddo
     temp4=ZERO
+    temp44=ZERO
+    temp444=ZERO
     do k=1,n
       temp4=temp4+u1(k)*tvl(k)
+      temp44=temp44+u11(k)*tbl(k)
+      temp444=temp444+temp4*temp44
     enddo
     eta2(j,i)=temp4
-    Rkl(j,i)=temp1*(ONE-temp4/(THREE*temp2*tau3))/temp3
+    eta22(j,i)=temp44
+    eta(j,i)=temp444
+    Rkl(j,i)=temp1/temp3*(ONE-(temp4/tau3+temp44/tau33)/(THREE*temp2)+temp4*temp44/(FIVE*temp2*temp2*tau3*tau33))
     Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*Rkl(j,i)
   enddo  
 enddo
