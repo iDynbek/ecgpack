@@ -134,12 +134,12 @@ integer     kstart,lstart,kstop,lstop,n,np,np1,npt,nb
 real(dprec) Paramk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
 real(dprec) Paraml(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
 integer     mk,ml,mmk,mml
-real(dprec) Skl,Hkl
-real(dprec) Ssum,Hsum
+real(dprec) Skl,Hkl,Skl1,Hkl1,Skl2,Hkl2,Skl3,Hkl3,Skl4,Hkl4
+real(dprec) Ssum,Hsum,Ssum1,Hsum1,Ssum2,Hsum2,Ssum3,Hsum3,Ssum4,Hsum4
 !These arrays are not actually used but needed for proper calling
 !of subroutine MatrixElements. Thus, one can set some small size
 !for them
-real(dprec)  Dk(2),Dl(2)
+real(dprec)  Dk(2),Dl(2),Dk1(2),Dl1(2),Dk2(2),Dl2(2),Dk3(2),Dl3(2),Dk4(2),Dl4(2)
 
 n=Glob_n
 np=Glob_np
@@ -164,15 +164,39 @@ do k=Nmin,Nmax
     ml=Glob_Index(l,1)
     mml=Glob_Index(l,2)
 	Hsum=ZERO; Ssum=ZERO
+        Hsum1=ZERO; Ssum1=ZERO
+        Hsum2=ZERO; Ssum2=ZERO
+        Hsum3=ZERO; Ssum3=ZERO
+        Hsum4=ZERO; Ssum4=ZERO
 	q=(i-1)*Glob_NumYHYTerms-1
 	do j=1,Glob_NumYHYTerms
 	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
         call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl,Skl,Dk,Dl,.false.,.false.)
-		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
-		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
+               Hkl1,Skl1,Dk1,Dl1,.false.,.false.)
+        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl2,Skl2,Dk2,Dl2,.false.,.false.)
+        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl3,Skl3,Dk3,Dl3,.false.,.false.)
+        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl4,Skl4,Dk4,Dl4,.false.,.false.)
+                Hsum1=Hsum1+Glob_YHYCoeff(j)*Hkl1
+		Ssum1=Ssum1+Glob_YHYCoeff(j)*Skl1
+                Hsum2=Hsum2+Glob_YHYCoeff(j)*Hkl2
+		Ssum2=Ssum2+Glob_YHYCoeff(j)*Skl2
+                Hsum3=Hsum3+Glob_YHYCoeff(j)*Hkl3
+		Ssum3=Ssum3+Glob_YHYCoeff(j)*Skl3
+                Hsum4=Hsum4+Glob_YHYCoeff(j)*Hkl4
+		Ssum4=Ssum4+Glob_YHYCoeff(j)*Skl4 
+                !Hkl=Hkl1-Hkl2-Hkl3+Hkl4
+                !Skl=Skl1-Skl2-Skl3+Skl4
+                !Dk=Dk1-Dk2-Dk3+Dk4
+                !Dl=Dl1-Dl2-Dl3+Dl4
+		!Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
+		!Ssum=Ssum+Glob_YHYCoeff(j)*Skl
 	  endif
 	enddo
+        Hsum=Hsum1-Hsum2-Hsum3+Hsum4
+        Ssum=Ssum1-Ssum2-Ssum3+Ssum4
 	Glob_HklBuff1(i)=Hsum
 	Glob_SklBuff1(i)=Ssum
 	if (i==Glob_HSBuffLen) then
@@ -254,12 +278,28 @@ integer     kstart,lstart,kstop,lstop,n,np,npt,npt2,nb
 real(dprec) Paramk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
 real(dprec) Paraml(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
 integer     mk,ml,mmk,mml
-real(dprec) Skl,Hkl
-real(dprec) Ssum,Hsum
+real(dprec) Skl,Hkl,Skl1,Hkl1,Skl2,Hkl2,Skl3,Hkl3,Skl4,Hkl4
+real(dprec) Ssum,Hsum,Ssum1,Hsum1,Ssum2,Hsum2,Ssum3,Hsum3,Ssum4,Hsum4
 real(dprec) Dk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 real(dprec) Dl(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dk1(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dl1(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dk2(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dl2(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dk3(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dl3(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dk4(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dl4(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 real(dprec) Dksum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 real(dprec) Dlsum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dksum1(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dlsum1(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dksum2(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dlsum2(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dksum3(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dlsum3(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dksum4(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dlsum4(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 logical     grad_l
 
 n=Glob_n
@@ -287,12 +327,23 @@ do k=Nmin,Nmax
     Paraml(1:npt)=Glob_NonlinParam(1:npt,l)
     ml=Glob_Index(l,1)
     mml=Glob_Index(l,2)
-	Hsum=ZERO 
-	Ssum=ZERO
+	Hsum=ZERO; Ssum=ZERO
+        Hsum1=ZERO; Ssum1=ZERO
+        Hsum2=ZERO; Ssum2=ZERO
+        Hsum3=ZERO; Ssum3=ZERO
+        Hsum4=ZERO; Ssum4=ZERO
     Dksum(1:npt2)=ZERO
+    Dksum1(1:npt2)=ZERO
+    Dksum2(1:npt2)=ZERO
+    Dksum3(1:npt2)=ZERO
+    Dksum4(1:npt2)=ZERO
 	if ((l>Glob_nfru).and.(l/=k)) then
       grad_l=.true.
-      Dlsum(1:npt2)=ZERO	          
+      Dlsum(1:npt2)=ZERO	
+      Dlsum1(1:npt2)=ZERO
+      Dlsum2(1:npt2)=ZERO
+      Dlsum3(1:npt2)=ZERO
+      Dlsum4(1:npt2)=ZERO
 	else 
       grad_l=.false.
 	endif    
@@ -300,13 +351,36 @@ do k=Nmin,Nmax
 	do j=1,Glob_NumYHYTerms
 	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
         call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl,Skl,Dk,Dl,.true.,grad_l)         
-		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
-		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
-        Dksum(1:npt2)=Dksum(1:npt2)+Glob_YHYCoeff(j)*Dk(1:npt2)
+               Hkl1,Skl1,Dk1,Dl1,.false.,.false.)   !first, let us try without gradient  grad_l   
+        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl2,Skl2,Dk2,Dl2,.false.,.false.)
+        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl3,Skl3,Dk3,Dl3,.false.,.false.)
+        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl4,Skl4,Dk4,Dl4,.false.,.false.)
+                Hsum1=Hsum1+Glob_YHYCoeff(j)*Hkl1
+		Ssum1=Ssum1+Glob_YHYCoeff(j)*Skl1
+                Hsum2=Hsum2+Glob_YHYCoeff(j)*Hkl2
+		Ssum2=Ssum2+Glob_YHYCoeff(j)*Skl2
+                Hsum3=Hsum3+Glob_YHYCoeff(j)*Hkl3
+		Ssum3=Ssum3+Glob_YHYCoeff(j)*Skl3
+                Hsum4=Hsum4+Glob_YHYCoeff(j)*Hkl4
+		Ssum4=Ssum4+Glob_YHYCoeff(j)*Skl4 
+                Dksum1(1:npt2)=Dksum1(1:npt2)+Glob_YHYCoeff(j)*Dk1(1:npt2)
+                Dksum2(1:npt2)=Dksum2(1:npt2)+Glob_YHYCoeff(j)*Dk2(1:npt2)
+                Dksum3(1:npt2)=Dksum3(1:npt2)+Glob_YHYCoeff(j)*Dk3(1:npt2)
+                Dksum4(1:npt2)=Dksum4(1:npt2)+Glob_YHYCoeff(j)*Dk4(1:npt2)     
         if ((l>Glob_nfru).and.(l/=k)) Dlsum(1:npt2)=Dlsum(1:npt2)+Glob_YHYCoeff(j)*Dl(1:npt2)
+                                      Dlsum2(1:npt2)=Dlsum2(1:npt2)+Glob_YHYCoeff(j)*Dl2(1:npt2)
+                                      Dlsum3(1:npt2)=Dlsum3(1:npt2)+Glob_YHYCoeff(j)*Dl3(1:npt2)
+                                      Dlsum4(1:npt2)=Dlsum4(1:npt2)+Glob_YHYCoeff(j)*Dl4(1:npt2)
+                                      
 	  endif
 	enddo
+        Hsum=Hsum1-Hsum2-Hsum3+Hsum4
+        Ssum=Ssum1-Ssum2-Ssum3+Ssum4
+        Dksum=Dksum1-Dksum2-Dksum3+Dksum4
+        Dlsum=Dlsum1-Dlsum2-Dlsum3+Dlsum4
 	Glob_HklBuff1(i)=Hsum
 	Glob_SklBuff1(i)=Ssum
 	Glob_DkBuff1(1:npt2,i)=Dksum(1:npt2)
