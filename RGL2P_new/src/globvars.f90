@@ -5,7 +5,7 @@ use wp_def
 implicit none
 
 !=============================================================
-!Numerical constants
+!Numerical constants Glob_MaxEnergyFailsAllowed
 !=============================================================
 real(dprec),parameter :: &
 ZERO=0.E0_dprec,     &
@@ -22,6 +22,7 @@ TEN=10.0_dprec,      &
 ONEHALF=ONE/TWO,     &
 ONETHIRD=ONE/THREE,  &
 ONEFOURTH=ONE/FOUR,  &
+ONEFIFTH=ONE/FIVE,  &
 THREEHALF=THREE/TWO, &     
 PI=3.1415926535897932384626433832795029E0_dprec,     &  
 SQRTPI=1.7724538509055160272981674833411452E0_dprec, &
