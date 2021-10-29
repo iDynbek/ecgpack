@@ -351,13 +351,13 @@ do k=Nmin,Nmax
 	do j=1,Glob_NumYHYTerms
 	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
         call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl1,Skl1,Dk1,Dl1,.false.,.false.)   !first, let us try without gradient  grad_l   
+               Hkl1,Skl1,Dk1,Dl1,.true.,grad_l)   !first, let us try without gradient  grad_l   
         call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl2,Skl2,Dk2,Dl2,.false.,.false.)
+               Hkl2,Skl2,Dk2,Dl2,.true.,grad_l)
         call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl3,Skl3,Dk3,Dl3,.false.,.false.)
+               Hkl3,Skl3,Dk3,Dl3,.true.,grad_l)
         call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl4,Skl4,Dk4,Dl4,.false.,.false.)
+               Hkl4,Skl4,Dk4,Dl4,.true.,grad_l)
                 Hsum1=Hsum1+Glob_YHYCoeff(j)*Hkl1
 		Ssum1=Ssum1+Glob_YHYCoeff(j)*Skl1
                 Hsum2=Hsum2+Glob_YHYCoeff(j)*Hkl2
