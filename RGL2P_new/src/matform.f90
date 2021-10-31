@@ -370,7 +370,7 @@ do k=Nmin,Nmax
                 Dksum2(1:npt2)=Dksum2(1:npt2)+Glob_YHYCoeff(j)*Dk2(1:npt2)
                 Dksum3(1:npt2)=Dksum3(1:npt2)+Glob_YHYCoeff(j)*Dk3(1:npt2)
                 Dksum4(1:npt2)=Dksum4(1:npt2)+Glob_YHYCoeff(j)*Dk4(1:npt2)     
-        if ((l>Glob_nfru).and.(l/=k)) Dlsum(1:npt2)=Dlsum(1:npt2)+Glob_YHYCoeff(j)*Dl(1:npt2)
+        if ((l>Glob_nfru).and.(l/=k)) Dlsum1(1:npt2)=Dlsum1(1:npt2)+Glob_YHYCoeff(j)*Dl1(1:npt2)
                                       Dlsum2(1:npt2)=Dlsum2(1:npt2)+Glob_YHYCoeff(j)*Dl2(1:npt2)
                                       Dlsum3(1:npt2)=Dlsum3(1:npt2)+Glob_YHYCoeff(j)*Dl3(1:npt2)
                                       Dlsum4(1:npt2)=Dlsum4(1:npt2)+Glob_YHYCoeff(j)*Dl4(1:npt2)
