@@ -4075,6 +4075,7 @@ do while (K<Kstop)
       !old try!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       do i=1,nfo
         ii=IndOptSequence(i,1)
+        ii2=IndOptSequence(i,2)
         j=Glob_Index(nfru+ii,1)
         j2=Glob_Index(nfru+ii,2)
         jbest=j
@@ -4082,16 +4083,16 @@ do while (K<Kstop)
         do jj=1,Glob_n
           if (jj/=j) then
             Glob_Index(nfru+ii,1)=jj
-            if (jj==Glob_n) then
-               Glob_Index(nfru+ii,2)=jj-1
-            else
-               Glob_Index(nfru+ii,2)=jj+1
-            endif
+            !if (jj==Glob_n) then
+            !   Glob_Index(nfru+ii,2)=jj-1
+            !else
+            !   Glob_Index(nfru+ii,2)=jj+1
+            !endif
             Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
      	    if (ErrCode/=0) then
               NumOfFailures=NumOfFailures+1
               Glob_Index(nfru+ii,1)=jbest
-              Glob_Index(nfru+ii,2)=jbest2
+            !  Glob_Index(nfru+ii,2)=jbest2
               if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 	            if (Glob_ProcID==0) then
                   write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
@@ -4103,31 +4104,54 @@ do while (K<Kstop)
 		      if (Evalue<Glob_CurrEnergy) then
                 Glob_CurrEnergy=Evalue
                 jbest=jj
-                if (jbest==Glob_n) then
-                    jbest2=jbest-1
-                else
-                    jbest2=jbest+1
-                endif
+    !            if (jbest==Glob_n) then
+    !                jbest2=jbest-1
+    !            else
+    !                jbest2=jbest+1s
+     !           endif
               endif
 	endif                    
           endif  
         enddo 
-           Glob_Index(nfru+ii,1)=jbest
-           Glob_Index(nfru+ii,2)=jbest2
+        Glob_Index(nfru+ii,1)=jbest
+      !     Glob_Index(nfru+ii,2)=jbest2
+        do jj2=1,Glob_n
+          if (jj2/=j2) then
+            Glob_Index(nfru+ii2,2)=jj2  
+            Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
+		    if (ErrCode/=0) then
+                      NumOfFailures=NumOfFailures+1
+              Glob_Index(nfru+ii2,2)=jbest2
+              if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
+	            if (Glob_ProcID==0) then
+                  write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
+		          write(*,*) 'during the optimization of y-indicies exceeded limit' 
+		        endif
+	            stop      
+              endif
+		    else
+		      if (Evalue<Glob_CurrEnergy) then
+                Glob_CurrEnergy=Evalue
+                jbest2=jj2    
+              endif
+		    endif                    
+         endif  
+        enddo      
+        Glob_Index(nfru+ii2,2)=jbest2
        enddo
-      !Loop where ZZ-indicies are optimized.
-!      do i=1,nfo
-!         ii=IndOptSequence(i,2)
-!        j=Glob_Index(nfru+ii,2)
-!       jbest=j
-!        do jj=1,Glob_n
-!          if (jj/=j) then
-!            Glob_Index(nfru+ii,2)=jj  
-!            Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
+    !  Loop where ZZ-indicies are optimized.
+ !     do i=1,nfo
+ !       ii2=IndOptSequence(i,2)
+ !       j2=Glob_Index(nfru+ii2,2)
+ !       jbest2=j2
+ !       do jj2=1,Glob_n
+ !         if (jj2/=j2) then
+ !           Glob_Index(nfru+ii2,2)=jj2  
+ !           Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
 !		    if (ErrCode/=0) then
-!                      NumOfFailures=NumOfFailures+1
-!              Glob_Index(nfru+ii,2)=jbest
-!              if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
+  !                    NumOfFailures=NumOfFailures+1
+  !            Glob_Index(nfru+ii2,2)=jbest2
+ !             if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 !	            if (Glob_ProcID==0) then
 !                  write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
 !		          write(*,*) 'during the optimization of y-indicies exceeded limit' 
@@ -4136,16 +4160,16 @@ do while (K<Kstop)
 !              endif
 !		    else
 !		      if (Evalue<Glob_CurrEnergy) then
- !               Glob_CurrEnergy=Evalue
- !               jbest=jj    
- !             endif
+!                Glob_CurrEnergy=Evalue
+!                jbest2=jj2    
+!              endif
 !		    endif                    
-!         endif  
-!        enddo 
-!        if (Glob_Index(nfru+ii,2)/=Glob_Index(nfru+ii,1)) then
-!           Glob_Index(nfru+ii,2)=jbest
-!        endif
-!      enddo
+      !   endif  
+      !  enddo 
+        
+      !  Glob_Index(nfru+ii2,2)=jbest2
+        
+      !enddo
       !Now we optimize nonlinear parameters
     
 	  !Setting IV and V values as was in their initial copies
@@ -4740,8 +4764,10 @@ do while (K<Kstop)
       !here as I programmed it in a simple way when all matrix element of functions 
       !nfrup1 thriugh K are computed each time while it is not always necessary.
       !old try!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            !old try!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       do i=1,nfo
         ii=IndOptSequence(i,1)
+        ii2=IndOptSequence(i,2)
         j=Glob_Index(nfru+ii,1)
         j2=Glob_Index(nfru+ii,2)
         jbest=j
@@ -4749,16 +4775,16 @@ do while (K<Kstop)
         do jj=1,Glob_n
           if (jj/=j) then
             Glob_Index(nfru+ii,1)=jj
-            if (jj==Glob_n) then
-               Glob_Index(nfru+ii,2)=jj-1
-            else
-               Glob_Index(nfru+ii,2)=jj+1
-            endif
+            !if (jj==Glob_n) then
+            !   Glob_Index(nfru+ii,2)=jj-1
+            !else
+            !   Glob_Index(nfru+ii,2)=jj+1
+            !endif
             Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
      	    if (ErrCode/=0) then
               NumOfFailures=NumOfFailures+1
               Glob_Index(nfru+ii,1)=jbest
-              Glob_Index(nfru+ii,2)=jbest2
+            !  Glob_Index(nfru+ii,2)=jbest2
               if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 	            if (Glob_ProcID==0) then
                   write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
@@ -4770,17 +4796,40 @@ do while (K<Kstop)
 		      if (Evalue<Glob_CurrEnergy) then
                 Glob_CurrEnergy=Evalue
                 jbest=jj
-                if (jbest==Glob_n) then
-                    jbest2=jbest-1
-                else
-                    jbest2=jbest+1
-                endif
+    !            if (jbest==Glob_n) then
+    !                jbest2=jbest-1
+    !            else
+    !                jbest2=jbest+1s
+     !           endif
               endif
-		    endif                    
+	endif                    
           endif  
         enddo 
-           Glob_Index(nfru+ii,1)=jbest
-           Glob_Index(nfru+ii,2)=jbest2
+        Glob_Index(nfru+ii,1)=jbest
+      !     Glob_Index(nfru+ii,2)=jbest2
+        do jj2=1,Glob_n
+          if (jj2/=j2) then
+            Glob_Index(nfru+ii2,2)=jj2  
+            Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
+		    if (ErrCode/=0) then
+                      NumOfFailures=NumOfFailures+1
+              Glob_Index(nfru+ii2,2)=jbest2
+              if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
+	            if (Glob_ProcID==0) then
+                  write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
+		          write(*,*) 'during the optimization of y-indicies exceeded limit' 
+		        endif
+	            stop      
+              endif
+		    else
+		      if (Evalue<Glob_CurrEnergy) then
+                Glob_CurrEnergy=Evalue
+                jbest2=jj2    
+              endif
+		    endif                    
+         endif  
+        enddo      
+        Glob_Index(nfru+ii2,2)=jbest2
        enddo
       !Now we optimize nonlinear parameters
     
