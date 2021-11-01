@@ -179,24 +179,24 @@ do k=Nmin,Nmax
                Hkl3,Skl3,Dk3,Dl3,.false.,.false.)
         call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                Hkl4,Skl4,Dk4,Dl4,.false.,.false.)
-                Hsum1=Hsum1+Glob_YHYCoeff(j)*Hkl1
-		Ssum1=Ssum1+Glob_YHYCoeff(j)*Skl1
-                Hsum2=Hsum2+Glob_YHYCoeff(j)*Hkl2
-		Ssum2=Ssum2+Glob_YHYCoeff(j)*Skl2
-                Hsum3=Hsum3+Glob_YHYCoeff(j)*Hkl3
-		Ssum3=Ssum3+Glob_YHYCoeff(j)*Skl3
-                Hsum4=Hsum4+Glob_YHYCoeff(j)*Hkl4
-		Ssum4=Ssum4+Glob_YHYCoeff(j)*Skl4 
-                !Hkl=Hkl1-Hkl2-Hkl3+Hkl4
-                !Skl=Skl1-Skl2-Skl3+Skl4
+                !Hsum1=Hsum1+Glob_YHYCoeff(j)*Hkl1
+		!Ssum1=Ssum1+Glob_YHYCoeff(j)*Skl1
+                !Hsum2=Hsum2+Glob_YHYCoeff(j)*Hkl2
+		!Ssum2=Ssum2+Glob_YHYCoeff(j)*Skl2
+                !Hsum3=Hsum3+Glob_YHYCoeff(j)*Hkl3
+		!Ssum3=Ssum3+Glob_YHYCoeff(j)*Skl3
+                !Hsum4=Hsum4+Glob_YHYCoeff(j)*Hkl4
+		!Ssum4=Ssum4+Glob_YHYCoeff(j)*Skl4 
+                Hkl=Hkl1-Hkl2-Hkl3+Hkl4
+                Skl=Skl1-Skl2-Skl3+Skl4
                 !Dk=Dk1-Dk2-Dk3+Dk4
                 !Dl=Dl1-Dl2-Dl3+Dl4
-		!Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
-		!Ssum=Ssum+Glob_YHYCoeff(j)*Skl
+		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
+		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
 	  endif
 	enddo
-        Hsum=Hsum1-Hsum2-Hsum3+Hsum4
-        Ssum=Ssum1-Ssum2-Ssum3+Ssum4
+        !Hsum=Hsum1-Hsum2-Hsum3+Hsum4
+        !Ssum=Ssum1-Ssum2-Ssum3+Ssum4
 	Glob_HklBuff1(i)=Hsum
 	Glob_SklBuff1(i)=Ssum
 	if (i==Glob_HSBuffLen) then
@@ -358,29 +358,38 @@ do k=Nmin,Nmax
                Hkl3,Skl3,Dk3,Dl3,.true.,grad_l)
         call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                Hkl4,Skl4,Dk4,Dl4,.true.,grad_l)
-                Hsum1=Hsum1+Glob_YHYCoeff(j)*Hkl1
-		Ssum1=Ssum1+Glob_YHYCoeff(j)*Skl1
-                Hsum2=Hsum2+Glob_YHYCoeff(j)*Hkl2
-		Ssum2=Ssum2+Glob_YHYCoeff(j)*Skl2
-                Hsum3=Hsum3+Glob_YHYCoeff(j)*Hkl3
-		Ssum3=Ssum3+Glob_YHYCoeff(j)*Skl3
-                Hsum4=Hsum4+Glob_YHYCoeff(j)*Hkl4
-		Ssum4=Ssum4+Glob_YHYCoeff(j)*Skl4 
-                Dksum1(1:npt2)=Dksum1(1:npt2)+Glob_YHYCoeff(j)*Dk1(1:npt2)
-                Dksum2(1:npt2)=Dksum2(1:npt2)+Glob_YHYCoeff(j)*Dk2(1:npt2)
-                Dksum3(1:npt2)=Dksum3(1:npt2)+Glob_YHYCoeff(j)*Dk3(1:npt2)
-                Dksum4(1:npt2)=Dksum4(1:npt2)+Glob_YHYCoeff(j)*Dk4(1:npt2)     
-        if ((l>Glob_nfru).and.(l/=k)) Dlsum1(1:npt2)=Dlsum1(1:npt2)+Glob_YHYCoeff(j)*Dl1(1:npt2)
-                                      Dlsum2(1:npt2)=Dlsum2(1:npt2)+Glob_YHYCoeff(j)*Dl2(1:npt2)
-                                      Dlsum3(1:npt2)=Dlsum3(1:npt2)+Glob_YHYCoeff(j)*Dl3(1:npt2)
-                                      Dlsum4(1:npt2)=Dlsum4(1:npt2)+Glob_YHYCoeff(j)*Dl4(1:npt2)
-                                      
+                !Hsum1=Hsum1+Glob_YHYCoeff(j)*Hkl1
+		!Ssum1=Ssum1+Glob_YHYCoeff(j)*Skl1
+                !Hsum2=Hsum2+Glob_YHYCoeff(j)*Hkl2
+		!Ssum2=Ssum2+Glob_YHYCoeff(j)*Skl2
+                !Hsum3=Hsum3+Glob_YHYCoeff(j)*Hkl3
+		!Ssum3=Ssum3+Glob_YHYCoeff(j)*Skl3
+                !Hsum4=Hsum4+Glob_YHYCoeff(j)*Hkl4
+		!Ssum4=Ssum4+Glob_YHYCoeff(j)*Skl4 
+                Hkl=Hkl1-Hkl2-Hkl3+Hkl4
+                Skl=Skl1-Skl2-Skl3+Skl4
+                Dk=Dk1-Dk2-Dk3+Dk4
+                Dl=Dl1-Dl2-Dl3+Dl4
+		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
+		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
+                Dksum(1:npt2)=Dksum(1:npt2)+Glob_YHYCoeff(j)*Dk(1:npt2)
+                !Dksum1(1:npt2)=Dksum1(1:npt2)+Glob_YHYCoeff(j)*Dk1(1:npt2)
+                !Dksum2(1:npt2)=Dksum2(1:npt2)+Glob_YHYCoeff(j)*Dk2(1:npt2)
+                !Dksum3(1:npt2)=Dksum3(1:npt2)+Glob_YHYCoeff(j)*Dk3(1:npt2)
+                !Dksum4(1:npt2)=Dksum4(1:npt2)+Glob_YHYCoeff(j)*Dk4(1:npt2)  
+                
+        if ((l>Glob_nfru).and.(l/=k)) Dlsum(1:npt2)=Dlsum(1:npt2)+Glob_YHYCoeff(j)*Dl(1:npt2)
+                                      !Dlsum1(1:npt2)=Dlsum1(1:npt2)+Glob_YHYCoeff(j)*Dl1(1:npt2)
+                                      !Dlsum2(1:npt2)=Dlsum2(1:npt2)+Glob_YHYCoeff(j)*Dl2(1:npt2)
+                                      !Dlsum3(1:npt2)=Dlsum3(1:npt2)+Glob_YHYCoeff(j)*Dl3(1:npt2)
+                                      !Dlsum4(1:npt2)=Dlsum4(1:npt2)+Glob_YHYCoeff(j)*Dl4(1:npt2)
+                                      !Dlsum(1:npt2)=Dlsum(1:npt2)+Glob_YHYCoeff(j)*Dl(1:npt2)
 	  endif
 	enddo
-        Hsum=Hsum1-Hsum2-Hsum3+Hsum4
-        Ssum=Ssum1-Ssum2-Ssum3+Ssum4
-        Dksum=Dksum1-Dksum2-Dksum3+Dksum4
-        Dlsum=Dlsum1-Dlsum2-Dlsum3+Dlsum4
+        !Hsum=Hsum1-Hsum2-Hsum3+Hsum4
+        !Ssum=Ssum1-Ssum2-Ssum3+Ssum4
+        !Dksum=Dksum1-Dksum2-Dksum3+Dksum4
+        !Dlsum=Dlsum1-Dlsum2-Dlsum3+Dlsum4
 	Glob_HklBuff1(i)=Hsum
 	Glob_SklBuff1(i)=Ssum
 	Glob_DkBuff1(1:npt2,i)=Dksum(1:npt2)
