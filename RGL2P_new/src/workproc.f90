@@ -3841,8 +3841,8 @@ integer,allocatable,dimension(:,:)              :: TempInd
 integer,allocatable,dimension(:)                :: TempFunc
 !==================================================== 
 !These variables are used when a finite difference gradient is computed               
-real(dprec),allocatable,dimension(:)     ::    fx,fgrad,fgrad_5_points!,f_2nd_der
-real(dprec)                                 deltax,Evalue1,Evalue_plus_2h,Evalue_minus_2h,h 
+real(dprec),allocatable,dimension(:)     ::    fx,fgrad,fgrad_5_points
+real(dprec)                                 deltax,Evalue1,Evalue_plus_2h,Evalue_minus_2h
 !====================================================
 
 if (Glob_ProcID==0) then
@@ -4245,22 +4245,14 @@ do while (K<Kstop)
 		  !===================================
 		  !The lines below need be uncommented when finite
 		  !difference gradient is shown 
-                  !I compute also 2nd derivative, if +, then its minimum
 		  allocate(fx(nvmax))
                   allocate(fgrad(nvmax))
                   allocate(fgrad_5_points(nvmax))
-                  
-            
-                     !allocate(f_2nd_der(nvmax))
-                      !write(*,*)'             Analytic              finite diff gradient       5point finite diff gradient'   !2nd der 
-                      h=1.0
-                      do q=1,10
-                         h=h*1.0Q-1  
-                         write(*,*)'                 Analytic             finite diff gradient            5point finite diff '
-                         write(*,*)'     This is for h:',h
-                      do j=1,nv                  
+                  write(*,*)'             Analytic              finite diff gradient       5point finite diff gradient'  
+   
+                  do j=1,nv                  
                         fx(1:nv)=x(1:nv)
-		        deltax=x(j)*h                 
+		        deltax=x(j)*1.0Q-6                 
                         fx(j)=x(j)+deltax
  	                do i=1,nfo
 	                   Glob_NonlinParam(1:npt,nfru+i)=fx((i-1)*npt+1:i*npt)
@@ -4283,20 +4275,17 @@ do while (K<Kstop)
                         Evalue_minus_2h=EnergyGA(nfrup1,K,.true.,ErrCode)                 
 		        fgrad(j)=(Evalue1-Evalue)/(2*deltax)
                         fgrad_5_points(j)=((Evalue_minus_2h-Evalue_plus_2h)/12+TWO*(Evalue1-Evalue)/THREE)/deltax
-                        enddo
-                        !f_2nd_der(j)=(4*(Evalue1+Evalue)/3-(Evalue_minus_2h+Evalue_plus_2h)/12-5*Glob_CurrEnergy/TWO)/(deltax*deltax)
-                        do j=1,nv         
-                          write(*,*) j,'  ',grad(j),'  ' ,fgrad(j),'   ',fgrad_5_points(j)!, '     ',f_2nd_der(j)
-		        enddo
-                        write(*,*)
-                        do i=1,nfo
-	                   Glob_NonlinParam(1:npt,nfru+i)=x((i-1)*npt+1:i*npt)
-                        enddo
                     enddo
-	           
+                    !f_2nd_der(j)=(4*(Evalue1+Evalue)/3-(Evalue_minus_2h+Evalue_plus_2h)/12-5*Glob_CurrEnergy/TWO)/(deltax*deltax)
+                    do j=1,nv         
+                          write(*,*) j,'  ',grad(j),'  ' ,fgrad(j),'   ',fgrad_5_points(j)
+		    enddo
+                    write(*,*)
+                    do i=1,nfo
+	                   Glob_NonlinParam(1:npt,nfru+i)=x((i-1)*npt+1:i*npt)
+                    enddo	           
                   deallocate(fgrad)
                   deallocate(fgrad_5_points)
-                      !deallocate(f_2nd_der)
                   deallocate(fx)
         
 		  !===================================	     
@@ -4559,8 +4548,8 @@ integer,allocatable,dimension(:,:)              :: TempInd
 integer,allocatable,dimension(:)                :: TempFunc
 !==================================================== 
 !These variables are used when a finite difference gradient is computed               
-real(dprec),allocatable,dimension(:)     ::    fx,fgrad,fgrad_5_points!,f_2nd_der
-real(dprec)                                    deltax,Evalue1,Evalue_plus_2h,Evalue_minus_2h,h
+real(dprec),allocatable,dimension(:)     ::    fx,fgrad,fgrad_5_points
+real(dprec)                                    deltax,Evalue1,Evalue_plus_2h,Evalue_minus_2h
 !====================================================
 
 if (Glob_ProcID==0) then
@@ -4937,19 +4926,11 @@ do while (K<Kstop)
                   !I compute also 2nd derivative, if +, then its minimum
 		  allocate(fx(nvmax))
                   allocate(fgrad(nvmax))
-                  allocate(fgrad_5_points(nvmax))
-                  
-        
-                     !allocate(f_2nd_der(nvmax))
-                     ! write(*,*)'             Analytic              finite diff gradient       5point finite diff gradient'   !2nd der                  
-		  h=1.0
-                  do q=1,10
-                      h=h*1.0Q-1
-                      write(*,*)'    This is for h:',h
-                       write(*,*)'                Analytic                 finite diff gradient        5point finite diff '
+                  allocate(fgrad_5_points(nvmax))     
+                  write(*,*)'             Analytic              finite diff gradient       5point finite diff gradient'                    
                   do j=1,nv
                       fx(1:nv)=x(1:nv)
-		      deltax=x(j)*1.0-3                 
+		      deltax=x(j)*1.0Q-6                 
                       fx(j)=x(j)+deltax
  	              do i=1,nfo
 	                  Glob_NonlinParam(1:npt,nfru+i)=fx((i-1)*npt+1:i*npt)
@@ -4972,19 +4953,18 @@ do while (K<Kstop)
                       Evalue_minus_2h=EnergyGA(nfrup1,K,.true.,ErrCode)                 
 		      fgrad(j)=(Evalue1-Evalue)/(2*deltax)
                       fgrad_5_points(j)=((Evalue_minus_2h-Evalue_plus_2h)/12+TWO*(Evalue1-Evalue)/THREE)/deltax
-                      enddo
-                      !f_2nd_der(j)=(4*(Evalue1+Evalue)/3-(Evalue_minus_2h+Evalue_plus_2h)/12-5*Glob_CurrEnergy/TWO)/(deltax*deltax)
-                      do j=1,nv         
-                        write(*,*) j,'  ',grad(j),'  ' ,fgrad(j),'   ',fgrad_5_points(j)!, '     ',f_2nd_der(j)
-		      enddo
-                      write(*,*)
-                      do i=1,nfo
-	                 Glob_NonlinParam(1:npt,nfru+i)=x((i-1)*npt+1:i*npt)
-                      enddo              
+                  enddo
+                  !f_2nd_der(j)=(4*(Evalue1+Evalue)/3-(Evalue_minus_2h+Evalue_plus_2h)/12-5*Glob_CurrEnergy/TWO)/(deltax*deltax)
+                  do j=1,nv         
+                        write(*,*) j,'  ',grad(j),'  ' ,fgrad(j),'   ',fgrad_5_points(j)
 		  enddo
+                  write(*,*)
+                  do i=1,nfo
+	                 Glob_NonlinParam(1:npt,nfru+i)=x((i-1)*npt+1:i*npt)
+                  enddo              
+		
                   deallocate(fgrad)
                   deallocate(fgrad_5_points)
-                      !deallocate(f_2nd_der)
                   deallocate(fx)
 		  !===================================	     
 	    case (3:8) !Some kind of convergence has been reached
@@ -6317,7 +6297,7 @@ integer                 ALG
 integer                 IVLMAT
 !!==================================================== 
 !!These variables are used when a finite difference gradient is computed               
-real(dprec)                              deltax,Evalue1,Evalue_plus_2h,Evalue_minus_2h,res_5_point,test_energy,h!,res_2nd_der
+real(dprec)                              deltax,Evalue1,Evalue_plus_2h,Evalue_minus_2h,res_5_point
 !!====================================================
 
 if (OverlapThreshold>=ONE) then
@@ -6593,15 +6573,10 @@ do while (.not.(ExitNeeded))
 !	!===================================
 !	!The lines below need be uncommented when finite
 !    !difference gradient is shown 
-    !if (Glob_ProcID==0) write(*,*) '    analytic gradient       finite diff gradient      5points finite dif gradient'    !2nd deriv
-    h=1.0
-    do q=1,10
-      h=h*1.0Q-1
-      write(*,*)'     This is for h:',h  
-      if (Glob_ProcID==0) write(*,*) '    analytic gradient       finite diff gradient      5points finite dif gradient'
+    if (Glob_ProcID==0) write(*,*) '    analytic gradient       finite diff gradient      5points finite dif gradient' 
       do i=1,nfo
         do j=1,npt
-                 deltax=Glob_NonlinParam(j,i+nfru)*h       
+                 deltax=Glob_NonlinParam(j,i+nfru)*1.0Q-6       
                  Glob_NonlinParam(j,i+nfru)=Glob_NonlinParam(j,i+nfru)+deltax
                  Evalue1=EnergyGA(InitFuncNew,nfa,.true.,ErrCode)       
                  Glob_NonlinParam(j,i+nfru)=Glob_NonlinParam(j,i+nfru)+deltax
@@ -6611,12 +6586,11 @@ do while (.not.(ExitNeeded))
                  Glob_NonlinParam(j,i+nfru)=Glob_NonlinParam(j,i+nfru)-deltax
                  Evalue_minus_2h=EnergyGA(InitFuncNew,nfa,.true.,ErrCode)         
                  res_5_point= (Evalue_minus_2h-Evalue_plus_2h)/12+TWO*(Evalue1-Evalue)/THREE
-                 !res_2nd_der= -(Evalue_minus_2h+Evalue_plus_2h)/12+FOUR*(Evalue1+Evalue)/THREE-FIVE*Glob_CurrEnergy/TWO
+                !res_2nd_der= -(Evalue_minus_2h+Evalue_plus_2h)/12+FOUR*(Evalue1+Evalue)/THREE-FIVE*Glob_CurrEnergy/TWO
                  if (Glob_ProcID==0) write(*,'(1x,i3,1x,e23.16,1x,e23.16,1x,e23.16)')&
-                   (i-1)*npt+j,grad((i-1)*npt+j),(Evalue1-Evalue)/(2*deltax), res_5_point/deltax          !,res_2nd_der/(deltax*deltax)
+                   (i-1)*npt+j,grad((i-1)*npt+j),(Evalue1-Evalue)/(2*deltax), res_5_point/deltax    
                    Glob_NonlinParam(j,i+nfru)=Glob_NonlinParam(j,i+nfru)+2*deltax 
-            enddo
-        enddo   
+            enddo   
         if (Glob_ProcID==0) write(*,*)
       enddo 
 !    !===================================	
