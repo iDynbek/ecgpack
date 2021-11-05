@@ -342,10 +342,10 @@ do i=1,n
   do k=1,n
     temp4=temp4+u1(k)*tvl(k)
     temp44=temp44+u11(k)*tbl(k)
-    temp444=temp444+temp4*temp44
   enddo
   eta2(i,i)=temp4
   eta22(i,i)=temp44
+  temp444=temp4*temp44
   eta(i,i)=temp444
   !Rkl(i,i)=temp1*(ONE-temp4/(THREE*temp2*tau3))/temp3
   Rkl(i,i)=temp1/temp3*(ONE-(temp4/tau3+temp44/tau33)/(THREE*temp2)+temp4*temp44/(FIVE*temp2*temp2*tau3*tau33))
@@ -369,10 +369,10 @@ do i=1,n
     do k=1,n
       temp4=temp4+u1(k)*tvl(k)
       temp44=temp44+u11(k)*tbl(k)
-      temp444=temp444+temp4*temp44
     enddo
     eta2(j,i)=temp4
     eta22(j,i)=temp44
+    temp444=temp4*temp44
     eta(j,i)=temp444
     Rkl(j,i)=temp1/temp3*(ONE-(temp4/tau3+temp44/tau33)/(THREE*temp2)+temp4*temp44/(FIVE*temp2*temp2*tau3*tau33))
     Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*Rkl(j,i)
