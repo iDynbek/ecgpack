@@ -4757,7 +4757,7 @@ do while (K<Kstop)
         do jj=1,Glob_n
           if (jj/=j) then
             Glob_Index(nfru+ii,1)=jj
-            Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
+            Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
      	    if (ErrCode/=0) then
                 NumOfFailures=NumOfFailures+1
                 Glob_Index(nfru+ii,1)=jbest
@@ -4780,7 +4780,7 @@ do while (K<Kstop)
         do jj2=1,Glob_n
           if (jj2/=j2) then
             Glob_Index(nfru+ii2,2)=jj2  
-            Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
+            Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
             if (ErrCode/=0) then
                 NumOfFailures=NumOfFailures+1
                 Glob_Index(nfru+ii2,2)=jbest2
@@ -4896,22 +4896,22 @@ do while (K<Kstop)
 ! 	              do i=1,nfo
 !	                  Glob_NonlinParam(1:npt,nfru+i)=fx((i-1)*npt+1:i*npt)
 !	              enddo
-!                      Evalue1=EnergyGA(nfrup1,K,.true.,ErrCode)                  
+!                      Evalue1=EnergyIA(nfrup1,K,.true.,ErrCode)                  
 !                      fx(j)=x(j)+2*deltax
 ! 	              do i=1,nfo
 !	                  Glob_NonlinParam(1:npt,nfru+i)=fx((i-1)*npt+1:i*npt)
 !	              enddo
-!                      Evalue_plus_2h=EnergyGA(nfrup1,K,.true.,ErrCode)                 
+!                      Evalue_plus_2h=EnergyIA(nfrup1,K,.true.,ErrCode)                 
 !                      fx(j)=x(j)-deltax
 ! 	              do i=1,nfo
 !	                  Glob_NonlinParam(1:npt,nfru+i)=fx((i-1)*npt+1:i*npt)
 !	              enddo
-!                      Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)                
+!                      Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)                
 !                      fx(j)=x(j)-2*deltax
 ! 	              do i=1,nfo
 !	                   Glob_NonlinParam(1:npt,nfru+i)=fx((i-1)*npt+1:i*npt)
 !	              enddo
-!                      Evalue_minus_2h=EnergyGA(nfrup1,K,.true.,ErrCode)                 
+!                      Evalue_minus_2h=EnergyIA(nfrup1,K,.true.,ErrCode)                 
 !		      fgrad(j)=(Evalue1-Evalue)/(2*deltax)
 !                      fgrad_5_points(j)=((Evalue_minus_2h-Evalue_plus_2h)/12+TWO*(Evalue1-Evalue)/THREE)/deltax
 !                  enddo
