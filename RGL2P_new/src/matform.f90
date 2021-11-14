@@ -175,10 +175,10 @@ do k=Nmin,Nmax
                Hkl1,Skl1,Dk1,Dl1,.false.,.false.)
         call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                Hkl2,Skl2,Dk2,Dl2,.false.,.false.)
-        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl3,Skl3,Dk3,Dl3,.false.,.false.)
-        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl4,Skl4,Dk4,Dl4,.false.,.false.)
+!        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl3,Skl3,Dk3,Dl3,.false.,.false.)
+!        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl4,Skl4,Dk4,Dl4,.false.,.false.)
                 !Hsum1=Hsum1+Glob_YHYCoeff(j)*Hkl1
 		!Ssum1=Ssum1+Glob_YHYCoeff(j)*Skl1
                 !Hsum2=Hsum2+Glob_YHYCoeff(j)*Hkl2
@@ -187,10 +187,10 @@ do k=Nmin,Nmax
 		!Ssum3=Ssum3+Glob_YHYCoeff(j)*Skl3
                 !Hsum4=Hsum4+Glob_YHYCoeff(j)*Hkl4
 		!Ssum4=Ssum4+Glob_YHYCoeff(j)*Skl4 
-                Hkl=Hkl1-Hkl2-Hkl3+Hkl4
-                Skl=Skl1-Skl2-Skl3+Skl4
-                !Dk=Dk1-Dk2-Dk3+Dk4
-                !Dl=Dl1-Dl2-Dl3+Dl4
+                Hkl=2*Hkl1-2*Hkl2!-Hkl3+Hkl4
+                Skl=2*Skl1-2*Skl2!-Skl3+Skl4
+                Dk=2*Dk1-2*Dk2!-Dk3+Dk4
+                Dl=2*Dl1-2*Dl2!-Dl3+Dl4
 		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
 		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
 	  endif
@@ -354,10 +354,10 @@ do k=Nmin,Nmax
                Hkl1,Skl1,Dk1,Dl1,.true.,grad_l)   !first, let us try without gradient  grad_l   
         call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                Hkl2,Skl2,Dk2,Dl2,.true.,grad_l)
-        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl3,Skl3,Dk3,Dl3,.true.,grad_l)
-        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl4,Skl4,Dk4,Dl4,.true.,grad_l)
+  !      call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+  !             Hkl3,Skl3,Dk3,Dl3,.true.,grad_l)
+  !      call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+  !             Hkl4,Skl4,Dk4,Dl4,.true.,grad_l)
                 !Hsum1=Hsum1+Glob_YHYCoeff(j)*Hkl1
 		!Ssum1=Ssum1+Glob_YHYCoeff(j)*Skl1
                 !Hsum2=Hsum2+Glob_YHYCoeff(j)*Hkl2
@@ -366,10 +366,10 @@ do k=Nmin,Nmax
 		!Ssum3=Ssum3+Glob_YHYCoeff(j)*Skl3
                 !Hsum4=Hsum4+Glob_YHYCoeff(j)*Hkl4
 		!Ssum4=Ssum4+Glob_YHYCoeff(j)*Skl4 
-                Hkl=Hkl1-Hkl2-Hkl3+Hkl4
-                Skl=Skl1-Skl2-Skl3+Skl4
-                Dk=Dk1-Dk2-Dk3+Dk4
-                Dl=Dl1-Dl2-Dl3+Dl4
+                Hkl=2*Hkl1-2*Hkl2!-Hkl3+Hkl4
+                Skl=2*Skl1-2*Skl2!-Skl3+Skl4
+                Dk=2*Dk1-2*Dk2!-Dk3+Dk4
+                Dl=2*Dl1-2*Dl2!-Dl3+Dl4
 		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
 		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
                 Dksum(1:npt2)=Dksum(1:npt2)+Glob_YHYCoeff(j)*Dk(1:npt2)
