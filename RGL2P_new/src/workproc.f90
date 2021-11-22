@@ -4104,6 +4104,7 @@ do while (K<Kstop)
           endif  
         enddo 
         Glob_Index(nfru+ii,1)=jbest
+	NumOfFailures=0
         do jj2=1,Glob_n
           if (jj2/=j2) then
             Glob_Index(nfru+ii2,2)=jj2  
@@ -4763,7 +4764,7 @@ do while (K<Kstop)
                 Glob_Index(nfru+ii,1)=jbest
                 if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 	            if (Glob_ProcID==0) then
-                          write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
+                          write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
 		          write(*,*) 'during the optimization of x-indicies exceeded limit' 
 		    endif
 	            stop      
@@ -4777,6 +4778,7 @@ do while (K<Kstop)
           endif  
         enddo 
         Glob_Index(nfru+ii,1)=jbest
+	NumOfFailures=0
         do jj2=1,Glob_n
           if (jj2/=j2) then
             Glob_Index(nfru+ii2,2)=jj2  
@@ -4786,7 +4788,7 @@ do while (K<Kstop)
                 Glob_Index(nfru+ii2,2)=jbest2
                 if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 	            if (Glob_ProcID==0) then
-                        write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
+                        write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
 		        write(*,*) 'during the optimization of y-indicies exceeded limit' 
 		    endif
 	            stop      
