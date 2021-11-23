@@ -133,13 +133,13 @@ integer     k,l,i,kk,ll,ii,j,q
 integer     kstart,lstart,kstop,lstop,n,np,np1,npt,nb
 real(dprec) Paramk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
 real(dprec) Paraml(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
-integer     mk,ml
-real(dprec) Skl,Hkl
+integer     mk,ml,mmk,mml
+real(dprec) Skl,Hkl,Skl1,Hkl1,Skl2,Hkl2,Skl3,Hkl3,Skl4,Hkl4
 real(dprec) Ssum,Hsum
 !These arrays are not actually used but needed for proper calling
 !of subroutine MatrixElements. Thus, one can set some small size
 !for them
-real(dprec)  Dk(2),Dl(2)
+real(dprec)  Dk(2),Dl(2),Dk1(2),Dl1(2),Dk2(2),Dl2(2),Dk3(2),Dl3(2),Dk4(2),Dl4(2)
 
 n=Glob_n
 np=Glob_np
@@ -152,7 +152,8 @@ i=0
   
 do k=Nmin,Nmax
   Paramk(1:npt)=Glob_NonlinParam(1:npt,k)
-  mk=Glob_ZIndex(k)
+  mk=Glob_Index(k,1)
+  mmk=Glob_Index(k,2)
   do l=k,1,-1
     i=i+1
 	if (i==1) then
@@ -160,13 +161,24 @@ do k=Nmin,Nmax
 	  lstart=l
 	endif	
     Paraml(1:npt)=Glob_NonlinParam(1:npt,l)
-    ml=Glob_ZIndex(l)
+    ml=Glob_Index(l,1)
+    mml=Glob_Index(l,2)
 	Hsum=ZERO; Ssum=ZERO
 	q=(i-1)*Glob_NumYHYTerms-1
 	do j=1,Glob_NumYHYTerms
 	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-        call MatrixElementsL1(mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl,Skl,Dk,Dl,.false.,.false.)
+        call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl1,Skl1,Dk1,Dl1,.false.,.false.)
+        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl2,Skl2,Dk2,Dl2,.false.,.false.)
+        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl3,Skl3,Dk3,Dl3,.false.,.false.)
+        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl4,Skl4,Dk4,Dl4,.false.,.false.)
+                Hkl=-4*Hkl1+6*Hkl2+4*Hkl3-2*Hkl4
+                Skl=-4*Skl1+6*Skl2+4*Skl3-2*Skl4
+                Dk=-4*Dk1+6*Dk2+4*Dk3-2*Dk4
+                Dl=-4*Dl1+6*Dl2+4*Dl3-2*Dl4  !should be investigated which combination gives correct energy
 		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
 		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
 	  endif
@@ -251,11 +263,19 @@ integer     k,l,i,kk,ll,ii,j,q
 integer     kstart,lstart,kstop,lstop,n,np,npt,npt2,nb
 real(dprec) Paramk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
 real(dprec) Paraml(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
-integer     mk,ml
-real(dprec) Skl,Hkl
+integer     mk,ml,mmk,mml
+real(dprec) Skl,Hkl,Skl1,Hkl1,Skl2,Hkl2,Skl3,Hkl3,Skl4,Hkl4
 real(dprec) Ssum,Hsum
 real(dprec) Dk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 real(dprec) Dl(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dk1(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dl1(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dk2(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dl2(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dk3(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dl3(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dk4(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dl4(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 real(dprec) Dksum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 real(dprec) Dlsum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 logical     grad_l
@@ -274,7 +294,8 @@ i=0
 
 do k=Nmin,Nmax
   Paramk(1:npt)=Glob_NonlinParam(1:npt,k)
-  mk=Glob_ZIndex(k)
+  mk=Glob_Index(k,1)
+  mmk=Glob_Index(k,2)
   do l=k,1,-1
     i=i+1
 	if (i==1) then
@@ -282,24 +303,46 @@ do k=Nmin,Nmax
 	  lstart=l
 	endif	
     Paraml(1:npt)=Glob_NonlinParam(1:npt,l)
-    ml=Glob_ZIndex(l)
-	Hsum=ZERO 
-	Ssum=ZERO
+    ml=Glob_Index(l,1)
+    mml=Glob_Index(l,2)
+	Hsum=ZERO; Ssum=ZERO
     Dksum(1:npt2)=ZERO
 	if ((l>Glob_nfru).and.(l/=k)) then
       grad_l=.true.
-      Dlsum(1:npt2)=ZERO	          
+      Dlsum(1:npt2)=ZERO	
 	else 
       grad_l=.false.
 	endif    
 	q=(i-1)*Glob_NumYHYTerms-1
 	do j=1,Glob_NumYHYTerms
 	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-        call MatrixElementsL1(mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl,Skl,Dk,Dl,.true.,grad_l)         
+        call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl1,Skl1,Dk1,Dl1,.true.,grad_l)    
+        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl2,Skl2,Dk2,Dl2,.true.,grad_l)
+               
+        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl3,Skl3,Dk3,Dl3,.true.,grad_l)
+        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl4,Skl4,Dk4,Dl4,.true.,grad_l)    
+               
+               !should be uncommented for wihtout gradient
+!        call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl1,Skl1,Dk1,Dl1,.false.,.false.)     
+!        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl2,Skl2,Dk2,Dl2,.false.,.false.)
+!               
+!        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl3,Skl3,Dk3,Dl3,.false.,.false.)
+!        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl4,Skl4,Dk4,Dl4,.false.,.false.)
+                Hkl=-4*Hkl1+6*Hkl2+4*Hkl3-2*Hkl4
+                Skl=-4*Skl1+6*Skl2+4*Skl3-2*Skl4
+                Dk=-4*Dk1+6*Dk2+4*Dk3-2*Dk4      
+                Dl=-4*Dl1+6*Dl2+4*Dl3-2*Dl4
 		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
 		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
-        Dksum(1:npt2)=Dksum(1:npt2)+Glob_YHYCoeff(j)*Dk(1:npt2)
+                Dksum(1:npt2)=Dksum(1:npt2)+Glob_YHYCoeff(j)*Dk(1:npt2)               
         if ((l>Glob_nfru).and.(l/=k)) Dlsum(1:npt2)=Dlsum(1:npt2)+Glob_YHYCoeff(j)*Dl(1:npt2)
 	  endif
 	enddo
