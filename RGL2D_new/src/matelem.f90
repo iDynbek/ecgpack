@@ -12,7 +12,7 @@ subroutine MatrixElementsL1(m_k, m_l, mm_k, mm_l, vechLk, vechLl, P, &
 !two real L=1 correlated Gaussians:
 ! 
 !fk = [x_{m_k}x_{mm_k}+y_{mm_k}y_{m_k}-2*z_{mm_k}z_{m_k}] exp[-r'(Lk*Lk')r] 
-!
+!there is some mistakes in analytic gradients. It has to be fixed
 !where m_k,mm_k is some integers between 1 and n (n is the number of 
 !pseudoparticles). Symmetry adaption is applied to the ket using 
 !permutation matrix P
