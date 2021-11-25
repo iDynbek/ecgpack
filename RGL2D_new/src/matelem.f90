@@ -865,6 +865,840 @@ endif
 
 end subroutine MatrixElementsL1
 
+subroutine MatrixElementsL11(m_k, m_l, mm_k, mm_l, vechLk, vechLl, P, &
+               Hkl, Skl, Dk, Dl, grad_k, grad_l)
+!This subroutine computes symmetry adapted matrix element with
+!two real L=1 correlated Gaussians:
+! 
+!fk = [x_{m_k}y_{mm_k}-x_{mm_k}y_{m_k}] exp[-r'(Lk*Lk')r] 
+!
+!where m_k,mm_k is some integers between 1 and n (n is the number of 
+!pseudoparticles). Symmetry adaption is applied to the ket using 
+!permutation matrix P
+!
+!Input:     
+!   m_k,m_l,mm_k, mm_l :: integers that determine which x or y-components is in the
+!                premultiplier of the Gaussian
+!   vechLk, vechLl :: Arrays of length (n(n+1)/2) of 
+!     exponential parameters. 
+!   P  :: The symmetry permutation matrix of size n x n
+!   grad_k, grad_l :: Gradient flags
+!   grad_k=.true.  means that dHkldvechLk, dSkldvechLk need to be computed. 
+!   grad_l=.true.  means that dHkldvechLl, dSkldvechLl need to be computed.
+!Output:
+!   Hkl	 ::	Hamiltonian term (normalized)
+!   Skl	 ::	Overlap matrix element (normalized) 
+!   Dk,Dl:: derivatives of normalized Hkl and Skl wrt Paramk
+!           and Paraml respectively. They are ordered in the 
+!           following manner:
+!           Dk=(dHkldvechLk,dSkldvechLk)
+!           Dl=(dHkldvechLl,dSkldvechLl)
+
+
+!Arguments
+integer,intent(in)          :: m_k,m_l,mm_k,mm_l
+real(dprec),intent(in)      :: vechLk(Glob_np), vechLl(Glob_np)
+real(dprec),intent(in)      :: P(Glob_n,Glob_n)
+real(dprec),intent(out)     :: Skl,Hkl
+real(dprec),intent(out)     :: Dk(2*Glob_np),Dl(2*Glob_np)
+logical,intent(in)          :: grad_k, grad_l
+
+!Parameters (These are needed to declare static arrays. Using static 
+!arrays makes the function call a little faster in comparison with 
+!the case when arrays are dynamically allocated in stack)
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+integer,parameter :: nnp=nn*(nn+1)/2
+
+!Local variables
+integer           n, np
+integer           vl(nn),bl(nn)
+real(dprec)       dHkldvechLk(nnp), dHkldvechLl(nnp)
+real(dprec)       dSkldvechLk(nnp), dSkldvechLl(nnp)
+real(dprec)       Lk(nn,nn),Ll(nn,nn),inv_Lk(nn,nn),inv_Ll(nn,nn)
+real(dprec)       Ak(nn,nn),tAl(nn,nn),tAkl(nn,nn)
+real(dprec)       inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn)
+real(dprec)       inv_tAkltAl(nn,nn),inv_tAkltAlM(nn,nn)
+real(dprec)       inv_tAklAk(nn,nn),inv_tAklAkM(nn,nn)
+
+real(dprec)       eta1(nn,nn),sqrt_eta1(nn,nn),eta2(nn,nn),Rkl(nn,nn)
+real(dprec)       eta11(nn,nn),eta22(nn,nn),eta(nn,nn)
+real(dprec)       W1(nn,nn),W2(nn,nn),W3(nn,nn),W4(nn,nn)
+real(dprec)       twosym_tFkl(nn,nn),two_Fkk(nn,nn),two_Fll(nn,nn),twosym_tGkl(nn,nn)
+real(dprec)       tKkl(nn,nn),tUkl(nn,nn),tWkl(nn,nn),tKkl2(nn,nn)
+real(dprec)       twosym_tQkl(nn,nn),twosym_tDkl(nn,nn)
+real(dprec)       inv_tAklvl(nn),vkinv_tAkl(nn),vkinv_tAkltAlM(nn)
+real(dprec)       inv_tAklbl(nn),bkinv_tAkl(nn),bkinv_tAkltAlM(nn)
+real(dprec)       u1(nn),u2(nn),u3(nn)
+real(dprec)       u11(nn),u22(nn),u33(nn)
+real(dprec)       temp1, temp2, temp3, temp4, temp5, temp6,temp44,temp444,temp11,temp22,temp66,temp666
+real(dprec)       det_Lk, det_Ll, det_tAkl
+real(dprec)       tau1,tau2,tau3,tau11,tau22,tau33,mu,m,n_pot,kkl,tau1_i
+real(dprec)       Tkl, Vkl
+integer           i,j,k,q,t,indx
+
+n=Glob_n
+np=Glob_np
+Glob_Piraised3n2=PI**((THREE*Glob_n)/TWO)
+!First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
+indx=0
+do i=1,n
+  do j=i,n
+    indx=indx+1
+	Lk(i,j)=ZERO
+	Lk(j,i)=vechLk(indx)
+	Ll(i,j)=ZERO
+	Ll(j,i)=vechLl(indx)
+  enddo
+enddo
+
+do i=1,n
+  do j=i,n
+    temp1=ZERO
+	do k=1,i
+	  temp1=temp1+Lk(i,k)*Lk(j,k)
+	enddo 
+	Ak(i,j)=temp1
+	Ak(j,i)=temp1
+        temp1=ZERO
+	do k=1,i
+	  temp1=temp1+Ll(i,k)*Ll(j,k)
+	enddo 
+	tAl(i,j)=temp1
+	tAl(j,i)=temp1
+  enddo
+enddo
+
+!Then we permute elements of Al to account for 
+!the action of the permutation matrix
+!tAl=P'*Al*P
+!We also form matrix tAkl=Ak+tAl
+do i=1,n
+  do j=1,n
+	temp1=ZERO
+    do k=1,n
+       temp1=temp1+P(k,j)*tAl(k,i)
+	enddo
+	W1(j,i)=temp1
+  enddo
+enddo
+do i=1,n  
+  do j=i,n
+    temp1=ZERO
+    do k=1,n
+	   temp1=temp1+W1(i,k)*P(k,j)
+	enddo
+  	tAl(i,j)=temp1
+	tAl(j,i)=temp1
+	tAkl(i,j)=Ak(i,j)+temp1
+	tAkl(j,i)=tAkl(i,j)
+  enddo
+enddo
+
+!The determinants of Lk and Ll are just
+!the products of their diagonal elements
+det_Lk=ONE
+det_Ll=ONE
+do i=1,n
+  det_Lk=det_Lk*Lk(i,i)
+  det_Ll=det_Ll*Ll(i,i)
+enddo
+
+!After this we can do Cholesky factorization of tAkl.
+!The Cholesky factor will be temporarily stored in the 
+!lower triangle of W1
+det_tAkl=ONE
+temp1=ZERO
+do i=1,n
+  do j=i,n
+    temp1=tAkl(i,j)
+    do k=i-1,1,-1
+      temp1=temp1-W1(i,k)*W1(j,k)
+    enddo
+    if (i==j) then
+      W1(i,i)=sqrt(temp1)
+      det_tAkl=det_tAkl*temp1
+    else
+      W1(j,i)=temp1/W1(i,i)
+      W1(i,j)=ZERO
+    endif
+  enddo
+enddo
+
+!Inverting tAkl using its Cholesky factor (stored in W1)
+!and placing the result into inv_tAkl
+do i=1,n
+  W1(i,i)=ONE/W1(i,i)
+  do j=i+1,n
+    temp1=ZERO
+    do k=i,j-1
+      temp1=temp1-W1(j,k)*W1(k,i)
+    enddo
+    W1(j,i)=temp1/W1(j,j)
+  enddo
+enddo 
+
+do i=1,n
+  do j=i,n
+     temp1=ZERO
+     do k=j,n
+       temp1=temp1+W1(k,i)*W1(k,j)
+     enddo
+     inv_tAkl(i,j)=temp1
+	 inv_tAkl(j,i)=temp1
+   enddo
+enddo  
+
+!Finding the inverse of Akk and All using their Cholesky factors
+!The result is placed in inv_Akk and inv_All
+do i=1,n
+  W1(i,i)=ONE/Lk(i,i)
+  W2(i,i)=ONE/Ll(i,i)  
+  do j=i+1,n
+    temp1=ZERO
+    temp2=ZERO
+    do k=i,j-1
+      temp1=temp1-Lk(j,k)*W1(k,i)
+      temp2=temp2-Ll(j,k)*W2(k,i)
+    enddo
+    W1(j,i)=temp1/Lk(j,j)
+    W2(j,i)=temp2/Ll(j,j)
+  enddo
+enddo 
+
+do i=1,n
+  do j=i,n
+     temp1=ZERO
+     temp2=ZERO
+     do k=j,n
+       temp1=temp1+W1(k,i)*W1(k,j)
+       temp2=temp2+W2(k,i)*W2(k,j)       
+     enddo
+     inv_Akk(i,j)=ONEHALF*temp1
+	 inv_Akk(j,i)=ONEHALF*temp1
+     inv_All(i,j)=ONEHALF*temp2
+	 inv_All(j,i)=ONEHALF*temp2	 
+   enddo
+enddo  
+
+
+!Computing vl=P'*vl, bl=P'*bl 
+do i=1,n
+  vl(i)=P(m_l,i)
+  bl(i)=P(mm_l,i)
+enddo
+
+
+!Compute inv_tAklvl = inv_tAkl * vl, inv_tAklbl = inv_tAkl * bl
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  do j=1,n
+    temp1=temp1+inv_tAkl(j,i)*vl(j)
+    temp2=temp2+inv_tAkl(j,i)*bl(j)
+  enddo
+  inv_tAklvl(i)=temp1
+  inv_tAklbl(i)=temp2
+enddo
+
+!Compute vkinv_tAkl=vk'*inv_tAkl, bkinv_tAkl=bk'*inv_tAkl
+do i=1,n
+  vkinv_tAkl(i)=inv_tAkl(m_k,i)
+  bkinv_tAkl(i)=inv_tAkl(mm_k,i)
+enddo
+
+!Compute tau3=vkinv_tAkl*vl, tau33=bkinv_tAkl*bl
+tau3=ZERO
+tau33=ZERO
+do i=1,n
+  tau3=tau3+vkinv_tAkl(i)*vl(i)
+  tau33=tau33+bkinv_tAkl(i)*bl(i)
+enddo
+m=tau3*tau33
+!Evaluating overlap
+temp1=abs(det_Ll*det_Lk)/det_tAkl
+!print*,'this is m',m
+!temp1=ZERO
+!temp1=det_tAkl*sqrt(det_tAkl)
+Skl=Glob_2raised3n2*m*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)*(inv_Akk(mm_k,mm_k)*inv_All(mm_l,mm_l))))
+!Skl=Glob_Piraised3n2*m/(FOUR*det_tAkl*sqrt(det_tAkl))
+!print*,'this is Skl',Skl
+!Doing multiplication inv_tAkltAl=inv_tAkl*tAl
+do i=1,n
+  do j=1,n
+    temp1=ZERO
+    do k=1,n
+      temp1=temp1+inv_tAkl(j,k)*tAl(k,i)
+    enddo
+    inv_tAkltAl(j,i)=temp1
+  enddo
+enddo
+
+!Doing multiplication inv_tAkltAlM=inv_tAkltAl*M
+do i=1,n
+  do j=1,n
+    temp1=ZERO
+    do k=1,n
+      temp1=temp1+inv_tAkltAl(j,k)*Glob_MassMatrix(k,i)
+    enddo
+    inv_tAkltAlM(j,i)=temp1
+  enddo
+enddo
+
+!Computing tau1=tr[inv_tAkltAlM*Ak]
+tau1=ZERO
+do i=1,n
+  temp1=ZERO
+  do k=1,n
+    temp1=temp1+inv_tAkltAlM(i,k)*Ak(k,i)
+  enddo
+   tau1=tau1+temp1
+enddo
+
+!Computing tau2 = vk'*inv_tAkltAlM*Ak*inv_tAklvl
+!We do it by multiplying twice the row-vector on the left
+!by a matrix on the right and computing a dot product in the end.
+
+!vkinv_tAkltAlM'=vk'*inv_tAkltAlM ,  bkinv_tAkltAlM'=bk'*inv_tAkltAlM
+do i=1,n
+  vkinv_tAkltAlM(i)=inv_tAkltAlM(m_k,i)
+  bkinv_tAkltAlM(i)=inv_tAkltAlM(mm_k,i)
+enddo
+!u1=vkinv_tAkltAlM'*Ak, u11=bkinv_tAkltAlM'*Ak
+!tau2=u1'*inv_tAklvl (storage for u1 as such is not needed, we use temp1=u1(i))
+!tau22=u11'*inv_tAklbl
+tau2=ZERO
+tau22=ZERO
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  do j=1,n
+    temp1=temp1+vkinv_tAkltAlM(j)*Ak(j,i)
+    temp2=temp2+bkinv_tAkltAlM(j)*Ak(j,i)
+  enddo
+  tau2=tau2+temp1*inv_tAklvl(i)
+  tau22=tau22+temp2*inv_tAklbl(i)
+enddo
+
+!Evaluating the kinetic energy
+Tkl=Skl*(SIX*tau1+FOUR*tau2/tau3+FOUR*tau22/tau33)
+!temp1=det_tAkl*sqrt(det_tAkl)
+!Tkl=SIX*Skl*tau1+Glob_Piraised3n2*(tau2*tau33+tau22*tau3)/(det_tAkl**(THREE/TWO))
+!print*,'this is Tkl',Tkl
+!Evaluating eta1(i,j), sqrt_eta1(i,j), eta2(i,j), Rkl(i,j),
+!and the potential energy. Notice that only the lower triangles
+!of eta1, sqrt_eta1, eta2, and Rkl are filled.
+Vkl=ZERO
+temp1=Skl*(TWO/SQRTPI)
+!temp4=TWO*det_tAkl*sqrt(det_tAkl)*SQRTPI
+!temp1=Glob_Piraised3n2/temp4
+do i=1,n
+  temp2=inv_tAkl(i,i)
+  temp3=sqrt(temp2)
+  eta1(i,i)=temp2
+  sqrt_eta1(i,i)=temp3
+  !Getting row m_k of matrix inv_tAkl*Jii*inv_tAkl
+  !as only this row is needed to compute eta2(i,i)
+  do k=1,n
+    u1(k)=inv_tAkl(i,m_k)*inv_tAkl(k,i) 
+    u11(k)=inv_tAkl(i,mm_k)*inv_tAkl(k,i) 
+  enddo
+  temp4=ZERO
+  temp44=ZERO
+  temp444=ZERO
+  do k=1,n
+    temp4=temp4+u1(k)*vl(k)
+    temp44=temp44+u11(k)*bl(k)
+  enddo
+  eta2(i,i)=temp4
+  eta22(i,i)=temp44
+  temp444=temp4*temp44
+  eta(i,i)=temp444
+  !Rkl(i,i)=temp1*(ONE-temp4/(THREE*temp2*tau3))/temp3
+  Rkl(i,i)=temp1/temp3*(ONE-(temp4/tau3+temp44/tau33)/(THREE*temp2)+temp4*temp44/(FIVE*temp2*temp2*m))
+  !Rkl(i,i)=temp1*(tau3*tau33/temp3-(tau3*temp44+tau33*temp4)/(3*temp3*temp2)+temp4*temp44/(5*temp3*temp2*temp2))
+  Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge0)*Rkl(i,i)
+enddo
+do i=1,n
+  do j=i+1,n
+    temp2=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
+    temp3=sqrt(temp2)
+    eta1(j,i)=temp2
+    sqrt_eta1(j,i)=temp3
+    !Getting row m_k of matrix inv_tAkl*Jij*inv_tAkl
+    !as only this row is needed to compute eta2(i,i)
+    do k=1,n
+      u1(k)=(inv_tAkl(i,m_k)-inv_tAkl(j,m_k))*(inv_tAkl(k,i)-inv_tAkl(k,j))
+      u11(k)=(inv_tAkl(i,mm_k)-inv_tAkl(j,mm_k))*(inv_tAkl(k,i)-inv_tAkl(k,j))
+    enddo
+    temp4=ZERO
+    temp44=ZERO
+    temp444=ZERO
+    do k=1,n
+      temp4=temp4+u1(k)*vl(k)
+      temp44=temp44+u11(k)*bl(k)
+    enddo
+    eta2(j,i)=temp4
+    eta22(j,i)=temp44
+    temp444=temp4*temp44 
+    eta(j,i)=temp444
+    Rkl(j,i)=temp1/temp3*(ONE-(temp4/tau3+temp44/tau33)/(THREE*temp2)+temp4*temp44/(FIVE*temp2*temp2*m)) ! initial code
+    !Rkl(i,i)=temp1*(tau3*tau33/temp3-(tau3*temp44+tau33*temp4)/(3*temp3*temp2)+temp4*temp44/(5*temp3*temp2*temp2))
+    Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*Rkl(j,i)
+  enddo  
+enddo
+
+Hkl=Tkl+Vkl
+!print*,'this is Vkl',Vkl
+!print*,'this is Hkl',Hkl
+!Now we start computing the gradient of Skl
+
+if (grad_k.or.grad_l) then
+  !Evaluating matrix tKkl = inv_tAklvl * vkinv_tAkl'
+  !which will be used a lot below. 
+  do i=1,n
+    do j=1,n
+      tKkl(i,j)=inv_tAklvl(i)*vkinv_tAkl(j)
+      tKkl2(i,j)=inv_tAklbl(i)*bkinv_tAkl(j)
+    enddo
+  enddo
+  !Evaluating twosym_tFkl = tFkl + tFkl' , where tFkl = (3/2)*inv_tAkl + tKkl/tau3
+  do i=1,n
+    do j=1,i
+      twosym_tFkl(i,j)=THREE*inv_tAkl(j,i)+(tKkl(i,j)+tKkl(j,i))/tau3+(tKkl2(i,j)+tKkl2(j,i))/tau33
+      twosym_tFkl(j,i)=twosym_tFkl(i,j)
+    enddo
+  enddo
+endif
+
+if (grad_k) then
+    
+  !I delete non-necessary parts of the code  
+  !Evaluating two_Fkk = 2*Fkk, where 
+  !Fkk = (3/2) * inv_Akk + (inv_Akk * vk * vk' * inv_Akk)/(vk' * inv_Akk * vk)
+  do i=1,n
+    u1(i)=inv_Akk(m_k,i)
+    u11(i)=inv_Akk(mm_k,i)
+  enddo
+  temp1=TWO/u1(m_k)
+  temp2=TWO/u11(mm_k)
+  do i=1,n
+    do j=1,i
+       two_Fkk(i,j)=THREE*inv_Akk(i,j)+temp1*u1(i)*u1(j)+temp2*u11(i)*u11(j)
+       two_Fkk(j,i)=two_Fkk(i,j) 
+    enddo
+  enddo
+  !Evaluating Skl*vech((two_Fkk-twosym_tFkl)*Lk)'
+  !Evaluating -Skl*vech((twosym_tFkl)*Lk)'  !new line
+  indx=0
+  do i=1,n
+    do j=i,n
+      temp1=ZERO
+      do k=i,n
+        temp1=temp1+(two_Fkk(k,j)-twosym_tFkl(k,j))*Lk(k,i)
+      enddo
+      indx=indx+1
+      Dk(Glob_np+indx)=Skl*temp1
+    enddo
+  enddo
+endif
+
+if (grad_l) then
+  !Evaluating twosym_tGkl = P * twosym_tFkl *P'
+  do i=1,n
+    do j=1,n
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+P(i,k)*twosym_tFkl(k,j)
+      enddo  
+      W1(i,j)=temp1
+    enddo
+  enddo
+  do i=1,n
+    do j=1,i
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+W1(i,k)*P(j,k)
+      enddo  
+      twosym_tGkl(i,j)=temp1
+      twosym_tGkl(j,i)=temp1
+    enddo
+  enddo  
+  
+  !I delete non-necessary parts of the code
+  !Evaluating two_Fll = 2*Fll, where 
+  !Fll = (3/2) * inv_All + (inv_All * vl * vl' * inv_All)/(vl' * inv_All * vl)
+  do i=1,n
+    u1(i)=inv_All(m_l,i)
+    u11(i)=inv_All(mm_l,i)
+  enddo
+  temp1=TWO/u1(m_l)
+  temp2=TWO/u11(mm_l)
+  do i=1,n
+    do j=1,i
+       two_Fll(i,j)=THREE*inv_All(i,j)+temp1*u1(i)*u1(j)+temp2*u11(i)*u11(j)
+       two_Fll(j,i)=two_Fll(i,j) 
+    enddo
+  enddo
+  !Evaluating Skl*vech((two_Fll-twosym_tGkl)*Ll)'
+  !Evaluating -Skl*vech((twosym_tGkl)*Ll)'  !new line
+  indx=0
+  do i=1,n
+    do j=i,n
+      temp1=ZERO
+      do k=i,n
+        temp1=temp1+(two_Fll(k,j)-twosym_tGkl(k,j))*Ll(k,i)
+      enddo
+      indx=indx+1
+      Dl(Glob_np+indx)=Skl*temp1
+    enddo
+  enddo
+endif
+
+!Gradient of Tkl
+
+if (grad_k) then
+  !Computing W1=6*inv_tAkltAlM*inv_tAkltAl'
+  do i=1,n
+    do j=i,n
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+inv_tAkltAlM(j,k)*inv_tAkltAl(i,k)
+      enddo
+      W1(j,i)=SIX*temp1
+      W1(i,j)=W1(j,i)
+    enddo
+  enddo
+  !Computing u1'=vkinv_tAkltAlM'*inv_tAkltAl'
+  do i=1,n
+    temp1=ZERO
+    temp2=ZERO
+    do j=1,n
+      temp1=temp1+vkinv_tAkltAlM(j)*inv_tAkltAl(i,j)
+      temp2=temp2+bkinv_tAkltAlM(j)*inv_tAkltAl(i,j)
+    enddo
+    u1(i)=temp1
+    u11(i)=temp2
+  enddo
+  !Computing u2=inv_tAkltAlM*Ak*inv_tAklvl
+  do i=1,n
+    temp1=ZERO
+    temp2=ZERO
+    do j=1,n
+      temp1=temp1+Ak(i,j)*inv_tAklvl(j)
+      temp2=temp2+Ak(i,j)*inv_tAklbl(j)
+    enddo
+    u3(i)=temp1
+    u33(i)=temp2
+  enddo
+  do i=1,n
+    temp1=ZERO
+    temp2=ZERO
+    do j=1,n
+      temp1=temp1+inv_tAkltAlM(i,j)*u3(j)
+      temp2=temp2+inv_tAkltAlM(i,j)*u33(j)
+    enddo
+    u2(i)=temp1
+    u22(i)=temp2
+  enddo   
+  !Computing matrix tUkl=W1+(4/tau3)*(inv_tAklvl*u1'-u2*vkinv_tAkl')+(4*tau2/tau3^2)*tKkl
+  temp1=FOUR/tau3
+  temp11=FOUR/tau33
+  temp2=temp1*tau2/tau3
+  temp22=temp11*tau22/tau33
+  do i=1,n
+    do j=1,n
+      tUkl(j,i)=W1(j,i)+temp1*(inv_tAklvl(j)*u1(i)-u2(j)*vkinv_tAkl(i))+temp2*tKkl(j,i)&
+                    +temp11*(inv_tAklbl(j)*u11(i)-u22(j)*bkinv_tAkl(i))+temp22*tKkl2(j,i)
+    enddo
+  enddo 
+  !Evaluating (Tkl/Skl)*dSkldvechLk' + Skl*vech((tUkl+tUkl')*Lk)'
+  temp4=Tkl/Skl
+  indx=0
+  do i=1,n
+    do j=i,n
+      temp1=ZERO
+      do k=i,n
+        temp1=temp1+(tUkl(k,j)+tUkl(j,k))*Lk(k,i)
+      enddo
+      indx=indx+1
+      Dk(indx)=Skl*temp1+temp4*Dk(Glob_np+indx)
+    enddo
+  enddo  
+endif
+
+if (grad_l) then
+  !Computing inv_tAklAk=inv_tAkl*Ak
+  do i=1,n
+    do j=1,n
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+inv_tAkl(j,k)*Ak(i,k)
+      enddo
+      inv_tAklAk(j,i)=temp1
+    enddo
+  enddo   
+  !Computing inv_tAklAkM=inv_tAklAk*M
+  do i=1,n
+    do j=1,n
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+inv_tAklAk(j,k)*Glob_MassMatrix(i,k)
+      enddo
+      inv_tAklAkM(j,i)=temp1
+    enddo
+  enddo   
+  !Computing W1=6*inv_tAklAkM*inv_tAklAk' 
+  do i=1,n
+    do j=i,n
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+inv_tAklAkM(j,k)*inv_tAklAk(i,k)
+      enddo
+      W1(j,i)=SIX*temp1
+      W1(i,j)=W1(j,i)
+    enddo
+  enddo 
+  !Computing u1=inv_tAklAkM*inv_tAklAk'*vl
+  do i=1,n
+    temp1=ZERO
+    temp2=ZERO
+    do j=1,n
+      temp1=temp1+inv_tAklAk(j,i)*vl(j)
+      temp2=temp2+inv_tAklAk(j,i)*bl(j)
+    enddo
+    u3(i)=temp1
+    u33(i)=temp2
+  enddo  
+  do i=1,n
+    temp1=ZERO
+    temp2=ZERO
+    do j=1,n
+      temp1=temp1+inv_tAklAkM(i,j)*u3(j)
+      temp2=temp2+inv_tAklAkM(i,j)*u33(j)
+    enddo
+    u1(i)=temp1
+    u11(i)=temp2
+  enddo 
+  !Computing u2'=vkinv_tAkltAlM'*inv_tAklAk'
+  do i=1,n
+    temp1=ZERO
+    temp2=ZERO
+    do j=1,n
+      temp1=temp1+vkinv_tAkltAlM(j)*inv_tAklAk(i,j)
+      temp2=temp2+bkinv_tAkltAlM(j)*inv_tAklAk(i,j)
+    enddo
+    u2(i)=temp1
+    u22(i)=temp2
+  enddo     
+  !Computing tWkl = P*(
+  !     W1 + (4/tau3)*(u1*vkinv_tAkl'-inv_tAklvl*u2') + (4*tau2/tau3^2)*tKkl
+  !                   )*P'
+  temp1=FOUR/tau3
+  temp11=FOUR/tau33
+  temp2=temp1*tau2/tau3
+  temp22=temp11*tau22/tau33
+  do i=1,n
+    do j=1,n
+      W3(j,i)=W1(j,i)+temp1*(u1(j)*vkinv_tAkl(i)-inv_tAklvl(j)*u2(i))+temp2*tKkl(j,i)&
+           +temp11*(u11(j)*bkinv_tAkl(i)-inv_tAklbl(j)*u22(i))+temp22*tKkl2(j,i)
+    enddo
+  enddo   
+  do i=1,n
+    do j=1,n
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+P(i,k)*W3(k,j)
+      enddo
+      W2(i,j)=temp1
+    enddo
+  enddo
+  do i=1,n
+    do j=1,n
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+W2(i,k)*P(j,k)
+      enddo
+      tWkl(i,j)=temp1
+    enddo
+  enddo 
+  !Evaluating (Tkl/Skl)*dSkldvechLl' + Skl*vech((tWkl+tWkl')*Ll)'
+  temp4=Tkl/Skl  
+  indx=0
+  do i=1,n
+    do j=i,n
+      temp1=ZERO
+      do k=i,n
+        temp1=temp1+(tWkl(k,j)+tWkl(j,k))*Ll(k,i)
+      enddo
+      indx=indx+1
+      Dl(indx)=Skl*temp1+temp4*Dl(Glob_np+indx)
+    enddo
+  enddo    
+endif
+
+!Dk(1:Glob_np)=ZERO
+!Dl(1:Glob_np)=ZERO
+
+!Gradient of Vkl
+if (grad_k.or.grad_l) then
+  do i=1,n
+    !Computing twosym_tQkl(i,i)=tQkl(i,i)+tQkl(i,i)'
+    temp22=tau3*eta22(i,i)+tau33*eta2(i,i) !n
+    temp1=(TWO/SQRTPI)/(eta1(i,i)*sqrt_eta1(i,i))
+    temp2=ONE+(eta(i,i)/eta1(i,i)-temp22)/(eta1(i,i)*m) !first term
+    temp3=(ONEFIFTH*eta(i,i)/eta1(i,i)-ONETHIRD*temp22)/(m*m)
+    temp4=ONETHIRD/m
+    temp11=ONEFIFTH/(eta1(i,i)*m) 
+    do t=1,n
+      do q=t,n
+        temp5=inv_tAkl(q,i)*inv_tAkl(i,t)  
+        temp6=inv_tAkl(q,i)*(tKkl(i,t)+tKkl(t,i))+inv_tAkl(t,i)*(tKkl(i,q)+tKkl(q,i)) !old
+        temp66=inv_tAkl(q,i)*(tKkl2(i,t)+tKkl2(t,i))+inv_tAkl(t,i)*(tKkl2(i,q)+tKkl2(q,i)) 
+        kkl=tau3*(tKkl2(q,t)+tKkl2(t,q))+tau33*(tKkl(q,t)+tKkl(t,q)) !kkl
+        temp666= eta2(i,i)*(tKkl2(q,t)+tKkl2(t,q))+&
+          eta22(i,i)*(tKkl(q,t)+tKkl(t,q))+tau33*temp6+tau3*temp66
+        temp44=eta22(i,i)*temp6+eta2(i,i)*temp66
+        twosym_tQkl(q,t)=temp1*(temp2*temp5+temp3*kkl+temp4*temp666-temp11*temp44)  
+        twosym_tQkl(t,q)=twosym_tQkl(q,t)
+      enddo
+    enddo 
+    temp5=ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge0)
+    if (grad_k) then
+      !Evaluating (Rkl(i,i)/Skl)*dSkldvechLk' + Skl*vech(twosym_tQkl*Lk)'
+      !and updating Dk
+      temp2=Rkl(i,i)/Skl
+      indx=0
+      do t=1,n
+        do q=t,n
+          temp1=ZERO
+          do k=t,n
+            temp1=temp1+twosym_tQkl(k,q)*Lk(k,t)
+          enddo
+          indx=indx+1
+          Dk(indx)=Dk(indx)+temp5*(temp2*Dk(Glob_np+indx)+Skl*temp1)
+        enddo
+      enddo
+    endif 
+    if (grad_l) then
+      !Computing twosym_tDkl = P * twosym_tQkl * P'
+      do t=1,n
+        do q=1,n
+          temp1=ZERO
+          do k=1,n
+            temp1=temp1+P(q,k)*twosym_tQkl(k,t)
+          enddo
+          W1(q,t)=temp1
+        enddo
+      enddo
+      do t=1,n
+        do q=t,n
+          temp1=ZERO
+          do k=1,n
+            temp1=temp1+W1(q,k)*P(t,k)
+          enddo
+          twosym_tDkl(q,t)=temp1
+          twosym_tDkl(t,q)=temp1
+        enddo
+      enddo
+      !Evaluating (Rkl(i,i)/Skl)*dSkldvechLl' + Skl*vech(twosym_tDkl*Ll)'
+      !and updating Dl
+      temp2=Rkl(i,i)/Skl
+      indx=0
+      do t=1,n
+        do q=t,n
+          temp1=ZERO
+          do k=t,n
+            temp1=temp1+twosym_tDkl(k,q)*Ll(k,t)
+          enddo
+          indx=indx+1
+          Dl(indx)=Dl(indx)+temp5*(temp2*Dl(Glob_np+indx)+Skl*temp1)
+        enddo
+      enddo            
+    endif        
+  enddo
+  do i=1,n
+    do j=i+1,n
+      !Computing twosym_tQkl(j,i)=tQkl(j,i)+tQkl(j,i)'
+      temp22=tau3*eta22(j,i)+tau33*eta2(j,i) !n
+      temp1=(TWO/SQRTPI)/(eta1(j,i)*sqrt_eta1(j,i))
+      temp2=ONE+(eta(j,i)/eta1(j,i)-temp22)/(eta1(j,i)*m) !first term
+      temp3=(ONEFIFTH*eta(j,i)/eta1(j,i)-ONETHIRD*temp22)/(m*m)
+      temp4=ONETHIRD/m
+      temp11=ONEFIFTH/(eta1(j,i)*m)  
+      do t=1,n
+        do q=t,n
+          temp5=(inv_tAkl(q,i)-inv_tAkl(q,j))*(inv_tAkl(i,t)-inv_tAkl(j,t))     
+          temp6=(inv_tAkl(q,i)-inv_tAkl(q,j))*(tKkl(i,t)-tKkl(j,t)+tKkl(t,i)-tKkl(t,j))+ &
+                (tKkl(q,i)-tKkl(q,j)+tKkl(i,q)-tKkl(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))            
+          temp66=(inv_tAkl(q,i)-inv_tAkl(q,j))*(tKkl2(i,t)-tKkl2(j,t)+tKkl2(t,i)-tKkl2(t,j))+ &
+                (tKkl2(q,i)-tKkl2(q,j)+tKkl2(i,q)-tKkl2(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))
+          temp44=eta22(j,i)*temp6+eta2(j,i)*temp66      
+          kkl=tau3*(tKkl2(q,t)+tKkl2(t,q))+tau33*(tKkl(q,t)+tKkl(t,q)) !kkl   
+          temp666= eta2(j,i)*(tKkl2(q,t)+tKkl2(t,q))+&
+          eta22(j,i)*(tKkl(q,t)+tKkl(t,q))+tau33*temp6+tau3*temp66
+          twosym_tQkl(q,t)=temp1*(temp2*temp5+temp3*kkl+temp4*temp666-temp11*temp44) 
+          twosym_tQkl(t,q)=twosym_tQkl(q,t)
+        enddo
+      enddo 
+      temp5=ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))
+      if (grad_k) then  
+        !Evaluating (Rkl(j,i)/Skl)*dSkldvechLk' + Skl*vech(twosym_tQkl*Lk)'
+        !and updating Dk
+        temp2=Rkl(j,i)/Skl
+        indx=0
+        do t=1,n
+          do q=t,n
+            temp1=ZERO
+            do k=t,n
+              temp1=temp1+twosym_tQkl(k,q)*Lk(k,t)
+            enddo
+            indx=indx+1
+            Dk(indx)=Dk(indx)+temp5*(temp2*Dk(Glob_np+indx)+Skl*temp1)
+          enddo
+        enddo 
+      endif 
+      if (grad_l) then
+        !Computing twosym_tDkl = P * twosym_tQkl * P'
+        do t=1,n
+          do q=1,n
+            temp1=ZERO
+            do k=1,n
+              temp1=temp1+P(q,k)*twosym_tQkl(k,t)
+            enddo
+            W1(q,t)=temp1
+          enddo
+        enddo
+        do t=1,n
+          do q=t,n
+            temp1=ZERO
+            do k=1,n
+              temp1=temp1+W1(q,k)*P(t,k)
+            enddo
+            twosym_tDkl(q,t)=temp1
+            twosym_tDkl(t,q)=temp1
+          enddo
+        enddo
+        !Evaluating (Rkl(j,i)/Skl)*dSkldvechLl' + Skl*vech(twosym_tQkl*Ll)'
+        !and updating Dl
+        temp2=Rkl(j,i)/Skl
+        indx=0
+        do t=1,n
+          do q=t,n
+            temp1=ZERO
+            do k=t,n
+              temp1=temp1+twosym_tDkl(k,q)*Ll(k,t)
+            enddo
+            indx=indx+1
+            Dl(indx)=Dl(indx)+temp5*(temp2*Dl(Glob_np+indx)+Skl*temp1)
+          enddo
+        enddo   
+      endif 
+    enddo
+  enddo
+endif
+
+end subroutine MatrixElementsL11
+
 
 subroutine MatrixElementsL1ForExpcVals(m_k, m_l,mm_k,mm_l, vechLk, vechLl, Pbra, Pket, &
            Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
