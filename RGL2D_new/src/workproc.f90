@@ -1683,13 +1683,6 @@ if (Glob_CurrBasisSize==0) then !making uniform distribution
     m(i,2)=1+int(r1)
     if (m(i,1)>Glob_n) m(i,1)=Glob_n
     if (m(i,2)>Glob_n) m(i,2)=Glob_n
-     if (m(i,1)==m(i,2)) then 
-	 if (m(i,1)==Glob_n) then
-             m(i,2)=m(i,1)-1
-	 elseif (m(i,1)<Glob_n) then
-	     m(i,2)=m(i,1)+1
-         endif
-     end if
   enddo
   method_used=0
   k=0
@@ -1713,7 +1706,7 @@ else
                 jj=Glob_Index(k,2)
 		m(i,1)=j
                 m(i,2)=jj
-		do while (m(i,1)==j .and. m(i,2)==jj .and. m(i,1)==m(i,2)) !chenge  .and. m(i,1)==m(i,2)
+		do while (m(i,1)==j .and. m(i,2)==jj) !chenge  .and. m(i,1)==m(i,2)
 		    call random_number(r)
 		    r=r*Glob_n
                     m(i,1)=1+int(r)             
@@ -1760,7 +1753,7 @@ else
                   jj=Glob_Index(k+i-1,2)
 		  m(i,1)=j
                   m(i,2)=jj
-		  do while (m(i,1)==j .and. m(i,2)==jj .and. m(i,1)==m(i,2)) !change  .and. m(i,1)==m(i,2)
+		  do while (m(i,1)==j .and. m(i,2)==jj) !change  .and. m(i,1)==m(i,2)
 		       call random_number(r)
 		       r=r*Glob_n
                        m(i,1)=1+int(r)
@@ -4127,13 +4120,6 @@ do while (K<Kstop)
 	    endif                    
           endif  
         enddo
-        if (jbest2==jbest) then
-            if(jbest2==Glob_n) then
-                jbest=jbest2-1
-            elseif (jbest2<Glob_n) then
-                jbest=jbest2+1
-            endif
-        endif
         Glob_Index(nfru+ii2,2)=jbest2
        enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -4801,13 +4787,6 @@ do while (K<Kstop)
 	    endif                    
           endif  
         enddo      
-        if (jbest2==jbest) then
-            if(jbest2==Glob_n) then
-                jbest=jbest2-1
-            elseif (jbest2<Glob_n) then
-                jbest=jbest2+1
-            endif
-        endif
         Glob_Index(nfru+ii2,2)=jbest2
        enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
