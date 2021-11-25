@@ -169,16 +169,12 @@ do k=Nmin,Nmax
 	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
         call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                Hkl1,Skl1,Dk1,Dl1,.false.,.false.)
-        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+        call MatrixElementsL11(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                Hkl2,Skl2,Dk2,Dl2,.false.,.false.)
-        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl3,Skl3,Dk3,Dl3,.false.,.false.)
-        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl4,Skl4,Dk4,Dl4,.false.,.false.)
-                Hkl=-4*Hkl1+6*Hkl2+4*Hkl3-2*Hkl4
-                Skl=-4*Skl1+6*Skl2+4*Skl3-2*Skl4
-                Dk=-4*Dk1+6*Dk2+4*Dk3-2*Dk4
-                Dl=-4*Dl1+6*Dl2+4*Dl3-2*Dl4  !should be investigated which combination gives correct energy
+                Hkl=6*Hkl1-6*Hkl2
+                Skl=6*Skl1-6*Skl2
+                Dk=6*Dk1-6*Dk2
+                Dl=6*Dl1-6*Dl2
 		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
 		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
 	  endif
@@ -318,28 +314,12 @@ do k=Nmin,Nmax
 	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
         call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                Hkl1,Skl1,Dk1,Dl1,.true.,grad_l)    
-        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+        call MatrixElementsL11(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                Hkl2,Skl2,Dk2,Dl2,.true.,grad_l)
-               
-        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl3,Skl3,Dk3,Dl3,.true.,grad_l)
-        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl4,Skl4,Dk4,Dl4,.true.,grad_l)    
-               
-               !should be uncommented for wihtout gradient
-!        call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-!               Hkl1,Skl1,Dk1,Dl1,.false.,.false.)     
-!        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-!               Hkl2,Skl2,Dk2,Dl2,.false.,.false.)
-!               
-!        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-!               Hkl3,Skl3,Dk3,Dl3,.false.,.false.)
-!        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-!               Hkl4,Skl4,Dk4,Dl4,.false.,.false.)
-                Hkl=-4*Hkl1+6*Hkl2+4*Hkl3-2*Hkl4
-                Skl=-4*Skl1+6*Skl2+4*Skl3-2*Skl4
-                Dk=-4*Dk1+6*Dk2+4*Dk3-2*Dk4      
-                Dl=-4*Dl1+6*Dl2+4*Dl3-2*Dl4
+                Hkl=6*Hkl1-6*Hkl2
+                Skl=6*Skl1-6*Skl2
+                Dk=6*Dk1-6*Dk2  
+                Dl=6*Dl1-6*Dl2
 		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
 		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
                 Dksum(1:npt2)=Dksum(1:npt2)+Glob_YHYCoeff(j)*Dk(1:npt2)               
