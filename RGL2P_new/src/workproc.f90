@@ -15,7 +15,7 @@ subroutine ReadIOFile()
 !parameters and other information) from the input/output 
 !file whose name is specified by global variable 
 !Glob_DataFileName. If there is no such a file in the 
-!current directory then the program stops.
+!current directory then the program stops.  On entry to DSYGVX
 
 !Local variables:
 integer        OpenFileErr
@@ -1883,7 +1883,7 @@ subroutine ComputeOverlapPenaltyAndAddGradient(MaxPairOverlapPenalty,OverlapThre
 !  Pij=(abs(Sij)^2-t^2)*b/(1-t^2),  Sij^2>t^2
 !  Pij=0, Sij<=t^2
 !Here 
-!  b=MaxPairOverlapPenalty
+!  b=MaxPairOverlapPenalty 
 !  t^2=OverlapThreshold2
 !  Sij is the pair overlap value
 !The overlap penalty is returned in TotalPenalty. The gradient is added to WkGR.
@@ -2276,7 +2276,7 @@ function EnergyIA(Nmin,Nmax,AreMatElemNeeded,ErrorCode)
 !Function EnergyIA computes the energy of the system under 
 !consideration. Routine GSEPIIS from module linalg is used to 
 !solve GSEP. The function computes the energy level which is
-!the closest one to the value of the global variable 
+!the closest one to the value of the global variable  
 !Glob_ApproxEnergy. The calculations are done with a basis 
 !of Nmax functions. It is assumed that nonlinear parameters
 !of the basis functions are stored in global array 
@@ -2288,7 +2288,7 @@ function EnergyIA(Nmin,Nmax,AreMatElemNeeded,ErrorCode)
 !should set AreMatElemNeeded=.false.
 !Upon successfull exit ErrorCode should be equal to 0. In the
 !case of nonzero ErrorCode please see the description of GSEPIIS
-!as ErrorCode is simply passed from that routine to EnergyIA
+!as ErrorCode is simply passed from that routine to EnergyIA 
 
 real(dprec)    EnergyIA
 !Arguments:
@@ -3827,7 +3827,7 @@ real(dprec)  t
 real(dprec),allocatable,dimension(:,:)   :: ParSet,ParSetBest
 integer,allocatable,dimension(:,:)       :: IndSet,IndSetBest
 real(dprec),allocatable,dimension(:)     :: x,x_best,grad 
-integer,allocatable,dimension(:)       :: IndOptSequence
+integer,allocatable,dimension(:)         :: IndOptSequence  
 !Arrays used by DRMNG
 real(dprec),allocatable,dimension(:)     :: D,V,V_init
 integer,parameter    :: LIV=60
@@ -3907,7 +3907,7 @@ allocate(IndSetBest(Kstep,2))
 allocate(x(nvmax))
 allocate(x_best(nvmax))
 allocate(grad(nvmax))
-allocate(IndOptSequence(nfo))
+allocate(IndOptSequence(nfo))  
 
 !Allocate arrays used by DRMNG
 nvmax=npt*Kstep
@@ -4079,7 +4079,7 @@ do while (K<Kstop)
         j2=Glob_Index(nfru+ii,2) 
         if (j2/=j) then
           jbest=j
-          jbest2=j2  !
+          jbest2=j2  
           do jj=1,Glob_n
             if (jj/=j .and. jj/=j2) then
               Glob_Index(nfru+ii,1)=jj
@@ -4132,13 +4132,48 @@ do while (K<Kstop)
           stop
         endif 
       enddo
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!      NumOfFailures=0
+!      do i=1,nfo
+!        ii=IndOptSequence(i) !!  ii should be the same for two indices
+!        j=Glob_Index(nfru+ii,1)
+!        j2=Glob_Index(nfru+ii,2) 
+!        if (j2/=j) then
+!          jbest2=j2
+!          do jj=1,Glob_n
+!            if (jj/=j .and. jj/=j2) then
+!              Glob_Index(nfru+ii,2)=jj
+!              Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
+!     	        if (ErrCode/=0) then
+!                NumOfFailures=NumOfFailures+1
+!                Glob_Index(nfru+ii,2)=jbest2
+!                if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then!
+!	                if (Glob_ProcID==0) then
+!                          write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
+!		                     write(*,*) 'during the optimization of y-indicies exceeded limit' 
+!		              endif
+!	                stop      
+!                endif
+!              else
+!	              if (Evalue<Glob_CurrEnergy) then
+!                    Glob_CurrEnergy=Evalue
+!                    jbest2=jj
+!                endif
+!	            endif                    
+!            endif          
+!          enddo 
+!          Glob_Index(nfru+ii,2)=jbest2
+!        elseif (j2==j) then
+!          write(*,*) 'Two indices are the same in Y(G), change your program'
+!          stop
+!        endif 
+!      enddo
       !Now we optimize nonlinear parameters
     
 	  !Setting IV and V values as was in their initial copies
 	  IV(1:LIV)=IV_init(1:LIV)
 	  V(1:LV)=V_init(1:LV)
- 
+          
 	  nv=nfo*npt
 	  do i=1,nfo
 	    x((i-1)*npt+1:i*npt)=Glob_NonlinParam(1:npt,nfru+i)
@@ -4689,7 +4724,7 @@ do while (K<Kstop)
           Glob_CurrEnergy=Evalue
 		  ParSetBest(1:npt,1:nfo)=ParSet(1:npt,1:nfo)
 		  IndSetBest(1:nfo,1)=IndSet(1:nfo,1)
-                  IndSetBest(1:nfo,2)=IndSet(1:nfo,2)
+      IndSetBest(1:nfo,2)=IndSet(1:nfo,2)
 		  IsEnergyImproved=.true.
 		  wbfu=wbfu_t
 		  wmu=wmu_t
@@ -4803,13 +4838,12 @@ do while (K<Kstop)
           stop
         endif 
       enddo
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !Now we optimize nonlinear parameters
     
 	  !Setting IV and V values as was in their initial copies
 	  IV(1:LIV)=IV_init(1:LIV)
 	  V(1:LV)=V_init(1:LV)
- 
+        !  print*,'IA: this is IV(1) and IV(2) and IV(4))', IV(1),IV(2),IV(3),IV(4)
 	  nv=nfo*npt
 	  do i=1,nfo
 	    x((i-1)*npt+1:i*npt)=Glob_NonlinParam(1:npt,nfru+i)
@@ -4901,7 +4935,7 @@ do while (K<Kstop)
 ! 	              do i=1,nfo
 !	                  Glob_NonlinParam(1:npt,nfru+i)=fx((i-1)*npt+1:i*npt)
 !	              enddo
-!                      Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)                
+!                      Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)                
 !                      fx(j)=x(j)-2*deltax
 ! 	              do i=1,nfo
 !	                   Glob_NonlinParam(1:npt,nfru+i)=fx((i-1)*npt+1:i*npt)
@@ -9280,31 +9314,6 @@ do i=1,cbs
                 rm2kl,rmkl1,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
                 Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
                 NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
-               !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!     
-                             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
-	      call MatrixElementsL1ForExpcVals(Glob_Index(i,1),Glob_Index(j,2),Glob_Index(j,1),Glob_Index(i,2),  &
-	        Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
-	        IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl2,Skl2,Tkl2,Vkl2,                    &
-                rm2kl,rmkl2,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
-                Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
-                NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
-               !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!     
-                             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
-	      call MatrixElementsL1ForExpcVals(Glob_Index(j,1),Glob_Index(i,2),Glob_Index(i,1),Glob_Index(j,2),  &
-	        Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
-	        IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl3,Skl3,Tkl3,Vkl3,                    &
-                rm2kl,rmkl3,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
-                Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
-                NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
-               !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!     
-                             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
-	      call MatrixElementsL1ForExpcVals(Glob_Index(j,1),Glob_Index(j,2),Glob_Index(i,1),Glob_Index(i,2),  &
-	        Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
-	        IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl4,Skl4,Tkl4,Vkl4,                    &
-                rm2kl,rmkl4,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
-                Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
-                NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
-               !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!     
               c=0
               do a=1,n
 	        do b=a,n
@@ -9313,7 +9322,7 @@ do i=1,cbs
               enddo		  
               do a=1,n
 		do b=a,n
-		  c=c+1; MEkl(c)=rmkl1(b,a)-rmkl2(b,a)-rmkl3(b,a)+rmkl4(b,a)
+		  c=c+1; MEkl(c)=rmkl1(b,a)
                 enddo
 	      enddo
               do a=1,n
@@ -9341,10 +9350,10 @@ do i=1,cbs
 		  c=c+1; MEkl(c)=prvalkl(b,a)
                 enddo
 	      enddo                  
-              c=c+1; MEkl(c)=Hkl1-Hkl2-Hkl3+Hkl4
-              c=c+1; MEkl(c)=Skl1-Skl2-Skl3+Skl4
-              c=c+1; MEkl(c)=Tkl1-Tkl2-Tkl3+Tkl4
-              c=c+1; MEkl(c)=Vkl1-Vkl2-Vkl3+Vkl4
+              c=c+1; MEkl(c)=Hkl1
+              c=c+1; MEkl(c)=Skl1
+              c=c+1; MEkl(c)=Tkl1
+              c=c+1; MEkl(c)=Vkl1
               c=c+1; MEkl(c)=MVkl	
               c=c+1; MEkl(c)=drach_MVkl          
               c=c+1; MEkl(c)=Darwinkl
@@ -9395,31 +9404,10 @@ do i=1,cbs
 !                  rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
 !                  Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
 !                  NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
-			        call MatrixElementsL1ForExpcVals(Glob_Index(i,1),Glob_Index(i,2),Glob_Index(j,1), Glob_Index(j,2),  &
+		call MatrixElementsL1ForExpcVals(Glob_Index(i,1),Glob_Index(i,2),Glob_Index(j,1), Glob_Index(j,2),  &
 	          Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
 	          Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl1,Skl1,Tkl1,Vkl1,            &
                   rm2kl,rmkl1,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
-                  Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
-                  NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
-                  
-                  	        call MatrixElementsL1ForExpcVals(Glob_Index(i,1),Glob_Index(j,2),Glob_Index(j,1), Glob_Index(i,2),  &
-	          Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
-	          Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl2,Skl2,Tkl2,Vkl2,            &
-                  rm2kl,rmkl2,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
-                  Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
-                  NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
-                  
-                  	        call MatrixElementsL1ForExpcVals(Glob_Index(j,1),Glob_Index(i,2),Glob_Index(i,1), Glob_Index(j,2),  &
-	          Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
-	          Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl3,Skl3,Tkl3,Vkl3,            &
-                  rm2kl,rmkl3,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
-                  Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
-                  NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
-                  
-                  	        call MatrixElementsL1ForExpcVals(Glob_Index(j,1),Glob_Index(j,2),Glob_Index(i,1), Glob_Index(i,2),  &
-	          Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
-	          Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl4,Skl4,Tkl4,Vkl4,        &
-                  rm2kl,rmkl4,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
                   Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
                   NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
                   c=0
@@ -9430,7 +9418,7 @@ do i=1,cbs
 		enddo		    
                 do a=1,n
 		  do b=a,n
-		    c=c+1; MEkl(c)=rmkl1(b,a)-rmkl2(b,a)-rmkl3(b,a)+rmkl4(b,a)
+		    c=c+1; MEkl(c)=rmkl1(b,a)
                   enddo
 		enddo
                 do a=1,n
@@ -9458,10 +9446,10 @@ do i=1,cbs
 		    c=c+1; MEkl(c)=prvalkl(b,a)
                   enddo
 		enddo                               
-                c=c+1; MEkl(c)=Hkl1-Hkl2-Hkl3+Hkl4
-                c=c+1; MEkl(c)=Skl1-Skl2-Skl3+Skl4  
-                c=c+1; MEkl(c)=Tkl1-Tkl2-Tkl2+Tkl4
-                c=c+1; MEkl(c)=Vkl1-Vkl2-Vkl3+Vkl4	
+                c=c+1; MEkl(c)=Hkl1
+                c=c+1; MEkl(c)=Skl1
+                c=c+1; MEkl(c)=Tkl1
+                c=c+1; MEkl(c)=Vkl1	
                 c=c+1; MEkl(c)=MVkl	
                 c=c+1; MEkl(c)=drach_MVkl            
                 c=c+1; MEkl(c)=Darwinkl
