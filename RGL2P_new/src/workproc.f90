@@ -4079,6 +4079,7 @@ do while (K<Kstop)
         j2=Glob_Index(nfru+ii,2) 
         if (j2/=j) then
           jbest=j
+          jbest2=j2  !
           do jj=1,Glob_n
             if (jj/=j .and. jj/=j2) then
               Glob_Index(nfru+ii,1)=jj
@@ -4089,7 +4090,7 @@ do while (K<Kstop)
                 if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 	                if (Glob_ProcID==0) then
                           write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
-		                     write(*,*) 'during the optimization of X-indicies exceeded limit' 
+		                     write(*,*) 'during the optimization of x-indicies exceeded limit' 
 		              endif
 	                stop      
                 endif
@@ -4102,21 +4103,10 @@ do while (K<Kstop)
             endif          
           enddo 
           Glob_Index(nfru+ii,1)=jbest
-        elseif (j2==j) then
-          write(*,*) 'Two indices are the same in X(G), change your program'
-          stop
-        endif 
-      enddo
-      NumOfFailures=0
-      do i=1,nfo
-        ii=IndOptSequence(i) !!  ii should be the same for two indices
-        j=Glob_Index(nfru+ii,1)
-        j2=Glob_Index(nfru+ii,2) 
-        if (j2/=j) then
-          jbest2=j2
-          do jj=1,Glob_n
-            if (jj/=j .and. jj/=j2) then
-              Glob_Index(nfru+ii,2)=jj
+          NumOfFailures=0
+          do jj2=1,Glob_n
+            if (jj2/=jbest .and. jj2/=j2) then
+              Glob_Index(nfru+ii,2)=jj2
               Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
      	        if (ErrCode/=0) then
                 NumOfFailures=NumOfFailures+1
@@ -4124,21 +4114,21 @@ do while (K<Kstop)
                 if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 	                if (Glob_ProcID==0) then
                           write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
-		                     write(*,*) 'during the optimization of Y-indicies exceeded limit' 
+		                     write(*,*) 'during the optimization of y-indicies exceeded limit' 
 		              endif
 	                stop      
                 endif
               else
 	              if (Evalue<Glob_CurrEnergy) then
                     Glob_CurrEnergy=Evalue
-                    jbest2=jj
+                    jbest2=jj2
                 endif
 	            endif                    
             endif          
           enddo 
-          Glob_Index(nfru+ii,2)=jbest2
+          Glob_Index(nfru+ii,2)=jbest2                   
         elseif (j2==j) then
-          write(*,*) 'Two indices are the same in Y(G), change your program'
+          write(*,*) 'Two indices are the same in G, change your program'
           stop
         endif 
       enddo
@@ -4760,6 +4750,7 @@ do while (K<Kstop)
         j2=Glob_Index(nfru+ii,2) 
         if (j2/=j) then
           jbest=j
+          jbest2=j2  
           do jj=1,Glob_n
             if (jj/=j .and. jj/=j2) then
               Glob_Index(nfru+ii,1)=jj
@@ -4783,22 +4774,10 @@ do while (K<Kstop)
             endif          
           enddo 
           Glob_Index(nfru+ii,1)=jbest
-        elseif (j2==j) then
-          write(*,*) 'Two indices are the same in X(I), change your program'
-          stop
-        endif 
-      enddo
-
-      NumOfFailures=0
-      do i=1,nfo
-        ii=IndOptSequence(i) !!  ii should be the same for two indices
-        j=Glob_Index(nfru+ii,1)
-        j2=Glob_Index(nfru+ii,2) 
-        if (j2/=j) then
-          jbest2=j2
-          do jj=1,Glob_n
-            if (jj/=j .and. jj/=j2) then
-              Glob_Index(nfru+ii,2)=jj
+          NumOfFailures=0
+          do jj2=1,Glob_n
+            if (jj2/=jbest .and. jj2/=j2) then
+              Glob_Index(nfru+ii,2)=jj2
               Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
      	        if (ErrCode/=0) then
                 NumOfFailures=NumOfFailures+1
@@ -4813,14 +4792,14 @@ do while (K<Kstop)
               else
 	              if (Evalue<Glob_CurrEnergy) then
                     Glob_CurrEnergy=Evalue
-                    jbest2=jj
+                    jbest2=jj2
                 endif
 	            endif                    
             endif          
           enddo 
-          Glob_Index(nfru+ii,2)=jbest2
+          Glob_Index(nfru+ii,2)=jbest2                   
         elseif (j2==j) then
-          write(*,*) 'Two indices are the same in Y(I), change your program'
+          write(*,*) 'Two indices are the same in I, change your program'
           stop
         endif 
       enddo
