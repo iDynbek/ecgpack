@@ -3587,29 +3587,28 @@ end function NumOfRowsToPermForUnitShift
 
 
 
-subroutine GenerateRndIntSeq(n,s)
+subroutine GenerateRndIntSeq(n,s) 
 !Routine GenerateRndIntSeq generates a random sequence (permutation)
 !of integers from 1 to n. The result is returned in array s(1:n) 
 !Arguments:
-integer      n,s(n,2)
+integer      n,s(n)
 !Local variables:
-integer      i,j,k,jj,kk
-real(8)  r8,r88
+integer      i,j,k
+real(8)  r8
 
+if (n==1) then
+  s(1)=1
+else
+  do i=1,n
+    s(i)=i
+  enddo
+  do i=1,n
+  	call random_number(r8)
+  	j=int(r8*i)+1
+    k=s(i); s(i)=s(j); s(j)=k
+  enddo
+endif
 
-do i=1,n
-    s(i,1)=i
-    s(i,2)=i
-enddo
-do i=1,n
-    call random_number(r8)
-    j=int(r8*i)+1
-    k=s(i,1); s(i,1)=s(j,1); s(j,1)=k
-    call random_number(r88)
-    jj=int(r88*i)+1
-    kk=s(i,2); s(i,2)=s(jj,2); s(jj,2)=kk  
-    
-enddo
 end subroutine GenerateRndIntSeq
 
 
@@ -3828,7 +3827,7 @@ real(dprec)  t
 real(dprec),allocatable,dimension(:,:)   :: ParSet,ParSetBest
 integer,allocatable,dimension(:,:)       :: IndSet,IndSetBest
 real(dprec),allocatable,dimension(:)     :: x,x_best,grad 
-integer,allocatable,dimension(:,:)       :: IndOptSequence
+integer,allocatable,dimension(:)       :: IndOptSequence
 !Arrays used by DRMNG
 real(dprec),allocatable,dimension(:)     :: D,V,V_init
 integer,parameter    :: LIV=60
@@ -3908,7 +3907,7 @@ allocate(IndSetBest(Kstep,2))
 allocate(x(nvmax))
 allocate(x_best(nvmax))
 allocate(grad(nvmax))
-allocate(IndOptSequence(nfo,2))
+allocate(IndOptSequence(nfo))
 
 !Allocate arrays used by DRMNG
 nvmax=npt*Kstep
@@ -4075,68 +4074,75 @@ do while (K<Kstop)
       !nfrup1 thriugh K are computed each time while it is not always necessary.    
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       do i=1,nfo
-        ii=IndOptSequence(i,1)
-        ii2=IndOptSequence(i,2)
+        ii=IndOptSequence(i) !!  ii should be the same for two indices
         j=Glob_Index(nfru+ii,1)
-        j2=Glob_Index(nfru+ii2,2)  !strange place
-        jbest=j
-        jbest2=j2
-        do jj=1,Glob_n
-          if (jj/=j) then
-            Glob_Index(nfru+ii,1)=jj
-            Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
-     	    if (ErrCode/=0) then
+        j2=Glob_Index(nfru+ii,2) 
+        if (j2/=j) then
+          jbest=j
+          do jj=1,Glob_n
+            if (jj/=j .and. jj/=j2) then
+              Glob_Index(nfru+ii,1)=jj
+              Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
+     	        if (ErrCode/=0) then
                 NumOfFailures=NumOfFailures+1
                 Glob_Index(nfru+ii,1)=jbest
                 if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
-	            if (Glob_ProcID==0) then
+	                if (Glob_ProcID==0) then
                           write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
-		          write(*,*) 'during the optimization of x-indicies exceeded limit' 
-		    endif
-	            stop      
+		                     write(*,*) 'during the optimization of X-indicies exceeded limit' 
+		              endif
+	                stop      
                 endif
-            else
-		if (Evalue<Glob_CurrEnergy) then
+              else
+	              if (Evalue<Glob_CurrEnergy) then
                     Glob_CurrEnergy=Evalue
                     jbest=jj
                 endif
-	    endif                    
-          endif  
-        enddo 
-        Glob_Index(nfru+ii,1)=jbest
-	NumOfFailures=0
-        do jj2=1,Glob_n
-          if (jj2/=j2) then
-            Glob_Index(nfru+ii2,2)=jj2  
-            Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
-            if (ErrCode/=0) then
+	            endif                    
+            endif          
+          enddo 
+          Glob_Index(nfru+ii,1)=jbest
+        elseif (j2==j) then
+          write(*,*) 'Two indices are the same in X(G), change your program'
+          stop
+        endif 
+      enddo
+      NumOfFailures=0
+      do i=1,nfo
+        ii=IndOptSequence(i) !!  ii should be the same for two indices
+        j=Glob_Index(nfru+ii,1)
+        j2=Glob_Index(nfru+ii,2) 
+        if (j2/=j) then
+          jbest2=j2
+          do jj=1,Glob_n
+            if (jj/=j .and. jj/=j2) then
+              Glob_Index(nfru+ii,2)=jj
+              Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
+     	        if (ErrCode/=0) then
                 NumOfFailures=NumOfFailures+1
-                Glob_Index(nfru+ii2,2)=jbest2
+                Glob_Index(nfru+ii,2)=jbest2
                 if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
-	            if (Glob_ProcID==0) then
-                        write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
-		        write(*,*) 'during the optimization of y-indicies exceeded limit' 
-		    endif
-	            stop      
+	                if (Glob_ProcID==0) then
+                          write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
+		                     write(*,*) 'during the optimization of Y-indicies exceeded limit' 
+		              endif
+	                stop      
                 endif
-            else
-		if (Evalue<Glob_CurrEnergy) then
+              else
+	              if (Evalue<Glob_CurrEnergy) then
                     Glob_CurrEnergy=Evalue
-                    jbest2=jj2    
+                    jbest2=jj
                 endif
-	    endif                    
-          endif  
-        enddo
-        if (jbest2==jbest) then
-            if(jbest2==Glob_n) then
-                jbest=jbest2-1
-            elseif (jbest2<Glob_n) then
-                jbest=jbest2+1
-            endif
-        endif
-        Glob_Index(nfru+ii2,2)=jbest2
-       enddo
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	            endif                    
+            endif          
+          enddo 
+          Glob_Index(nfru+ii,2)=jbest2
+        elseif (j2==j) then
+          write(*,*) 'Two indices are the same in Y(G), change your program'
+          stop
+        endif 
+      enddo
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !Now we optimize nonlinear parameters
     
 	  !Setting IV and V values as was in their initial copies
@@ -4499,7 +4505,7 @@ real(dprec)  t
 real(dprec),allocatable,dimension(:,:)   :: ParSet,ParSetBest
 integer,allocatable,dimension(:,:)         :: IndSet,IndSetBest
 real(dprec),allocatable,dimension(:)     :: x,x_best,grad 
-integer,allocatable,dimension(:,:)         :: IndOptSequence
+integer,allocatable,dimension(:)         :: IndOptSequence
 !Arrays used by DRMNG
 real(dprec),allocatable,dimension(:)     :: D,V,V_init
 integer,parameter    :: LIV=60
@@ -4580,7 +4586,7 @@ allocate(IndSetBest(Kstep,2))
 allocate(x(nvmax))
 allocate(x_best(nvmax))
 allocate(grad(nvmax))
-allocate(IndOptSequence(nfo,2))
+allocate(IndOptSequence(nfo))
 
 !Allocate arrays used by DRMNG
 nvmax=npt*Kstep
@@ -4749,67 +4755,75 @@ do while (K<Kstop)
       !nfrup1 thriugh K are computed each time while it is not always necessary.
        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       do i=1,nfo
-        ii=IndOptSequence(i,1)
-        ii2=IndOptSequence(i,2)
+        ii=IndOptSequence(i) !!  ii should be the same for two indices
         j=Glob_Index(nfru+ii,1)
-        j2=Glob_Index(nfru+ii2,2)
-        jbest=j
-        jbest2=j2
-        do jj=1,Glob_n
-          if (jj/=j) then
-            Glob_Index(nfru+ii,1)=jj
-            Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
-     	    if (ErrCode/=0) then
+        j2=Glob_Index(nfru+ii,2) 
+        if (j2/=j) then
+          jbest=j
+          do jj=1,Glob_n
+            if (jj/=j .and. jj/=j2) then
+              Glob_Index(nfru+ii,1)=jj
+              Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
+     	        if (ErrCode/=0) then
                 NumOfFailures=NumOfFailures+1
                 Glob_Index(nfru+ii,1)=jbest
                 if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
-	            if (Glob_ProcID==0) then
+	                if (Glob_ProcID==0) then
                           write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
-		          write(*,*) 'during the optimization of x-indicies exceeded limit' 
-		    endif
-	            stop      
+		                     write(*,*) 'during the optimization of x-indicies exceeded limit' 
+		              endif
+	                stop      
                 endif
-            else
-		if (Evalue<Glob_CurrEnergy) then
+              else
+	              if (Evalue<Glob_CurrEnergy) then
                     Glob_CurrEnergy=Evalue
                     jbest=jj
                 endif
-	    endif                    
-          endif  
-        enddo 
-        Glob_Index(nfru+ii,1)=jbest
-	NumOfFailures=0
-        do jj2=1,Glob_n
-          if (jj2/=j2) then
-            Glob_Index(nfru+ii2,2)=jj2  
-            Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
-            if (ErrCode/=0) then
+	            endif                    
+            endif          
+          enddo 
+          Glob_Index(nfru+ii,1)=jbest
+        elseif (j2==j) then
+          write(*,*) 'Two indices are the same in X(I), change your program'
+          stop
+        endif 
+      enddo
+
+      NumOfFailures=0
+      do i=1,nfo
+        ii=IndOptSequence(i) !!  ii should be the same for two indices
+        j=Glob_Index(nfru+ii,1)
+        j2=Glob_Index(nfru+ii,2) 
+        if (j2/=j) then
+          jbest2=j2
+          do jj=1,Glob_n
+            if (jj/=j .and. jj/=j2) then
+              Glob_Index(nfru+ii,2)=jj
+              Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
+     	        if (ErrCode/=0) then
                 NumOfFailures=NumOfFailures+1
-                Glob_Index(nfru+ii2,2)=jbest2
+                Glob_Index(nfru+ii,2)=jbest2
                 if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
-	            if (Glob_ProcID==0) then
-                        write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
-		        write(*,*) 'during the optimization of y-indicies exceeded limit' 
-		    endif
-	            stop      
+	                if (Glob_ProcID==0) then
+                          write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
+		                     write(*,*) 'during the optimization of y-indicies exceeded limit' 
+		              endif
+	                stop      
                 endif
-            else
-		if (Evalue<Glob_CurrEnergy) then
+              else
+	              if (Evalue<Glob_CurrEnergy) then
                     Glob_CurrEnergy=Evalue
-                    jbest2=jj2    
+                    jbest2=jj
                 endif
-	    endif                    
-          endif  
-        enddo      
-        if (jbest2==jbest) then
-            if(jbest2==Glob_n) then
-                jbest=jbest2-1
-            elseif (jbest2<Glob_n) then
-                jbest=jbest2+1
-            endif
-        endif
-        Glob_Index(nfru+ii2,2)=jbest2
-       enddo
+	            endif                    
+            endif          
+          enddo 
+          Glob_Index(nfru+ii,2)=jbest2
+        elseif (j2==j) then
+          write(*,*) 'Two indices are the same in Y(I), change your program'
+          stop
+        endif 
+      enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !Now we optimize nonlinear parameters
     
