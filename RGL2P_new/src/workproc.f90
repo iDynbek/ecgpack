@@ -4105,7 +4105,7 @@ do while (K<Kstop)
           Glob_Index(nfru+ii,1)=jbest
           NumOfFailures=0
           do jj2=1,Glob_n
-            if (jj2/=jbest .and. jj2/=j2) then
+            if (jj2/=jbest .and. jj2/=j2 .and. jbest /=j2) then
               Glob_Index(nfru+ii,2)=jj2
               Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
      	        if (ErrCode/=0) then
@@ -4811,7 +4811,7 @@ do while (K<Kstop)
           Glob_Index(nfru+ii,1)=jbest
           NumOfFailures=0
           do jj2=1,Glob_n
-            if (jj2/=jbest .and. jj2/=j2) then
+            if (jj2/=jbest .and. jj2/=j2 .and. jbest /=j2) then
               Glob_Index(nfru+ii,2)=jj2
               Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
      	        if (ErrCode/=0) then
