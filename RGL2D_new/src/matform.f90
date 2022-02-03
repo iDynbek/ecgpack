@@ -135,11 +135,15 @@ real(dprec) Paramk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseu
 real(dprec) Paraml(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
 integer     mk,ml,mmk,mml
 real(dprec) Skl,Hkl,Skl1,Hkl1,Skl2,Hkl2,Skl3,Hkl3,Skl4,Hkl4
+real(dprec) Vkl1,Tkl1,Vkl2,Tkl2,Vkl3,Tkl3,Vkl4,Tkl4
+real(dprec) Skl5,Hkl5,Skl6,Hkl6,Skl7,Hkl7,Skl8,Hkl8
+real(dprec) Vkl5,Tkl5,Vkl6,Tkl6,Vkl7,Tkl7,Vkl8,Tkl8
 real(dprec) Ssum,Hsum
 !These arrays are not actually used but needed for proper calling
 !of subroutine MatrixElements. Thus, one can set some small size
 !for them
 real(dprec)  Dk(2),Dl(2),Dk1(2),Dl1(2),Dk2(2),Dl2(2),Dk3(2),Dl3(2),Dk4(2),Dl4(2)
+real(dprec)  Dk5(2),Dl5(2),Dk6(2),Dl6(2),Dk7(2),Dl7(2),Dk8(2),Dl8(2)
 
 n=Glob_n
 np=Glob_np
@@ -152,8 +156,9 @@ i=0
   
 do k=Nmin,Nmax
   Paramk(1:npt)=Glob_NonlinParam(1:npt,k)
-  mk=Glob_Index(k,1)
-  mmk=Glob_Index(k,2)
+  mk=Glob_ZIndex(k)
+  mmk=1
+  if (mk==1) mk=2
   do l=k,1,-1
     i=i+1
 	if (i==1) then
@@ -161,20 +166,44 @@ do k=Nmin,Nmax
 	  lstart=l
 	endif	
     Paraml(1:npt)=Glob_NonlinParam(1:npt,l)
-    ml=Glob_Index(l,1)
-    mml=Glob_Index(l,2)
+    ml=Glob_ZIndex(l)
+    mml=1
+    if (ml==1) ml=2 
 	Hsum=ZERO; Ssum=ZERO
 	q=(i-1)*Glob_NumYHYTerms-1
 	do j=1,Glob_NumYHYTerms
-	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
+	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then       
+              
         call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl1,Skl1,Dk1,Dl1,.false.,.false.)
-        call MatrixElementsL11(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl2,Skl2,Dk2,Dl2,.false.,.false.)
-                Hkl=6*Hkl1-6*Hkl2
-                Skl=6*Skl1-6*Skl2
-                Dk=6*Dk1-6*Dk2
-                Dl=6*Dl1-6*Dl2
+               Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.false.,.false.)
+        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl2,Skl2,Tkl2,Vkl2,Dk2,Dl2,.false.,.false.)              
+        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl3,Skl3,Tkl3,Vkl3,Dk3,Dl3,.false.,.false.)
+!        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl4,Skl4,Tkl4,Vkl4,Dk4,Dl4,.false.,.false.)                   
+        call MatrixElementsL11(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl5,Skl5,Tkl5,Vkl5,Dk5,Dl5,.false.,.false.)
+        call MatrixElementsL11(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl6,Skl6,Tkl6,Vkl6,Dk6,Dl6,.false.,.false.)     
+!        call MatrixElementsL11(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl7,Skl7,Tkl7,Vkl7,Dk7,Dl7,.false.,.false.)
+!        call MatrixElementsL11(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl8,Skl8,Tkl8,Vkl8,Dk8,Dl8,.false.,.false.)  
+               
+!                Hkl=6*Hkl1-2*Hkl2+2*Hkl3-2*Hkl4+Hkl5-Hkl6 !+Hkl7-Hkl8
+!                Skl=6*Skl1-2*Skl2+2*Skl3-2*Skl4+Skl5-Skl6 !+Skl7-Skl8
+!                Dk=6*Dk1-2*Dk2+2*Dk3-2*Dk4+Dk5-Dk6 !+Dk7-Dk8
+!                Dl=6*Dl1-2*Dl2+2*Dl3-2*Dl4+Dl5-Dl6 !+Dl7-Dl8     
+               
+                Hkl=Hkl1+4*Hkl2+Hkl3 +2*Hkl5-8*Hkl6 
+                Skl=Skl1+4*Skl2+Skl3 +2*Skl5-8*Skl6 
+                Dk=Dk1+4*Dk2+Dk3 +2*Dk5-8*Dk6 
+                Dl=Dl1+4*Dl2+Dl3 +2*Dl5-8*Dl6   
+!                Hkl=6*Hkl3-6*Hkl8    
+!                Skl=6*Skl3-6*Skl8  
+!                Dk=6*Dk3-6*Dk8  
+!                Dl=6*Dl3-6*Dl8   
 		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
 		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
 	  endif
@@ -261,9 +290,14 @@ real(dprec) Paramk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseu
 real(dprec) Paraml(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
 integer     mk,ml,mmk,mml
 real(dprec) Skl,Hkl,Skl1,Hkl1,Skl2,Hkl2,Skl3,Hkl3,Skl4,Hkl4
+real(dprec) Skl5,Hkl5,Skl6,Hkl6,Skl7,Hkl7,Skl8,Hkl8
+real(dprec) Vkl1,Tkl1,Vkl2,Tkl2,Vkl3,Tkl3,Vkl4,Tkl4
+real(dprec) Vkl5,Tkl5,Vkl6,Tkl6,Vkl7,Tkl7,Vkl8,Tkl8
 real(dprec) Ssum,Hsum
 real(dprec) Dk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 real(dprec) Dl(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dksum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dlsum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 real(dprec) Dk1(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 real(dprec) Dl1(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 real(dprec) Dk2(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
@@ -272,8 +306,14 @@ real(dprec) Dk3(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoP
 real(dprec) Dl3(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 real(dprec) Dk4(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 real(dprec) Dl4(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-real(dprec) Dksum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-real(dprec) Dlsum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dk5(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dl5(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dk6(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dl6(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dk7(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dl7(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dk8(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) Dl8(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 logical     grad_l
 
 n=Glob_n
@@ -290,8 +330,9 @@ i=0
 
 do k=Nmin,Nmax
   Paramk(1:npt)=Glob_NonlinParam(1:npt,k)
-  mk=Glob_Index(k,1)
-  mmk=Glob_Index(k,2)
+  mk=Glob_ZIndex(k)
+  mmk=1
+  if (mk==1) mk=2
   do l=k,1,-1
     i=i+1
 	if (i==1) then
@@ -299,30 +340,55 @@ do k=Nmin,Nmax
 	  lstart=l
 	endif	
     Paraml(1:npt)=Glob_NonlinParam(1:npt,l)
-    ml=Glob_Index(l,1)
-    mml=Glob_Index(l,2)
-	Hsum=ZERO; Ssum=ZERO
+    ml=Glob_ZIndex(l)
+    mml=1
+    if (ml==1) ml=2
+	Hsum=ZERO 
+	Ssum=ZERO
     Dksum(1:npt2)=ZERO
 	if ((l>Glob_nfru).and.(l/=k)) then
       grad_l=.true.
-      Dlsum(1:npt2)=ZERO	
+      Dlsum(1:npt2)=ZERO	          
 	else 
       grad_l=.false.
 	endif    
 	q=(i-1)*Glob_NumYHYTerms-1
 	do j=1,Glob_NumYHYTerms
-	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
+	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then  
+              
         call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl1,Skl1,Dk1,Dl1,.true.,grad_l)    
-        call MatrixElementsL11(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl2,Skl2,Dk2,Dl2,.true.,grad_l)
-                Hkl=6*Hkl1-6*Hkl2
-                Skl=6*Skl1-6*Skl2
-                Dk=6*Dk1-6*Dk2  
-                Dl=6*Dl1-6*Dl2
+               Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.false.,.false.)
+        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl2,Skl2,Tkl2,Vkl2,Dk2,Dl2,.false.,.false.)              
+        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl3,Skl3,Tkl3,Vkl3,Dk3,Dl3,.false.,.false.)
+!        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl4,Skl4,Tkl4,Vkl4,Dk4,Dl4,.false.,.false.)                   
+        call MatrixElementsL11(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl5,Skl5,Tkl5,Vkl5,Dk5,Dl5,.false.,.false.)
+        call MatrixElementsL11(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl6,Skl6,Tkl6,Vkl6,Dk6,Dl6,.false.,.false.)     
+!        call MatrixElementsL11(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl7,Skl7,Tkl7,Vkl7,Dk7,Dl7,.false.,.false.)
+!        call MatrixElementsL11(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl8,Skl8,Tkl8,Vkl8,Dk8,Dl8,.false.,.false.)
+               
+!                Hkl=6*Hkl1-2*Hkl2+2*Hkl3-2*Hkl4+Hkl5-Hkl6 !+Hkl7-Hkl8
+!                Skl=6*Skl1-2*Skl2+2*Skl3-2*Skl4+Skl5-Skl6 !+Skl7-Skl8
+!                Dk=6*Dk1-2*Dk2+2*Dk3-2*Dk4+Dk5-Dk6 !+Dk7-Dk8
+!                Dl=6*Dl1-2*Dl2+2*Dl3-2*Dl4+Dl5-Dl6 !+Dl7-Dl8   
+                Hkl=Hkl1+4*Hkl2+Hkl3 +2*Hkl5-8*Hkl6 
+                Skl=Skl1+4*Skl2+Skl3 +2*Skl5-8*Skl6 
+                Dk=Dk1+4*Dk2+Dk3 +2*Dk5-8*Dk6 
+                Dl=Dl1+4*Dl2+Dl3 +2*Dl5-8*Dl6  
+               
+!                Hkl=6*Hkl3-6*Hkl8    
+!                Skl=6*Skl3-6*Skl8  
+!                Dk=6*Dk3-6*Dk8  
+!                Dl=6*Dl3-6*Dl8    
 		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
 		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
-                Dksum(1:npt2)=Dksum(1:npt2)+Glob_YHYCoeff(j)*Dk(1:npt2)               
+        Dksum(1:npt2)=Dksum(1:npt2)+Glob_YHYCoeff(j)*Dk(1:npt2)
         if ((l>Glob_nfru).and.(l/=k)) Dlsum(1:npt2)=Dlsum(1:npt2)+Glob_YHYCoeff(j)*Dl(1:npt2)
 	  endif
 	enddo
