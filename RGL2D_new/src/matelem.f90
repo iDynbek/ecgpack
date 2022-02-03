@@ -1217,28 +1217,39 @@ if (grad_k.or.grad_l) then
       tKkl4(i,j)=inv_tAklbk(i)*vkinv_tAkl(j)
       tKkl5(i,j)=inv_tAklvl(i)*bkinv_tAkl(j)
       tKkl6(i,j)=inv_tAklbl(i)*vkinv_tAkl(j)
+      
+      tKkl(i,j)= tKkl1(i,j)*tau3+tKkl2(i,j)*tau33+tKkl3(i,j)*tau331+tKkl4(i,j)*tau332 &
+                                                   +tKkl5(i,j)*tau333+tKkl6(i,j)*tau334
+                                                   
+      gkl(i,j)= -tKkl1(i,j)*tau2-tKkl2(i,j)*tau22+tKkl3(i,j)*tau221+tKkl4(i,j)*tau222&
+                   -tKkl5(i,j)*tau223-tKkl6(i,j)*tau224      
     enddo
   enddo
-  !Evaluating twosym_tFkl = tFkl + tFkl' , where tFkl = (3/2)*inv_tAkl + tKkl/tau3
-  do i=1,n
-      do j=1,i
-        tKkl(i,j)= tKkl1(i,j)*tau3+tKkl2(i,j)*tau33+tKkl3(i,j)*tau331+tKkl4(i,j)*tau332 &
-                                                   +tKkl5(i,j)*tau333+tKkl6(i,j)*tau334
-        gkl(i,j)= -tKkl1(i,j)*tau2-tKkl2(i,j)*tau22+tKkl3(i,j)*tau221+tKkl4(i,j)*tau222&
-                   -tKkl5(i,j)*tau223-tKkl6(i,j)*tau224
-        tKkl(j,i)= tKkl(i,j)
-        gkl(j,i) = gkl(i,j)
-      enddo
-  enddo
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
   
-  do i=1,n
+  !Evaluating twosym_tFkl = tFkl + tFkl' , where tFkl = (3/2)*inv_tAkl + tKkl/tau3
+  
+!  do i=1,n
+!      do j=1,i
+!        tKkl(i,j)= tKkl1(i,j)*tau3+tKkl2(i,j)*tau33+tKkl3(i,j)*tau331+tKkl4(i,j)*tau332 &
+!                                                   +tKkl5(i,j)*tau333+tKkl6(i,j)*tau334
+!                                                   
+!        gkl(i,j)= -tKkl1(i,j)*tau2-tKkl2(i,j)*tau22+tKkl3(i,j)*tau221+tKkl4(i,j)*tau222&
+!                   -tKkl5(i,j)*tau223-tKkl6(i,j)*tau224
+!                   
+!        tKkl(j,i)= tKkl(i,j)
+!        gkl(j,i) = gkl(i,j)
+!      enddo
+!  enddo
+  
+do i=1,n
     do j=1,i     
       twosym_tFkl(i,j)=THREE*inv_tAkl(j,i)+(tKkl(i,j)+tKkl(j,i))/m
       twosym_tFkl(j,i)=twosym_tFkl(i,j)
     enddo
   enddo
 endif
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 if (grad_k) then  
   indx=0
   do i=1,n
