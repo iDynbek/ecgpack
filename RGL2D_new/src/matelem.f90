@@ -844,12 +844,12 @@ real(dprec)       inv_tAkltAl(nn,nn),inv_tAkltAlM(nn,nn)
 real(dprec)       inv_tAklAk(nn,nn),inv_tAklAkM(nn,nn)
 real(dprec)       eta1(nn,nn),sqrt_eta1(nn,nn),eta2(nn,nn),Rkl(nn,nn)
 real(dprec)       eta11(nn,nn),eta22(nn,nn),eta(nn,nn)
-real(dprec)       eta221(nn,nn),eta222(nn,nn),eta223(nn,nn),eta224(nn,nn),etan(nn,nn)
+real(dprec)       eta221(nn,nn),eta222(nn,nn),eta223(nn,nn),eta224(nn,nn)!,etan(nn,nn)
 real(dprec)       W1(nn,nn),W2(nn,nn),W3(nn,nn),W4(nn,nn)
 real(dprec)       twosym_tFkl(nn,nn),two_Fkk(nn,nn),two_Fll(nn,nn),twosym_tGkl(nn,nn)
 real(dprec)       tKkl1(nn,nn),tUkl(nn,nn),tWkl(nn,nn), Pkl(nn,nn), Mkl(nn,nn),tKkl(nn,nn)
 real(dprec)       tKkl2(nn,nn),tKkl3(nn,nn),tKkl4(nn,nn),tKkl5(nn,nn),tKkl6(nn,nn)
-real(dprec)       gkl(nn,nn)
+!real(dprec)       gkl(nn,nn)
 real(dprec)       twosym_tQkl(nn,nn),twosym_tDkl(nn,nn)
 real(dprec)       inv_tAklvl(nn),vkinv_tAkl(nn),vkinv_tAkltAlM(nn),inv_tAklbk(nn),vlinv_tAkl(nn)
 real(dprec)       inv_tAklbl(nn),bkinv_tAkl(nn),bkinv_tAkltAlM(nn),vlinv_tAklAkM(nn)
@@ -862,7 +862,7 @@ real(dprec)       det_Lk, det_Ll, det_tAkl
 real(dprec)       tau1,tau2,tau3,tau11,tau22,tau33,m,kkl
 !real(dprec)       Tkl, Vkl
 real(dprec)       m1,m2,m3,tau331,tau332,tau333,tau334,tau221,tau222,tau223,tau224
-real(dprec)       temp441,temp442,temp443,temp4440,temp4441,temp4442,term1,term2,h
+real(dprec)       temp441,temp442,temp443,temp4440,temp4441,temp4442,term1,term2,h,temp_n
 integer           i,j,k,q,t,indx
 
 n=Glob_n
@@ -1028,7 +1028,7 @@ do i=1,n
     temp2=ZERO
     do k=1,n
       temp1=temp1+inv_tAkl(j,k)*tAl(k,i)
-      temp2=temp2+inv_tAkl(j,k)*Ak(k,i) !initially was (i,k)
+      temp2=temp2+inv_tAkl(j,k)*Ak(k,i) 
     enddo
     inv_tAkltAl(j,i)=temp1
     inv_tAklAk(j,i)=temp2
@@ -1042,7 +1042,7 @@ do i=1,n
     temp2=ZERO
     do k=1,n
       temp1=temp1+inv_tAkltAl(j,k)*Glob_MassMatrix(k,i)
-      temp2=temp2+inv_tAklAk(j,k)*Glob_MassMatrix(k,i) !initially was (i,k)
+      temp2=temp2+inv_tAklAk(j,k)*Glob_MassMatrix(k,i) 
     enddo
     inv_tAkltAlM(j,i)=temp1
     inv_tAklAkM(j,i)=temp2
@@ -1149,7 +1149,7 @@ do i=1,n
   temp4442=temp443*temp444
   term1=tau3*temp44+tau33*temp4+tau331*temp442+tau332*temp441+tau333*temp444+tau334*temp443
   term2=temp4440+temp4441+temp4442
-  etan(i,i)=term1
+  !etan(i,i)=term1
   eta(i,i)=term2
   Rkl(i,i)=temp1*(m-ONETHIRD*term1/temp2+ONEFIFTH*term2/(temp2*temp2))/temp3
   Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge0)*Rkl(i,i)
@@ -1195,7 +1195,7 @@ do i=1,n
     temp4442=temp443*temp444
     term1=tau3*temp44+tau33*temp4+tau331*temp442+tau332*temp441+tau333*temp444+tau334*temp443
     term2=temp4440+temp4441+temp4442
-    etan(j,i)=term1
+    !etan(j,i)=term1
     eta(j,i)=term2
     Rkl(j,i)=temp1*(m-ONETHIRD*term1/temp2+ONEFIFTH*term2/(temp2*temp2))/temp3
     Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*Rkl(j,i)
@@ -1216,15 +1216,16 @@ if (grad_k.or.grad_l) then
       tKkl3(i,j)=inv_tAklbl(i)*vlinv_tAkl(j)
       tKkl4(i,j)=inv_tAklbk(i)*vkinv_tAkl(j)
       tKkl5(i,j)=inv_tAklvl(i)*bkinv_tAkl(j)
-      tKkl6(i,j)=inv_tAklbl(i)*vkinv_tAkl(j)
-      
-      tKkl(i,j)= tKkl1(i,j)*tau3+tKkl2(i,j)*tau33+tKkl3(i,j)*tau331+tKkl4(i,j)*tau332 &
-                                                   +tKkl5(i,j)*tau333+tKkl6(i,j)*tau334
-                                                   
-      gkl(i,j)= -tKkl1(i,j)*tau2-tKkl2(i,j)*tau22+tKkl3(i,j)*tau221+tKkl4(i,j)*tau222&
-                   -tKkl5(i,j)*tau223-tKkl6(i,j)*tau224      
+      tKkl6(i,j)=inv_tAklbl(i)*vkinv_tAkl(j)   
+!      tKkl(i,j)= tKkl1(i,j)*tau3+tKkl2(i,j)*tau33+tKkl3(i,j)*tau331+tKkl4(i,j)*tau332 &
+!                                                   +tKkl5(i,j)*tau333+tKkl6(i,j)*tau334
+!                                                   
+!      gkl(i,j)= -tKkl1(i,j)*tau2-tKkl2(i,j)*tau22+tKkl3(i,j)*tau221+tKkl4(i,j)*tau222&
+!                   -tKkl5(i,j)*tau223-tKkl6(i,j)*tau224      
     enddo
   enddo
+  
+  
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
   
   !Evaluating twosym_tFkl = tFkl + tFkl' , where tFkl = (3/2)*inv_tAkl + tKkl/tau3
@@ -1242,9 +1243,11 @@ if (grad_k.or.grad_l) then
 !      enddo
 !  enddo
   
-do i=1,n
-    do j=1,i     
-      twosym_tFkl(i,j)=THREE*inv_tAkl(j,i)+(tKkl(i,j)+tKkl(j,i))/m
+do i=1,n  
+        do j=1,i     
+      twosym_tFkl(i,j)=THREE*inv_tAkl(j,i)+(  tau3*(tKkl1(i,j)+tKkl1(j,i))+tau33*(tKkl2(i,j)+tKkl2(j,i))&
+      +tau331*(tKkl3(i,j)+tKkl3(j,i))+tau332*(tKkl4(i,j)+tKkl4(j,i))+tau333*(tKkl5(i,j)+tKkl5(j,i)) &
+      +tau334*(tKkl6(i,j)+tKkl6(j,i))  )/m
       twosym_tFkl(j,i)=twosym_tFkl(i,j)
     enddo
   enddo
@@ -1354,13 +1357,15 @@ if (grad_k) then
     u22(i)=temp2
     u222(i)=temp3
   enddo   
-  !Computing matrix tUkl=W1+(4/tau3)*(inv_tAklvl*u1'-u2*vkinv_tAkl')+(4*tau2/tau3^2)*tKkl
+  !Computing matrix tUkl=W1+(4/tau3)*(inv_tAklvl*u1'-u2*vkinv_tAkl')+(4*tau2/tau3^2)*tKkl 
   temp1=FOUR/m
   temp2=temp1*h/m
   do i=1,n
     do j=1,n
-      tUkl(j,i)=W1(j,i)+temp2*tKkl(j,i)+&
-       +temp1*(gkl(j,i)+tau33*(inv_tAklvl(j)*u1(i)-u2(j)*vkinv_tAkl(i))+tau3*(inv_tAklbl(j)*u11(i)-u22(j)*bkinv_tAkl(i))&
+       tUkl(j,i)=W1(j,i)+temp2*(tau3*tKkl1(j,i)+tau33*tKkl2(j,i)+tau331*tKkl3(j,i)+&
+       tau332*tKkl4(j,i)+tau333*tKkl5(j,i)+tau334*tKkl6(j,i))+&
+       +temp1*(tau221*tKkl3(j,i)+tau222*tKkl4(j,i)-tau2*tKkl1(j,i)-tau22*tKkl2(j,i)-tau223*tKkl5(j,i)-tau224*tKkl6(j,i) &
+       +tau33*(inv_tAklvl(j)*u1(i)-u2(j)*vkinv_tAkl(i))+tau3*(inv_tAklbl(j)*u11(i)-u22(j)*bkinv_tAkl(i))&
        +tau332*(inv_tAklbk(j)*u1(i)+ u222(j)*vkinv_tAkl(i))-tau331*(inv_tAklbl(j)*u111(i)+u22(j)*vlinv_tAkl(i))&                      
        +tau333*(inv_tAklvl(j)*u11(i)-u2(j)*bkinv_tAkl(i))+tau334*(inv_tAklbl(j)*u1(i)-u22(j)*vkinv_tAkl(i)))
     enddo
@@ -1437,12 +1442,15 @@ if (grad_l) then
   !Computing tWkl = P*(
   !     W1 + (4/tau3)*(u1*vkinv_tAkl'-inv_tAklvl*u2') + (4*tau2/tau3^2)*tKkl
   !                   )*P'
+  
   temp1=FOUR/m
   temp2=temp1*h/m
   do i=1,n
     do j=1,n
-      W3(j,i)=W1(j,i)+temp2*tKkl(j,i)+&
-      temp1*(gkl(j,i)+tau33*(u1(j)*vkinv_tAkl(i)-inv_tAklvl(j)*u2(i))+tau3*(u11(j)*bkinv_tAkl(i)-inv_tAklbl(j)*u22(i))&
+      W3(j,i)=W1(j,i)+temp2*(tau3*tKkl1(j,i)+tau33*tKkl2(j,i)+tau331*tKkl3(j,i)+&
+       tau332*tKkl4(j,i)+tau333*tKkl5(j,i)+tau334*tKkl6(j,i))+&
+      temp1*(tau221*tKkl3(j,i)+tau222*tKkl4(j,i)-tau2*tKkl1(j,i)-tau22*tKkl2(j,i)-tau223*tKkl5(j,i)-tau224*tKkl6(j,i) &
+      +tau33*(u1(j)*vkinv_tAkl(i)-inv_tAklvl(j)*u2(i))+tau3*(u11(j)*bkinv_tAkl(i)-inv_tAklbl(j)*u22(i))&
       + tau331*(u11(j)*vlinv_tAkl(i)+inv_tAklbl(j)*u222(i))-tau332*(u111(j)*vkinv_tAkl(i)+inv_tAklbk(j)*u2(i)) &
       + tau333*(u1(j)*bkinv_tAkl(i)-inv_tAklvl(j)*u22(i))+tau334*(u11(j)*vkinv_tAkl(i)-inv_tAklbl(j)*u2(i)))
     enddo
@@ -1486,27 +1494,33 @@ endif
 if (grad_k.or.grad_l) then
   do i=1,n
     !Computing twosym_tQkl(i,i)=tQkl(i,i)+tQkl(i,i)'
+    temp_n= tau3*eta2(i,i)+tau33*eta22(i,i)+tau331*eta221(i,i)+tau332*eta222(i,i)+tau333*eta223(i,i)+tau334*eta224(i,i)
     temp1=(TWO/SQRTPI)/(eta1(i,i)*sqrt_eta1(i,i))
-    temp2=ONE+(eta(i,i)/eta1(i,i)-etan(i,i))/(eta1(i,i)*m) !first term
-    temp3=(ONEFIFTH*eta(i,i)/eta1(i,i)-ONETHIRD*etan(i,i))/(m*m) !second term
+    temp2=ONE+(eta(i,i)/eta1(i,i)-temp_n)/(eta1(i,i)*m) !first term
+    temp3=(ONEFIFTH*eta(i,i)/eta1(i,i)-ONETHIRD*temp_n)/(m*m) !second term
     temp4=ONETHIRD/m    !3rd term
     temp11=ONEFIFTH/(eta1(i,i)*m)  !4th term                                            
     do t=1,n
       do q=t,n
         temp5=inv_tAkl(q,i)*inv_tAkl(i,t)  
-        kkl=tKkl(q,t)+tKkl(t,q)  !kkl            
+        
+        kkl=tau3*(tKkl1(q,t)+tKkl1(t,q))+tau33*(tKkl2(q,t)+tKkl2(t,q))+tau331*(tKkl3(q,t)+tKkl3(t,q)) &
+            +tau332*(tKkl4(q,t)+tKkl4(t,q))+tau333*(tKkl5(q,t)+tKkl5(t,q))+tau334*(tKkl6(q,t)+tKkl6(t,q))     
         temp6=inv_tAkl(q,i)*(tKkl1(i,t)+tKkl1(t,i))+inv_tAkl(t,i)*(tKkl1(i,q)+tKkl1(q,i)) !old
         temp66=inv_tAkl(q,i)*(tKkl2(i,t)+tKkl2(t,i))+inv_tAkl(t,i)*(tKkl2(i,q)+tKkl2(q,i))                 
         temp661=inv_tAkl(q,i)*(tKkl3(i,t)+tKkl3(t,i))+inv_tAkl(t,i)*(tKkl3(i,q)+tKkl3(q,i)) 
         temp662=inv_tAkl(q,i)*(tKkl4(i,t)+tKkl4(t,i))+inv_tAkl(t,i)*(tKkl4(i,q)+tKkl4(q,i)) 
         temp663=inv_tAkl(q,i)*(tKkl5(i,t)+tKkl5(t,i))+inv_tAkl(t,i)*(tKkl5(i,q)+tKkl5(q,i)) 
-        temp664=inv_tAkl(q,i)*(tKkl6(i,t)+tKkl6(t,i))+inv_tAkl(t,i)*(tKkl6(i,q)+tKkl6(q,i))        
+        temp664=inv_tAkl(q,i)*(tKkl6(i,t)+tKkl6(t,i))+inv_tAkl(t,i)*(tKkl6(i,q)+tKkl6(q,i))    
+        
         temp44=eta2(i,i)*temp66+eta22(i,i)*temp6+eta221(i,i)*temp662+eta222(i,i)*temp661&   !4th term    !look this term again
                +eta223(i,i)*temp664+eta224(i,i)*temp663       
+               
         temp666= eta2(i,i)*(tKkl2(q,t)+tKkl2(t,q))+eta22(i,i)*(tKkl1(q,t)+tKkl1(t,q))+&      
                eta221(i,i)*(tKkl4(q,t)+tKkl4(t,q))+eta222(i,i)*(tKkl3(q,t)+tKkl3(t,q))+ &              
                eta223(i,i)*(tKkl6(q,t)+tKkl6(t,q))+eta224(i,i)*(tKkl5(q,t)+tKkl5(t,q))+ &
-               tau3*temp6+tau33*temp66+tau331*temp661+tau332*temp662+tau333*temp663+tau334*temp664  !3rd term       
+               tau3*temp6+tau33*temp66+tau331*temp661+tau332*temp662+tau333*temp663+tau334*temp664  !3rd term
+               
         twosym_tQkl(q,t)=temp1*(temp2*temp5+temp3*kkl+temp4*temp666-temp11*temp44)  
         twosym_tQkl(t,q)=twosym_tQkl(q,t)
       enddo
@@ -1568,25 +1582,27 @@ if (grad_k.or.grad_l) then
   do i=1,n
     do j=i+1,n
       !Computing twosym_tQkl(j,i)=tQkl(j,i)+tQkl(j,i)'  
+       temp_n= tau3*eta2(j,i)+tau33*eta22(j,i)+tau331*eta221(j,i)+tau332*eta222(j,i)+tau333*eta223(j,i)+tau334*eta224(j,i)
        temp1=(TWO/SQRTPI)/(eta1(j,i)*sqrt_eta1(j,i))
-       temp2=ONE+(eta(j,i)/eta1(j,i)-etan(j,i))/(eta1(j,i)*m) !first term
-       temp3=(ONEFIFTH*eta(j,i)/eta1(j,i)-ONETHIRD*etan(j,i))/(m*m) !second term
+       temp2=ONE+(eta(j,i)/eta1(j,i)-temp_n)/(eta1(j,i)*m) !first term
+       temp3=(ONEFIFTH*eta(j,i)/eta1(j,i)-ONETHIRD*temp_n)/(m*m) !second term
        temp4=ONETHIRD/m    !3rd term
        temp11=ONEFIFTH/(eta1(j,i)*m)  !4th term    
       do t=1,n
         do q=t,n
           temp5=(inv_tAkl(q,i)-inv_tAkl(q,j))*(inv_tAkl(i,t)-inv_tAkl(j,t))     
-          kkl=tKkl(q,t)+tKkl(t,q)       
+          kkl=tau3*(tKkl1(q,t)+tKkl1(t,q))+tau33*(tKkl2(q,t)+tKkl2(t,q))+tau331*(tKkl3(q,t)+tKkl3(t,q)) &
+            +tau332*(tKkl4(q,t)+tKkl4(t,q))+tau333*(tKkl5(q,t)+tKkl5(t,q))+tau334*(tKkl6(q,t)+tKkl6(t,q))             
           temp6=(inv_tAkl(q,i)-inv_tAkl(q,j))*(tKkl1(i,t)-tKkl1(j,t)+tKkl1(t,i)-tKkl1(t,j))+ &
-                (tKkl1(q,i)-tKkl1(q,j)+tKkl1(i,q)-tKkl1(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))                     
+                (tKkl1(q,i)-tKkl1(q,j)+tKkl1(i,q)-tKkl1(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))                   
           temp66=(inv_tAkl(q,i)-inv_tAkl(q,j))*(tKkl2(i,t)-tKkl2(j,t)+tKkl2(t,i)-tKkl2(t,j))+ &
-                (tKkl2(q,i)-tKkl2(q,j)+tKkl2(i,q)-tKkl2(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))
+                (tKkl2(q,i)-tKkl2(q,j)+tKkl2(i,q)-tKkl2(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))               
           temp661=(inv_tAkl(q,i)-inv_tAkl(q,j))*(tKkl3(i,t)-tKkl3(j,t)+tKkl3(t,i)-tKkl3(t,j))+ &
-                (tKkl3(q,i)-tKkl3(q,j)+tKkl3(i,q)-tKkl3(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))             
+                (tKkl3(q,i)-tKkl3(q,j)+tKkl3(i,q)-tKkl3(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))                       
           temp662=(inv_tAkl(q,i)-inv_tAkl(q,j))*(tKkl4(i,t)-tKkl4(j,t)+tKkl4(t,i)-tKkl4(t,j))+ &
-                (tKkl4(q,i)-tKkl4(q,j)+tKkl4(i,q)-tKkl4(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))      
+                (tKkl4(q,i)-tKkl4(q,j)+tKkl4(i,q)-tKkl4(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))                   
           temp663=(inv_tAkl(q,i)-inv_tAkl(q,j))*(tKkl5(i,t)-tKkl5(j,t)+tKkl5(t,i)-tKkl5(t,j))+ &
-                (tKkl5(q,i)-tKkl5(q,j)+tKkl5(i,q)-tKkl5(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))     
+                (tKkl5(q,i)-tKkl5(q,j)+tKkl5(i,q)-tKkl5(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))                
           temp664=(inv_tAkl(q,i)-inv_tAkl(q,j))*(tKkl6(i,t)-tKkl6(j,t)+tKkl6(t,i)-tKkl6(t,j))+ &
                 (tKkl6(q,i)-tKkl6(q,j)+tKkl6(i,q)-tKkl6(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))      
           temp44=eta2(j,i)*temp66+eta22(j,i)*temp6+eta221(j,i)*temp662+eta222(j,i)*temp661&   !4th term    !look this term again
