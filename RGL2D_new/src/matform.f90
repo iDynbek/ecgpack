@@ -174,18 +174,18 @@ do k=Nmin,Nmax
 	do j=1,Glob_NumYHYTerms
 	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then       
               
+  !      call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+  !             Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.false.,.false.)
         call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.false.,.false.)
- !       call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
- !              Hkl2,Skl2,Tkl2,Vkl2,Dk2,Dl2,.false.,.false.)              
+               Hkl2,Skl2,Tkl2,Vkl2,Dk2,Dl2,.false.,.false.)              
  !       call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
  !              Hkl3,Skl3,Tkl3,Vkl3,Dk3,Dl3,.false.,.false.)
 !        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl4,Skl4,Tkl4,Vkl4,Dk4,Dl4,.false.,.false.)                   
-        call MatrixElementsL11(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl5,Skl5,Tkl5,Vkl5,Dk5,Dl5,.false.,.false.)
- !       call MatrixElementsL11(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
- !              Hkl6,Skl6,Tkl6,Vkl6,Dk6,Dl6,.false.,.false.)     
+ !       call MatrixElementsL11(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+ !              Hkl5,Skl5,Tkl5,Vkl5,Dk5,Dl5,.false.,.false.)
+        call MatrixElementsL11(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl6,Skl6,Tkl6,Vkl6,Dk6,Dl6,.false.,.false.)     
 !        call MatrixElementsL11(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl7,Skl7,Tkl7,Vkl7,Dk7,Dl7,.false.,.false.)
 !        call MatrixElementsL11(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
@@ -197,10 +197,10 @@ do k=Nmin,Nmax
 !                Dl=6*Dl1-2*Dl2+2*Dl3-2*Dl4+Dl5-Dl6 !+Dl7-Dl8     
       
       !this is for S state
-                 Hkl=3*Hkl1+6*Hkl5
-                 Skl=3*Skl1+6*Skl5
-                 Dk=3*Dk1+6*Dk5
-                 Dl=3*Dl1+6*Dl5  
+                 Hkl=3*Hkl2+6*Hkl6
+                 Skl=3*Skl2+6*Skl6
+                 Dk=3*Dk2+6*Dk6
+                 Dl=3*Dl2+6*Dl6 
 !                Hkl=6*Hkl3-6*Hkl8    
 !                Skl=6*Skl3-6*Skl8  
 !                Dk=6*Dk3-6*Dk8  
@@ -357,27 +357,27 @@ do k=Nmin,Nmax
 	do j=1,Glob_NumYHYTerms
 	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then  
               
-        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.true.,grad_l)
 !        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-!               Hkl2,Skl2,Tkl2,Vkl2,Dk2,Dl2,.false.,.false.)              
+!               Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.true.,grad_l)
+        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl2,Skl2,Tkl2,Vkl2,Dk2,Dl2,.false.,.false.)              
 !        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl3,Skl3,Tkl3,Vkl3,Dk3,Dl3,.false.,.false.)
 !        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl4,Skl4,Tkl4,Vkl4,Dk4,Dl4,.false.,.false.)                   
-        call MatrixElementsL11(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl5,Skl5,Tkl5,Vkl5,Dk5,Dl5,.true.,grad_l)
-!        call MatrixElementsL11(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-!               Hkl6,Skl6,Tkl6,Vkl6,Dk6,Dl6,.false.,.false.)     
+ !       call MatrixElementsL11(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+ !              Hkl5,Skl5,Tkl5,Vkl5,Dk5,Dl5,.true.,grad_l)
+        call MatrixElementsL11(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl6,Skl6,Tkl6,Vkl6,Dk6,Dl6,.false.,.false.)     
 !        call MatrixElementsL11(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl7,Skl7,Tkl7,Vkl7,Dk7,Dl7,.false.,.false.)
 !        call MatrixElementsL11(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl8,Skl8,Tkl8,Vkl8,Dk8,Dl8,.false.,.false.)
 !this is for S state
-                 Hkl=3*Hkl1+6*Hkl5
-                 Skl=3*Skl1+6*Skl5
-                 Dk=3*Dk1+6*Dk5
-                 Dl=3*Dl1+6*Dl5 
+                 Hkl=3*Hkl2+6*Hkl6
+                 Skl=3*Skl2+6*Skl6
+                 Dk=3*Dk2+6*Dk6
+                 Dl=3*Dl2+6*Dl6
                
 !                Hkl=6*Hkl3-6*Hkl8    
 !                Skl=6*Skl3-6*Skl8  
