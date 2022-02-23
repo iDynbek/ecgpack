@@ -4250,7 +4250,7 @@ do while (K<Kstop)
 !   
 !                  do j=1,nv                  
 !                        fx(1:nv)=x(1:nv)
-!		        deltax=x(j)*1.0Q-6                 
+!		        deltax=x(j)*1.0Q-3                 
 !                        fx(j)=x(j)+deltax
 ! 	                do i=1,nfo
 !	                   Glob_NonlinParam(1:npt,nfru+i)=fx((i-1)*npt+1:i*npt)
@@ -4920,7 +4920,7 @@ do while (K<Kstop)
 !                  write(*,*)'             Analytic              finite diff gradient       5point finite diff gradient'                    
 !                  do j=1,nv
 !                      fx(1:nv)=x(1:nv)
-!		      deltax=x(j)*1.0Q-6                 
+!		      deltax=x(j)*1.0Q-3                 
 !                      fx(j)=x(j)+deltax
 ! 	              do i=1,nfo
 !	                  Glob_NonlinParam(1:npt,nfru+i)=fx((i-1)*npt+1:i*npt)
