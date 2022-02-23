@@ -4205,7 +4205,7 @@ do while (K<Kstop)
 !   
 !                  do j=1,nv                  
 !                        fx(1:nv)=x(1:nv)
-!		        deltax=x(j)*1.0Q-6                 
+!		        deltax=x(j)*1.0Q-2                 
 !                        fx(j)=x(j)+deltax
 ! 	                do i=1,nfo
 !	                   Glob_NonlinParam(1:npt,nfru+i)=fx((i-1)*npt+1:i*npt)
@@ -4872,7 +4872,7 @@ do while (K<Kstop)
 !                  write(*,*)'             Analytic              finite diff gradient       5point finite diff gradient'                    
 !                  do j=1,nv
 !                      fx(1:nv)=x(1:nv)
-!		      deltax=x(j)*1.0Q-6                 
+!		      deltax=x(j)*1.0Q-2                 
 !                      fx(j)=x(j)+deltax
 ! 	              do i=1,nfo
 !	                  Glob_NonlinParam(1:npt,nfru+i)=fx((i-1)*npt+1:i*npt)
@@ -6518,7 +6518,7 @@ do while (.not.(ExitNeeded))
 !    if (Glob_ProcID==0) write(*,*) '    analytic gradient       finite diff gradient      5points finite dif gradient' 
 !      do i=1,nfo
 !        do j=1,npt
-!                 deltax=Glob_NonlinParam(j,i+nfru)*1.0Q-6       
+!                 deltax=Glob_NonlinParam(j,i+nfru)*1.0Q-7       
 !                 Glob_NonlinParam(j,i+nfru)=Glob_NonlinParam(j,i+nfru)+deltax
 !                 Evalue1=EnergyGA(InitFuncNew,nfa,.true.,ErrCode)       
 !                 Glob_NonlinParam(j,i+nfru)=Glob_NonlinParam(j,i+nfru)+deltax
