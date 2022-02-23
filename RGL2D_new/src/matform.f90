@@ -158,7 +158,7 @@ do k=Nmin,Nmax
   Paramk(1:npt)=Glob_NonlinParam(1:npt,k)
   mk=Glob_ZIndex(k)
   mmk=1
- ! if (mk==1) mk=2
+  if (mk==1) mk=2
   do l=k,1,-1
     i=i+1
 	if (i==1) then
@@ -168,7 +168,7 @@ do k=Nmin,Nmax
     Paraml(1:npt)=Glob_NonlinParam(1:npt,l)
     ml=Glob_ZIndex(l)
     mml=1
-    !if (ml==1) ml=2 
+    if (ml==1) ml=2 
 	Hsum=ZERO; Ssum=ZERO
 	q=(i-1)*Glob_NumYHYTerms-1
 	do j=1,Glob_NumYHYTerms
@@ -333,7 +333,7 @@ do k=Nmin,Nmax
   Paramk(1:npt)=Glob_NonlinParam(1:npt,k)
   mk=Glob_ZIndex(k)
   mmk=1
- ! if (mk==1) mk=2
+  if (mk==1) mk=2
   do l=k,1,-1
     i=i+1
 	if (i==1) then
@@ -343,7 +343,7 @@ do k=Nmin,Nmax
     Paraml(1:npt)=Glob_NonlinParam(1:npt,l)
     ml=Glob_ZIndex(l)
     mml=1
-    !if (ml==1) ml=2
+    if (ml==1) ml=2
 	Hsum=ZERO 
 	Ssum=ZERO
     Dksum(1:npt2)=ZERO
