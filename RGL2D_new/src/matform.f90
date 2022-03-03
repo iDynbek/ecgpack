@@ -184,7 +184,7 @@ do k=Nmin,Nmax
                 Dl=3*Dl1+6*Dl5
                
                
-        elseif (ml /=1 .and. mk/=1) then !.and. mk/=ml
+        elseif (ml /=1 .or. mk/=1) then !.and. mk/=ml
         call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.false.,.false.)
 !        call MatrixElementsL1(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
@@ -388,7 +388,7 @@ do k=Nmin,Nmax
                 Dl=3*Dl1+6*Dl5
                
                
-        elseif (ml /=1 .and. mk/=1) then !.and. mk/=ml
+        elseif (ml /=1 .or. mk/=1) then !.and. mk/=ml
         call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.true.,grad_l)
 !        call MatrixElementsL1(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
