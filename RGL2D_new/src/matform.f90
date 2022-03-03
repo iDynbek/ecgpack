@@ -158,7 +158,7 @@ do k=Nmin,Nmax
   Paramk(1:npt)=Glob_NonlinParam(1:npt,k)
   mk=Glob_ZIndex(k)
   mmk=1
-  if (mk==1) mk=2
+  !if (mk==1) mmk=2
   do l=k,1,-1
     i=i+1
 	if (i==1) then
@@ -168,43 +168,62 @@ do k=Nmin,Nmax
     Paraml(1:npt)=Glob_NonlinParam(1:npt,l)
     ml=Glob_ZIndex(l)
     mml=1
-    if (ml==1) ml=2 
+    !if (ml==1) mml=2  below is the code for S state
 	Hsum=ZERO; Ssum=ZERO
 	q=(i-1)*Glob_NumYHYTerms-1
 	do j=1,Glob_NumYHYTerms
 	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then       
-              
-  !      call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-  !             Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.false.,.false.)
-        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl2,Skl2,Tkl2,Vkl2,Dk2,Dl2,.false.,.false.)              
- !       call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
- !              Hkl3,Skl3,Tkl3,Vkl3,Dk3,Dl3,.false.,.false.)
-!        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-!               Hkl4,Skl4,Tkl4,Vkl4,Dk4,Dl4,.false.,.false.)                   
- !       call MatrixElementsL11(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
- !              Hkl5,Skl5,Tkl5,Vkl5,Dk5,Dl5,.false.,.false.)
-        call MatrixElementsL11(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl6,Skl6,Tkl6,Vkl6,Dk6,Dl6,.false.,.false.)     
-!        call MatrixElementsL11(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-!               Hkl7,Skl7,Tkl7,Vkl7,Dk7,Dl7,.false.,.false.)
-!        call MatrixElementsL11(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-!               Hkl8,Skl8,Tkl8,Vkl8,Dk8,Dl8,.false.,.false.)  
+        if (mk==1 .or. ml==1 )    then  
+                call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.false.,.false.)
+                       call MatrixElementsL11(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl5,Skl5,Tkl5,Vkl5,Dk5,Dl5,.false.,.false.)
+                Hkl=3*Hkl1+6*Hkl5
+                Skl=3*Skl1+6*Skl5
+                Dk=3*Dk1+6*Dk5
+                Dl=3*Dl1+6*Dl5
                
-!                Hkl=6*Hkl1-2*Hkl2+2*Hkl3-2*Hkl4+Hkl5-Hkl6 !+Hkl7-Hkl8
-!                Skl=6*Skl1-2*Skl2+2*Skl3-2*Skl4+Skl5-Skl6 !+Skl7-Skl8
-!                Dk=6*Dk1-2*Dk2+2*Dk3-2*Dk4+Dk5-Dk6 !+Dk7-Dk8
-!                Dl=6*Dl1-2*Dl2+2*Dl3-2*Dl4+Dl5-Dl6 !+Dl7-Dl8     
-      
-      !this is for S state
-                 Hkl=3*Hkl2+6*Hkl6
-                 Skl=3*Skl2+6*Skl6
-                 Dk=3*Dk2+6*Dk6
-                 Dl=3*Dl2+6*Dl6 
-!                Hkl=6*Hkl3-6*Hkl8    
-!                Skl=6*Skl3-6*Skl8  
-!                Dk=6*Dk3-6*Dk8  
-!                Dl=6*Dl3-6*Dl8   
+               
+        elseif (ml /=1 .and. mk/=1) then !.and. mk/=ml
+        call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.false.,.false.)
+!        call MatrixElementsL1(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl2,Skl2,Tkl2,Vkl2,Dk2,Dl2,.false.,.false.)              
+!        call MatrixElementsL1(mml,ml,mmk,mk,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl3,Skl3,Tkl3,Vkl3,Dk3,Dl3,.false.,.false.)
+!        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl4,Skl4,Tkl4,Vkl4,Dk4,Dl4,.false.,.false.)  
+               
+        call MatrixElementsL11(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl5,Skl5,Tkl5,Vkl5,Dk5,Dl5,.false.,.false.)
+        call MatrixElementsL11(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl6,Skl6,Tkl6,Vkl6,Dk6,Dl6,.false.,.false.)     
+
+!                Hkl=1.5*Hkl1+1.5*Hkl2+3*Hkl5+3*Hkl6
+!                Skl=1.5*Skl1+1.5*Skl2+3*Skl5+3*Skl6
+!                Dk=1.5*Dk1+1.5*Dk2+3*Dk5+3*Dk6
+!                Dl=1.5*Dl1+1.5*Dl2+3*Dl5+3*Dl6
+                Hkl=3*Hkl1+3*Hkl5+3*Hkl6
+                Skl=3*Skl1+3*Skl5+3*Skl6
+                Dk=3*Dk1+3*Dk5+3*Dk6
+                Dl=3*Dl1+3*Dl5+3*Dl6
+        endif       
+!                Hkl=2*Hkl1+2*Hkl2+2*Hkl3-3*Hkl6-3*Hkl5
+!                Skl=2*Skl1+2*Skl2+2*Skl3-3*Skl6-3*Skl5
+!                Dk=2*Dk1+2*Dk2+2*Dk3-3*Dk6-3*Dk5
+!                Dl=2*Dl1+2*Dl2+2*Dl3-3*Dl6-3*Dl5
+            
+                
+                 !In this comments below I list the  approximately  working codes for S state out of two p electrons   
+!                   call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!                        Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.false.,.false.)
+!                   call MatrixElementsL11(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!                        Hkl2,Skl2,Tkl2,Vkl2,Dk2,Dl2,.false.,.false.)
+!                Hkl=6*Hkl1-6*Hkl2
+!                Skl=6*Skl1-6*Skl2
+!                Dk=6*Dk1-6*Dk2
+!                Dl=6*Dl1-6*Dl2      
+                
 		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
 		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
 	  endif
@@ -311,10 +330,10 @@ real(dprec) Dk5(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoP
 real(dprec) Dl5(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 real(dprec) Dk6(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 real(dprec) Dl6(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-real(dprec) Dk7(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-real(dprec) Dl7(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-real(dprec) Dk8(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-real(dprec) Dl8(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+!real(dprec) Dk7(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+!real(dprec) Dl7(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+!real(dprec) Dk8(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+!real(dprec) Dl8(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
 logical     grad_l
 
 n=Glob_n
@@ -333,7 +352,7 @@ do k=Nmin,Nmax
   Paramk(1:npt)=Glob_NonlinParam(1:npt,k)
   mk=Glob_ZIndex(k)
   mmk=1
-  if (mk==1) mk=2
+  !if (mk==1) mmk=2
   do l=k,1,-1
     i=i+1
 	if (i==1) then
@@ -343,7 +362,7 @@ do k=Nmin,Nmax
     Paraml(1:npt)=Glob_NonlinParam(1:npt,l)
     ml=Glob_ZIndex(l)
     mml=1
-    if (ml==1) ml=2
+   !if (ml==1) mml=2
 	Hsum=ZERO 
 	Ssum=ZERO
     Dksum(1:npt2)=ZERO
@@ -356,33 +375,60 @@ do k=Nmin,Nmax
 	q=(i-1)*Glob_NumYHYTerms-1
 	do j=1,Glob_NumYHYTerms
 	  if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then  
-              
-!        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-!               Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.true.,grad_l)
-        call MatrixElementsL1(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl2,Skl2,Tkl2,Vkl2,Dk2,Dl2,.false.,.false.)              
-!        call MatrixElementsL1(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+
+               
+        if (mk==1 .or. ml==1 )    then  
+                call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.true.,grad_l)
+                       call MatrixElementsL11(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl5,Skl5,Tkl5,Vkl5,Dk5,Dl5,.true.,grad_l)
+                Hkl=3*Hkl1+6*Hkl5
+                Skl=3*Skl1+6*Skl5
+                Dk=3*Dk1+6*Dk5
+                Dl=3*Dl1+6*Dl5
+               
+               
+        elseif (ml /=1 .and. mk/=1) then !.and. mk/=ml
+        call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.true.,grad_l)
+!        call MatrixElementsL1(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!               Hkl2,Skl2,Tkl2,Vkl2,Dk2,Dl2,.false.,.false.)              
+!        call MatrixElementsL1(mml,ml,mmk,mk,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl3,Skl3,Tkl3,Vkl3,Dk3,Dl3,.false.,.false.)
 !        call MatrixElementsL1(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-!               Hkl4,Skl4,Tkl4,Vkl4,Dk4,Dl4,.false.,.false.)                   
- !       call MatrixElementsL11(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
- !              Hkl5,Skl5,Tkl5,Vkl5,Dk5,Dl5,.true.,grad_l)
-        call MatrixElementsL11(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-               Hkl6,Skl6,Tkl6,Vkl6,Dk6,Dl6,.false.,.false.)     
-!        call MatrixElementsL11(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-!               Hkl7,Skl7,Tkl7,Vkl7,Dk7,Dl7,.false.,.false.)
-!        call MatrixElementsL11(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
-!               Hkl8,Skl8,Tkl8,Vkl8,Dk8,Dl8,.false.,.false.)
-!this is for S state
-                 Hkl=3*Hkl2+6*Hkl6
-                 Skl=3*Skl2+6*Skl6
-                 Dk=3*Dk2+6*Dk6
-                 Dl=3*Dl2+6*Dl6
+!               Hkl4,Skl4,Tkl4,Vkl4,Dk4,Dl4,.false.,.false.)  
                
-!                Hkl=6*Hkl3-6*Hkl8    
-!                Skl=6*Skl3-6*Skl8  
-!                Dk=6*Dk3-6*Dk8  
-!                Dl=6*Dl3-6*Dl8    
+        call MatrixElementsL11(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl5,Skl5,Tkl5,Vkl5,Dk5,Dl5,.true.,grad_l)
+        call MatrixElementsL11(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+               Hkl6,Skl6,Tkl6,Vkl6,Dk6,Dl6,.true.,grad_l)     
+
+!                Hkl=1.5*Hkl1+1.5*Hkl2+3*Hkl5+3*Hkl6
+!                Skl=1.5*Skl1+1.5*Skl2+3*Skl5+3*Skl6
+!                Dk=1.5*Dk1+1.5*Dk2+3*Dk5+3*Dk6
+!                Dl=1.5*Dl1+1.5*Dl2+3*Dl5+3*Dl6
+                Hkl=3*Hkl1+3*Hkl5+3*Hkl6
+                Skl=3*Skl1+3*Skl5+3*Skl6
+                Dk=3*Dk1+3*Dk5+3*Dk6
+                Dl=3*Dl1+3*Dl5+3*Dl6
+        endif       
+!                Hkl=2*Hkl1+2*Hkl2+2*Hkl3-3*Hkl6-3*Hkl5
+!                Skl=2*Skl1+2*Skl2+2*Skl3-3*Skl6-3*Skl5
+!                Dk=2*Dk1+2*Dk2+2*Dk3-3*Dk6-3*Dk5
+!                Dl=2*Dl1+2*Dl2+2*Dl3-3*Dl6-3*Dl5
+            
+                
+                 !In this comments below I list the  approximately  working codes for S state out of two p electrons   
+!                   call MatrixElementsL1(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!                        Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.false.,.false.)
+!                   call MatrixElementsL11(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!                        Hkl2,Skl2,Tkl2,Vkl2,Dk2,Dl2,.false.,.false.)
+!                Hkl=6*Hkl1-6*Hkl2
+!                Skl=6*Skl1-6*Skl2
+!                Dk=6*Dk1-6*Dk2
+!                Dl=6*Dl1-6*Dl2      
+                
+                 
 		Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
 		Ssum=Ssum+Glob_YHYCoeff(j)*Skl
         Dksum(1:npt2)=Dksum(1:npt2)+Glob_YHYCoeff(j)*Dk(1:npt2)
