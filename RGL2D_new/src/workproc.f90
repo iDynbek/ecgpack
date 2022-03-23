@@ -1684,13 +1684,13 @@ if (Glob_CurrBasisSize==0) then !making uniform distribution
     if (m(i,1)>Glob_n) m(i,1)=Glob_n
     if (m(i,2)>Glob_n) m(i,2)=Glob_n
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    if (m(i,1)==m(i,2)) then 
-	 if (m(i,1)==Glob_n) then
-             m(i,2)=m(i,1)-1
-	 elseif (m(i,1)<Glob_n) then
-	     m(i,2)=m(i,1)+1
-         endif
-    end if
+    !if (m(i,1)==m(i,2)) then 
+	! if (m(i,1)==Glob_n) then
+        !     m(i,2)=m(i,1)-1
+	! elseif (m(i,1)<Glob_n) then
+	!     m(i,2)=m(i,1)+1
+        ! endif
+    !end if
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   enddo
   method_used=0
@@ -1715,7 +1715,7 @@ else
                 jj=Glob_Index(k,2)
 		m(i,1)=j
                 m(i,2)=jj
-		do while (m(i,1)==j .and. m(i,2)==jj .and. m(i,1)==m(i,2)) 
+		do while (m(i,1)==j .and. m(i,2)==jj) !.and. m(i,1)==m(i,2)
 		    call random_number(r)
 		    r=r*Glob_n
                     m(i,1)=1+int(r)             
@@ -1762,7 +1762,7 @@ else
                   jj=Glob_Index(k+i-1,2)
 		  m(i,1)=j
                   m(i,2)=jj
-		  do while (m(i,1)==j .and. m(i,2)==jj .and. m(i,1)==m(i,2)) 
+		  do while (m(i,1)==j .and. m(i,2)==jj) !.and. m(i,1)==m(i,2) 
 		       call random_number(r)
 		       r=r*Glob_n
                        m(i,1)=1+int(r)
@@ -4082,7 +4082,7 @@ do while (K<Kstop)
         jbest=j
         jbest2=j2  
           do jj=1,Glob_n
-            if (jj/=j .and. jj/=j2) then
+            if (jj/=j) then ! .and. jj/=j2
               Glob_Index(nfru+ii,1)=jj
               Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
      	        if (ErrCode/=0) then
@@ -4106,7 +4106,7 @@ do while (K<Kstop)
           Glob_Index(nfru+ii,1)=jbest
           NumOfFailures=0
           do jj2=1,Glob_n
-            if (jj2/=j2 .and. jj2/=jbest) then !.and. jbest /=j2
+            if (jj2/=j2) then ! .and. jj2/=jbest
               Glob_Index(nfru+ii,2)=jj2
               Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
      	        if (ErrCode/=0) then
@@ -4747,7 +4747,7 @@ do while (K<Kstop)
         jbest=j
         jbest2=j2  
           do jj=1,Glob_n
-            if (jj/=j .and. jj/=j2) then
+            if (jj/=j) then  ! .and. jj/=j2
               Glob_Index(nfru+ii,1)=jj
               Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
      	        if (ErrCode/=0) then
@@ -4771,7 +4771,7 @@ do while (K<Kstop)
           Glob_Index(nfru+ii,1)=jbest
           NumOfFailures=0
           do jj2=1,Glob_n
-            if (jj2/=j2 .and. jj2/=jbest) then !.and. jbest /=j2
+            if (jj2/=j2) then !.and. jj2/=jbest
               Glob_Index(nfru+ii,2)=jj2
               Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
      	        if (ErrCode/=0) then
