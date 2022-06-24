@@ -5,7 +5,7 @@ use wp_def
 implicit none
 
 !=============================================================
-!Numerical constants
+!Numerical constants Glob_MaxEnergyFailsAllowed Glob_MaxIterForGSEPIIS
 !=============================================================
 real(dprec),parameter :: &
 ZERO=0.E0_dprec,     &
@@ -161,9 +161,9 @@ real(dprec)   Glob_WorstEigvalTol
 !functions (elements of the Cholesky matrix, L_k)
 real(dprec),allocatable,dimension(:,:),save :: Glob_NonlinParam
 
-!Array Glob_ZIndex contains the indices of the z-premultiplier
-!of the basis functions. The indices generally range grom 1 to Glob_n  
-integer,allocatable,dimension(:),save :: Glob_ZIndex
+!Array Glob_Index contains the indices of the x,y-premultipliers
+!of the basis functions. The indices generally range from 1 to Glob_n  
+integer,allocatable,dimension(:,:),save :: Glob_Index
 
 !Array Glob_FuncNum contains the basis function numbers 
 integer,allocatable,dimension(:),save :: Glob_FuncNum
@@ -320,7 +320,7 @@ real(dprec),parameter  ::  Glob_MaxFracOfTrialFailsAllowed=0.15_dprec
 
 !This parameter defines how many failures in energy or gradient
 !evaluation are allowed during optimization of nonlinear parameters
-integer,parameter   :: Glob_MaxEnergyFailsAllowed=5
+integer,parameter   :: Glob_MaxEnergyFailsAllowed=5 !
 
 !This parameter defines how many times a basis enlargement 
 !routine or a cyclic optimization routine are allowed to repeat 
