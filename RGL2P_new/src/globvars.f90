@@ -5,7 +5,7 @@ use wp_def
 implicit none
 
 !=============================================================
-!Numerical constants Glob_MaxEnergyFailsAllowed
+!Numerical constants Glob_MaxEnergyFailsAllowed Glob_MaxIterForGSEPIIS
 !=============================================================
 real(dprec),parameter :: &
 ZERO=0.E0_dprec,     &
@@ -320,7 +320,7 @@ real(dprec),parameter  ::  Glob_MaxFracOfTrialFailsAllowed=0.15_dprec
 
 !This parameter defines how many failures in energy or gradient
 !evaluation are allowed during optimization of nonlinear parameters
-integer,parameter   :: Glob_MaxEnergyFailsAllowed=5
+integer,parameter   :: Glob_MaxEnergyFailsAllowed=5 !
 
 !This parameter defines how many times a basis enlargement 
 !routine or a cyclic optimization routine are allowed to repeat 
