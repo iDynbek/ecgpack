@@ -1683,15 +1683,15 @@ if (Glob_CurrBasisSize==0) then !making uniform distribution
     m(i,2)=1+int(r1)
     if (m(i,1)>Glob_n) m(i,1)=Glob_n
     if (m(i,2)>Glob_n) m(i,2)=Glob_n
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !if (m(i,1)==m(i,2)) then 
-	! if (m(i,1)==Glob_n) then
-        !     m(i,2)=m(i,1)-1
-	! elseif (m(i,1)<Glob_n) then
-	!     m(i,2)=m(i,1)+1
-        ! endif
-    !end if
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!    if (m(i,1)==m(i,2)) then 
+!	 if (m(i,1)==Glob_n) then
+!             m(i,2)=m(i,1)-1
+!	 elseif (m(i,1)<Glob_n) then
+!	     m(i,2)=m(i,1)+1
+!         endif
+!    end if
+!    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   enddo
   method_used=0
   k=0
@@ -1715,7 +1715,7 @@ else
                 jj=Glob_Index(k,2)
 		m(i,1)=j
                 m(i,2)=jj
-		do while (m(i,1)==j .and. m(i,2)==jj) !.and. m(i,1)==m(i,2)
+		do while (m(i,1)==j .and. m(i,2)==jj) !.and. m(i,1)==m(i,2) 
 		    call random_number(r)
 		    r=r*Glob_n
                     m(i,1)=1+int(r)             
@@ -1762,7 +1762,7 @@ else
                   jj=Glob_Index(k+i-1,2)
 		  m(i,1)=j
                   m(i,2)=jj
-		  do while (m(i,1)==j .and. m(i,2)==jj) !.and. m(i,1)==m(i,2) 
+		  do while (m(i,1)==j .and. m(i,2)==jj)  ! .and. m(i,1)==m(i,2) 
 		       call random_number(r)
 		       r=r*Glob_n
                        m(i,1)=1+int(r)
@@ -4082,7 +4082,7 @@ do while (K<Kstop)
         jbest=j
         jbest2=j2  
           do jj=1,Glob_n
-            if (jj/=j) then ! .and. jj/=j2
+            if (jj/=j ) then  !.and. jj/=j2
               Glob_Index(nfru+ii,1)=jj
               Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
      	        if (ErrCode/=0) then
@@ -4106,7 +4106,7 @@ do while (K<Kstop)
           Glob_Index(nfru+ii,1)=jbest
           NumOfFailures=0
           do jj2=1,Glob_n
-            if (jj2/=j2) then ! .and. jj2/=jbest
+            if (jj2/=j2) then !.and. jj2/=jbest
               Glob_Index(nfru+ii,2)=jj2
               Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
      	        if (ErrCode/=0) then
@@ -4747,7 +4747,7 @@ do while (K<Kstop)
         jbest=j
         jbest2=j2  
           do jj=1,Glob_n
-            if (jj/=j) then  ! .and. jj/=j2
+            if (jj/=j) then !.and. jj/=j2
               Glob_Index(nfru+ii,1)=jj
               Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
      	        if (ErrCode/=0) then
@@ -4771,7 +4771,7 @@ do while (K<Kstop)
           Glob_Index(nfru+ii,1)=jbest
           NumOfFailures=0
           do jj2=1,Glob_n
-            if (jj2/=j2) then !.and. jj2/=jbest
+            if (jj2/=j2) then ! .and. jj2/=jbest
               Glob_Index(nfru+ii,2)=jj2
               Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
      	        if (ErrCode/=0) then
@@ -8860,17 +8860,19 @@ real(dprec),allocatable,dimension(:,:)     :: Denskl
 real(dprec),allocatable,dimension(:,:)     :: Dens
 integer                                    :: NumOfCFAndDensExpVals
 real(dprec),allocatable,dimension(:)       :: CFDMEkl_s
-real(dprec),allocatable,dimension(:)       :: MEkl,MEkl_s
+real(dprec),allocatable,dimension(:)       :: MEkl,MEkl_s,MEkl1,MEkl_s1,MEkl2,MEkl_s2
 real(dprec)                                :: Hkl,Skl,Tkl,Vkl
 real(dprec)                                :: Hkl1,Skl1,Tkl1,Vkl1
 real(dprec)                                :: Hkl2,Skl2,Tkl2,Vkl2
-real(dprec)                                :: Hkl3,Skl3,Tkl3,Vkl3
-real(dprec)                                :: Hkl4,Skl4,Tkl4,Vkl4
 real(dprec)                                :: MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
+real(dprec)                                :: MVkl1,drach_MVkl1,Darwinkl1,drach_Darwinkl1,OOkl1
+real(dprec)                                :: MVkl2,drach_MVkl2,Darwinkl2,drach_Darwinkl2,OOkl2
 real(dprec)                                :: H,S,T,V,MV,drach_MV,Darwin,drach_Darwin,OO
 real(dprec),allocatable,dimension(:,:)     :: rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,prvalkl
-real(dprec),allocatable,dimension(:,:)     :: rm2,rm,r,r2,deltar,drach_deltar,prval,rmkl1,rmkl2,rmkl3,rmkl4
-real(dprec),allocatable,dimension(:,:,:,:) :: rmrmkl
+real(dprec),allocatable,dimension(:,:)     :: rm2kl1,rmkl1,rkl1,r2kl1,deltarkl1,drach_deltarkl1,prvalkl1
+real(dprec),allocatable,dimension(:,:)     :: rm2kl2,rmkl2,rkl2,r2kl2,deltarkl2,drach_deltarkl2,prvalkl2
+real(dprec),allocatable,dimension(:,:)     :: rm2,rm,r,r2,deltar,drach_deltar,prval
+real(dprec),allocatable,dimension(:,:,:,:) :: rmrmkl,rmrmkl1,rmrmkl2
 
 if (Glob_ProcID==0) then
   write(*,*)
@@ -9104,33 +9106,59 @@ NumOfExpcVals=7*n*(n+1)/2+9+(3*n**4+10*n**3+9*n**2+2*n)/12
 allocate(MEkl(NumOfExpcVals))
 allocate(MEkl_s(NumOfExpcVals))
 
+allocate(MEkl1(NumOfExpcVals))
+allocate(MEkl_s1(NumOfExpcVals))
+allocate(MEkl2(NumOfExpcVals))
+allocate(MEkl_s2(NumOfExpcVals))
+
 allocate(rm2kl(n,n))
 allocate(rm2(n,n))
+
+allocate(rm2kl1(n,n))
+allocate(rm2kl2(n,n))
+
 
 allocate(rmkl(n,n))
 allocate(rm(n,n))
 
 allocate(rmkl1(n,n))
 allocate(rmkl2(n,n))
-allocate(rmkl3(n,n))
-allocate(rmkl4(n,n))
+
 
 allocate(rkl(n,n))
 allocate(r(n,n))
 
+allocate(rkl1(n,n))
+allocate(rkl2(n,n))
+
 allocate(r2kl(n,n))
 allocate(r2(n,n))
+
+allocate(r2kl1(n,n))
+allocate(r2kl2(n,n))
 
 allocate(deltarkl(n,n))
 allocate(deltar(n,n))
 
+allocate(deltarkl1(n,n))
+allocate(deltarkl2(n,n))
+
 allocate(drach_deltarkl(n,n))
 allocate(drach_deltar(n,n))
+
+allocate(drach_deltarkl1(n,n))
+allocate(drach_deltarkl2(n,n))
 
 allocate(prvalkl(n,n))
 allocate(prval(n,n))
 
+allocate(prvalkl1(n,n))
+allocate(prvalkl2(n,n))
+
 allocate(rmrmkl(n,n,n,n))
+
+allocate(rmrmkl1(n,n,n,n))
+allocate(rmrmkl2(n,n,n,n))
 
 call ReadSwapFileAndDistributeData(IsSwapFileOK)
 
@@ -9243,9 +9271,6 @@ if (AreCorrFuncNeeded.or.ArePartDensNeeded) CFDMEkl_s(1:NumOfCFAndDensExpVals)=Z
 counter=0
 do i=1,cbs
   do j=1,i  !j=1,i 
-!      write(*,*)"this is i and j:",i,j
-!      write(*,*)"this is Glob_index(i,1), Glob_index(i,2)",Glob_Index(i,1),Glob_Index(i,2)
-!      write(*,*)"this is Glob_index(j,1), Glob_index(j,2)",Glob_Index(j,1),Glob_Index(j,2)
     counter=counter+1
     if (mod(counter,Glob_NumOfProcs)==Glob_ProcID) then
       if (i==j) then
@@ -9256,70 +9281,70 @@ do i=1,cbs
 	  if (SymmAdaptMethod==1) then
 	    do k=1,Glob_NumYHYTerms	
              !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
-!	      call MatrixElementsL1ForExpcVals(Glob_Index(i,1),Glob_Index(i,2),Glob_Index(j,1),Glob_Index(j,2),  &
-!	        Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
-!	        IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl,Skl,Tkl,Vkl,                    &
-!                rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
-!                Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
-!                NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
-               !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!     
-                           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
-	      call MatrixElementsL1ForExpcVals(Glob_Index(i,1),Glob_Index(i,2),Glob_Index(j,1),Glob_Index(j,2),  &
+	      call MatrixElementsL1ForExpcValsD(Glob_Index(i,1),Glob_Index(i,2),Glob_Index(j,1),Glob_Index(j,2),  &
 	        Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
-	        IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl1,Skl1,Tkl1,Vkl1,                    &
-                rm2kl,rmkl1,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
+	        IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl,Skl,Tkl,Vkl,                    &
+                rm2kl,rmkl,rkl1,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
                 Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
                 NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
+               !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!     
+                           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
+!	      call MatrixElementsL1ForExpcVals2(Glob_Index(i,1),Glob_Index(i,2),Glob_Index(j,1),Glob_Index(j,2),  &
+!	        Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
+!	        IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl2,Skl2,Tkl2,Vkl2,                    &
+!                rm2kl2,rmkl2,rkl2,r2kl2,deltarkl2,drach_deltarkl2,MVkl2,drach_MVkl2,             &
+!                Darwinkl2,drach_Darwinkl2,OOkl2,rmrmkl2,prvalkl2,NumCFGridPoints,CFGrid,CFkl, &
+!                NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
               c=0
               do a=1,n
 	        do b=a,n
-		  c=c+1; MEkl(c)=rm2kl(b,a)
+		  c=c+1; MEkl(c)=rm2kl(b,a)!-rm2kl1(b,a)
                 enddo
               enddo		  
               do a=1,n
 		do b=a,n
-		  c=c+1; MEkl(c)=rmkl1(b,a)
+		  c=c+1; MEkl(c)=rmkl(b,a)!-rmkl1(b,a)
                 enddo
 	      enddo
               do a=1,n
 		do b=a,n
-		  c=c+1; MEkl(c)=rkl(b,a)
+		  c=c+1; MEkl(c)=rkl(b,a)!-rkl1(b,a)
                 enddo
               enddo
               do a=1,n
 		do b=a,n
-		  c=c+1; MEkl(c)=r2kl(b,a)
+		  c=c+1; MEkl(c)=r2kl(b,a)!-r2kl1(b,a)
                 enddo
 	      enddo
               do a=1,n
 		do b=a,n
-		  c=c+1; MEkl(c)=deltarkl(b,a)
+		  c=c+1; MEkl(c)=deltarkl(b,a)!-deltarkl1(b,a)
                 enddo
 	      enddo
 	      do a=1,n
 		do b=a,n
-		  c=c+1; MEkl(c)=drach_deltarkl(b,a)
+		  c=c+1; MEkl(c)=drach_deltarkl(b,a)!-drach_deltarkl1(b,a)
                 enddo
 	      enddo
 	      do a=1,n
 		do b=a,n
-		  c=c+1; MEkl(c)=prvalkl(b,a)
+		  c=c+1; MEkl(c)=prvalkl(b,a)!-prvalkl1(b,a)
                 enddo
 	      enddo                  
-              c=c+1; MEkl(c)=Hkl1
-              c=c+1; MEkl(c)=Skl1
-              c=c+1; MEkl(c)=Tkl1
-              c=c+1; MEkl(c)=Vkl1
-              c=c+1; MEkl(c)=MVkl	
-              c=c+1; MEkl(c)=drach_MVkl          
-              c=c+1; MEkl(c)=Darwinkl
-              c=c+1; MEkl(c)=drach_Darwinkl          
-              c=c+1; MEkl(c)=OOkl	
+              c=c+1; MEkl(c)=Hkl!2-Hkl1
+              c=c+1; MEkl(c)=Skl!2-Skl1
+              c=c+1; MEkl(c)=Tkl!2-Tkl1
+              c=c+1; MEkl(c)=Vkl!2-Vkl1
+              c=c+1; MEkl(c)=MVkl!2-MVkl1	
+              c=c+1; MEkl(c)=drach_MVkl!2-drach_MVkl1          
+              c=c+1; MEkl(c)=Darwinkl!2-Darwinkl1
+              c=c+1; MEkl(c)=drach_Darwinkl!2-drach_Darwinkl1          
+              c=c+1; MEkl(c)=OOkl!2-OOkl1	
               do a=1,n
                 do b=a,n
                   do a1=a,n
                     do b1=a1,n
-                      c=c+1; MEkl(c)=rmrmkl(a,b,a1,b1) 
+                      c=c+1; MEkl(c)=rmrmkl(a,b,a1,b1)!-rmrmkl1(a,b,a1,b1) 
                     enddo 
                   enddo
                 enddo
@@ -9354,18 +9379,18 @@ do i=1,cbs
 
 	    do k=1,Glob_NumYTerms
               do kk=1,Glob_NumYTerms
-!	        call MatrixElementsL1ForExpcVals(Glob_Index(i,1),Glob_Index(i,2),Glob_Index(j,1), Glob_Index(j,2),  &
-!	          Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
-!	          Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl,Skl,Tkl,Vkl,            &
-!                  rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
-!                  Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
-!                  NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
-		call MatrixElementsL1ForExpcVals(Glob_Index(i,1),Glob_Index(i,2),Glob_Index(j,1), Glob_Index(j,2),  &
+	        call MatrixElementsL1ForExpcValsD(Glob_Index(i,1),Glob_Index(i,2),Glob_Index(j,1), Glob_Index(j,2),  &
 	          Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
-	          Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl1,Skl1,Tkl1,Vkl1,            &
-                  rm2kl,rmkl1,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
+	          Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl,Skl,Tkl,Vkl,            &
+                  rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
                   Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
                   NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
+!		call MatrixElementsL1ForExpcVals2(Glob_Index(i,1),Glob_Index(i,2),Glob_Index(j,1), Glob_Index(j,2),  &
+!	          Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
+!	          Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl2,Skl2,Tkl2,Vkl2,            &
+!                  rm2kl2,rmkl2,rkl2,r2kl2,deltarkl2,drach_deltarkl2,MVkl2,drach_MVkl2,             &
+!                  Darwinkl2,drach_Darwinkl2,OOkl2,rmrmkl2,prvalkl2,NumCFGridPoints,CFGrid,CFkl, &
+!                  NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
                   c=0
                 do a=1,n
 		  do b=a,n
@@ -9374,7 +9399,7 @@ do i=1,cbs
 		enddo		    
                 do a=1,n
 		  do b=a,n
-		    c=c+1; MEkl(c)=rmkl1(b,a)
+		    c=c+1; MEkl(c)=rmkl(b,a)
                   enddo
 		enddo
                 do a=1,n
@@ -9401,21 +9426,21 @@ do i=1,cbs
 		  do b=a,n
 		    c=c+1; MEkl(c)=prvalkl(b,a)
                   enddo
-		enddo                               
-                c=c+1; MEkl(c)=Hkl1
-                c=c+1; MEkl(c)=Skl1
-                c=c+1; MEkl(c)=Tkl1
-                c=c+1; MEkl(c)=Vkl1	
+		enddo                               	
+                c=c+1; MEkl(c)=Hkl
+                c=c+1; MEkl(c)=Skl
+                c=c+1; MEkl(c)=Tkl
+                c=c+1; MEkl(c)=Vkl
                 c=c+1; MEkl(c)=MVkl	
-                c=c+1; MEkl(c)=drach_MVkl            
+                c=c+1; MEkl(c)=drach_MVkl         
                 c=c+1; MEkl(c)=Darwinkl
-                c=c+1; MEkl(c)=drach_Darwinkl            
-                c=c+1; MEkl(c)=OOkl	  
+                c=c+1; MEkl(c)=drach_Darwinkl      
+                c=c+1; MEkl(c)=OOkl	
                 do a=1,n
                   do b=a,n
                     do a1=a,n
                       do b1=a1,n
-                        c=c+1; MEkl(c)=rmrmkl(a,b,a1,b1) 
+                        c=c+1; MEkl(c)=rmrmkl(a,b,a1,b1)
                       enddo 
                     enddo
                   enddo
@@ -9943,26 +9968,51 @@ endif
 deallocate(rm2kl)
 deallocate(rm2)
 
+deallocate(rm2kl1)
+deallocate(rm2kl2)
+
 deallocate(rmkl)
 deallocate(rm)
+
+deallocate(rmkl1)
+deallocate(rmkl2)
 
 deallocate(rkl)
 deallocate(r)
 
+deallocate(rkl1)
+deallocate(rkl2)
+
 deallocate(r2kl)
 deallocate(r2)
+
+deallocate(r2kl1)
+deallocate(r2kl2)
 
 deallocate(deltarkl)
 deallocate(deltar)
 
+deallocate(deltarkl1)
+deallocate(deltarkl2)
+
 deallocate(drach_deltarkl)
 deallocate(drach_deltar)
+deallocate(drach_deltarkl1)
+deallocate(drach_deltarkl2)
 
 deallocate(prvalkl)
 deallocate(prval)
 
+deallocate(prvalkl1)
+deallocate(prvalkl2)
+
 deallocate(MEkl)
 deallocate(MEkl_s)
+
+deallocate(MEkl1)
+deallocate(MEkl_s1)
+deallocate(MEkl2)
+deallocate(MEkl_s2)
 
 deallocate(IdentityPerm)
 
