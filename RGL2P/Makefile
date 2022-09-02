@@ -1,14 +1,16 @@
 # This is a makefile to compile an ECG code. Examples of compilations with this
 # makefile:
-#    make release COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg  
-#    make debug   COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg  
-#    make all     COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg  
+#    make release  COMPILER_TYPE=gnu MACHINE=wsl_ubuntu20 PREC=8 OPTLPKBLS=yes EXEFILE=ecg
+#    make release  COMPILER_TYPE=gnu MACHINE=shabyt PREC=10 OPTLPKBLS=no EXEFILE=ecg
+#    make release  COMPILER_TYPE=intel MACHINE=shabyt PREC=8 OPTLPKBLS=yes EXEFILE=ecg
+#    make debug  COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg
+
 
 # Set default compiler type (intel, gnu, sun, etc..)
-COMPILER_TYPE=intel
+COMPILER_TYPE=gnu
 
 # Set default machine where the compilation takes place (mylinuxbox, ice, marin, etc.)
-MACHINE=mylinuxbox
+MACHINE=wsl_ubuntu20
 
 # Set the default precision (kind of real type, 8, 10, or 16)
 # Value PREC=8 corresponds to standard double precision
@@ -17,9 +19,9 @@ PREC=8
 
 # Set whether selected linear algebra routines should be taken from optimized
 # LAPACK/BLAS library (OPTLPKBLS=yes) such as Intel Math Kernel library or Sun Performance
-# Library. Otherwise (OPTLPKBLS=no or any other value) the supplied nonoptimized versions 
+# Library. Otherwise (OPTLPKBLS=no or any other value) the supplied nonoptimized versions
 # of these routines will be used.
-OPTLPKBLS=no
+OPTLPKBLS=yes
 
 # Set the default name for the generated executable file
 EXEFILE=ecg
@@ -27,13 +29,13 @@ EXEFILE=ecg
 # Directory where all source files are located
 SRC_DIR=./src
 
-# Compiler flags for each machine and compiler type (for both release and debug builds). 
+# Compiler flags for each machine and compiler type (for both release and debug builds).
 
-# My work desktop computer 
-ifeq ($(MACHINE), mylinuxbox) 
-  # Intel Fortran and Open MPI (mylinuxbox)
+# My work desktop computer
+ifeq ($(MACHINE), mylinuxbox)
+  # Intel Fortran and Open MPI or Intel MPI (mylinuxbox)
   ifeq ($(COMPILER_TYPE), intel)
-    FC=mpif90
+    FC=mpiifort
     export MPICOMPFLAGS=
     export MPILINKFLAGS=
     export FCFLAGS=-module $(CONFIG)
@@ -48,6 +50,10 @@ ifeq ($(MACHINE), mylinuxbox)
     endif
     ifeq ($(PREC), 8)
       COMPILER_SUPPORTED=yes
+      ifeq ($(CONFIG), release)
+        export FCFLAGS+=-O3 -ipo -xhost -fp-model precise
+        export LINKFLAGS+=-O3 -ipo -xhost -fp-model precise
+      endif
       ifeq ($(OPTLPKBLS),yes)
         # Link with MKL
         export FCFLAGS+=-I$(MKLROOT)/include
@@ -73,8 +79,8 @@ ifeq ($(MACHINE), mylinuxbox)
       export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
     endif
     ifeq ($(CONFIG), release)
-      export FCFLAGS+=-O3
-      export LINKFLAGS+=-O3
+      export FCFLAGS+=-O3 -march=native
+      export LINKFLAGS+=-O3 -march=native
     endif
     ifeq ($(PREC), 8)
       COMPILER_SUPPORTED=yes
@@ -84,6 +90,11 @@ ifeq ($(MACHINE), mylinuxbox)
       endif
     endif
     ifeq ($(PREC), 10)
+      ifneq ($(OPTLPKBLS),yes)
+        COMPILER_SUPPORTED=yes
+      endif
+    endif
+    ifeq ($(PREC), 16)
       ifneq ($(OPTLPKBLS),yes)
         COMPILER_SUPPORTED=yes
       endif
@@ -109,6 +120,108 @@ ifeq ($(MACHINE), mylinuxbox)
       ifeq ($(OPTLPKBLS),yes)
         # Link with Sun Performance Library
         export LINKFLAGS+=-xlic_lib=sunperf
+      endif
+    endif
+  endif
+endif
+
+# WSL Ubntu 20.04
+ifeq ($(MACHINE), wsl_ubuntu20)
+  # gfortran 9.3.0 and Open MPI 4.0.3 (default in WSL Ubuntu 20.04)
+  ifeq ($(COMPILER_TYPE), gnu)
+    FC=mpif90
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-J$(CONFIG)
+    export LINKFLAGS=-J$(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
+      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3 -march=native
+      export LINKFLAGS+=-O3 -march=native
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+      ifeq ($(OPTLPKBLS),yes)
+        # Link with Lapack and BLAS
+        export LINKFLAGS+=-lblas -llapack
+      endif
+    endif
+    ifeq ($(PREC), 10)
+      ifneq ($(OPTLPKBLS),yes)
+        COMPILER_SUPPORTED=yes
+      endif
+    endif
+    ifeq ($(PREC), 16)
+      ifneq ($(OPTLPKBLS),yes)
+        COMPILER_SUPPORTED=yes
+      endif
+    endif
+  endif
+endif
+
+ifeq ($(MACHINE), puma)
+  # Intel Fortran and Open MPI (puma)
+  ifeq ($(COMPILER_TYPE), intel)
+    FC=mpiifort
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-module $(CONFIG)
+    export LINKFLAGS=-module $(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g -traceback -debug extended
+      export LINKFLAGS+=-C -O0 -g -traceback -debug extended
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3 -ipo -fp-model precise
+      export LINKFLAGS+=-O3 -ipo -fp-model precise
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+      ifeq ($(CONFIG), release)
+        export FCFLAGS+=-O3 -ipo -xhost -fp-model precise
+        export LINKFLAGS+=-O3 -ipo -xhost -fp-model precise
+      endif
+      ifeq ($(OPTLPKBLS),yes)
+        # Link with MKL
+        export FCFLAGS+=-I$(MKLROOT)/include
+        export LINKFLAGS+=-L$(MKLROOT)
+        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
+      endif
+    endif
+    ifeq ($(PREC), 16)
+      ifneq ($(OPTLPKBLS),yes)
+        COMPILER_SUPPORTED=yes
+      endif
+    endif
+  endif
+  # gfortran and Open MPI (puma)
+  ifeq ($(COMPILER_TYPE), gnu)
+    FC=mpif90
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-J$(CONFIG)
+    export LINKFLAGS=-J$(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
+      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3
+      export LINKFLAGS+=-O3
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+      ifeq ($(OPTLPKBLS),yes)
+        # Link with MKL
+        export LINKFLAGS+=-lblas -llapack
+      endif
+    endif
+    ifeq ($(PREC), 10)
+      ifneq ($(OPTLPKBLS),yes)
+        COMPILER_SUPPORTED=yes
       endif
     endif
   endif
@@ -297,6 +410,71 @@ ifeq ($(MACHINE), bluehive)
   endif
 endif
 
+ifeq ($(MACHINE), shabyt) 
+  # Intel Fortran and Intel MPI (shabyt)
+  ifeq ($(COMPILER_TYPE), intel)
+    FC=mpiifort
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-module $(CONFIG)
+    export LINKFLAGS=-module $(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g -traceback -debug extended
+      export LINKFLAGS+=-C -O0 -g -traceback -debug extended
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3 -ipo -fp-model precise
+      export LINKFLAGS+=-O3 -ipo -fp-model precise
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+      ifeq ($(CONFIG), release)
+        export FCFLAGS+=-O3 -ipo -xhost -fp-model precise
+        export LINKFLAGS+=-O3 -ipo -xhost -fp-model precise
+      endif
+      ifeq ($(OPTLPKBLS),yes)
+        # Link with MKL
+        export FCFLAGS+=-I$(MKLROOT)/include
+        export LINKFLAGS+=-L$(MKLROOT)
+        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
+      endif
+    endif
+    ifeq ($(PREC), 16)
+      ifneq ($(OPTLPKBLS),yes)
+        COMPILER_SUPPORTED=yes
+      endif
+    endif
+  endif
+  # gfortran and Open MPI (shabyt)
+  ifeq ($(COMPILER_TYPE), gnu)
+    FC=mpif90
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-J$(CONFIG)
+    export LINKFLAGS=-J$(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
+      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3 -march=native
+      export LINKFLAGS+=-O3 -march=native
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+      ifeq ($(OPTLPKBLS),yes)
+        # Link with MKL
+        export LINKFLAGS+=-lblas -llapack
+      endif
+    endif
+    ifeq ($(PREC), 10)
+      ifneq ($(OPTLPKBLS),yes)
+        COMPILER_SUPPORTED=yes
+      endif
+    endif
+  endif
+endif
+
 # Creating lists of objects for convenience
 
 ifeq ($(OPTLPKBLS), yes)
@@ -333,7 +511,7 @@ endif
 all: release debug
 
 cleanrelease:
-	-rm -rf release/*.o release/*.mod	
+	-rm -rf release/*.o release/*.mod
 cleandebug:
 	-rm -rf debug/*.o debug/*.mod
 clean: cleanrelease cleandebug
@@ -343,7 +521,7 @@ cleaner:
 cleanest:
 	-rm -rf debug release
 
-# This phony target is just used to output some info and error check 
+# This phony target is just used to output some info and error check
 
 ptarg:
 	@echo CONFIG=$(CONFIG)
@@ -364,9 +542,9 @@ $(CONFIG)/wp_def_$(PREC).o: $(SRC_DIR)/wp_def_$(PREC).f90
 
 $(CONFIG)/BLAS.o: $(SRC_DIR)/BLAS.f $(CONFIG)/wp_def_$(PREC).o
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/BLAS.f -o $(CONFIG)/BLAS.o
-	
+
 $(CONFIG)/LAPACK.o: $(SRC_DIR)/LAPACK.f $(CONFIG)/BLAS.o
-	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/LAPACK.f -o $(CONFIG)/LAPACK.o	
+	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/LAPACK.f -o $(CONFIG)/LAPACK.o
 
 $(CONFIG)/X1MACH.o: $(SRC_DIR)/X1MACH.f90 $(CONFIG)/wp_def_$(PREC).o
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/X1MACH.f90 -o $(CONFIG)/X1MACH.o

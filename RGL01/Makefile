@@ -180,7 +180,7 @@ ifeq ($(MACHINE), puma)
         # Link with MKL
         export FCFLAGS+=-I$(MKLROOT)/include
         export LINKFLAGS+=-L$(MKLROOT)
-        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/li$
+        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
       endif
     endif
     ifeq ($(PREC), 16)
@@ -428,7 +428,7 @@ ifeq ($(MACHINE), shabyt)
         # Link with MKL
         export FCFLAGS+=-I$(MKLROOT)/include
         export LINKFLAGS+=-L$(MKLROOT)
-        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/li$
+        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
       endif
     endif
     ifeq ($(PREC), 16)

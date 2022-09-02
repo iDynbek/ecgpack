@@ -1,8 +1,10 @@
 # This is a makefile to compile an ECG code. Examples of compilations with this
 # makefile:
-#    make release COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg  
-#    make debug   COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg  
-#    make all     COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg  
+#    make release  COMPILER_TYPE=gnu MACHINE=wsl_ubuntu20 PREC=8 OPTLPKBLS=yes EXEFILE=ecg
+#    make release  COMPILER_TYPE=gnu MACHINE=shabyt PREC=10 OPTLPKBLS=no EXEFILE=ecg
+#    make release  COMPILER_TYPE=intel MACHINE=shabyt PREC=8 OPTLPKBLS=yes EXEFILE=ecg
+#    make debug  COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg
+
 
 # Set default compiler type (intel, gnu, sun, etc..)
 COMPILER_TYPE=gnu
@@ -17,7 +19,7 @@ PREC=8
 
 # Set whether selected linear algebra routines should be taken from optimized
 # LAPACK/BLAS library (OPTLPKBLS=yes) such as Intel Math Kernel library or Sun Performance
-# Library. Otherwise (OPTLPKBLS=no or any other value) the supplied nonoptimized versions 
+# Library. Otherwise (OPTLPKBLS=no or any other value) the supplied nonoptimized versions
 # of these routines will be used.
 OPTLPKBLS=yes
 
@@ -27,10 +29,10 @@ EXEFILE=ecg
 # Directory where all source files are located
 SRC_DIR=./src
 
-# Compiler flags for each machine and compiler type (for both release and debug builds). 
+# Compiler flags for each machine and compiler type (for both release and debug builds).
 
-# My work desktop computer 
-ifeq ($(MACHINE), mylinuxbox) 
+# My work desktop computer
+ifeq ($(MACHINE), mylinuxbox)
   # Intel Fortran and Open MPI or Intel MPI (mylinuxbox)
   ifeq ($(COMPILER_TYPE), intel)
     FC=mpiifort
@@ -96,7 +98,7 @@ ifeq ($(MACHINE), mylinuxbox)
       ifneq ($(OPTLPKBLS),yes)
         COMPILER_SUPPORTED=yes
       endif
-    endif	
+    endif
   endif
   # Sun Fortran and Sun MPI (mylinuxbox)
   ifeq ($(COMPILER_TYPE), sun)
@@ -123,8 +125,8 @@ ifeq ($(MACHINE), mylinuxbox)
   endif
 endif
 
-# WSL Ubntu 20.04 
-ifeq ($(MACHINE), wsl_ubuntu20) 
+# WSL Ubntu 20.04
+ifeq ($(MACHINE), wsl_ubuntu20)
   # gfortran 9.3.0 and Open MPI 4.0.3 (default in WSL Ubuntu 20.04)
   ifeq ($(COMPILER_TYPE), gnu)
     FC=mpif90
@@ -156,7 +158,7 @@ ifeq ($(MACHINE), wsl_ubuntu20)
       ifneq ($(OPTLPKBLS),yes)
         COMPILER_SUPPORTED=yes
       endif
-    endif	
+    endif
   endif
 endif
 
@@ -186,7 +188,7 @@ ifeq ($(MACHINE), puma)
         # Link with MKL
         export FCFLAGS+=-I$(MKLROOT)/include
         export LINKFLAGS+=-L$(MKLROOT)
-        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/li$
+        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
       endif
     endif
     ifeq ($(PREC), 16)
@@ -434,7 +436,7 @@ ifeq ($(MACHINE), shabyt)
         # Link with MKL
         export FCFLAGS+=-I$(MKLROOT)/include
         export LINKFLAGS+=-L$(MKLROOT)
-        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/li$
+        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
       endif
     endif
     ifeq ($(PREC), 16)
@@ -509,7 +511,7 @@ endif
 all: release debug
 
 cleanrelease:
-	-rm -rf release/*.o release/*.mod	
+	-rm -rf release/*.o release/*.mod
 cleandebug:
 	-rm -rf debug/*.o debug/*.mod
 clean: cleanrelease cleandebug
@@ -519,7 +521,7 @@ cleaner:
 cleanest:
 	-rm -rf debug release
 
-# This phony target is just used to output some info and error check 
+# This phony target is just used to output some info and error check
 
 ptarg:
 	@echo CONFIG=$(CONFIG)
@@ -540,9 +542,9 @@ $(CONFIG)/wp_def_$(PREC).o: $(SRC_DIR)/wp_def_$(PREC).f90
 
 $(CONFIG)/BLAS.o: $(SRC_DIR)/BLAS.f $(CONFIG)/wp_def_$(PREC).o
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/BLAS.f -o $(CONFIG)/BLAS.o
-	
+
 $(CONFIG)/LAPACK.o: $(SRC_DIR)/LAPACK.f $(CONFIG)/BLAS.o
-	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/LAPACK.f -o $(CONFIG)/LAPACK.o	
+	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/LAPACK.f -o $(CONFIG)/LAPACK.o
 
 $(CONFIG)/X1MACH.o: $(SRC_DIR)/X1MACH.f90 $(CONFIG)/wp_def_$(PREC).o
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/X1MACH.f90 -o $(CONFIG)/X1MACH.o
