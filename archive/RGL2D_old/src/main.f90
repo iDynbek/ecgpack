@@ -187,30 +187,8 @@ do i=1,Glob_NumOfBBOPSteps
 		write(*,*) 'One or more parameters in SEPR_FLCF are incorrect'
       endif
 	endif
-	    
-  case('EXPC_VALS')
-    if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then     
-	  call ExpectationValues(1,Glob_FileNameNone,Glob_FileNameNone,Glob_FileNameNone, &
-	           Glob_FileNameNone,Glob_BBOP(i)%GSEPSolutionMethod)
-	else
-      if (Glob_ProcID==0) then
-        write(*,*) 'Error in main: incorrect BBOP step ',i
-		write(*,*) 'Second parameter in EXPC_VALS is incorrect'
-      endif
-	endif
-
-  case('DENSITIES')
-    if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then
-	  call ExpectationValues(1,Glob_BBOP(i)%FileName1,Glob_BBOP(i)%FileName2, &
-	           Glob_BBOP(i)%FileName3,Glob_BBOP(i)%FileName4,Glob_BBOP(i)%GSEPSolutionMethod)
-	else
-      if (Glob_ProcID==0) then
-        write(*,*) 'Error in main: incorrect BBOP step ',i
-		write(*,*) 'Second parameter in DENSITIES is incorrect'
-      endif
-	endif
-
-      case('SAVE_FILE')
+	
+  case('SAVE_FILE')
     if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then
 	  if (Glob_ProcID==0) then
 	    iw=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
@@ -219,21 +197,25 @@ do i=1,Glob_NumOfBBOPSteps
 	    call SaveResults(Filename=Glob_BBOP(i)%FileName1,Sort='no')
 	    write(*,*) ' done'
 	    write(*,*)
-	  endif
-    endif
+	  endif  
+    endif	
     
-  case('SAVE_HSWF')
-    if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then     
-	  call SaveHSWF(Glob_BBOP(i)%FileName1,Glob_BBOP(i)%FileName2, &
-	           Glob_BBOP(i)%FileName3,Glob_BBOP(i)%FileName4, &
-                   Glob_BBOP(i)%GSEPSolutionMethod)
+  case('EXPC_VALS')
+    if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then
+	  select case (Glob_BBOP(i)%GSEPSolutionMethod)
+      case('G')      
+	    call ExpectationValuesG(1)	  
+      case('I')
+        if (Glob_ProcID==0) write(*,*) &
+          'Sorry, GSEP soluton method I has not been implemented in EXPC_VALS'
+	  endselect
 	else
       if (Glob_ProcID==0) then
         write(*,*) 'Error in main: incorrect BBOP step ',i
-		write(*,*) 'Second parameter in SAVE_HSEV is incorrect'
+		write(*,*) 'Second parameters in EXPC_VALS is incorrect'
       endif
-	endif	     
-    
+	endif    
+	
   endselect
 enddo
 

@@ -5,7 +5,7 @@ module wp_def
 include 'mpif.h'
 
 !Define kind parameter for real type 
-integer,parameter     :: dprec=10
+integer,parameter     :: dprec=8
 integer,parameter     :: wp=dprec
 
 !This is data type identifier for MPI corresponding to real type of kind dprec
@@ -14,7 +14,7 @@ integer,parameter    :: MPI_DPREC=MPI_REAL16
 !This is the maximal allowed number of particles in the system. If needed,
 !this number can be increased. However it is not recommended to use a number 
 !that is larger than necessary as it may affect the performance of the program.
-integer,parameter :: Glob_MaxAllowedNumOfParticles=5
+integer,parameter :: Glob_MaxAllowedNumOfParticles=6
 
 contains
 
@@ -26,13 +26,13 @@ contains
 subroutine writereal(u,r)
 integer u          !i/o unit
 real(dprec) r      !real number that needs to be written
-write(u,'(1x,e27.20)',advance='no') r    
+write(u,'(1x,e23.16)',advance='no') r    
 end subroutine writereal
 
 subroutine writerealadv(u,r)
 integer u          !i/o unit
 real(dprec) r      !real number that needs to be written
-write(u,'(1x,e27.20)') r    
+write(u,'(1x,e23.16)') r    
 end subroutine writerealadv
 
 subroutine writerealarr(u,r,k)
@@ -41,7 +41,7 @@ real(dprec) r(k)   !real array that needs to be written
 integer k          !the number of elements to write (writing begins with element 1)  
 integer i        
 do i=1,k
-  write(u,'(1x,e27.20)',advance='no') r(i)
+  write(u,'(1x,e23.16)',advance='no') r(i)
 enddo      
 end subroutine writerealarr
 
@@ -51,9 +51,9 @@ real(dprec) r(k)   !real array that needs to be written
 integer k          !the number of elements to write (writing begins with element 1)
 integer i        
 do i=1,k-1
-  write(u,'(1x,e27.20)',advance='no') r(i)
+  write(u,'(1x,e23.16)',advance='no') r(i)
 enddo 
-write(u,'(1x,e27.20)') r(k) 
+write(u,'(1x,e23.16)') r(k) 
 end subroutine writerealarradv
 
 !Subroutines writestring and writestringadv realize nonadvanced (advanced)

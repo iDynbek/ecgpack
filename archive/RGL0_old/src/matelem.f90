@@ -1,6 +1,6 @@
 module matelem
 !Module matelem contains subroutines for computing 
-!matrix elements with real L=0 Gaussians without normalization.
+!matrix elements with real L=0 Gaussians.
 use globvars
 implicit none
 
@@ -66,7 +66,7 @@ integer           i, j, k, kk, kkk, q, t, indx
 
 n=Glob_n
 np=Glob_np
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
 indx=0
 do i=1,n
@@ -124,12 +124,12 @@ enddo
 
 !The determinants of Lk and Ll are just
 !the products of their diagonal elements
-!det_Lk=ONE
-!det_Ll=ONE
-!do i=1,n
-!  det_Lk=det_Lk*Lk(i,i)
-!  det_Ll=det_Ll*Ll(i,i)
-!enddo
+det_Lk=ONE
+det_Ll=ONE
+do i=1,n
+  det_Lk=det_Lk*Lk(i,i)
+  det_Ll=det_Ll*Ll(i,i)
+enddo
 
 !After this we can do Cholesky factorization of tAkl.
 !The Cholesky factor will be temporarily stored in the 
@@ -176,10 +176,8 @@ do i=1,n
 enddo  
 
 !Evaluating overlap
-
-!temp1=abs(det_Ll*det_Lk)/det_tAkl
-!Skl=Glob_2raised3n2*temp1*sqrt(temp1)
-Skl=Glob_Piraised3n2/(det_tAkl*sqrt(det_tAkl))  !new line
+temp1=abs(det_Ll*det_Lk)/det_tAkl
+Skl=Glob_2raised3n2*temp1*sqrt(temp1)
 
 !Doing multiplication W2=inv_tAkl*tAl
 do i=1,n
@@ -251,36 +249,32 @@ if (grad_k) then
       W1(i,j)=temp1
     enddo
   enddo
-  !I delete not-necessary parts of the code
-  
   !Inverting Lk. The inverse of a lower triangular matrix is a lower
   !triangular matrix. The inverse of Lk will be stored in inv_Lk. The upper
   !triangle of inv_Lk is set to be zero.
- ! do i=1,n
- !   do j=i,n
- !     inv_Lk(j,i)=Lk(j,i) 
- !   enddo
- ! enddo
- ! do i=1,n
- !   inv_Lk(i,i)=1/inv_Lk(i,i)
- !   do j=i+1,n
-!	  inv_Lk(i,j)=ZERO
-!      temp1=ZERO
-!      do k=i,j-1
-!        temp1=temp1-inv_Lk(j,k)*inv_Lk(k,i)
-!      enddo
-!      inv_Lk(j,i)=temp1/inv_Lk(j,j)
-!    enddo
-!  enddo 
+  do i=1,n
+    do j=i,n
+      inv_Lk(j,i)=Lk(j,i) 
+    enddo
+  enddo
+  do i=1,n
+    inv_Lk(i,i)=1/inv_Lk(i,i)
+    do j=i+1,n
+	  inv_Lk(i,j)=ZERO
+      temp1=ZERO
+      do k=i,j-1
+        temp1=temp1-inv_Lk(j,k)*inv_Lk(k,i)
+      enddo
+      inv_Lk(j,i)=temp1/inv_Lk(j,j)
+    enddo
+  enddo 
   !storing dSkldvechLk
-  !temp1=Skl*THREE/TWO
-  temp1=-Skl*THREE  ! new line
+  temp1=Skl*THREE/TWO
   indx=0
   do i=1,n
     do j=i,n
 	  indx=indx+1
-      !dSkldvechLk(indx)=(inv_Lk(i,j)-TWO*W1(j,i))*temp1
-      dSkldvechLk(indx)=W1(j,i)*temp1  !new line
+      dSkldvechLk(indx)=(inv_Lk(i,j)-TWO*W1(j,i))*temp1
     enddo
   enddo 
 endif !end if (grad_k)
@@ -316,37 +310,33 @@ if (grad_l) then
       W1(i,j)=temp1
 	enddo
   enddo
-  !I delete not-necessary parts of the code
-  
   !Inverting Ll. The inverse of a lower triangular matrix 
   !is a lower triangular matrix. The inverse of Ll will be 
   !stored in inv_Ll. The upper triangle of inv_Ll is not set to 
   !be zero.
-  !do i=1,n
-  !  do j=i,n
-  !    inv_Ll(j,i)=Ll(j,i) 
-  !  enddo
-  !enddo
-  !do i=1,n
-  !  inv_Ll(i,i)=1/inv_Ll(i,i)
-  !  do j=i+1,n
-!	  inv_Ll(i,j)=ZERO
-!      temp1=ZERO
-!      do k=i,j-1
-!        temp1=temp1-inv_Ll(j,k)*inv_Ll(k,i)
-!      enddo
- !     inv_Ll(j,i)=temp1/inv_Ll(j,j)
- !   enddo
- ! enddo  
+  do i=1,n
+    do j=i,n
+      inv_Ll(j,i)=Ll(j,i) 
+    enddo
+  enddo
+  do i=1,n
+    inv_Ll(i,i)=1/inv_Ll(i,i)
+    do j=i+1,n
+	  inv_Ll(i,j)=ZERO
+      temp1=ZERO
+      do k=i,j-1
+        temp1=temp1-inv_Ll(j,k)*inv_Ll(k,i)
+      enddo
+      inv_Ll(j,i)=temp1/inv_Ll(j,j)
+    enddo
+  enddo  
   !storing dSkldvechLl
-!  temp1=Skl*THREE/TWO
-  temp1=-Skl*THREE  !new line
+  temp1=Skl*THREE/TWO
   indx=0
   do i=1,n
 	do j=i,n
 	  indx=indx+1
-    !  dSkldvechLl(indx)=(inv_Ll(i,j)-TWO*W1(j,i))*temp1
-      dSkldvechLl(indx)=W1(j,i)*temp1  !new line
+      dSkldvechLl(indx)=(inv_Ll(i,j)-TWO*W1(j,i))*temp1
 	enddo
   enddo 
 endif !end if (grad_l)
@@ -702,7 +692,7 @@ real(dprec)       V2kl
 
 n=Glob_n
 np=Glob_np
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
 indx=0
 do i=1,n
@@ -768,15 +758,14 @@ do i=1,n
   enddo
 enddo
 
-!I will delete not-nesessary parts of the code
 !The determinants of Lk and Ll are just
 !the products of their diagonal elements
-!det_Lk=ONE
-!det_Ll=ONE
-!do i=1,n
-!  det_Lk=det_Lk*Lk(i,i)
-!  det_Ll=det_Ll*Ll(i,i)
-!enddo
+det_Lk=ONE
+det_Ll=ONE
+do i=1,n
+  det_Lk=det_Lk*Lk(i,i)
+  det_Ll=det_Ll*Ll(i,i)
+enddo
 
 !After this we can do Cholesky factorization of tAkl.
 !The Cholesky factor will be temporarily stored in the 
@@ -823,11 +812,11 @@ do i=1,n
 enddo  
 
 !Evaluating overlap
-!temp2=abs(det_Ll*det_Lk)
-!temp1=temp2/det_tAkl
-!Skl=Glob_2raised3n2*temp1*sqrt(temp1)
-!wforiginkl=Glob_2raised3n2*(temp2*sqrt(temp2))/(PI**(THREE*n/TWO)) !wafe function at the origin???
-Skl=Glob_Piraised3n2/(det_tAkl*sqrt(det_tAkl))  !new line
+temp2=abs(det_Ll*det_Lk)
+temp1=temp2/det_tAkl
+Skl=Glob_2raised3n2*temp1*sqrt(temp1)
+wforiginkl=Glob_2raised3n2*(temp2*sqrt(temp2))/(PI**(THREE*n/TWO))
+
 !Doing multiplication W2=inv_tAkl*tAl
 do i=1,n
   do j=1,n

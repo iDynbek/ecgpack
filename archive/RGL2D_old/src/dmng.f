@@ -655,9 +655,8 @@ C
          V(GTSTEP) = -GHINVG
          V(PREDUC) = V(NREDUC)
          V(NWTFAC) = -ONE
-         DO I = 1, N
+         DO 20 I = 1, N
  20           STEP(I) = -NWTSTP(I)
-         END DO
          GO TO 999
 C
  30   V(DSTNRM) = V(RADIUS)
@@ -674,9 +673,8 @@ C
          V(GTSTEP) = T * GHINVG
          V(PREDUC) = RLAMBD * (ONE - HALF*RLAMBD) * GHINVG
          V(NWTFAC) = T
-         DO I = 1, N
+         DO 40 I = 1, N
  40           STEP(I) = T * NWTSTP(I)
-         END DO
          GO TO 999
 C
  50   IF (CNORM .LT. V(RADIUS)) GO TO 70
@@ -689,9 +687,8 @@ C
          V(STPPAR) = ONE  +  CNORM / V(RADIUS)
          V(GTSTEP) = -V(RADIUS) * GNORM
       V(PREDUC) = V(RADIUS)*(GNORM - HALF*V(RADIUS)*(V(GTHG)/GNORM)**2)
-         DO I = 1, N
+         DO 60 I = 1, N
  60           STEP(I) = T * DIG(I)
-         END DO
          GO TO 999
 C
 C     ***  COMPUTE DOGLEG STEP BETWEEN CAUCHY AND RELAXED NEWTON  ***
@@ -718,9 +715,8 @@ C     ***  DOGLEG STEP  =  CAUCHY STEP  +  T * FEMUR.
       V(PREDUC) = -T1*GNORM * ((T2 + ONE)*GNORM)
      1                 - T2 * (ONE + HALF*T2)*GHINVG
      2                  - HALF * (V(GTHG)*T1)**2
-      DO I = 1, N
+      DO 80 I = 1, N
  80      STEP(I) = T1*DIG(I) + T2*NWTSTP(I)
-      END DO
 C
  999  RETURN
 C  ***  LAST LINE OF DD7DOG FOLLOWS  ***
@@ -1006,9 +1002,8 @@ C
          IF (IV(ALGSAV) .GT. 2) GO TO 999
          WRITE(PU,470)
  470  FORMAT(/22H     I      FINAL X(I),8X,4HD(I),10X,4HG(I)/)
-         DO I = 1, P
+         DO 480 I = 1, P
  480          WRITE(PU,490) I, X(I), D(I), G(I)
-         END DO
  490     FORMAT(1X,I5,E16.6,2E14.3)
       GO TO 999
 C
@@ -1153,9 +1148,8 @@ C/7
       PARAMETER (ZERO=0.E0_wp)
 C/
 C
-      DO I = 1, N
+      DO 10 I = 1, N
  10      X(I) = Y(I)
-      END DO
       NP1 = N + 1
       I0 = N*(N+1)/2
       DO 30 II = 1, N
@@ -1876,9 +1870,7 @@ C
  10   G1 = IV(G)
 C
  20   CALL DRMNG(D, F, V(G1), IV, LIV, LV, N, V, X)
-      IF ((IV(1) - 2) .LT. 0) GO TO 30
-      IF ((IV(1) - 2) .EQ. 0) GO TO 40
-      IF ((IV(1) - 2) .GT. 0) GO TO 50	  
+      IF (IV(1) - 2) 30, 40, 50
 C
  30   NF = IV(NFCALL)
       CALL CALCF(N, X, NF, F, UIPARM, URPARM, UFPARM)
@@ -2781,9 +2773,8 @@ C
 C
       INTEGER I
 C
-      DO I = 1, P
+      DO 10 I = 1, P
  10      W(I) = A*X(I) + Y(I)
-      END DO
       RETURN
       END
       REAL(wp) FUNCTION DV2NRM(P, X)
@@ -2858,9 +2849,8 @@ C
 C
       INTEGER I
 C
-      DO I = 1, P
+      DO 10 I = 1, P
  10      Y(I) = X(I)
-      END DO
       RETURN
       END
       SUBROUTINE DV7DFL(ALG, LV, V)
@@ -2978,9 +2968,8 @@ C
 C
       INTEGER I
 C
-      DO I = 1, P
+      DO 10 I = 1, P
  10      Y(I) = S
-      END DO
       RETURN
       END
       SUBROUTINE DV7VMP(N, X, Y, Z, K)
@@ -2993,14 +2982,12 @@ C
       INTEGER I
 C
       IF (K .GE. 0) GO TO 20
-      DO I = 1, N
+      DO 10 I = 1, N
  10      X(I) = Y(I) / Z(I)
-      END DO
       GO TO 999
 C
- 20   DO I = 1, N
+ 20   DO 30 I = 1, N
  30      X(I) = Y(I) * Z(I)
-      END DO
  999  RETURN
 C  ***  LAST CARD OF DV7VMP FOLLOWS  ***
       END
@@ -3083,9 +3070,8 @@ C
  10   CY = ONE / (SQRT(YS) * SQRT(SHS))
       CS = ONE / SHS
  20   CALL DL7IVM(N, Z, L, Y)
-      DO I = 1, N
+      DO 30 I = 1, N
  30      Z(I) = CY * Z(I)  -  CS * W(I)
-      END DO
 C
  999  RETURN
 C  ***  LAST CARD OF DW7ZBF FOLLOWS  ***

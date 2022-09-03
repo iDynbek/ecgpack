@@ -3,12 +3,10 @@
 
 !DECK I1MACH
       INTEGER FUNCTION I1MACH (I)
-!get the definition of wp parameter from module wp_def
-      use wp_def
       IMPLICIT NONE
       INTEGER :: I
       REAL :: X
-      REAL(wp) :: XX
+      REAL(8) :: XX
 !***BEGIN PROLOGUE  I1MACH
 !***PURPOSE  Return integer machine dependent constants.
 !***LIBRARY   SLATEC
@@ -85,7 +83,7 @@
 !***END PROLOGUE  I1MACH
 !
       X  = 1.0      
-      XX = 1.0_wp
+      XX = 1.0D0
 
       SELECT CASE (I)
         CASE (1)
@@ -137,13 +135,10 @@
 
 
 !DECK D1MACH
-      FUNCTION D1MACH (I)
-!get the definition of wp parameter from module wp_def
-      use wp_def
+      REAL(8) FUNCTION D1MACH (I)
       IMPLICIT NONE
-      real(wp) :: D1MACH
       INTEGER :: I
-      REAL(wp) :: B, X
+      REAL(8) :: B, X
 !***BEGIN PROLOGUE  D1MACH
 !***PURPOSE  Return floating point machine dependent constants.
 !***LIBRARY   SLATEC
@@ -196,7 +191,7 @@
 !   960329  Modified for Fortran 90 (BE after suggestions by EHG)      
 !***END PROLOGUE  D1MACH
 !      
-      X = 1.0_wp
+      X = 1.0D0
       B = RADIX(X)
       SELECT CASE (I)
         CASE (1)

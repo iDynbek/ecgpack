@@ -1,3844 +1,48 @@
 module matelem
-!Module matelem contains subroutines for computing 
-!matrix elements with real L=2 Gaussians.
+!Module matelem contains subroutines for computing
+!matrix elements with real L=1 Gaussians.
 use globvars
 implicit none
 
-!********************************************************************
-!                            D states 
-!
-!
-!      Module matelem contains subroutines for computing
-!            matrix elements with real Gaussians.
-!
-!         Also contains unpacking procedure of i_k, i_l 
-!           parameters to i_kk, j_kk, and i_ll, j_ll.
-!
-!            xi*xj+yi*yj-2xi*xj and xi^2+yi^2-2zi^2
-!  < r' W_k r exp [ -r' A_k r ] |^O| r' W_l r exp [ -r' A_l r ] > 
-!
-!********************************************************************
-
 contains
 
-subroutine MatrixElementsL1(i_k, i_l, vechLk, vechLl, P, &
-               Hkl, Skl, Dk, Dl, grad_k, grad_l)
-  
-!**********
-!
-! Arguments
-!
-!**********
-
-integer,intent(in)	:: i_k, i_l
-real(dprec),intent(in)  :: vechLk(Glob_np), vechLl(Glob_np)
-real(dprec),intent(in)  :: P(Glob_n,Glob_n)
-real(dprec),intent(out) :: Skl, Hkl
-real(dprec),intent(out) :: Dk(2*Glob_np),Dl(2*Glob_np)
-logical,intent(in)      :: grad_k, grad_l
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
-
-!****************
-!
-! Local Variables
-!
-!****************
-
-integer         n ! n = number pseudo-electrons
-integer		nk, mk, rk, sk, hk, gk, nl, ml, rl, sl, hl, gl, i_kk, j_kk, i_ll, j_ll ! particle indices
-integer         i, j, k, r, s, t, indx, coef
-real(dprec)	temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9
-real(dprec)     temp10, temp11, temp12, temp13, temp14, temp15, temp16, temp17, temp18, temp19
-real(dprec)     temp20, temp21, temp22, temp23, temp24, temp25, temp26, temp27, temp28, temp29 
-real(dprec)     temp30, temp31, temp32, temp33, temp34, temp35, temp36, temp37
-! matrices
-real(dprec)	Lk(nn,nn), Ll(nn,nn), pLl(nn,nn), LkI(3*nn,3*nn), LlI(3*nn,3*nn)
-real(dprec)	Ak(nn,nn), tAl(nn,nn), tAkl(nn,nn), AkI(3*nn,3*nn), tAlI(3*nn,3*nn)
-real(dprec)	inv_tAkl(nn,nn), inv_tAklI(3*nn,3*nn), inv_tAklp(nn,nn)
-real(dprec)	Pp(3*nn,3*nn), Jm(nn,nn), betaJm(nn,nn), betaJmI(3*nn,3*nn), MI(3*nn,3*nn)
-real(dprec)	Wk(3*nn,3*nn), Wl(3*nn,3*nn), Wlp(3*nn,3*nn)
-real(dprec)     beta1(3*nn,3*nn), beta2(3*nn,3*nn), beta3(3*nn,3*nn), beta33(3*nn,3*nn)
-real(dprec)	beta4(nn,nn), beta4I(3*nn,3*nn), beta5(nn,nn), beta5I(3*nn,3*nn)
-real(dprec)     beta6(3*nn,3*nn), beta7(3*nn,3*nn), beta8(3*nn,3*nn), beta9(3*nn,3*nn)
-real(dprec)     beta10(3*nn,3*nn), beta11(3*nn,3*nn), beta12(3*nn,3*nn), beta13(3*nn,3*nn)
-real(dprec)     beta14(3*nn,3*nn), beta15(3*nn,3*nn), beta16(3*nn,3*nn), beta17(3*nn,3*nn)
-real(dprec)     beta18(3*nn,3*nn), beta19(3*nn,3*nn), beta20(3*nn,3*nn), beta21(3*nn,3*nn)
-real(dprec)     beta22(3*nn,3*nn), beta23(3*nn,3*nn), beta24(3*nn,3*nn), beta25(3*nn,3*nn)
-real(dprec)     beta26(3*nn,3*nn), beta27(3*nn,3*nn), beta28(3*nn,3*nn), beta29(3*nn,3*nn)
-real(dprec)     beta30(3*nn,3*nn), beta31(3*nn,3*nn), beta32(3*nn,3*nn), beta34(3*nn,3*nn)
-real(dprec)     beta36(3*nn,3*nn), beta35(3*nn,3*nn), beta37(3*nn,3*nn), beta38(3*nn,3*nn)
-real(dprec)     beta39(3*nn,3*nn), beta40(3*nn,3*nn), beta41(3*nn,3*nn), beta42(3*nn,3*nn)
-real(dprec)     beta43(3*nn,3*nn), beta44(3*nn,3*nn), beta45(3*nn,3*nn), beta46(3*nn,3*nn)
-reaL(dprec)     beta47(3*nn,3*nn), X1(nn,nn), X1I(3*nn,3*nn)
-real(dprec)     Z1(nn,nn), Z2(nn,nn), Z3(3*nn,3*nn), Z4(3*nn,3*nn), Z5(3*nn,3*nn), Z6(3*nn,3*nn)
-real(dprec)     Z7(3*nn,3*nn), Z8(3*nn,3*nn), Z9(3*nn,3*nn), Z10(3*nn,3*nn), Z11(3*nn,3*nn)
-real(dprec)     Z12(3*nn,3*nn), Z13(3*nn,3*nn), Z14(3*nn,3*nn), Z15(3*nn,3*nn), Z16(3*nn,3*nn)
-! traces and determinant
-real(dprec)	nu3, nu6, nu7, nu8, tau1, tau6, tau7, tau8, tau9, tau10, Xi
-real(dprec)     det_tAkl
-!derivative components
-integer		MMsum, Msum, M1, M2, M3
-!derivative matrices
-real(dprec)     dnu3(3*nn,3*nn), dnu3p(3*nn,3*nn), dnu33(3*nn,3*nn), dnu33p(3*nn,3*nn)
-real(dprec)     dtau6(3*nn,3*nn), dtau6p(3*nn,3*nn), dtau66(3*nn,3*nn), dtau66p(3*nn,3*nn)
-real(dprec)     dtau666(3*nn,3*nn), dtau666p(3*nn,3*nn), dtau6666(3*nn,3*nn), ddtau6666p(3*nn,3*nn)
-real(dprec)     dtau6666M(3*nn,3*nn), dtau6666Mp(3*nn,3*nn)
-real(dprec)     dtau7(3*nn,3*nn), dtau7p(3*nn,3*nn), dtau77(3*nn,3*nn), dtau77p(3*nn,3*nn)
-real(dprec)     dtau777(3*nn,3*nn), dtau777p(3*nn,3*nn), dtau7777(3*nn,3*nn), ddtau7777p(3*nn,3*nn)
-real(dprec)     dtau7777M(3*nn,3*nn), dtau7777Mp(3*nn,3*nn)
-real(dprec)     dtau8(3*nn,3*nn), dtau8p(3*nn,3*nn), dtau88(3*nn,3*nn), dtau88p(3*nn,3*nn)
-real(dprec)     dtau888(3*nn,3*nn), dtau888p(3*nn,3*nn)
-real(dprec)     dtau9(3*nn,3*nn), dtau9p(3*nn,3*nn), dtau99(3*nn,3*nn), dtau99p(3*nn,3*nn)
-real(dprec)     dtau999(3*nn,3*nn), dtau999p(3*nn,3*nn), dtau10(3*nn,3*nn), dtau10p(3*nn,3*nn)
-real(dprec)     dnu6(3*nn,3*nn), dnu6p(3*nn,3*nn), dnu66(3*nn,3*nn), dnu66p(3*nn,3*nn)
-real(dprec)     dnu666(3*nn,3*nn), dnu666p(3*nn,3*nn)
-real(dprec)     dnu7(3*nn,3*nn), dnu7p(3*nn,3*nn), dnu77(3*nn,3*nn), dnu77p(3*nn,3*nn)
-real(dprec)     dnu777(3*nn,3*nn), dnu777p(3*nn,3*nn)
-real(dprec)     dnu8(3*nn,3*nn), dnu8p(3*nn,3*nn), dnu88(3*nn,3*nn), dnu88p(3*nn,3*nn)
-real(dprec)     dnu888(3*nn,3*nn), dnu888p(3*nn,3*nn), dnu8888(3*nn,3*nn), dnu8888p(3*nn,3*nn)
-real(dprec)     alpha1(nn,nn), alpha1p(nn,nn), alpha2(nn,nn), alpha2p(nn,nn)
-real(dprec)	mu(3*nn,3*nn), mup(3*nn,3*nn), mu2(3*nn,3*nn), mu2p(3*nn,3*nn)
-real(dprec)	alpha25(nn,nn), alpha25p(nn,nn), pk(Glob_np), pl(Glob_np)
-!derivative vech
-real(dprec)	trans(3*Glob_n*(3*Glob_n+1)/2,Glob_np), trans1(3*Glob_n*(3*Glob_n+1)/2,Glob_np)
-real(dprec)     resultAk(Glob_n*(Glob_n+1)/2), resultAl(Glob_n*(Glob_n+1)/2)
-real(dprec)	resultX1k(Glob_n*(Glob_n+1)/2), resultX1l(Glob_n*(Glob_n+1)/2)
-real(dprec)	result4k(Glob_n*(Glob_n+1)/2), result4l(Glob_n*(Glob_n+1)/2)
-real(dprec)	resultJk(Glob_n*(Glob_n+1)/2), resultJl(Glob_n*(Glob_n+1)/2)
-real(dprec)     dtau6k(3*Glob_n*(3*Glob_n+1)/2), dtau6l(3*Glob_n*(3*Glob_n+1)/2)
-real(dprec)     dtau7k(3*Glob_n*(3*Glob_n+1)/2), dtau7l(3*Glob_n*(3*Glob_n+1)/2)
-real(dprec)     dtau8k(3*Glob_n*(3*Glob_n+1)/2), dtau8l(3*Glob_n*(3*Glob_n+1)/2)
-real(dprec)     dtau9k(3*Glob_n*(3*Glob_n+1)/2), dtau9l(3*Glob_n*(3*Glob_n+1)/2)
-real(dprec)     dtau10k(3*Glob_n*(3*Glob_n+1)/2), dtau10l(3*Glob_n*(3*Glob_n+1)/2)
-real(dprec)     dnu3k(3*Glob_n*(3*Glob_n+1)/2), dnu3l(3*Glob_n*(3*Glob_n+1)/2)
-real(dprec)     dnu6k(3*Glob_n*(3*Glob_n+1)/2), dnu6l(3*Glob_n*(3*Glob_n+1)/2)
-real(dprec)     dnu7k(3*Glob_n*(3*Glob_n+1)/2), dnu7l(3*Glob_n*(3*Glob_n+1)/2)
-real(dprec)     dnu8k(3*Glob_n*(3*Glob_n+1)/2), dnu8l(3*Glob_n*(3*Glob_n+1)/2)
-!quantities
-real(dprec)     Tkl, Rkl, Vkl, SSkl
-
-!write formating
-9292 format(1x,10f14.7)
-9293 format(1x,21f4.1)
-
-n=Glob_n
-
-!write(*,*) 'Glob_np, Glob_n', Glob_np, Glob_n
-!write(*,*)'n,nn',n,nn
-
-!write(*,*)'i_k,i_l',i_k,i_l
-
-!********************
-!
-! END OF DECLARATIONS
-!
-!********************
-
-!*******************************
-!
-! ZEROING ALL DESIRED QUANTITIES 
-!
-!*******************************
-
-Skl=ZERO
-Tkl=ZERO
-Vkl=ZERO
-Hkl=ZERO
-Dk=ZERO
-Dl=ZERO
-
-!*******************************
-!
-! UNPACKING INTEGERS i_k AND i_l
-!
-! that come from the head
-! of the subroutine
-! i_k correspounds to basis k
-! i_l correspounds to basis l
-!
-! to make i_kk, j_kk and
-! to make i_ll, j_ll
-!
-!*******************************
-
-i_kk=ZERO
-j_kk=ZERO
-
-if (i_k.eq.1) i_kk= 1
-if (i_k.eq.1) j_kk= 1
-
-if (i_k.eq.2) i_kk= 1
-if (i_k.eq.2) j_kk= 2
-
-if (i_k.eq.3) i_kk= 2
-if (i_k.eq.3) j_kk= 2
-
-if (i_k.eq.4) i_kk= 1
-if (i_k.eq.4) j_kk= 3
-
-if (i_k.eq.5) i_kk= 2 
-if (i_k.eq.5) j_kk= 3 
-
-if (i_k.eq.6) i_kk= 3 
-if (i_k.eq.6) j_kk= 3 
-
-if (i_k.eq.7) i_kk= 1 
-if (i_k.eq.7) j_kk= 4 
-
-if (i_k.eq.8) i_kk= 2 
-if (i_k.eq.8) j_kk= 4 
-
-if (i_k.eq.9) i_kk= 3 
-if (i_k.eq.9) j_kk= 4 
-
-if (i_k.eq.10) i_kk= 4 
-if (i_k.eq.10) j_kk= 4 
-
-if (i_k.eq.11) i_kk= 1 
-if (i_k.eq.11) j_kk= 5 
-
-if (i_k.eq.12) i_kk= 2 
-if (i_k.eq.12) j_kk= 5 
-
-if (i_k.eq.13) i_kk= 3 
-if (i_k.eq.13) j_kk= 5 
-
-if (i_k.eq.14) i_kk= 4 
-if (i_k.eq.14) j_kk= 5 
-
-if (i_k.eq.15) i_kk= 5 
-if (i_k.eq.15) j_kk= 5 
-
-
-i_ll=ZERO
-j_ll=ZERO
-
-if (i_l.eq.1) i_ll= 1 
-if (i_l.eq.1) j_ll= 1 
-
-if (i_l.eq.2) i_ll= 1 
-if (i_l.eq.2) j_ll= 2 	
-
-if (i_l.eq.3) i_ll= 2 
-if (i_l.eq.3) j_ll= 2 	
-
-if (i_l.eq.4) i_ll= 1 
-if (i_l.eq.4) j_ll= 3 
-
-if (i_l.eq.5) i_ll= 2 
-if (i_l.eq.5) j_ll= 3 
-
-if (i_l.eq.6) i_ll= 3 
-if (i_l.eq.6) j_ll= 3 
-
-if (i_l.eq.7) i_ll= 1 
-if (i_l.eq.7) j_ll= 4 
-
-if (i_l.eq.8) i_ll= 2 
-if (i_l.eq.8) j_ll= 4 
-
-if (i_l.eq.9) i_ll= 3 
-if (i_l.eq.9) j_ll= 4 
-
-if (i_l.eq.10) i_ll= 4 
-if (i_l.eq.10) j_ll= 4
-
-if (i_l.eq.11) i_ll= 1 
-if (i_l.eq.11) j_ll= 5 
-
-if (i_l.eq.12) i_ll= 2
-if (i_l.eq.12) j_ll= 5 
-
-if (i_l.eq.13) i_ll= 3 
-if (i_l.eq.13) j_ll= 5 
-
-if (i_l.eq.14) i_ll= 4 
-if (i_l.eq.14) j_ll= 5 
-
-if (i_l.eq.15) i_ll= 5 
-if (i_l.eq.15) j_ll= 5 
-
-!write(*,*)'i_kk,j_kk,i_ll,j_ll',i_kk,j_kk,i_ll,j_ll
-
-!******************
-!
-! Kronecker Product
-!
-! of Mass Matrix
-! and permutation 
-! operator 
-!
-!******************
-
-Pp=ZERO
-MI=ZERO
-
-do i=1,n
-  do j=1,n
-
-      Pp(3*(i-1)+1,3*(j-1)+1)=P(i,j)
-      Pp(3*(i-1)+2,3*(j-1)+2)=P(i,j)
-      Pp(3*(i-1)+3,3*(j-1)+3)=P(i,j)
-
-      MI(3*(i-1)+1,3*(j-1)+1)=Glob_MassMatrix(i,j)
-      MI(3*(i-1)+2,3*(j-1)+2)=Glob_MassMatrix(i,j)
-      MI(3*(i-1)+3,3*(j-1)+3)=Glob_MassMatrix(i,j)
-
-  enddo
-enddo
-
-!*******************
-!
-! BUILDING Wk AND Wl
-!
-!*******************
-
-Wk=ZERO
-
-if (i_kk.ne.j_kk) then
-
-   Wk((i_kk-1)*3+1,(j_kk-1)*3+1)=ONEHALF
-   Wk((i_kk-1)*3+2,(j_kk-1)*3+2)=ONEHALF
-   Wk((i_kk-1)*3+3,(j_kk-1)*3+3)=-ONE
-
-   Wk((j_kk-1)*3+1,(i_kk-1)*3+1)=ONEHALF
-   Wk((j_kk-1)*3+2,(i_kk-1)*3+2)=ONEHALF
-   Wk((j_kk-1)*3+3,(i_kk-1)*3+3)=-ONE
-
-nk=3*(i_kk-1)+1
-mk=3*(i_kk-1)+2
-rk=3*(i_kk-1)+3
-sk=3*(j_kk-1)+1
-gk=3*(j_kk-1)+2
-hk=3*(j_kk-1)+3
-
-endif
-
-if (i_kk.eq.j_kk) then
-
-   Wk((i_kk-1)*3+1,(i_kk-1)*3+1)=ONE
-   Wk((i_kk-1)*3+2,(i_kk-1)*3+2)=ONE
-   Wk((i_kk-1)*3+3,(i_kk-1)*3+3)=-TWO
-
-nk=3*(i_kk-1)+1
-mk=3*(i_kk-1)+2
-rk=3*(i_kk-1)+3
-
-endif
-
-Wl=ZERO
-
-if (i_ll.ne.j_ll) then
-
-   Wl((i_ll-1)*3+1,(j_ll-1)*3+1)=ONEHALF
-   Wl((i_ll-1)*3+2,(j_ll-1)*3+2)=ONEHALF
-   Wl((i_ll-1)*3+3,(j_ll-1)*3+3)=-ONE
-        
-   Wl((j_ll-1)*3+1,(i_ll-1)*3+1)=ONEHALF
-   Wl((j_ll-1)*3+2,(i_ll-1)*3+2)=ONEHALF
-   Wl((j_ll-1)*3+3,(i_ll-1)*3+3)=-ONE
-
-nl=3*(i_ll-1)+1
-ml=3*(i_ll-1)+2
-rl=3*(i_ll-1)+3
-sl=3*(j_ll-1)+1
-gl=3*(j_ll-1)+2
-hl=3*(j_ll-1)+3
-
-endif
-
-if (i_ll.eq.j_ll) then
-
-   Wl((i_ll-1)*3+1,(i_ll-1)*3+1)=ONE
-   Wl((i_ll-1)*3+2,(i_ll-1)*3+2)=ONE
-   Wl((i_ll-1)*3+3,(i_ll-1)*3+3)=-TWO
-
-nl=3*(i_ll-1)+1
-ml=3*(i_ll-1)+2
-rl=3*(i_ll-1)+3
-
-endif
-
-!write(*,*)'nl,ml,rl,sl,gl,hl',nl,ml,rl,sl,gl,hl
-
-!write(*,*)'Wk'
-!do i=1,3*n
-!  write(*,9293)(Wk(i,j),j=1,3*n)
-!enddo
-
-!write(*,*)'Wl'
-!do i=1,3*n
-!  write(*,9293)(Wl(i,j),j=1,3*n)
-!enddo
-
-
-!*************
-!
-! Permuting Wl
-!
-!*************
-
-Z3=ZERO
-
-do i=1,n
-
-if (i_ll.ne.j_ll) then 
-
-  Z3(3*(i-1)+1,nl)=Pp(sl,3*(i-1)+1)*Wl(sl,nl)
-  Z3(3*(i-1)+2,ml)=Pp(gl,3*(i-1)+2)*Wl(gl,ml)
-  Z3(3*(i-1)+3,rl)=Pp(hl,3*(i-1)+3)*Wl(hl,rl)
-  Z3(3*(i-1)+1,sl)=Pp(nl,3*(i-1)+1)*Wl(nl,sl)
-  Z3(3*(i-1)+2,gl)=Pp(ml,3*(i-1)+2)*Wl(ml,gl)
-  Z3(3*(i-1)+3,hl)=Pp(rl,3*(i-1)+3)*Wl(rl,hl)
-
-endif
-
-if (i_ll.eq.j_ll) then
-
-  Z3(3*(i-1)+1,nl)=Pp(nl,3*(i-1)+1)*Wl(nl,nl)
-  Z3(3*(i-1)+2,ml)=Pp(ml,3*(i-1)+2)*Wl(ml,ml)
-  Z3(3*(i-1)+3,rl)=Pp(rl,3*(i-1)+3)*Wl(rl,rl)
-
-endif
-
-enddo
-
-!write(*,*)'Z3'
-!do i=1,3*n
-!  write(*,9292)(Z3(i,j),j=1,3*n)
-!enddo
-
-do i=1,n
-  do j=1,n
-    
-if (i_ll.ne.j_ll) then
-
-    Wlp(3*(i-1)+1,3*(j-1)+1)=Z3(3*(i-1)+1,nl)*Pp(nl,3*(j-1)+1)&
-                            +Z3(3*(i-1)+1,sl)*Pp(sl,3*(j-1)+1)
-    Wlp(3*(i-1)+2,3*(j-1)+2)=Z3(3*(i-1)+2,ml)*Pp(ml,3*(j-1)+2)&
-                            +Z3(3*(i-1)+2,gl)*Pp(gl,3*(j-1)+2)
-    Wlp(3*(i-1)+3,3*(j-1)+3)=Z3(3*(i-1)+3,rl)*Pp(rl,3*(j-1)+3)&
-                            +Z3(3*(i-1)+3,hl)*Pp(hl,3*(j-1)+3)
-endif
-
-if (i_ll.eq.j_ll) then
-
-    Wlp(3*(i-1)+1,3*(j-1)+1)=Z3(3*(i-1)+1,nl)*Pp(nl,3*(j-1)+1)
-    Wlp(3*(i-1)+2,3*(j-1)+2)=Z3(3*(i-1)+2,ml)*Pp(ml,3*(j-1)+2)
-    Wlp(3*(i-1)+3,3*(j-1)+3)=Z3(3*(i-1)+3,rl)*Pp(rl,3*(j-1)+3)
-
-endif
-
-  enddo
-enddo
-
-do i=1,n
-  do j=1,n
-
-if (i_ll.ne.j_ll) then
-  
-  if (Wlp(3*(i-1)+1,3*(j-1)+1).gt.ZERO) then
-     sl=3*(i-1)+1
-     nl=3*(j-1)+1
-   endif
-   
-   if (Wlp(3*(i-1)+2,3*(j-1)+2).gt.ZERO) then
-     gl=3*(i-1)+2
-     ml=3*(j-1)+2
-   endif
-
-   if (Wlp(3*(i-1)+3,3*(j-1)+3).lt.ZERO) then
-     hl=3*(i-1)+3
-     rl=3*(j-1)+3 
-   endif
-endif
-
-if (i_ll.eq.j_ll) then
-
-  if (Wlp(3*(i-1)+1,3*(j-1)+1).eq.ONE) then
-    nl=3*(i-1)+1
-  endif
-
-  if (Wlp(3*(i-1)+2,3*(j-1)+2).eq.ONE) then
-   ml=3*(i-1)+2
-  endif
-
-  if (Wlp(3*(i-1)+3,3*(j-1)+3).eq.-TWO) then
-    rl=3*(i-1)+3
-  endif
-
-endif
-
-  enddo
-enddo
-
-!write(*,*)'nl,ml,rl,sl,gl,hl',nl,ml,rl,sl,gl,hl
-
-!write(*,*)'Wlp'
-!do i=1,3*n
-!  write(*,9293)(Wlp(i,j),j=1,3*n)
-!enddo
-
-!***************************
-!
-! CONSTRUCTION OF A MATRICES
+subroutine MatrixElementsLD(m_k, mm_k, m_l, mm_l, vechLk, vechLl, P, &
+               Hkl, Skl, Tkl,Vkl, Dk, Dl, grad_k, grad_l)
+!This subroutine computes symmetry adapted matrix element with
+!two real L=1 correlated Gaussians:
 ! 
-!***************************
-
-!First built are matrices Lk, LkI and  Ll, LlI from vechL and vechLl.
-
-indx=ZERO
-
-do i=1,n
-  do j=i,n
-      indx=indx+1
-
-      Lk(i,j)=ZERO
-      Lk(j,i)=vechLk(indx)
-     
-      Ll(i,j)=ZERO
-      Ll(j,i)=vechLl(indx)
-
-      if (grad_k.or.grad_l) then 
-        LkI(3*(i-1)+1,3*(j-1)+1)=ZERO
-        LkI(3*(j-1)+1,3*(i-1)+1)=vechLk(indx)
-     
-        LkI(3*(i-1)+2,3*(j-1)+2)=ZERO
-        LkI(3*(j-1)+2,3*(i-1)+2)=vechLk(indx)
-     
-        LkI(3*(i-1)+3,3*(j-1)+3)=ZERO
-        LkI(3*(j-1)+3,3*(i-1)+3)=vechLk(indx)
-
-        LlI(3*(i-1)+1,3*(j-1)+1)=ZERO
-        LlI(3*(j-1)+1,3*(i-1)+1)=vechLl(indx)
-
-        LlI(3*(i-1)+2,3*(j-1)+2)=ZERO
-        LlI(3*(j-1)+2,3*(i-1)+2)=vechLl(indx)
-     
-        LlI(3*(i-1)+3,3*(j-1)+3)=ZERO
-        LlI(3*(j-1)+3,3*(i-1)+3)=vechLl(indx)
-
-      endif
-
-  enddo 
-enddo
-
-!write(*,*)'Lk'
-!do i=1,n
-!  write(*,9292)(Lk(i,j),j=1,n)
-!enddo
-
-!write(*,*)'Ll'
-!do i=1,n
-!  write(*,9292)(Ll(i,j),j=1,n)
-!enddo
-
-!write(*,*)'LkI'
-!do i=1,3*n
-!  write(*,9292)(LkI(i,j),j=1,3*n)
-!enddo
-
-!Building Pp and at the same time building MI.
-
-!write(*,*)'Pp'
-!do i=1,3*n
-!  write(*,9292)(Pp(i,j),j=1,3*n)
-!enddo
-
-!write(*,*)'MI'
-!do i=1,3*n
-!  write(*,9292)(MI(i,j),j=1,3*n)
-!enddo
-
-!Then we build matrices Ak and tAl
-
-do i=1,n
-  do j=i,n
-
-      temp1=ZERO
-      temp2=ZERO
-      
-      do k=1,j
-
-        temp1=temp1+Lk(i,k)*Lk(j,k)
-	temp2=temp2+Ll(i,k)*Ll(j,k)
-
-      enddo
-
-      Ak(i,j)=temp1
-      Ak(j,i)=temp1
-
-      tAl(i,j)=temp2
-      tAl(j,i)=temp2
-  
-  enddo
-enddo
-
-!write(*,*)'Ak'
-!do i=1,n
-!  write(*,9292)(Ak(i,j),j=1,n)
-!enddo
-
-!write(*,*)'tAl'
-!do i=1,n
-!  write(*,9292)(tAl(i,j),j=1,n)
-!enddo
-
-!Next elements of Al and Wl are permuted to 
-!account for the action of the permutation
-!matrix tAl=P'*Al*P.
-!Also formed is matrix tAkl=Ak+tAl.
-
-do i=1,n
-  do j=1,n
-    
-    temp1=ZERO
-    temp2=ZERO
-
-    do k=1,n
-      temp1=temp1+P(k,j)*tAl(k,i)
-      temp2=temp2+P(k,j)*Ll(k,i)
-    enddo
-      Z1(j,i)=temp1
-      Z2(j,i)=temp2
-  
-  enddo
-enddo
-
-do i=1,n
-  do j=i,n
-    
-    temp1=ZERO
-
-    do k=1,n
-
-      temp1=temp1+Z1(i,k)*P(k,j)
-
-    enddo
-
-    tAl(i,j)=temp1
-    tAl(j,i)=temp1
-
-    tAkl(i,j)=Ak(i,j)+temp1
-    tAkl(j,i)=tAkl(i,j)
-
- enddo
-enddo
-
-do i=1,n
-  do j=1,n
-
-    temp1=ZERO
-    do k=1,n
-      temp1=temp1+Z2(i,k)*P(k,j)
-    enddo
-     pLl(i,j)=temp1
- enddo
-enddo
-
-!write(*,*)'tAl'
-!do i=1,n
-!  write(*,9292)(tAl(i,j),j=1,n)
-!enddo
-
-!write(*,*)'tAkl'
-!do i=1,n
-!  write(*,9292)(tAkl(i,j),j=1,n)
-!enddo
-
-!write(*,*)'pLl'
-!do i=1,n
-!  write(*,9292)(pLl(i,j),j=1,n)
-!enddo
-
-!After this we can do the Cholesky factorization of tAkl.
-!The Cholesky factor will be temporarily stored in the 
-!lower triangle of W1
-
-det_tAkl=ONE
-
-do i=1,n
-  do j=i,n
-    
-    temp1=tAkl(i,j)
-    do k=i-1,1,-1
-      temp1=temp1-Z1(i,k)*Z1(j,k)
-    enddo
-    
-    if (i==j) then
-      Z1(i,i)=sqrt(temp1)
-      det_tAkl=det_tAkl*temp1
-    else
-      Z1(j,i)=temp1/Z1(i,i)
-      Z1(i,j)=ZERO
-    endif
-  
-  enddo
-enddo
-
-!Inverting tAkl and using its Cholesky factor
-!(stored in Z1) and placing into inv_tAkl
-
-do i=1,n
-  
-  Z1(i,i)=ONE/Z1(i,i)
-  do j=i+1,n
-    
-    temp1=ZERO
-    do k=i,j-1
-      temp1=temp1-Z1(j,k)*Z1(k,i)
-    enddo
-      Z1(j,i)=temp1/Z1(j,j)
-  
-  enddo
-enddo
-
-do i=1,n
-  do j=i,n
-    
-    temp1=ZERO
-    do k=j,n
-      temp1=temp1+Z1(k,i)*Z1(k,j)
-    enddo
-      inv_tAkl(i,j)=temp1
-      inv_tAkl(j,i)=temp1
-  
-  enddo
-enddo
-
-!write(*,*)'inv_tAkl'
-!do i=1,n
-!  write(*,9292)(inv_tAkl(i,j),j=1,n)
-!enddo
-
-!Performing Kronecker Product of inv_tAkl with I3
-
-inv_tAklI=ZERO
-
-do i=1,n
-  do j=1,n
-    
-    inv_tAklI(3*(i-1)+1,3*(j-1)+1)=inv_tAkl(i,j)
-    inv_tAklI(3*(i-1)+2,3*(j-1)+2)=inv_tAkl(i,j)
-    inv_tAklI(3*(i-1)+3,3*(j-1)+3)=inv_tAkl(i,j)
-
-  enddo
-enddo
-
-!write(*,*)'inv_tAklI'
-!do i=1,3*n
-!  write(*,9292)(inv_tAkl(i,j),j=1,3*n)
-!enddo
-
-!****************************
+!fk = [x_{m_k}x_{mm_k}+y_{mm_k}y_{m_k}-2*z_{mm_k}z_{m_k}] exp[-r'(Lk*Lk')r] 
 !
-! DOING MATRIX MULTIPLICATION
-! 
-!****************************
-
-!beta1=inv_tAklI*Wl
-!beta2=inv_tAklI*Wlp
-
-beta1=ZERO
-beta2=ZERO
-beta6=ZERO
-
-do i=1,n
-    
-if (i_kk.ne.j_kk) then
-
-  beta1(3*(i-1)+1,nk)=inv_tAklI(3*(i-1)+1,sk)*Wk(sk,nk)
-  beta1(3*(i-1)+2,mk)=inv_tAklI(3*(i-1)+2,gk)*Wk(gk,mk)
-  beta1(3*(i-1)+3,rk)=inv_tAklI(3*(i-1)+3,hk)*Wk(hk,rk)
-  beta1(3*(i-1)+1,sk)=inv_tAklI(3*(i-1)+1,nk)*Wk(nk,sk)
-  beta1(3*(i-1)+2,gk)=inv_tAklI(3*(i-1)+2,mk)*Wk(mk,gk)
-  beta1(3*(i-1)+3,hk)=inv_tAklI(3*(i-1)+3,rk)*Wk(rk,hk)
-
-endif
-
-if (i_kk.eq.j_kk) then
-
-  beta1(3*(i-1)+1,nk)=inv_tAklI(3*(i-1)+1,nk)*Wk(nk,nk)
-  beta1(3*(i-1)+2,mk)=inv_tAklI(3*(i-1)+2,mk)*Wk(mk,mk)
-  beta1(3*(i-1)+3,rk)=inv_tAklI(3*(i-1)+3,rk)*Wk(rk,rk)
-
-endif
-
-if (i_ll.ne.j_ll) then 
-
-  beta2(3*(i-1)+1,nl)=inv_tAklI(3*(i-1)+1,sl)*Wlp(sl,nl) 
-  beta2(3*(i-1)+2,ml)=inv_tAklI(3*(i-1)+2,gl)*Wlp(gl,ml) 
-  beta2(3*(i-1)+3,rl)=inv_tAklI(3*(i-1)+3,hl)*Wlp(hl,rl) 
-  beta2(3*(i-1)+1,sl)=inv_tAklI(3*(i-1)+1,nl)*Wlp(nl,sl)
-  beta2(3*(i-1)+2,gl)=inv_tAklI(3*(i-1)+2,ml)*Wlp(ml,gl)
-  beta2(3*(i-1)+3,hl)=inv_tAklI(3*(i-1)+3,rl)*Wlp(rl,hl)
-
-  beta6(3*(i-1)+1,nl)=MI(3*(i-1)+1,sl)*Wlp(sl,nl)
-  beta6(3*(i-1)+2,ml)=MI(3*(i-1)+2,gl)*Wlp(gl,ml)
-  beta6(3*(i-1)+3,rl)=MI(3*(i-1)+3,hl)*Wlp(hl,rl)
-  beta6(3*(i-1)+1,sl)=MI(3*(i-1)+1,nl)*Wlp(nl,sl)
-  beta6(3*(i-1)+2,gl)=MI(3*(i-1)+2,ml)*Wlp(ml,gl)
-  beta6(3*(i-1)+3,hl)=MI(3*(i-1)+3,rl)*Wlp(rl,hl)
-
-endif
-
-if (i_ll.eq.j_ll) then
-
-  beta2(3*(i-1)+1,nl)=inv_tAklI(3*(i-1)+1,nl)*Wlp(nl,nl)
-  beta2(3*(i-1)+2,ml)=inv_tAklI(3*(i-1)+2,ml)*Wlp(ml,ml)
-  beta2(3*(i-1)+3,rl)=inv_tAklI(3*(i-1)+3,rl)*Wlp(rl,rl)
-
-  beta6(3*(i-1)+1,nl)=MI(3*(i-1)+1,nl)*Wlp(nl,nl)
-  beta6(3*(i-1)+2,ml)=MI(3*(i-1)+2,ml)*Wlp(ml,ml)
-  beta6(3*(i-1)+3,rl)=MI(3*(i-1)+3,rl)*Wlp(rl,rl)
-
-endif
-
-enddo 
-
-!write(*,*)'beta1'
-!do i=1,3*n
-!  write(*,9292)(beta1(i,j),j=1,3*n)
-!enddo
-
-!write(*,*)'beta2'
-!do i=1,3*n
-!  write(*,9292)(beta2(i,j),j=1,3*n)
-!enddo
-
-!beta3=beta1*beta2
-!beta33=beta2*beta1
-
-beta3=ZERO
-beta33=ZERO
-
-do i=1,n
- 
-if (i_kk.ne.j_kk.and.i_ll.ne.j_ll) then
-
-  beta3(3*(i-1)+1,nl)=beta1(3*(i-1)+1,nk)*beta2(nk,nl)&
-                     +beta1(3*(i-1)+1,sk)*beta2(sk,nl) 
-  beta3(3*(i-1)+2,ml)=beta1(3*(i-1)+2,mk)*beta2(mk,ml)&  
-                     +beta1(3*(i-1)+2,gk)*beta2(gk,ml)    
-  beta3(3*(i-1)+3,rl)=beta1(3*(i-1)+3,rk)*beta2(rk,rl)&  
-                     +beta1(3*(i-1)+3,hk)*beta2(hk,rl)    
-  beta3(3*(i-1)+1,sl)=beta1(3*(i-1)+1,nk)*beta2(nk,sl)&  
-                     +beta1(3*(i-1)+1,sk)*beta2(sk,sl)    
-  beta3(3*(i-1)+2,gl)=beta1(3*(i-1)+2,mk)*beta2(mk,gl)&  
-                     +beta1(3*(i-1)+2,gk)*beta2(gk,gl)    
-  beta3(3*(i-1)+3,hl)=beta1(3*(i-1)+3,rk)*beta2(rk,hl)&  
-                     +beta1(3*(i-1)+3,hk)*beta2(hk,hl)    
-
-  beta33(3*(i-1)+1,nk)=beta2(3*(i-1)+1,nl)*beta1(nl,nk)&
-                      +beta2(3*(i-1)+1,sl)*beta1(sl,nk)
-  beta33(3*(i-1)+2,mk)=beta2(3*(i-1)+2,ml)*beta1(ml,mk)&
-                      +beta2(3*(i-1)+2,gl)*beta1(gl,mk)
-  beta33(3*(i-1)+3,rk)=beta2(3*(i-1)+3,rl)*beta1(rl,rk)&
-                      +beta2(3*(i-1)+3,hl)*beta1(hl,rk)
-  beta33(3*(i-1)+1,sk)=beta2(3*(i-1)+1,nl)*beta1(nl,sk)&
-                      +beta2(3*(i-1)+1,sl)*beta1(sl,sk)
-  beta33(3*(i-1)+2,gk)=beta2(3*(i-1)+2,ml)*beta1(ml,gk)&
-                      +beta2(3*(i-1)+2,gl)*beta1(gl,gk)
-  beta33(3*(i-1)+3,hk)=beta2(3*(i-1)+3,rl)*beta1(rl,hk)&
-                      +beta2(3*(i-1)+3,hl)*beta1(hl,hk)
-
-endif
-
-if (i_kk.eq.j_kk.and.i_ll.eq.j_ll) then
-
-  beta3(3*(i-1)+1,nl)=beta1(3*(i-1)+1,nk)*beta2(nk,nl)
-  beta3(3*(i-1)+2,ml)=beta1(3*(i-1)+2,mk)*beta2(mk,ml)
-  beta3(3*(i-1)+3,rl)=beta1(3*(i-1)+3,rk)*beta2(rk,rl)
-
-  beta33(3*(i-1)+1,nk)=beta2(3*(i-1)+1,nl)*beta1(nl,nk)
-  beta33(3*(i-1)+2,mk)=beta2(3*(i-1)+2,ml)*beta1(ml,mk)
-  beta33(3*(i-1)+3,rk)=beta2(3*(i-1)+3,rl)*beta1(rl,rk)
-
-endif
-
-if (i_kk.eq.j_kk.and.i_ll.ne.j_ll) then
-
-  beta3(3*(i-1)+1,nl)=beta1(3*(i-1)+1,nk)*beta2(nk,nl)
-  beta3(3*(i-1)+2,ml)=beta1(3*(i-1)+2,mk)*beta2(mk,ml)
-  beta3(3*(i-1)+3,rl)=beta1(3*(i-1)+3,rk)*beta2(rk,rl)
-  beta3(3*(i-1)+1,sl)=beta1(3*(i-1)+1,nk)*beta2(nk,sl)
-  beta3(3*(i-1)+2,gl)=beta1(3*(i-1)+2,mk)*beta2(mk,gl)
-  beta3(3*(i-1)+3,hl)=beta1(3*(i-1)+3,rk)*beta2(rk,hl)
-
-  beta33(3*(i-1)+1,nk)=beta2(3*(i-1)+1,nl)*beta1(nl,nk)&
-                      +beta2(3*(i-1)+1,sl)*beta1(sl,nk)
-  beta33(3*(i-1)+2,mk)=beta2(3*(i-1)+2,ml)*beta1(ml,mk)&
-                      +beta2(3*(i-1)+2,gl)*beta1(gl,mk)
-  beta33(3*(i-1)+3,rk)=beta2(3*(i-1)+3,rl)*beta1(rl,rk)&
-                      +beta2(3*(i-1)+3,hl)*beta1(hl,rk)
-
-endif
-
-if (i_kk.ne.j_kk.and.i_ll.eq.j_ll) then
-
-  beta3(3*(i-1)+1,nl)=beta1(3*(i-1)+1,nk)*beta2(nk,nl)&
-                     +beta1(3*(i-1)+1,sk)*beta2(sk,nl)
-  beta3(3*(i-1)+2,ml)=beta1(3*(i-1)+2,mk)*beta2(mk,ml)&
-                     +beta1(3*(i-1)+2,gk)*beta2(gk,ml)
-  beta3(3*(i-1)+3,rl)=beta1(3*(i-1)+3,rk)*beta2(rk,rl)&
-                     +beta1(3*(i-1)+3,hk)*beta2(hk,rl)
-
-  beta33(3*(i-1)+1,nk)=beta2(3*(i-1)+1,nl)*beta1(nl,nk)
-  beta33(3*(i-1)+2,mk)=beta2(3*(i-1)+2,ml)*beta1(ml,mk)
-  beta33(3*(i-1)+3,rk)=beta2(3*(i-1)+3,rl)*beta1(rl,rk)
-  beta33(3*(i-1)+1,sk)=beta2(3*(i-1)+1,nl)*beta1(nl,sk)
-  beta33(3*(i-1)+2,gk)=beta2(3*(i-1)+2,ml)*beta1(ml,gk)
-  beta33(3*(i-1)+3,hk)=beta2(3*(i-1)+3,rl)*beta1(rl,hk)
-
-endif
-
-enddo
-
-!write(*,*)'beta3'
-!do i=1,3*n
-!  write(*,9292)(beta3(i,j),j=1,3*n)
-!enddo
-
-!write(*,*)'beta33'
-!do i=1,3*n
-!  write(*,9292)(beta33(i,j),j=1,3*n)
-!enddo
-
-!***********************
-!
-! Taking trace of Betas
-!
-!***********************
-
-!nu3=tr[beta3]
-
-nu3=ZERO
-
-do  i=1,n
-
-  nu3=nu3+beta3(3*(i-1)+1,3*(i-1)+1)&
-         +beta3(3*(i-1)+2,3*(i-1)+2)&
-         +beta3(3*(i-1)+3,3*(i-1)+3)
-
-enddo
-
-!write(*,*)'nu3,det_tAkl',nu3,det_tAkl
-
-!**************************************************************
-!
-! Derivative of Determinant with respect to vechL_k and vechL_l
-!
-!**************************************************************
-
-if (grad_k) then 
-
-  resultAk=ZERO
-  indx=ZERO
-  do j=1,n
-    do i=j,n
-      indx=indx+1
-      temp1=ZERO
-      do k=j,n
-
-        temp1=temp1+(inv_tAkl(k,i)+inv_tAkl(i,k))*Lk(k,j)
-
-      enddo
-
-      resultAk(indx)=temp1
-
-    enddo
-  enddo
-endif
-
-if (grad_l) then 
-
-  Z1=ZERO
-  do i=1,n
-    do j=1,n
-      temp1=ZERO
-      do k=1,n  
-        temp1=temp1+P(i,k)*inv_tAkl(k,j)
-      enddo  
-      Z1(i,j)=temp1
-    enddo
-  enddo  
-  do i=1,n
-    do j=1,n
-      temp1=ZERO
-      do k=1,n  
-        temp1=temp1+Z1(i,k)*P(j,k)
-      enddo  
-      inv_tAklp(i,j)=temp1
-    enddo
-  enddo  
-
-  resultAl=ZERO
-  indx=ZERO
-  do j=1,n
-    do i=j,n
-      
-      indx=indx+1
-      temp1=ZERO
-      do k=j,n
-
-        temp1=temp1+(inv_tAklp(i,k)+inv_tAklp(k,i))*Ll(k,j)
-
-      enddo
-
-      resultAl(indx)=temp1
-
-    enddo
-  enddo
-endif
-
-!*******************
-!
-! Constructing Trans
-!
-!*******************
-
-if (grad_k.or.grad_l) then
-
-  trans=ZERO
-  MMsum=ZERO
-  do j=1,n
-    do i=j,n
-      MMsum=MMsum+1
-      Msum=ZERO
-     do k=1,j-1
-       Msum=Msum+(3*n-3*k+3)+(3*n-3*k+2)+(3*n-3*k+1)
-     enddo
-     M1=Msum+(3*(i-j)+1)
-     M2=Msum+(3*n-3*(j-1))+(3*(i-j)+1)
-     M3=Msum+(3*n-3*(j-1))+(3*n-3*(j-1)-1)+(3*(i-j)+1)
-     trans(M1,MMsum)=ONE
-     trans(M2,MMsum)=ONE
-     trans(M3,MMsum)=ONE
-
-    enddo
-  enddo
-
-!write(*,*)'Trans'
-!do i=1,3*n*(3*n+1)/2
-!  write(*,9293)(trans(i,j),j=1,n*(n+1)/2)
-!enddo
-
-!dnu3=beta3*inv_tAklI
-!dnu33=beta33*inv_tAklI
-
-  dnu3=ZERO
-  dnu33=ZERO
-
-  do i=1,n
-    do j=1,n
-
-if (i_kk.ne.j_kk) then
-
-      dnu33(3*(i-1)+1,3*(j-1)+1)=beta33(3*(i-1)+1,nk)*inv_tAklI(nk,3*(j-1)+1)&
-                                +beta33(3*(i-1)+1,sk)*inv_tAklI(sk,3*(j-1)+1) 
-      dnu33(3*(i-1)+2,3*(j-1)+2)=beta33(3*(i-1)+2,mk)*inv_tAklI(mk,3*(j-1)+2)&
-                                +beta33(3*(i-1)+2,gk)*inv_tAklI(gk,3*(j-1)+2) 
-      dnu33(3*(i-1)+3,3*(j-1)+3)=beta33(3*(i-1)+3,rk)*inv_tAklI(rk,3*(j-1)+3)&
-                                +beta33(3*(i-1)+3,hk)*inv_tAklI(hk,3*(j-1)+3) 
-
-endif
-
-if (i_kk.eq.j_kk) then
-
-      dnu33(3*(i-1)+1,3*(j-1)+1)=beta33(3*(i-1)+1,nk)*inv_tAklI(nk,3*(j-1)+1)
-      dnu33(3*(i-1)+2,3*(j-1)+2)=beta33(3*(i-1)+2,mk)*inv_tAklI(mk,3*(j-1)+2)
-      dnu33(3*(i-1)+3,3*(j-1)+3)=beta33(3*(i-1)+3,rk)*inv_tAklI(rk,3*(j-1)+3)
-
-endif
-
-if (i_ll.ne.j_ll) then
-
-      dnu3(3*(i-1)+1,3*(j-1)+1)=beta3(3*(i-1)+1,nl)*inv_tAklI(nl,3*(j-1)+1)&
-                               +beta3(3*(i-1)+1,sl)*inv_tAklI(sl,3*(j-1)+1)
-      dnu3(3*(i-1)+2,3*(j-1)+2)=beta3(3*(i-1)+2,ml)*inv_tAklI(ml,3*(j-1)+2)&
-                               +beta3(3*(i-1)+2,gl)*inv_tAklI(gl,3*(j-1)+2)
-      dnu3(3*(i-1)+3,3*(j-1)+3)=beta3(3*(i-1)+3,rl)*inv_tAklI(rl,3*(j-1)+3)&
-                               +beta3(3*(i-1)+3,hl)*inv_tAklI(hl,3*(j-1)+3)
-
-endif
-
-if (i_ll.eq.j_ll) then
-
-      dnu3(3*(i-1)+1,3*(j-1)+1)=beta3(3*(i-1)+1,nl)*inv_tAklI(nl,3*(j-1)+1)
-      dnu3(3*(i-1)+2,3*(j-1)+2)=beta3(3*(i-1)+2,ml)*inv_tAklI(ml,3*(j-1)+2)
-      dnu3(3*(i-1)+3,3*(j-1)+3)=beta3(3*(i-1)+3,rl)*inv_tAklI(rl,3*(j-1)+3)
-
-endif
-
-    enddo
-  enddo
-
-endif
-
-if (grad_k) then
-
-  dnu3k=ZERO
-  indx=ZERO
-  
-  do j=1,3*n
-
-    do i=j,3*n
-    
-      indx=indx+1
-
-      temp1=ZERO
-      temp2=ZERO
-
-      do k=j,3*n
-
-        temp1=temp1+(dnu3(i,k)+dnu3(k,i))*LkI(k,j)
-        temp2=temp2+(dnu33(i,k)+dnu33(k,i))*LkI(k,j)
-
-      enddo
-
-      dnu3k(indx)=temp1+temp2
-
-    enddo
-  enddo
-
-endif
-
-if (grad_l) then
-
-  Z5=ZERO
-  Z6=ZERO
-
-  do i=1,3*n
-    do j=1,3*n
-
-      temp1=ZERO
-      temp2=ZERO 
-
-      do k=1,3*n  
-
-        temp1=temp1+pP(i,k)*dnu3(k,j)
-        temp2=temp2+pP(i,k)*dnu33(k,j)
-
-      enddo  
-
-      Z5(i,j)=temp1
-      Z6(i,j)=temp2
-
-    enddo
-  enddo  
-
-  do i=1,3*n
-    do j=1,3*n
-
-      temp1=ZERO
-      temp2=ZERO
- 
-      do k=1,3*n  
-
-        temp1=temp1+Z5(i,k)*pP(j,k)
-        temp2=temp2+Z6(i,k)*pP(j,k)
-
-      enddo  
-
-      dnu3p(i,j)=temp1
-      dnu33p(i,j)=temp2
-
-    enddo
-  enddo  
- 
-  dnu3l=ZERO
-  indx=ZERO
-
-  do j=1,3*n
-    do i=j,3*n
-      
-      indx=indx+1
-      
-      temp1=ZERO
-      temp2=ZERO
-      
-      do k=j,3*n
-
-        temp1=temp1+(dnu3p(i,k)+dnu3p(k,i))*LlI(k,j)
-        temp2=temp2+(dnu33p(i,k)+dnu33p(k,i))*LlI(k,j)
-
-      enddo
-
-      dnu3l(indx)=temp1+temp2   
-
-    enddo
-  enddo
-endif
-
-!*****************
-!
-! OVERLAP FORMULA
-!
-!*****************
-
-!write(*,*)'i_k,i_l,i_kk,j_kk,i_ll,j_ll',i_k,i_l,i_kk,j_kk,i_ll,j_ll
-
-Skl=ONEHALF*(PI**((THREE*n)/TWO))*(det_tAkl**(-THREE/TWO))*nu3
-
-!write(*,*) 'Skl',Skl
-
-!*****************
-!
-! OVERLAP GRADIENT
-!
-!*****************
-
-  if (grad_k) then
-
-    do i=1,n*(n+1)/2
-    
-      temp1=ZERO
-
-      do k=1,3*n*(3*n+1)/2
-    
-        temp1=temp1+dnu3k(k)*trans(k,i)
-    
-      enddo
-    
-      Dk(Glob_np+i)=Dk(Glob_np+i)-ONEHALF*(PI**(THREEHALF*n))&
-                   *(det_tAkl**(-THREEHALF))&
-                   *(THREEHALF*resultAk(i)*nu3+temp1)
-
-  enddo
-
-! write(*,*) 'Dk',Dk
-
-  endif
-
-  if (grad_l) then
-
-    do i=1,n*(n+1)/2
-    
-      temp1=ZERO
-
-      do k=1,3*n*(3*n+1)/2
-
-        temp1=temp1+dnu3l(k)*trans(k,i)
-
-      enddo
-
-      Dl(Glob_np+i)=Dl(Glob_np+i)-ONEHALF*(PI**(THREEHALF*n))&
-                   *(det_tAkl**(-THREEHALF))&
-                   *(THREEHALF*resultAl(i)*nu3+temp1)
-
-    enddo
-
-!    write(*,*) 'Dl',Dl
-
-  endif  
- 
-!go to 1111
-
-!***********************************
-!
-! KINETIC ENERGY INTEGRAL
-!
-!***********************************
-
-!****************************
-!
-! DOING MATRIX MULTIPLICATION
-!
-!****************************
-
-!beta4=inv_tAkl*Ak
-!beta5=M*tAl
-
-beta4=ZERO
-beta5=ZERO
-
-do i=1,n
-  do j=1,n
-    
-    temp1=ZERO
-    temp2=ZERO
-    do k=1,n
-      temp1=temp1+inv_tAkl(i,k)*Ak(k,j)
-      temp2=temp2+Glob_MassMatrix(i,k)*tAl(k,j)
-    enddo
-      beta4(i,j)=temp1
-      beta5(i,j)=temp2
-
-  enddo
-enddo 
-
-!write(*,*)'beta4'
-!do i=1,n
-!  write(*,9292)(beta4(i,j),j=1,n)
-!enddo
-
-!write(*,*)'beta5'
-!do i=1,n
-!  write(*,9292)(beta5(i,j),j=1,n)
-!enddo
-
-!X1=beta4*beta5
-
-X1=ZERO
-
-do i=1,n
-  do j=1,n
-   
-    temp1=ZERO
-    do k=1,n
-      temp1=temp1+beta4(i,k)*beta5(k,j)
-    enddo
-      X1(i,j)=temp1
-
-  enddo
-enddo 
-
-!write(*,*)'X1'
-!do i=1,n
-!  write(*,9292)(X1(i,j),j=1,n)
-!enddo
-
-!Performing Kroneker Product of X1, beta4, beta5  with I3
-
-X1I=ZERO
-beta4I=ZERO
-beta5I=ZERO
-
-do i=1,n  
-  do j=1,n
-
-    beta4I(3*(i-1)+1,3*(j-1)+1)=beta4(i,j)
-    beta4I(3*(i-1)+2,3*(j-1)+2)=beta4(i,j)
-    beta4I(3*(i-1)+3,3*(j-1)+3)=beta4(i,j)
-
-    beta5I(3*(i-1)+1,3*(j-1)+1)=beta5(i,j)
-    beta5I(3*(i-1)+2,3*(j-1)+2)=beta5(i,j)
-    beta5I(3*(i-1)+3,3*(j-1)+3)=beta5(i,j)
- 
-    X1I(3*(i-1)+1,3*(j-1)+1)=X1(i,j)
-    X1I(3*(i-1)+2,3*(j-1)+2)=X1(i,j)
-    X1I(3*(i-1)+3,3*(j-1)+3)=X1(i,j)
-
-  enddo
-enddo
-
-!write(*,*)'beta4I'
-!do i=1,3*n
-!  write(*,9292)(beta4I(i,j),j=1,3*n)
-!enddo
-
-!write(*,*)'beta5I'
-!do i=1,3*n
-!  write(*,9292)(beta5I(i,j),j=1,3*n)
-!enddo
-
-!tau6
-beta7=ZERO
-beta8=ZERO
-beta10=ZERO
-beta11=ZERO
-beta12=ZERO
-
-do i=1,n
-
-  temp1=ZERO
-  temp2=ZERO
-  temp3=ZERO
-  temp4=ZERO
-  temp5=ZERO
-  temp6=ZERO
-  temp7=ZERO
-  temp8=ZERO
-  temp9=ZERO
-  temp10=ZERO
-  temp11=ZERO
-  temp12=ZERO
-  temp13=ZERO
-  temp14=ZERO
-  temp15=ZERO
-  temp16=ZERO
-  temp17=ZERO
-  temp18=ZERO
-
-  do j=1,n
-
-if (i_ll.ne.j_ll) then
-
-  beta7(3*(i-1)+1,3*(j-1)+1)=beta3(3*(i-1)+1,nl)*X1I(nl,3*(j-1)+1)&
-                            +beta3(3*(i-1)+1,sl)*X1I(sl,3*(j-1)+1)
-  beta7(3*(i-1)+2,3*(j-1)+2)=beta3(3*(i-1)+2,ml)*X1I(ml,3*(j-1)+2)&
-                            +beta3(3*(i-1)+2,gl)*X1I(gl,3*(j-1)+2) 
-  beta7(3*(i-1)+3,3*(j-1)+3)=beta3(3*(i-1)+3,rl)*X1I(rl,3*(j-1)+3)&
-                            +beta3(3*(i-1)+3,hl)*X1I(hl,3*(j-1)+3)
-
-  beta8(3*(i-1)+1,3*(j-1)+1)=beta2(3*(i-1)+1,nl)*X1I(nl,3*(j-1)+1)&
-                            +beta2(3*(i-1)+1,sl)*X1I(sl,3*(j-1)+1)
-  beta8(3*(i-1)+2,3*(j-1)+2)=beta2(3*(i-1)+2,ml)*X1I(ml,3*(j-1)+2)&
-                            +beta2(3*(i-1)+2,gl)*X1I(gl,3*(j-1)+2)
-  beta8(3*(i-1)+3,3*(j-1)+3)=beta2(3*(i-1)+3,rl)*X1I(rl,3*(j-1)+3)&
-                            +beta2(3*(i-1)+3,hl)*X1I(hl,3*(j-1)+3)
-
-  temp1=temp1+X1I(3*(i-1)+1,3*(j-1)+1)*beta3(3*(j-1)+1,nl)
-  temp2=temp2+X1I(3*(i-1)+2,3*(j-1)+2)*beta3(3*(j-1)+2,ml)
-  temp3=temp3+X1I(3*(i-1)+3,3*(j-1)+3)*beta3(3*(j-1)+3,rl)
-  temp4=temp4+X1I(3*(i-1)+1,3*(j-1)+1)*beta3(3*(j-1)+1,sl)
-  temp5=temp5+X1I(3*(i-1)+2,3*(j-1)+2)*beta3(3*(j-1)+2,gl)
-  temp6=temp6+X1I(3*(i-1)+3,3*(j-1)+3)*beta3(3*(j-1)+3,hl)
-
-  temp10=temp10+beta5I(3*(i-1)+1,3*(j-1)+1)*beta3(3*(j-1)+1,nl)
-  temp11=temp11+beta5I(3*(i-1)+2,3*(j-1)+2)*beta3(3*(j-1)+2,ml)
-  temp12=temp12+beta5I(3*(i-1)+3,3*(j-1)+3)*beta3(3*(j-1)+3,rl)
-  temp13=temp13+beta5I(3*(i-1)+1,3*(j-1)+1)*beta3(3*(j-1)+1,sl)
-  temp14=temp14+beta5I(3*(i-1)+2,3*(j-1)+2)*beta3(3*(j-1)+2,gl)
-  temp15=temp15+beta5I(3*(i-1)+3,3*(j-1)+3)*beta3(3*(j-1)+3,hl)
-
-  beta12(3*(i-1)+1,3*(j-1)+1)=beta3(3*(i-1)+1,nl)*beta4I(nl,3*(j-1)+1)&
-                             +beta3(3*(i-1)+1,sl)*beta4I(sl,3*(j-1)+1)
-  beta12(3*(i-1)+2,3*(j-1)+2)=beta3(3*(i-1)+2,ml)*beta4I(ml,3*(j-1)+2)&
-                             +beta3(3*(i-1)+2,gl)*beta4I(gl,3*(j-1)+2)
-  beta12(3*(i-1)+3,3*(j-1)+3)=beta3(3*(i-1)+3,rl)*beta4I(rl,3*(j-1)+3)&
-                             +beta3(3*(i-1)+3,hl)*beta4I(hl,3*(j-1)+3)
-
-endif
-
-if (i_ll.eq.j_ll) then
-
-  beta7(3*(i-1)+1,3*(j-1)+1)=beta3(3*(i-1)+1,nl)*X1I(nl,3*(j-1)+1)
-  beta7(3*(i-1)+2,3*(j-1)+2)=beta3(3*(i-1)+2,ml)*X1I(ml,3*(j-1)+2)
-  beta7(3*(i-1)+3,3*(j-1)+3)=beta3(3*(i-1)+3,rl)*X1I(rl,3*(j-1)+3)
-
-  beta8(3*(i-1)+1,3*(j-1)+1)=beta2(3*(i-1)+1,nl)*X1I(nl,3*(j-1)+1)
-  beta8(3*(i-1)+2,3*(j-1)+2)=beta2(3*(i-1)+2,ml)*X1I(ml,3*(j-1)+2)
-  beta8(3*(i-1)+3,3*(j-1)+3)=beta2(3*(i-1)+3,rl)*X1I(rl,3*(j-1)+3)
-
-  temp7=temp7+X1I(3*(i-1)+1,3*(j-1)+1)*beta3(3*(j-1)+1,nl)
-  temp8=temp8+X1I(3*(i-1)+2,3*(j-1)+2)*beta3(3*(j-1)+2,ml)
-  temp9=temp9+X1I(3*(i-1)+3,3*(j-1)+3)*beta3(3*(j-1)+3,rl)
-
-  temp16=temp16+beta5I(3*(i-1)+1,3*(j-1)+1)*beta3(3*(j-1)+1,nl)
-  temp17=temp17+beta5I(3*(i-1)+2,3*(j-1)+2)*beta3(3*(j-1)+2,ml)
-  temp18=temp18+beta5I(3*(i-1)+3,3*(j-1)+3)*beta3(3*(j-1)+3,rl)
-
-  beta12(3*(i-1)+1,3*(j-1)+1)=beta3(3*(i-1)+1,nl)*beta4I(nl,3*(j-1)+1)
-  beta12(3*(i-1)+2,3*(j-1)+2)=beta3(3*(i-1)+2,ml)*beta4I(ml,3*(j-1)+2)
-  beta12(3*(i-1)+3,3*(j-1)+3)=beta3(3*(i-1)+3,rl)*beta4I(rl,3*(j-1)+3)
-
-endif
-
-  enddo
-
-if (i_ll.ne.j_ll) then 
-
-  beta10(3*(i-1)+1,nl)=temp1
-  beta10(3*(i-1)+2,ml)=temp2
-  beta10(3*(i-1)+3,rl)=temp3
-  beta10(3*(i-1)+1,sl)=temp4
-  beta10(3*(i-1)+2,gl)=temp5
-  beta10(3*(i-1)+3,hl)=temp6
-
-  beta11(3*(i-1)+1,nl)=temp10
-  beta11(3*(i-1)+2,ml)=temp11
-  beta11(3*(i-1)+3,rl)=temp12
-  beta11(3*(i-1)+1,sl)=temp13
-  beta11(3*(i-1)+2,gl)=temp14
-  beta11(3*(i-1)+3,hl)=temp15
-
-endif
-
-if (i_ll.eq.j_ll) then
-
-  beta10(3*(i-1)+1,nl)=temp7
-  beta10(3*(i-1)+2,ml)=temp8
-  beta10(3*(i-1)+3,rl)=temp9
-
-  beta11(3*(i-1)+1,nl)=temp16
-  beta11(3*(i-1)+2,ml)=temp17
-  beta11(3*(i-1)+3,rl)=temp18
-
-endif
-
-enddo
-
-!tau6
-beta9=ZERO
-!tau7
-beta13=ZERO
-beta14=ZERO
-beta16=ZERO
-beta17=ZERO
-beta18=ZERO
-!tau8
-beta19=ZERO
-!tau9
-beta24=ZERO
-beta25=ZERO
-
-do i=1,n
-
-  temp1=ZERO
-  temp2=ZERO
-  temp3=ZERO
-  temp4=ZERO
-  temp5=ZERO
-  temp6=ZERO
-  temp7=ZERO
-  temp8=ZERO
-  temp9=ZERO
-  temp10=ZERO
-  temp11=ZERO
-  temp12=ZERO
-  temp13=ZERO
-  temp14=ZERO
-  temp15=ZERO
-  temp16=ZERO
-  temp17=ZERO
-  temp18=ZERO
-  temp19=ZERO
-  temp20=ZERO
-  temp21=ZERO
-  temp22=ZERO
-  temp23=ZERO
-  temp24=ZERO
-  temp25=ZERO
-  temp26=ZERO
-  temp27=ZERO
-
-  do j=1,n
-
-if (i_kk.eq.j_kk) then
-
-    temp1=temp1+beta8(3*(i-1)+1,3*(j-1)+1)*beta1(3*(j-1)+1,nk)
-    temp2=temp2+beta8(3*(i-1)+2,3*(j-1)+2)*beta1(3*(j-1)+2,mk)
-    temp3=temp3+beta8(3*(i-1)+3,3*(j-1)+3)*beta1(3*(j-1)+3,rk)
-
-    temp10=temp10+X1I(3*(i-1)+1,3*(j-1)+1)*beta33(3*(j-1)+1,nk)
-    temp11=temp11+X1I(3*(i-1)+2,3*(j-1)+2)*beta33(3*(j-1)+2,mk)
-    temp12=temp12+X1I(3*(i-1)+3,3*(j-1)+3)*beta33(3*(j-1)+3,rk)
-
-    temp19=temp19+beta5I(3*(i-1)+1,3*(j-1)+1)*beta33(3*(j-1)+1,nk)
-    temp20=temp20+beta5I(3*(i-1)+2,3*(j-1)+2)*beta33(3*(j-1)+2,mk)
-    temp21=temp21+beta5I(3*(i-1)+3,3*(j-1)+3)*beta33(3*(j-1)+3,rk)
-
-    beta13(3*(i-1)+1,3*(j-1)+1)=beta33(3*(i-1)+1,nk)*X1I(nk,3*(j-1)+1)
-    beta13(3*(i-1)+2,3*(j-1)+2)=beta33(3*(i-1)+2,mk)*X1I(mk,3*(j-1)+2)
-    beta13(3*(i-1)+3,3*(j-1)+3)=beta33(3*(i-1)+3,rk)*X1I(rk,3*(j-1)+3)
-
-    beta14(3*(i-1)+1,3*(j-1)+1)=beta1(3*(i-1)+1,nk)*X1I(nk,3*(j-1)+1)
-    beta14(3*(i-1)+2,3*(j-1)+2)=beta1(3*(i-1)+2,mk)*X1I(mk,3*(j-1)+2)
-    beta14(3*(i-1)+3,3*(j-1)+3)=beta1(3*(i-1)+3,rk)*X1I(rk,3*(j-1)+3)
-
-    beta18(3*(i-1)+1,3*(j-1)+1)=beta33(3*(i-1)+1,nk)*beta4I(nk,3*(j-1)+1)
-    beta18(3*(i-1)+2,3*(j-1)+2)=beta33(3*(i-1)+2,mk)*beta4I(mk,3*(j-1)+2)
-    beta18(3*(i-1)+3,3*(j-1)+3)=beta33(3*(i-1)+3,rk)*beta4I(rk,3*(j-1)+3)
-
-    beta19(3*(i-1)+1,3*(j-1)+1)=beta1(3*(i-1)+1,nk)*beta4I(nk,3*(j-1)+1)
-    beta19(3*(i-1)+2,3*(j-1)+2)=beta1(3*(i-1)+2,mk)*beta4I(mk,3*(j-1)+2)
-    beta19(3*(i-1)+3,3*(j-1)+3)=beta1(3*(i-1)+3,rk)*beta4I(rk,3*(j-1)+3)
-
-    beta24(3*(i-1)+1,3*(j-1)+1)=beta33(3*(i-1)+1,nk)*beta5I(nk,3*(j-1)+1)
-    beta24(3*(i-1)+2,3*(j-1)+2)=beta33(3*(i-1)+2,mk)*beta5I(mk,3*(j-1)+2)
-    beta24(3*(i-1)+3,3*(j-1)+3)=beta33(3*(i-1)+3,rk)*beta5I(rk,3*(j-1)+3)
-
-    beta25(3*(i-1)+1,3*(j-1)+1)=beta1(3*(i-1)+1,nk)*beta5I(nk,3*(j-1)+1)
-    beta25(3*(i-1)+2,3*(j-1)+2)=beta1(3*(i-1)+2,mk)*beta5I(mk,3*(j-1)+2)
-    beta25(3*(i-1)+3,3*(j-1)+3)=beta1(3*(i-1)+3,rk)*beta5I(rk,3*(j-1)+3)
-
-endif
-
-if (i_kk.ne.j_kk) then
-
-    temp4=temp4+beta8(3*(i-1)+1,3*(j-1)+1)*beta1(3*(j-1)+1,nk)
-    temp5=temp5+beta8(3*(i-1)+2,3*(j-1)+2)*beta1(3*(j-1)+2,mk)
-    temp6=temp6+beta8(3*(i-1)+3,3*(j-1)+3)*beta1(3*(j-1)+3,rk)
-    temp7=temp7+beta8(3*(i-1)+1,3*(j-1)+1)*beta1(3*(j-1)+1,sk)
-    temp8=temp8+beta8(3*(i-1)+2,3*(j-1)+2)*beta1(3*(j-1)+2,gk)
-    temp9=temp9+beta8(3*(i-1)+3,3*(j-1)+3)*beta1(3*(j-1)+3,hk)
-
-    temp13=temp13+X1I(3*(i-1)+1,3*(j-1)+1)*beta33(3*(j-1)+1,nk)
-    temp14=temp14+X1I(3*(i-1)+2,3*(j-1)+2)*beta33(3*(j-1)+2,mk)
-    temp15=temp15+X1I(3*(i-1)+3,3*(j-1)+3)*beta33(3*(j-1)+3,rk)
-    temp16=temp16+X1I(3*(i-1)+1,3*(j-1)+1)*beta33(3*(j-1)+1,sk)
-    temp17=temp17+X1I(3*(i-1)+2,3*(j-1)+2)*beta33(3*(j-1)+2,gk)
-    temp18=temp18+X1I(3*(i-1)+3,3*(j-1)+3)*beta33(3*(j-1)+3,hk)
- 
-    temp22=temp22+beta5I(3*(i-1)+1,3*(j-1)+1)*beta33(3*(j-1)+1,nk)
-    temp23=temp23+beta5I(3*(i-1)+2,3*(j-1)+2)*beta33(3*(j-1)+2,mk)
-    temp24=temp24+beta5I(3*(i-1)+3,3*(j-1)+3)*beta33(3*(j-1)+3,rk)
-    temp25=temp25+beta5I(3*(i-1)+1,3*(j-1)+1)*beta33(3*(j-1)+1,sk)
-    temp26=temp26+beta5I(3*(i-1)+2,3*(j-1)+2)*beta33(3*(j-1)+2,gk)
-    temp27=temp27+beta5I(3*(i-1)+3,3*(j-1)+3)*beta33(3*(j-1)+3,hk)
-
-    beta13(3*(i-1)+1,3*(j-1)+1)=beta33(3*(i-1)+1,nk)*X1I(nk,3*(j-1)+1)&
-                               +beta33(3*(i-1)+1,sk)*X1I(sk,3*(j-1)+1)
-    beta13(3*(i-1)+2,3*(j-1)+2)=beta33(3*(i-1)+2,mk)*X1I(mk,3*(j-1)+2)&
-                               +beta33(3*(i-1)+2,gk)*X1I(gk,3*(j-1)+2)
-    beta13(3*(i-1)+3,3*(j-1)+3)=beta33(3*(i-1)+3,rk)*X1I(rk,3*(j-1)+3)&
-                               +beta33(3*(i-1)+3,hk)*X1I(hk,3*(j-1)+3)
-
-    beta14(3*(i-1)+1,3*(j-1)+1)=beta1(3*(i-1)+1,nk)*X1I(nk,3*(j-1)+1)&
-                               +beta1(3*(i-1)+1,sk)*X1I(sk,3*(j-1)+1)
-    beta14(3*(i-1)+2,3*(j-1)+2)=beta1(3*(i-1)+2,mk)*X1I(mk,3*(j-1)+2)&
-                               +beta1(3*(i-1)+2,gk)*X1I(gk,3*(j-1)+2)
-    beta14(3*(i-1)+3,3*(j-1)+3)=beta1(3*(i-1)+3,rk)*X1I(rk,3*(j-1)+3)&
-                               +beta1(3*(i-1)+3,hk)*X1I(hk,3*(j-1)+3)
-
-    beta18(3*(i-1)+1,3*(j-1)+1)=beta33(3*(i-1)+1,nk)*beta4I(nk,3*(j-1)+1)&
-                               +beta33(3*(i-1)+1,sk)*beta4I(sk,3*(j-1)+1)
-    beta18(3*(i-1)+2,3*(j-1)+2)=beta33(3*(i-1)+2,mk)*beta4I(mk,3*(j-1)+2)&
-                               +beta33(3*(i-1)+2,gk)*beta4I(gk,3*(j-1)+2)
-    beta18(3*(i-1)+3,3*(j-1)+3)=beta33(3*(i-1)+3,rk)*beta4I(rk,3*(j-1)+3)&
-                               +beta33(3*(i-1)+3,hk)*beta4I(hk,3*(j-1)+3)
-
-    beta19(3*(i-1)+1,3*(j-1)+1)=beta1(3*(i-1)+1,nk)*beta4I(nk,3*(j-1)+1)&
-                               +beta1(3*(i-1)+1,sk)*beta4I(sk,3*(j-1)+1)
-    beta19(3*(i-1)+2,3*(j-1)+2)=beta1(3*(i-1)+2,mk)*beta4I(mk,3*(j-1)+2)&
-                               +beta1(3*(i-1)+2,gk)*beta4I(gk,3*(j-1)+2)
-    beta19(3*(i-1)+3,3*(j-1)+3)=beta1(3*(i-1)+3,rk)*beta4I(rk,3*(j-1)+3)&
-                               +beta1(3*(i-1)+3,hk)*beta4I(hk,3*(j-1)+3)
-
-    beta24(3*(i-1)+1,3*(j-1)+1)=beta33(3*(i-1)+1,nk)*beta5I(nk,3*(j-1)+1)&
-                               +beta33(3*(i-1)+1,sk)*beta5I(sk,3*(j-1)+1)
-    beta24(3*(i-1)+2,3*(j-1)+2)=beta33(3*(i-1)+2,mk)*beta5I(mk,3*(j-1)+2)&
-                               +beta33(3*(i-1)+2,gk)*beta5I(gk,3*(j-1)+2)
-    beta24(3*(i-1)+3,3*(j-1)+3)=beta33(3*(i-1)+3,rk)*beta5I(rk,3*(j-1)+3)&
-                               +beta33(3*(i-1)+3,hk)*beta5I(hk,3*(j-1)+3)
-
-    beta25(3*(i-1)+1,3*(j-1)+1)=beta1(3*(i-1)+1,nk)*beta5I(nk,3*(j-1)+1)&
-                               +beta1(3*(i-1)+1,sk)*beta5I(sk,3*(j-1)+1)
-    beta25(3*(i-1)+2,3*(j-1)+2)=beta1(3*(i-1)+2,mk)*beta5I(mk,3*(j-1)+2)&
-                               +beta1(3*(i-1)+2,gk)*beta5I(gk,3*(j-1)+2)
-    beta25(3*(i-1)+3,3*(j-1)+3)=beta1(3*(i-1)+3,rk)*beta5I(rk,3*(j-1)+3)&
-                               +beta1(3*(i-1)+3,hk)*beta5I(hk,3*(j-1)+3)
-
-endif
-
-  enddo
-
-if (i_kk.eq.j_kk) then
-
-  beta9(3*(i-1)+1,nk)=temp1
-  beta9(3*(i-1)+2,mk)=temp2 
-  beta9(3*(i-1)+3,rk)=temp3 
- 
-  beta16(3*(i-1)+1,nk)=temp10
-  beta16(3*(i-1)+2,mk)=temp11
-  beta16(3*(i-1)+3,rk)=temp12
-
-  beta17(3*(i-1)+1,nk)=temp19
-  beta17(3*(i-1)+2,mk)=temp20
-  beta17(3*(i-1)+3,rk)=temp21
-
-endif
-
-if (i_kk.ne.j_kk) then
-
-  beta9(3*(i-1)+1,nk)=temp4
-  beta9(3*(i-1)+2,mk)=temp5
-  beta9(3*(i-1)+3,rk)=temp6
-  beta9(3*(i-1)+1,sk)=temp7
-  beta9(3*(i-1)+2,gk)=temp8
-  beta9(3*(i-1)+3,hk)=temp9
-
-  beta16(3*(i-1)+1,nk)=temp13
-  beta16(3*(i-1)+2,mk)=temp14
-  beta16(3*(i-1)+3,rk)=temp15
-  beta16(3*(i-1)+1,sk)=temp16
-  beta16(3*(i-1)+2,gk)=temp17
-  beta16(3*(i-1)+3,hk)=temp18
-
-  beta17(3*(i-1)+1,nk)=temp22
-  beta17(3*(i-1)+2,mk)=temp23
-  beta17(3*(i-1)+3,rk)=temp24
-  beta17(3*(i-1)+1,sk)=temp25
-  beta17(3*(i-1)+2,gk)=temp26
-  beta17(3*(i-1)+3,hk)=temp27
-
-endif
-
-enddo
-
-!tau17
-beta15=ZERO
-!tau8
-beta20=ZERO
-beta21=ZERO
-beta26=ZERO
-
-do i=1,n
-
-  temp1=ZERO
-  temp2=ZERO
-  temp3=ZERO
-  temp4=ZERO
-  temp5=ZERO
-  temp6=ZERO
-  temp7=ZERO
-  temp8=ZERO
-  temp9=ZERO
-  temp10=ZERO
-  temp11=ZERO
-  temp12=ZERO
-  temp13=ZERO
-  temp14=ZERO
-  temp15=ZERO
-  temp16=ZERO
-  temp17=ZERO
-  temp18=ZERO
-  temp19=ZERO
-  temp20=ZERO
-  temp21=ZERO
-  temp22=ZERO
-  temp23=ZERO
-  temp24=ZERO
-  temp25=ZERO
-  temp26=ZERO
-  temp27=ZERO
-  temp28=ZERO
-  temp29=ZERO
-  temp30=ZERO
-  temp31=ZERO
-  temp32=ZERO
-  temp33=ZERO
-  temp34=ZERO
-  temp35=ZERO
-  temp36=ZERO
-
-  do j=1,n
-    
-if (i_ll.eq.j_ll) then
-
-    temp1=temp1+beta14(3*(i-1)+1,3*(j-1)+1)*beta2(3*(j-1)+1,nl)
-    temp2=temp2+beta14(3*(i-1)+2,3*(j-1)+2)*beta2(3*(j-1)+2,ml)
-    temp3=temp3+beta14(3*(i-1)+3,3*(j-1)+3)*beta2(3*(j-1)+3,rl)
-
-    temp10=temp10+beta19(3*(i-1)+1,3*(j-1)+1)*beta6(3*(j-1)+1,nl)
-    temp11=temp11+beta19(3*(i-1)+2,3*(j-1)+2)*beta6(3*(j-1)+2,ml)
-    temp12=temp12+beta19(3*(i-1)+3,3*(j-1)+3)*beta6(3*(j-1)+3,rl)
-
-    temp19=temp19+beta4I(3*(i-1)+1,3*(j-1)+1)*beta6(3*(j-1)+1,nl)
-    temp20=temp20+beta4I(3*(i-1)+2,3*(j-1)+2)*beta6(3*(j-1)+2,ml)
-    temp21=temp21+beta4I(3*(i-1)+3,3*(j-1)+3)*beta6(3*(j-1)+3,rl)
-
-    temp28=temp28+beta25(3*(i-1)+1,3*(j-1)+1)*beta2(3*(j-1)+1,nl)
-    temp29=temp29+beta25(3*(i-1)+2,3*(j-1)+2)*beta2(3*(j-1)+2,ml)
-    temp30=temp30+beta25(3*(i-1)+3,3*(j-1)+3)*beta2(3*(j-1)+3,rl)
-
-endif
-
-if (i_ll.ne.j_ll) then
-
-    temp4=temp4+beta14(3*(i-1)+1,3*(j-1)+1)*beta2(3*(j-1)+1,nl)
-    temp5=temp5+beta14(3*(i-1)+2,3*(j-1)+2)*beta2(3*(j-1)+2,ml)
-    temp6=temp6+beta14(3*(i-1)+3,3*(j-1)+3)*beta2(3*(j-1)+3,rl)
-    temp7=temp7+beta14(3*(i-1)+1,3*(j-1)+1)*beta2(3*(j-1)+1,sl)
-    temp8=temp8+beta14(3*(i-1)+2,3*(j-1)+2)*beta2(3*(j-1)+2,gl)
-    temp9=temp9+beta14(3*(i-1)+3,3*(j-1)+3)*beta2(3*(j-1)+3,hl)
-
-    temp13=temp13+beta19(3*(i-1)+1,3*(j-1)+1)*beta6(3*(j-1)+1,nl)
-    temp14=temp14+beta19(3*(i-1)+2,3*(j-1)+2)*beta6(3*(j-1)+2,ml)
-    temp15=temp15+beta19(3*(i-1)+3,3*(j-1)+3)*beta6(3*(j-1)+3,rl)
-    temp16=temp16+beta19(3*(i-1)+1,3*(j-1)+1)*beta6(3*(j-1)+1,sl)
-    temp17=temp17+beta19(3*(i-1)+2,3*(j-1)+2)*beta6(3*(j-1)+2,gl)
-    temp18=temp18+beta19(3*(i-1)+3,3*(j-1)+3)*beta6(3*(j-1)+3,hl)
-
-    temp22=temp22+beta4I(3*(i-1)+1,3*(j-1)+1)*beta6(3*(j-1)+1,nl)
-    temp23=temp23+beta4I(3*(i-1)+2,3*(j-1)+2)*beta6(3*(j-1)+2,ml)
-    temp24=temp24+beta4I(3*(i-1)+3,3*(j-1)+3)*beta6(3*(j-1)+3,rl)
-    temp25=temp25+beta4I(3*(i-1)+1,3*(j-1)+1)*beta6(3*(j-1)+1,sl)
-    temp26=temp26+beta4I(3*(i-1)+2,3*(j-1)+2)*beta6(3*(j-1)+2,gl)
-    temp27=temp27+beta4I(3*(i-1)+3,3*(j-1)+3)*beta6(3*(j-1)+3,hl)
-
-    temp31=temp31+beta25(3*(i-1)+1,3*(j-1)+1)*beta2(3*(j-1)+1,nl)
-    temp32=temp32+beta25(3*(i-1)+2,3*(j-1)+2)*beta2(3*(j-1)+2,ml)
-    temp33=temp33+beta25(3*(i-1)+3,3*(j-1)+3)*beta2(3*(j-1)+3,rl)
-    temp34=temp34+beta25(3*(i-1)+1,3*(j-1)+1)*beta2(3*(j-1)+1,sl)
-    temp35=temp35+beta25(3*(i-1)+2,3*(j-1)+2)*beta2(3*(j-1)+2,gl)
-    temp36=temp36+beta25(3*(i-1)+3,3*(j-1)+3)*beta2(3*(j-1)+3,hl)
-
-endif
-
-  enddo
-
-if (i_ll.eq.j_ll) then
-
-  beta15(3*(i-1)+1,nl)=temp1
-  beta15(3*(i-1)+2,ml)=temp2
-  beta15(3*(i-1)+3,rl)=temp3
-
-  beta20(3*(i-1)+1,nl)=temp10
-  beta20(3*(i-1)+2,ml)=temp11
-  beta20(3*(i-1)+3,rl)=temp12
-
-  beta21(3*(i-1)+1,nl)=temp19
-  beta21(3*(i-1)+2,ml)=temp20
-  beta21(3*(i-1)+3,rl)=temp21
-
-  beta26(3*(i-1)+1,nl)=temp28
-  beta26(3*(i-1)+2,ml)=temp29
-  beta26(3*(i-1)+3,rl)=temp30
-
-endif
-
-if (i_ll.ne.j_ll) then
-
-  beta15(3*(i-1)+1,nl)=temp4
-  beta15(3*(i-1)+2,ml)=temp5
-  beta15(3*(i-1)+3,rl)=temp6
-  beta15(3*(i-1)+1,sl)=temp7
-  beta15(3*(i-1)+2,gl)=temp8
-  beta15(3*(i-1)+3,hl)=temp9
-
-  beta20(3*(i-1)+1,nl)=temp13
-  beta20(3*(i-1)+2,ml)=temp14
-  beta20(3*(i-1)+3,rl)=temp15
-  beta20(3*(i-1)+1,sl)=temp16
-  beta20(3*(i-1)+2,gl)=temp17
-  beta20(3*(i-1)+3,hl)=temp18
-
-  beta21(3*(i-1)+1,nl)=temp22
-  beta21(3*(i-1)+2,ml)=temp23
-  beta21(3*(i-1)+3,rl)=temp24
-  beta21(3*(i-1)+1,sl)=temp25
-  beta21(3*(i-1)+2,gl)=temp26
-  beta21(3*(i-1)+3,hl)=temp27
-
-  beta26(3*(i-1)+1,nl)=temp31
-  beta26(3*(i-1)+2,ml)=temp32
-  beta26(3*(i-1)+3,rl)=temp33
-  beta26(3*(i-1)+1,sl)=temp34
-  beta26(3*(i-1)+2,gl)=temp35
-  beta26(3*(i-1)+3,hl)=temp36
-
-endif
-
-enddo
-
-!tau8
-beta22=ZERO
-beta23=ZERO
-!tau10
-beta27=ZERO
-
-do i=1,n
-
-  if (i_kk.eq.j_kk.and.i_ll.eq.j_ll) then
-
-    beta22(3*(i-1)+1,nk)=beta21(3*(i-1)+1,nl)*beta1(nl,nk)
-    beta22(3*(i-1)+2,mk)=beta21(3*(i-1)+2,ml)*beta1(ml,mk)
-    beta22(3*(i-1)+3,rk)=beta21(3*(i-1)+3,rl)*beta1(rl,rk)
-
-    beta23(3*(i-1)+1,nk)=beta6(3*(i-1)+1,nl)*beta1(nl,nk)
-    beta23(3*(i-1)+2,mk)=beta6(3*(i-1)+2,ml)*beta1(ml,mk)
-    beta23(3*(i-1)+3,rk)=beta6(3*(i-1)+3,rl)*beta1(rl,rk)
-
-    beta27(3*(i-1)+1,nl)=beta1(3*(i-1)+1,nk)*beta6(nk,nl)
-    beta27(3*(i-1)+2,ml)=beta1(3*(i-1)+2,mk)*beta6(mk,ml)
-    beta27(3*(i-1)+3,rl)=beta1(3*(i-1)+3,rk)*beta6(rk,rl)
-
-  endif
-
-  if (i_kk.ne.j_kk.and.i_ll.ne.j_ll) then
-
-    beta22(3*(i-1)+1,nk)=beta21(3*(i-1)+1,nl)*beta1(nl,nk)&
-                        +beta21(3*(i-1)+1,sl)*beta1(sl,nk)
-    beta22(3*(i-1)+2,mk)=beta21(3*(i-1)+2,ml)*beta1(ml,mk)&
-                        +beta21(3*(i-1)+2,gl)*beta1(gl,mk)
-    beta22(3*(i-1)+3,rk)=beta21(3*(i-1)+3,rl)*beta1(rl,rk)&
-                        +beta21(3*(i-1)+3,hl)*beta1(hl,rk)
-    beta22(3*(i-1)+1,sk)=beta21(3*(i-1)+1,nl)*beta1(nl,sk)&
-                        +beta21(3*(i-1)+1,sl)*beta1(sl,sk)
-    beta22(3*(i-1)+2,gk)=beta21(3*(i-1)+2,ml)*beta1(ml,gk)&
-                        +beta21(3*(i-1)+2,gl)*beta1(gl,gk)
-    beta22(3*(i-1)+3,hk)=beta21(3*(i-1)+3,rl)*beta1(rl,hk)&
-                        +beta21(3*(i-1)+3,hl)*beta1(hl,hk)
-
-    beta23(3*(i-1)+1,nk)=beta6(3*(i-1)+1,nl)*beta1(nl,nk)&
-                        +beta6(3*(i-1)+1,sl)*beta1(sl,nk)
-    beta23(3*(i-1)+2,mk)=beta6(3*(i-1)+2,ml)*beta1(ml,mk)&
-                        +beta6(3*(i-1)+2,gl)*beta1(gl,mk)
-    beta23(3*(i-1)+3,rk)=beta6(3*(i-1)+3,rl)*beta1(rl,rk)&
-                        +beta6(3*(i-1)+3,hl)*beta1(hl,rk)
-    beta23(3*(i-1)+1,sk)=beta6(3*(i-1)+1,nl)*beta1(nl,sk)&
-                        +beta6(3*(i-1)+1,sl)*beta1(sl,sk)
-    beta23(3*(i-1)+2,gk)=beta6(3*(i-1)+2,ml)*beta1(ml,gk)&
-                        +beta6(3*(i-1)+2,gl)*beta1(gl,gk)
-    beta23(3*(i-1)+3,hk)=beta6(3*(i-1)+3,rl)*beta1(rl,hk)&
-                        +beta6(3*(i-1)+3,hl)*beta1(hl,hk)
-
-    beta27(3*(i-1)+1,nl)=beta1(3*(i-1)+1,nk)*beta6(nk,nl)&
-                        +beta1(3*(i-1)+1,sk)*beta6(sk,nl)
-    beta27(3*(i-1)+2,ml)=beta1(3*(i-1)+2,mk)*beta6(mk,ml)&
-                        +beta1(3*(i-1)+2,gk)*beta6(gk,ml)
-    beta27(3*(i-1)+3,rl)=beta1(3*(i-1)+3,rk)*beta6(rk,rl)&
-                        +beta1(3*(i-1)+3,hk)*beta6(hk,rl)
-    beta27(3*(i-1)+1,sl)=beta1(3*(i-1)+1,nk)*beta6(nk,sl)&
-                        +beta1(3*(i-1)+1,sk)*beta6(sk,sl)
-    beta27(3*(i-1)+2,gl)=beta1(3*(i-1)+2,mk)*beta6(mk,gl)&
-                        +beta1(3*(i-1)+2,gk)*beta6(gk,gl)
-    beta27(3*(i-1)+3,hl)=beta1(3*(i-1)+3,rk)*beta6(rk,hl)&
-                        +beta1(3*(i-1)+3,hk)*beta6(hk,hl)
-
-  endif
-
-  if (i_kk.eq.j_kk.and.i_ll.ne.j_ll) then
-
-    beta22(3*(i-1)+1,nk)=beta21(3*(i-1)+1,nl)*beta1(nl,nk)&
-                        +beta21(3*(i-1)+1,sl)*beta1(sl,nk)
-    beta22(3*(i-1)+2,mk)=beta21(3*(i-1)+2,ml)*beta1(ml,mk)&
-                        +beta21(3*(i-1)+2,gl)*beta1(gl,mk)
-    beta22(3*(i-1)+3,rk)=beta21(3*(i-1)+3,rl)*beta1(rl,rk)&
-                        +beta21(3*(i-1)+3,hl)*beta1(hl,rk)
-
-    beta23(3*(i-1)+1,nk)=beta6(3*(i-1)+1,nl)*beta1(nl,nk)&
-                        +beta6(3*(i-1)+1,sl)*beta1(sl,nk)
-    beta23(3*(i-1)+2,mk)=beta6(3*(i-1)+2,ml)*beta1(ml,mk)&
-                        +beta6(3*(i-1)+2,gl)*beta1(gl,mk)
-    beta23(3*(i-1)+3,rk)=beta6(3*(i-1)+3,rl)*beta1(rl,rk)&
-                        +beta6(3*(i-1)+3,hl)*beta1(hl,rk)
-
-    beta27(3*(i-1)+1,nl)=beta1(3*(i-1)+1,nk)*beta6(nk,nl)
-    beta27(3*(i-1)+2,ml)=beta1(3*(i-1)+2,mk)*beta6(mk,ml)
-    beta27(3*(i-1)+3,rl)=beta1(3*(i-1)+3,rk)*beta6(rk,rl)
-    beta27(3*(i-1)+1,sl)=beta1(3*(i-1)+1,nk)*beta6(nk,sl)
-    beta27(3*(i-1)+2,gl)=beta1(3*(i-1)+2,mk)*beta6(mk,gl)
-    beta27(3*(i-1)+3,hl)=beta1(3*(i-1)+3,rk)*beta6(rk,hl)
-
-  endif
-
-  if (i_kk.ne.j_kk.and.i_ll.eq.j_ll) then
-
-    beta22(3*(i-1)+1,nk)=beta21(3*(i-1)+1,nl)*beta1(nl,nk)
-    beta22(3*(i-1)+2,mk)=beta21(3*(i-1)+2,ml)*beta1(ml,mk)
-    beta22(3*(i-1)+3,rk)=beta21(3*(i-1)+3,rl)*beta1(rl,rk)
-    beta22(3*(i-1)+1,sk)=beta21(3*(i-1)+1,nl)*beta1(nl,sk)
-    beta22(3*(i-1)+2,gk)=beta21(3*(i-1)+2,ml)*beta1(ml,gk)
-    beta22(3*(i-1)+3,hk)=beta21(3*(i-1)+3,rl)*beta1(rl,hk)
-
-    beta23(3*(i-1)+1,nk)=beta6(3*(i-1)+1,nl)*beta1(nl,nk)
-    beta23(3*(i-1)+2,mk)=beta6(3*(i-1)+2,ml)*beta1(ml,mk)
-    beta23(3*(i-1)+3,rk)=beta6(3*(i-1)+3,rl)*beta1(rl,rk)
-    beta23(3*(i-1)+1,sk)=beta6(3*(i-1)+1,nl)*beta1(nl,sk)
-    beta23(3*(i-1)+2,gk)=beta6(3*(i-1)+2,ml)*beta1(ml,gk)
-    beta23(3*(i-1)+3,hk)=beta6(3*(i-1)+3,rl)*beta1(rl,hk)
-
-    beta27(3*(i-1)+1,nl)=beta1(3*(i-1)+1,nk)*beta6(nk,nl)&
-                        +beta1(3*(i-1)+1,sk)*beta6(sk,nl)
-    beta27(3*(i-1)+2,ml)=beta1(3*(i-1)+2,mk)*beta6(mk,ml)&
-                        +beta1(3*(i-1)+2,gk)*beta6(gk,ml)
-    beta27(3*(i-1)+3,rl)=beta1(3*(i-1)+3,rk)*beta6(rk,rl)&
-                        +beta1(3*(i-1)+3,hk)*beta6(hk,rl)
-
-  endif
-enddo
-
-!**************************
-!
-! FINDING TRACE OF MATRICES
-!
-!**************************
-
-!tau1=tr[X1]
-
-tau1=ZERO
-
-do i=1,n
-
-  tau1=tau1+X1(i,i)
-
-enddo
-
-tau6=ZERO
-tau7=ZERO
-tau8=ZERO
-tau9=ZERO
-tau10=ZERO
-
-do i=1,3*n
-
-  tau6=tau6+beta7(i,i)
-  tau7=tau7+beta13(i,i)
-  tau8=tau8+beta20(i,i)
-  tau9=tau9+beta24(i,i)
-  tau10=tau10+beta27(i,i)
-
-enddo
-
-!write(*,*)'tau1,tau6,tau7,tau8,tau9,tau10',tau6,tau7,tau8,tau9,tau10
-
-!************************
-!
-! Kinetic Energy Gradient
-!
-!************************
-
-if (grad_k.or.grad_l) then
-
-alpha1=ZERO
-alpha2=ZERO
-mu2=ZERO
-dtau6=ZERO
-dtau66=ZERO
-dtau666=ZERO
-dtau6666=ZERO
-dtau6666M=ZERO
-dtau7=ZERO
-dtau77=ZERO
-dtau777=ZERO
-dtau7777=ZERO
-dtau7777M=ZERO
-dtau8=ZERO
-dtau88=ZERO
-dtau888=ZERO
-dtau9=ZERO
-dtau99=ZERO
-dtau999=ZERO
-dtau10=ZERO
-
-do i=1,n
-  do j=1,n
-
-     temp1=ZERO
-     temp2=ZERO
-     temp3=ZERO
-     temp4=ZERO
-     temp5=ZERO
-     temp6=ZERO
-     temp7=ZERO
-     temp8=ZERO
-     temp9=ZERO
-     temp10=ZERO
-     temp11=ZERO
-     temp12=ZERO
-     temp13=ZERO
-     temp14=ZERO
-     temp15=ZERO
-     temp16=ZERO
-     temp17=ZERO
-     temp18=ZERO
-
-     do k=1,n
-    
-       temp16=temp16+X1(i,k)*inv_tAkl(k,j)
-       temp17=temp17+beta5(i,k)*inv_tAkl(k,j)
-       temp18=temp18+beta4(i,k)*Glob_MassMatrix(k,j)
-
-       temp1=temp1+beta7(3*(i-1)+1,3*(k-1)+1)*inv_tAklI(3*(k-1)+1,3*(j-1)+1)
-       temp2=temp2+beta7(3*(i-1)+2,3*(k-1)+2)*inv_tAklI(3*(k-1)+2,3*(j-1)+2)
-       temp3=temp3+beta7(3*(i-1)+3,3*(k-1)+3)*inv_tAklI(3*(k-1)+3,3*(j-1)+3)
-
-       temp4=temp4+beta12(3*(i-1)+1,3*(k-1)+1)*MI(3*(k-1)+1,3*(j-1)+1)
-       temp5=temp5+beta12(3*(i-1)+2,3*(k-1)+2)*MI(3*(k-1)+2,3*(j-1)+2)
-       temp6=temp6+beta12(3*(i-1)+3,3*(k-1)+3)*MI(3*(k-1)+3,3*(j-1)+3)
-
-       temp7=temp7+beta13(3*(i-1)+1,3*(k-1)+1)*inv_tAklI(3*(k-1)+1,3*(j-1)+1)
-       temp8=temp8+beta13(3*(i-1)+2,3*(k-1)+2)*inv_tAklI(3*(k-1)+2,3*(j-1)+2)
-       temp9=temp9+beta13(3*(i-1)+3,3*(k-1)+3)*inv_tAklI(3*(k-1)+3,3*(j-1)+3)
-
-       temp10=temp10+beta18(3*(i-1)+1,3*(k-1)+1)*MI(3*(k-1)+1,3*(j-1)+1)
-       temp11=temp11+beta18(3*(i-1)+2,3*(k-1)+2)*MI(3*(k-1)+2,3*(j-1)+2)
-       temp12=temp12+beta18(3*(i-1)+3,3*(k-1)+3)*MI(3*(k-1)+3,3*(j-1)+3)
-
-       temp13=temp13+beta24(3*(i-1)+1,3*(k-1)+1)*inv_tAklI(3*(k-1)+1,3*(j-1)+1)
-       temp14=temp14+beta24(3*(i-1)+2,3*(k-1)+2)*inv_tAklI(3*(k-1)+2,3*(j-1)+2)
-       temp15=temp15+beta24(3*(i-1)+3,3*(k-1)+3)*inv_tAklI(3*(k-1)+3,3*(j-1)+3)
-
-     enddo 
-
-     alpha1(i,j)=temp16
-     alpha2(i,j)=temp17
-     mu2(i,j)=temp18
-
-     dtau6(3*(i-1)+1,3*(j-1)+1)=temp1
-     dtau6(3*(i-1)+2,3*(j-1)+2)=temp2
-     dtau6(3*(i-1)+3,3*(j-1)+3)=temp3
-
-     dtau6666M(3*(i-1)+1,3*(j-1)+1)=temp4
-     dtau6666M(3*(i-1)+2,3*(j-1)+2)=temp5
-     dtau6666M(3*(i-1)+3,3*(j-1)+3)=temp6
-
-     dtau7(3*(i-1)+1,3*(j-1)+1)=temp7
-     dtau7(3*(i-1)+2,3*(j-1)+2)=temp8
-     dtau7(3*(i-1)+3,3*(j-1)+3)=temp9
-
-     dtau7777M(3*(i-1)+1,3*(j-1)+1)=temp10
-     dtau7777M(3*(i-1)+2,3*(j-1)+2)=temp11
-     dtau7777M(3*(i-1)+3,3*(j-1)+3)=temp12
-
-     dtau9(3*(i-1)+1,3*(j-1)+1)=temp13
-     dtau9(3*(i-1)+2,3*(j-1)+2)=temp14
-     dtau9(3*(i-1)+3,3*(j-1)+3)=temp15
-
-if (i_kk.ne.j_kk) then
-
-     dtau66(3*(i-1)+1,3*(j-1)+1)=beta9(3*(i-1)+1,nk)*inv_tAklI(nk,3*(j-1)+1)&
-                                +beta9(3*(i-1)+1,sk)*inv_tAklI(sk,3*(j-1)+1)
-     dtau66(3*(i-1)+2,3*(j-1)+2)=beta9(3*(i-1)+2,mk)*inv_tAklI(mk,3*(j-1)+2)&
-                                +beta9(3*(i-1)+2,gk)*inv_tAklI(gk,3*(j-1)+2)
-     dtau66(3*(i-1)+3,3*(j-1)+3)=beta9(3*(i-1)+3,rk)*inv_tAklI(rk,3*(j-1)+3)&
-                                +beta9(3*(i-1)+3,hk)*inv_tAKlI(hk,3*(j-1)+3)
-
-     dtau777(3*(i-1)+1,3*(j-1)+1)=beta16(3*(i-1)+1,nk)*inv_tAklI(nk,3*(j-1)+1)&
-                                 +beta16(3*(i-1)+1,sk)*inv_tAklI(sk,3*(j-1)+1)
-     dtau777(3*(i-1)+2,3*(j-1)+2)=beta16(3*(i-1)+2,mk)*inv_tAklI(mk,3*(j-1)+2)&
-                                 +beta16(3*(i-1)+2,gk)*inv_tAklI(gk,3*(j-1)+2)
-     dtau777(3*(i-1)+3,3*(j-1)+3)=beta16(3*(i-1)+3,rk)*inv_tAklI(rk,3*(j-1)+3)&
-                                 +beta16(3*(i-1)+3,hk)*inv_tAKlI(hk,3*(j-1)+3)
-
-     dtau7777(3*(i-1)+1,3*(j-1)+1)=beta17(3*(i-1)+1,nk)*inv_tAklI(nk,3*(j-1)+1)&
-                                  +beta17(3*(i-1)+1,sk)*inv_tAklI(sk,3*(j-1)+1)
-     dtau7777(3*(i-1)+2,3*(j-1)+2)=beta17(3*(i-1)+2,mk)*inv_tAklI(mk,3*(j-1)+2)&
-                                  +beta17(3*(i-1)+2,gk)*inv_tAklI(gk,3*(j-1)+2)
-     dtau7777(3*(i-1)+3,3*(j-1)+3)=beta17(3*(i-1)+3,rk)*inv_tAklI(rk,3*(j-1)+3)&
-                                  +beta17(3*(i-1)+3,hk)*inv_tAKlI(hk,3*(j-1)+3)
-
-     dtau88(3*(i-1)+1,3*(j-1)+1)=beta22(3*(i-1)+1,nk)*inv_tAklI(nk,3*(j-1)+1)&
-                                +beta22(3*(i-1)+1,sk)*inv_tAklI(sk,3*(j-1)+1)
-     dtau88(3*(i-1)+2,3*(j-1)+2)=beta22(3*(i-1)+2,mk)*inv_tAklI(mk,3*(j-1)+2)&
-                                +beta22(3*(i-1)+2,gk)*inv_tAklI(gk,3*(j-1)+2)
-     dtau88(3*(i-1)+3,3*(j-1)+3)=beta22(3*(i-1)+3,rk)*inv_tAklI(rk,3*(j-1)+3)&
-                                +beta22(3*(i-1)+3,hk)*inv_tAKlI(hk,3*(j-1)+3)
-
-     dtau888(3*(i-1)+1,3*(j-1)+1)=beta23(3*(i-1)+1,nk)*inv_tAklI(nk,3*(j-1)+1)&
-                                 +beta23(3*(i-1)+1,sk)*inv_tAklI(sk,3*(j-1)+1)
-     dtau888(3*(i-1)+2,3*(j-1)+2)=beta23(3*(i-1)+2,mk)*inv_tAklI(mk,3*(j-1)+2)&
-                                 +beta23(3*(i-1)+2,gk)*inv_tAklI(gk,3*(j-1)+2)
-     dtau888(3*(i-1)+3,3*(j-1)+3)=beta23(3*(i-1)+3,rk)*inv_tAklI(rk,3*(j-1)+3)&
-                                 +beta23(3*(i-1)+3,hk)*inv_tAKlI(hk,3*(j-1)+3)
-
-     dtau999(3*(i-1)+1,3*(j-1)+1)=beta33(3*(i-1)+1,nk)*MI(nk,3*(j-1)+1)&
-                                 +beta33(3*(i-1)+1,sk)*MI(sk,3*(j-1)+1)
-     dtau999(3*(i-1)+2,3*(j-1)+2)=beta33(3*(i-1)+2,mk)*MI(mk,3*(j-1)+2)&
-                                 +beta33(3*(i-1)+2,gk)*MI(gk,3*(j-1)+2)
-     dtau999(3*(i-1)+3,3*(j-1)+3)=beta33(3*(i-1)+3,rk)*MI(rk,3*(j-1)+3)&
-                                 +beta33(3*(i-1)+3,hk)*MI(hk,3*(j-1)+3)
-
-endif
-
-if (i_kk.eq.j_kk) then
-
-     dtau66(3*(i-1)+1,3*(j-1)+1)=beta9(3*(i-1)+1,nk)*inv_tAklI(nk,3*(j-1)+1)
-     dtau66(3*(i-1)+2,3*(j-1)+2)=beta9(3*(i-1)+2,mk)*inv_tAklI(mk,3*(j-1)+2)
-     dtau66(3*(i-1)+3,3*(j-1)+3)=beta9(3*(i-1)+3,rk)*inv_tAklI(rk,3*(j-1)+3)
-
-     dtau777(3*(i-1)+1,3*(j-1)+1)=beta16(3*(i-1)+1,nk)*inv_tAklI(nk,3*(j-1)+1)
-     dtau777(3*(i-1)+2,3*(j-1)+2)=beta16(3*(i-1)+2,mk)*inv_tAklI(mk,3*(j-1)+2)
-     dtau777(3*(i-1)+3,3*(j-1)+3)=beta16(3*(i-1)+3,rk)*inv_tAklI(rk,3*(j-1)+3)
-
-     dtau7777(3*(i-1)+1,3*(j-1)+1)=beta17(3*(i-1)+1,nk)*inv_tAklI(nk,3*(j-1)+1)
-     dtau7777(3*(i-1)+2,3*(j-1)+2)=beta17(3*(i-1)+2,mk)*inv_tAklI(mk,3*(j-1)+2)
-     dtau7777(3*(i-1)+3,3*(j-1)+3)=beta17(3*(i-1)+3,rk)*inv_tAklI(rk,3*(j-1)+3)
-
-     dtau88(3*(i-1)+1,3*(j-1)+1)=beta22(3*(i-1)+1,nk)*inv_tAklI(nk,3*(j-1)+1)
-     dtau88(3*(i-1)+2,3*(j-1)+2)=beta22(3*(i-1)+2,mk)*inv_tAklI(mk,3*(j-1)+2)
-     dtau88(3*(i-1)+3,3*(j-1)+3)=beta22(3*(i-1)+3,rk)*inv_tAklI(rk,3*(j-1)+3)
-
-     dtau888(3*(i-1)+1,3*(j-1)+1)=beta23(3*(i-1)+1,nk)*inv_tAklI(nk,3*(j-1)+1)
-     dtau888(3*(i-1)+2,3*(j-1)+2)=beta23(3*(i-1)+2,mk)*inv_tAklI(mk,3*(j-1)+2)
-     dtau888(3*(i-1)+3,3*(j-1)+3)=beta23(3*(i-1)+3,rk)*inv_tAklI(rk,3*(j-1)+3)
-
-     dtau999(3*(i-1)+1,3*(j-1)+1)=beta33(3*(i-1)+1,nk)*MI(nk,3*(j-1)+1)
-     dtau999(3*(i-1)+2,3*(j-1)+2)=beta33(3*(i-1)+2,mk)*MI(mk,3*(j-1)+2)
-     dtau999(3*(i-1)+3,3*(j-1)+3)=beta33(3*(i-1)+3,rk)*MI(rk,3*(j-1)+3)
-
-endif
-
-if (i_ll.ne.j_ll) then
-
-     dtau666(3*(i-1)+1,3*(j-1)+1)=beta10(3*(i-1)+1,nl)*inv_tAklI(nl,3*(j-1)+1)&
-                                 +beta10(3*(i-1)+1,sl)*inv_tAklI(sl,3*(j-1)+1)
-     dtau666(3*(i-1)+2,3*(j-1)+2)=beta10(3*(i-1)+2,ml)*inv_tAklI(ml,3*(j-1)+2)&
-                                 +beta10(3*(i-1)+2,gl)*inv_tAklI(gl,3*(j-1)+2)
-     dtau666(3*(i-1)+3,3*(j-1)+3)=beta10(3*(i-1)+3,rl)*inv_tAklI(rl,3*(j-1)+3)&
-                                 +beta10(3*(i-1)+3,hl)*inv_tAKlI(hl,3*(j-1)+3)
-
-     dtau6666(3*(i-1)+1,3*(j-1)+1)=beta11(3*(i-1)+1,nl)*inv_tAklI(nl,3*(j-1)+1)&
-                                  +beta11(3*(i-1)+1,sl)*inv_tAklI(sl,3*(j-1)+1)
-     dtau6666(3*(i-1)+2,3*(j-1)+2)=beta11(3*(i-1)+2,ml)*inv_tAklI(ml,3*(j-1)+2)&
-                                  +beta11(3*(i-1)+2,gl)*inv_tAklI(gl,3*(j-1)+2)
-     dtau6666(3*(i-1)+3,3*(j-1)+3)=beta11(3*(i-1)+3,rl)*inv_tAklI(rl,3*(j-1)+3)&
-                                  +beta11(3*(i-1)+3,hl)*inv_tAKlI(hl,3*(j-1)+3)
-
-     dtau77(3*(i-1)+1,3*(j-1)+1)=beta15(3*(i-1)+1,nl)*inv_tAklI(nl,3*(j-1)+1)&
-                                +beta15(3*(i-1)+1,sl)*inv_tAklI(sl,3*(j-1)+1)
-     dtau77(3*(i-1)+2,3*(j-1)+2)=beta15(3*(i-1)+2,ml)*inv_tAklI(ml,3*(j-1)+2)&
-                                +beta15(3*(i-1)+2,gl)*inv_tAklI(gl,3*(j-1)+2)
-     dtau77(3*(i-1)+3,3*(j-1)+3)=beta15(3*(i-1)+3,rl)*inv_tAklI(rl,3*(j-1)+3)&
-                                +beta15(3*(i-1)+3,hl)*inv_tAKlI(hl,3*(j-1)+3)
-
-     dtau8(3*(i-1)+1,3*(j-1)+1)=beta20(3*(i-1)+1,nl)*inv_tAklI(nl,3*(j-1)+1)&
-                               +beta20(3*(i-1)+1,sl)*inv_tAklI(sl,3*(j-1)+1)
-     dtau8(3*(i-1)+2,3*(j-1)+2)=beta20(3*(i-1)+2,ml)*inv_tAklI(ml,3*(j-1)+2)&
-                               +beta20(3*(i-1)+2,gl)*inv_tAklI(gl,3*(j-1)+2)
-     dtau8(3*(i-1)+3,3*(j-1)+3)=beta20(3*(i-1)+3,rl)*inv_tAklI(rl,3*(j-1)+3)&
-                               +beta20(3*(i-1)+3,hl)*inv_tAKlI(hl,3*(j-1)+3)
-
-     dtau99(3*(i-1)+1,3*(j-1)+1)=beta26(3*(i-1)+1,nl)*inv_tAklI(nl,3*(j-1)+1)&
-                                +beta26(3*(i-1)+1,sl)*inv_tAklI(sl,3*(j-1)+1)
-     dtau99(3*(i-1)+2,3*(j-1)+2)=beta26(3*(i-1)+2,ml)*inv_tAklI(ml,3*(j-1)+2)&
-                                +beta26(3*(i-1)+2,gl)*inv_tAklI(gl,3*(j-1)+2)
-     dtau99(3*(i-1)+3,3*(j-1)+3)=beta26(3*(i-1)+3,rl)*inv_tAklI(rl,3*(j-1)+3)&
-                                +beta26(3*(i-1)+3,hl)*inv_tAKlI(hl,3*(j-1)+3)
-
-     dtau10(3*(i-1)+1,3*(j-1)+1)=beta27(3*(i-1)+1,nl)*inv_tAklI(nl,3*(j-1)+1)&
-                                +beta27(3*(i-1)+1,sl)*inv_tAklI(sl,3*(j-1)+1)
-     dtau10(3*(i-1)+2,3*(j-1)+2)=beta27(3*(i-1)+2,ml)*inv_tAklI(ml,3*(j-1)+2)&
-                                +beta27(3*(i-1)+2,gl)*inv_tAklI(gl,3*(j-1)+2)
-     dtau10(3*(i-1)+3,3*(j-1)+3)=beta27(3*(i-1)+3,rl)*inv_tAklI(rl,3*(j-1)+3)&
-                                +beta27(3*(i-1)+3,hl)*inv_tAKlI(hl,3*(j-1)+3)
-
-endif
-
-if (i_ll.eq.j_ll) then
-
-     dtau666(3*(i-1)+1,3*(j-1)+1)=beta10(3*(i-1)+1,nl)*inv_tAklI(nl,3*(j-1)+1)
-     dtau666(3*(i-1)+2,3*(j-1)+2)=beta10(3*(i-1)+2,ml)*inv_tAklI(ml,3*(j-1)+2)
-     dtau666(3*(i-1)+3,3*(j-1)+3)=beta10(3*(i-1)+3,rl)*inv_tAklI(rl,3*(j-1)+3)
-
-     dtau6666(3*(i-1)+1,3*(j-1)+1)=beta11(3*(i-1)+1,nl)*inv_tAklI(nl,3*(j-1)+1)
-     dtau6666(3*(i-1)+2,3*(j-1)+2)=beta11(3*(i-1)+2,ml)*inv_tAklI(ml,3*(j-1)+2)
-     dtau6666(3*(i-1)+3,3*(j-1)+3)=beta11(3*(i-1)+3,rl)*inv_tAklI(rl,3*(j-1)+3)
-
-     dtau77(3*(i-1)+1,3*(j-1)+1)=beta15(3*(i-1)+1,nl)*inv_tAklI(nl,3*(j-1)+1)
-     dtau77(3*(i-1)+2,3*(j-1)+2)=beta15(3*(i-1)+2,ml)*inv_tAklI(ml,3*(j-1)+2)
-     dtau77(3*(i-1)+3,3*(j-1)+3)=beta15(3*(i-1)+3,rl)*inv_tAklI(rl,3*(j-1)+3)
-
-     dtau8(3*(i-1)+1,3*(j-1)+1)=beta20(3*(i-1)+1,nl)*inv_tAklI(nl,3*(j-1)+1)
-     dtau8(3*(i-1)+2,3*(j-1)+2)=beta20(3*(i-1)+2,ml)*inv_tAklI(ml,3*(j-1)+2)
-     dtau8(3*(i-1)+3,3*(j-1)+3)=beta20(3*(i-1)+3,rl)*inv_tAklI(rl,3*(j-1)+3)
-
-     dtau99(3*(i-1)+1,3*(j-1)+1)=beta26(3*(i-1)+1,nl)*inv_tAklI(nl,3*(j-1)+1)
-     dtau99(3*(i-1)+2,3*(j-1)+2)=beta26(3*(i-1)+2,ml)*inv_tAklI(ml,3*(j-1)+2)
-     dtau99(3*(i-1)+3,3*(j-1)+3)=beta26(3*(i-1)+3,rl)*inv_tAklI(rl,3*(j-1)+3)
-
-     dtau10(3*(i-1)+1,3*(j-1)+1)=beta27(3*(i-1)+1,nl)*inv_tAklI(nl,3*(j-1)+1)
-     dtau10(3*(i-1)+2,3*(j-1)+2)=beta27(3*(i-1)+2,ml)*inv_tAklI(ml,3*(j-1)+2)
-     dtau10(3*(i-1)+3,3*(j-1)+3)=beta27(3*(i-1)+3,rl)*inv_tAklI(rl,3*(j-1)+3)
-
-endif
-
-  enddo
-enddo
-
-endif
-
-if (grad_k) then
-
- !resultX1k=alpha1*Lk
- !result4k=alpha2*Lk
-
-
-  resultX1k=ZERO
-  indx=ZERO
-
-  do j=1,n
-    do i=j,n
-      indx=indx+1
-
-      temp1=ZERO
-      temp2=ZERO
-
-      do k=1,n
-
-        temp1=temp1+(alpha1(i,k)+alpha1(k,i))*Lk(k,j)
-        temp2=temp2+(alpha2(i,k)+alpha2(k,i))*Lk(k,j)
-
-      enddo
-
-      resultX1k(indx)=-temp1+temp2
-
-    enddo
-  enddo
-
-  dtau6k=ZERO
-  dtau7k=ZERO
-  dtau8k=ZERO
-  dtau9k=ZERO
-  dtau10k=ZERO
-
-  indx=ZERO
-
-  do j=1,3*n
-    do i=j,3*n
-
-      temp1=ZERO
-      temp2=ZERO
-      temp3=ZERO
-      temp4=ZERO
-      temp5=ZERO
-      temp6=ZERO
-      temp7=ZERO
-      temp8=ZERO
-      temp9=ZERO
-      temp10=ZERO
-      temp11=ZERO
-      temp12=ZERO
-      temp13=ZERO
-      temp14=ZERO
-
-      do k=1,3*n
-          
-        temp1=temp1+(dtau6(i,k)+dtau6(k,i))*LkI(k,j)
-        temp2=temp2+(dtau66(i,k)+dtau66(k,i))*LkI(k,j)
-        temp3=temp3+(dtau666(i,k)+dtau666(k,i))*LkI(k,j)
-        temp4=temp4+(dtau6666(i,k)+dtau6666(k,i))*LkI(k,j)
-
-        temp5=temp5+(dtau7(i,k)+dtau7(k,i))*LkI(k,j)
-        temp6=temp6+(dtau77(i,k)+dtau77(k,i))*LkI(k,j)
-        temp7=temp7+(dtau777(i,k)+dtau777(k,i))*LkI(k,j)
-        temp8=temp8+(dtau7777(i,k)+dtau7777(k,i))*LkI(k,j)
-
-        temp9=temp9+(dtau8(i,k)+dtau8(k,i))*LkI(k,j)
-        temp10=temp10+(dtau88(i,k)+dtau88(k,i))*LkI(k,j)
-        temp11=temp11+(dtau888(i,k)+dtau888(k,i))*LkI(k,j)
-
-        temp12=temp12+(dtau9(i,k)+dtau9(k,i))*LkI(k,j)
-        temp13=temp13+(dtau99(i,k)+dtau99(k,i))*LkI(k,j)
-
-        temp14=temp14+(dtau10(i,k)+dtau10(k,i))*LkI(k,j)
-
-      enddo
-      indx=indx+1
-
-      dtau6k(indx)=-temp1-temp2-temp3+temp4
-      dtau7k(indx)=-temp5-temp6-temp7+temp8
-      dtau8k(indx)=-temp9-temp10+temp11
-      dtau9k(indx)=-temp12-temp13
-      dtau10k(indx)=-temp14
-
-    enddo
-  enddo
-endif
-
-if (grad_l) then
-
-  Z3=ZERO
-  Z4=ZERO
-  Z5=ZERO
-  Z6=ZERO
-  Z7=ZERO
-  Z8=ZERO
-  Z9=ZERO
-  Z10=ZERO
-  Z11=ZERO
-  Z12=ZERO
-  Z13=ZERO
-  Z14=ZERO
-  Z15=ZERO
-  Z16=ZERO
-
-  do i=1,3*n      
-    do j=1,3*n    
-     
-      temp1=ZERO
-      temp2=ZERO
-      temp3=ZERO
-      temp4=ZERO
-      temp5=ZERO
-      temp6=ZERO
-      temp7=ZERO
-      temp8=ZERO
-      temp9=ZERO
-      temp10=ZERO
-      temp11=ZERO
-      temp12=ZERO
-      temp13=ZERO
-      temp14=ZERO
-
-      do k=1,3*n  
-       
-        temp1=temp1+pP(i,k)*dtau6(k,j)
-        temp2=temp2+pP(i,k)*dtau66(k,j)
-        temp3=temp3+pP(i,k)*dtau666(k,j)
-        temp4=temp4+pP(i,k)*dtau6666M(k,j)
-        temp5=temp5+pP(i,k)*dtau7(k,j)
-        temp6=temp6+pP(i,k)*dtau77(k,j)
-        temp7=temp7+pP(i,k)*dtau777(k,j)
-        temp8=temp8+pP(i,k)*dtau7777M(k,j)
-        temp9=temp9+pP(i,k)*dtau8(k,j)
-        temp10=temp10+pP(i,k)*dtau88(k,j)
-        temp11=temp11+pP(i,k)*dtau9(k,j)
-        temp12=temp12+pP(i,k)*dtau99(k,j)
-        temp13=temp13+pP(i,k)*dtau999(k,j)
-        temp14=temp14+pP(i,k)*dtau10(k,j)
-
-      enddo  
-
-      Z3(i,j)=temp1
-      Z4(i,j)=temp2
-      Z5(i,j)=temp3
-      Z6(i,j)=temp4
-      Z7(i,j)=temp5
-      Z8(i,j)=temp6
-      Z9(i,j)=temp7
-      Z10(i,j)=temp8
-      Z11(i,j)=temp9
-      Z12(i,j)=temp10
-      Z13(i,j)=temp11
-      Z14(i,j)=temp12
-      Z15(i,j)=temp13
-      Z16(i,j)=temp14
-
-   enddo         
-  enddo           
-  do i=1,3*n      
-    do j=1,3*n    
-
-      temp1=ZERO
-      temp2=ZERO
-      temp3=ZERO
-      temp4=ZERO
-      temp5=ZERO
-      temp6=ZERO
-      temp7=ZERO
-      temp8=ZERO
-      temp9=ZERO
-      temp10=ZERO
-      temp11=ZERO
-      temp12=ZERO
-      temp13=ZERO
-      temp14=ZERO
-
-      do k=1,3*n  
-  
-        temp1=temp1+Z3(i,k)*pP(j,k)
-        temp2=temp2+Z4(i,k)*pP(j,k)
-        temp3=temp3+Z5(i,k)*pP(j,k)
-        temp4=temp4+Z6(i,k)*pP(j,k)
-        temp5=temp5+Z7(i,k)*pP(j,k)
-        temp6=temp6+Z8(i,k)*pP(j,k)
-        temp7=temp7+Z9(i,k)*pP(j,k)
-        temp8=temp8+Z10(i,k)*pP(j,k)
-        temp9=temp9+Z11(i,k)*pP(j,k)
-        temp10=temp10+Z12(i,k)*pP(j,k)
-        temp11=temp11+Z13(i,k)*pP(j,k)
-        temp12=temp12+Z14(i,k)*pP(j,k)
-        temp13=temp13+Z15(i,k)*pP(j,k)
-        temp14=temp14+Z16(i,k)*pP(j,k)
-
-     enddo  
-
-      dtau6p(i,j)=temp1
-      dtau66p(i,j)=temp2
-      dtau666p(i,j)=temp3
-      dtau6666Mp(i,j)=temp4
-
-      dtau7p(i,j)=temp5
-      dtau77p(i,j)=temp6
-      dtau777p(i,j)=temp7
-      dtau7777Mp(i,j)=temp8
-
-      dtau8p(i,j)=temp9
-      dtau88p(i,j)=temp10
-
-      dtau9p(i,j)=temp11
-      dtau99p(i,j)=temp12
-      dtau999p(i,j)=temp13
- 
-      dtau10p(i,j)=temp14
- 
-    enddo
-  enddo
-
-  Z1=ZERO
-  Z2=ZERO
-
-  do i=1,n
-    do j=1,n
-      temp1=ZERO
-      temp2=ZERO
-      do k=1,n
-        temp1=temp1+P(i,k)*mu2(k,j)
-        temp2=temp2+P(i,k)*alpha1(k,j)
-      enddo  
-      Z1(i,j)=temp1
-      Z2(i,j)=temp2
-    enddo
-  enddo  
-  do i=1,n
-    do j=1,n
-      temp1=ZERO
-      temp2=ZERO
-      do k=1,n
-        temp1=temp1+Z1(i,k)*P(j,k)
-        temp2=temp2+Z2(i,k)*P(j,k)
-      enddo  
-      mu2p(i,j)=temp1
-      alpha1p(i,j)=temp2
-    enddo
-  enddo  
-
-  resultX1l=ZERO
-  indx=ZERO
-
-  do j=1,n
-    do i=j,n
-
-      indx=indx+1
-      temp1=ZERO
-      temp2=ZERO
-
-      do k=j,n
-
-        temp1=temp1+(alpha1p(i,k)+alpha1p(k,i))*Ll(k,j)
-        temp2=temp2+(mu2p(i,k)+mu2p(k,i))*Ll(k,j)
-
-      enddo
-
-      resultX1l(indx)=-temp1+temp2
-
-    enddo
-  enddo
-
-  dtau6l=ZERO
-  dtau7l=ZERO
-  dtau8l=ZERO
-  dtau9l=ZERO
-  dtau10l=ZERO
-
-  indx=ZERO
-  do j=1,3*n
-    do i=j,3*n
-
-      temp1=ZERO
-      temp2=ZERO
-      temp3=ZERO
-      temp4=ZERO
-      temp5=ZERO
-      temp6=ZERO
-      temp7=ZERO
-      temp8=ZERO
-      temp9=ZERO
-      temp10=ZERO
-      temp11=ZERO
-      temp12=ZERO
-      temp13=ZERO
-      temp14=ZERO
-
-      do k=1,3*n  
-          
-        temp1=temp1+(dtau6p(i,k)+dtau6p(k,i))*LlI(k,j)
-        temp2=temp2+(dtau66p(i,k)+dtau66p(k,i))*LlI(k,j)
-        temp3=temp3+(dtau666p(i,k)+dtau666p(k,i))*LlI(k,j)
-        temp4=temp4+(dtau6666Mp(i,k)+dtau6666Mp(k,i))*LlI(k,j)
-        temp5=temp5+(dtau7p(i,k)+dtau7p(k,i))*LlI(k,j)
-        temp6=temp6+(dtau77p(i,k)+dtau77p(k,i))*LlI(k,j)
-        temp7=temp7+(dtau777p(i,k)+dtau777p(k,i))*LlI(k,j)
-        temp8=temp8+(dtau7777Mp(i,k)+dtau7777Mp(k,i))*LlI(k,j)
-        temp9=temp9+(dtau8p(i,k)+dtau8p(k,i))*LlI(k,j)
-        temp10=temp10+(dtau88p(i,k)+dtau88p(k,i))*LlI(k,j)
-        temp11=temp11+(dtau9p(i,k)+dtau9p(k,i))*LlI(k,j)
-        temp12=temp12+(dtau99p(i,k)+dtau99p(k,i))*LlI(k,j)
-        temp13=temp13+(dtau999p(i,k)+dtau999p(k,i))*LlI(k,j)
-        temp14=temp14+(dtau10p(i,k)+dtau10p(k,i))*LlI(k,j)
-   
-       enddo
-
-      indx=indx+1
-
-      dtau6l(indx)=-temp1-temp2-temp3+temp4
-      dtau7l(indx)=-temp5-temp6-temp7+temp8
-      dtau8l(indx)=-temp9-temp10
-      dtau9l(indx)=-temp11-temp12+temp13
-      dtau10l(indx)=-temp14
-
-    enddo
-  enddo  
-endif
-
-!***************
-!
-! Kinetic Energy
-!
-!***************
-
-Tkl=(PI**(THREE*n/TWO))&
-*(det_tAkl**(-THREEHALF))&
-*(THREE*tau1*nu3+TWO*(tau6+tau7-tau8-tau9+tau10))
-
-!write(*,*)'Tkl',Tkl
-
-!************************
-!
-! Kinetic Energy Gradient
-!
-!************************
-
-if (grad_k) then
-
-  do i=1,n*(n+1)/2
-
-    temp1=ZERO
-    temp2=ZERO
-    temp3=ZERO
-    temp4=ZERO
-    temp5=ZERO
-    temp6=ZERO
-
-    do k=1,3*n*(3*n+1)/2
-
-!dnu3
-      temp1=temp1+dnu3k(k)*trans(k,i)
-!dtau6
-      temp2=temp2+dtau6k(k)*trans(k,i)
-!dtau7
-      temp3=temp3+dtau7k(k)*trans(k,i)
-!dtau8
-      temp4=temp4+dtau8k(k)*trans(k,i)
-!dtau9
-      temp5=temp5+dtau9k(k)*trans(k,i)
-!dtau10
-      temp6=temp6+dtau10k(k)*trans(k,i)
-
-    enddo
-
-     Dk(i)=Dk(i)+(PI**(THREE*n/TWO))&    
-                 *(det_tAkl**(-THREEHALF))&
-                 *(-THREEHALF*resultAk(i)*(THREE*tau1*nu3+TWO*(tau6+tau7-tau8-tau9+tau10))&
-                   +THREE*resultX1k(i)*nu3&
-                   -THREE*tau1*temp1&
-                   +TWO*(temp2+temp3-temp4-temp5+temp6))
-
-enddo
-
-!write(*,*)'Dk',Dk
-
-endif
-
-if (grad_l) then
-
-  do i=1,n*(n+1)/2
-
-    temp1=ZERO
-    temp2=ZERO
-    temp3=ZERO
-    temp4=ZERO
-    temp5=ZERO
-    temp6=ZERO
-
-    do k=1,3*n*(3*n+1)/2
-!dnu3
-      temp1=temp1+dnu3l(k)*trans(k,i)
-!dtau6
-      temp2=temp2+dtau6l(k)*trans(k,i)
-!dtau7
-      temp3=temp3+dtau7l(k)*trans(k,i)
-!dtau8
-      temp4=temp4+dtau8l(k)*trans(k,i)
-!dtau9=ZERO
-      temp5=temp5+dtau9l(k)*trans(k,i)
-!dtau10
-      temp6=temp6+dtau10l(k)*trans(k,i)
-
-    enddo
-
-      Dl(i)=Dl(i)+(PI**(THREE*n/TWO))&
-                 *(det_tAkl**(-THREEHALF))&
-                 *(-THREEHALF*resultAl(i)*(THREE*tau1*nu3+TWO*(tau6+tau7-tau8-tau9+tau10))&
-                   +THREE*resultX1l(i)*nu3&
-                   -THREE*tau1*temp1&
-                   +TWO*(temp2+temp3-temp4-temp5+temp6))
-
- enddo
-
-!write(*,*)'Dl',Dl
-
-endif
-
-!1111 continue
-
-!go to 1111
-
-!****************************
-!
-! EVALUATING POTENTIAL ENERGY 
-!      (non-normalized)
-!****************************
-
-!*************************
-!
-! CONSTRUCTION OF J MATRIX
-!
-!*************************
-
-Vkl=ZERO
-do i=1,n !POTENTIAL LOOP
-  do j=i,n !POTENTIAL LOOP
-
-    Jm=ZERO
-
-   Jm(i,j)=-ONE
-   Jm(j,i)=-ONE
-   Jm(i,i)=ONE
-   Jm(j,j)=ONE
-
-if (i.eq.j) Jm(i,i) = ONE
-
-!write(*,*)'Jm'
-!do r=1,n
-!  write(*,9292)(Jm(r,t),t=1,n)
-!enddo
-
-!****************************
-!
-! DOING MATRIX MULTIPLICATION
-!
-!****************************
-
-!betaJm=inv_tAkl*Jm
-
-betaJm=ZERO
-
-do r=1,n
- 
-   betaJm(r,i)=inv_tAkl(r,i)*Jm(i,i)+inv_tAkl(r,j)*Jm(j,i)
-   betaJm(r,j)=inv_tAkl(r,i)*Jm(i,j)+inv_tAkl(r,j)*Jm(j,j)
-
-  if (i.eq.j) then 
-
-    betaJm(r,i)=inv_tAkl(r,i)*Jm(i,i)
-
-  endif
-
-enddo   
-
-!write(*,*)'betaJm'
-!do r=1,n
-!  write(*,9292)(betaJm(r,t),t=1,n)
-!enddo
-
-! Preforming Kronecker Product of betaJm with I3
-
-betaJmI=ZERO
-
-do r=1,n  
-
-    betaJmI(3*(r-1)+1,3*(i-1)+1)=betaJm(r,i)
-    betaJmI(3*(r-1)+2,3*(i-1)+2)=betaJm(r,i)
-    betaJmI(3*(r-1)+3,3*(i-1)+3)=betaJm(r,i)
-    betaJmI(3*(r-1)+1,3*(j-1)+1)=betaJm(r,j)
-    betaJmI(3*(r-1)+2,3*(j-1)+2)=betaJm(r,j)
-    betaJmI(3*(r-1)+3,3*(j-1)+3)=betaJm(r,j)
-
- enddo
-
-!write(*,*)'betaJmI'
-!do r=1,3*n
-!  write(*,9292)(betaJmI(r,t),t=1,3*n)
-!enddo
-
-beta28=ZERO
-beta29=ZERO
-beta31=ZERO
-beta38=ZERO
-
-if (i_ll.eq.j_ll) then
-
-do r=1,n
-
-  beta28(3*(r-1)+1,3*(i-1)+1)=beta3(3*(r-1)+1,nl)*betaJmI(nl,3*(i-1)+1)
-  beta28(3*(r-1)+2,3*(i-1)+2)=beta3(3*(r-1)+2,ml)*betaJmI(ml,3*(i-1)+2)
-  beta28(3*(r-1)+3,3*(i-1)+3)=beta3(3*(r-1)+3,rl)*betaJmI(rl,3*(i-1)+3)         
-  beta28(3*(r-1)+1,3*(j-1)+1)=beta3(3*(r-1)+1,nl)*betaJmI(nl,3*(j-1)+1)
-  beta28(3*(r-1)+2,3*(j-1)+2)=beta3(3*(r-1)+2,ml)*betaJmI(ml,3*(j-1)+2)
-  beta28(3*(r-1)+3,3*(j-1)+3)=beta3(3*(r-1)+3,rl)*betaJmI(rl,3*(j-1)+3)         
-
-  beta29(3*(r-1)+1,3*(i-1)+1)=beta2(3*(r-1)+1,nl)*betaJmI(nl,3*(i-1)+1)         
-  beta29(3*(r-1)+2,3*(i-1)+2)=beta2(3*(r-1)+2,ml)*betaJmI(ml,3*(i-1)+2)
-  beta29(3*(r-1)+3,3*(i-1)+3)=beta2(3*(r-1)+3,rl)*betaJmI(rl,3*(i-1)+3)
-  beta29(3*(r-1)+1,3*(j-1)+1)=beta2(3*(r-1)+1,nl)*betaJmI(nl,3*(j-1)+1)         
-  beta29(3*(r-1)+2,3*(j-1)+2)=beta2(3*(r-1)+2,ml)*betaJmI(ml,3*(j-1)+2)
-  beta29(3*(r-1)+3,3*(j-1)+3)=beta2(3*(r-1)+3,rl)*betaJmI(rl,3*(j-1)+3)
-
-  beta31(3*(r-1)+1,nl)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta3(3*(i-1)+1,nl)&
-                      +betaJmI(3*(r-1)+1,3*(j-1)+1)*beta3(3*(j-1)+1,nl)
-  beta31(3*(r-1)+2,ml)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta3(3*(i-1)+2,ml)&
-                      +betaJmI(3*(r-1)+2,3*(j-1)+2)*beta3(3*(j-1)+2,ml)
-  beta31(3*(r-1)+3,rl)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta3(3*(i-1)+3,rl)&
-                      +betaJmI(3*(r-1)+3,3*(j-1)+3)*beta3(3*(j-1)+3,rl)
-
-  beta38(3*(r-1)+1,nl)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta2(3*(i-1)+1,nl)&
-                      +betaJmI(3*(r-1)+1,3*(j-1)+1)*beta2(3*(j-1)+1,nl) 
-  beta38(3*(r-1)+2,ml)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta2(3*(i-1)+2,ml)&
-                      +betaJmI(3*(r-1)+2,3*(j-1)+2)*beta2(3*(j-1)+2,ml) 
-  beta38(3*(r-1)+3,rl)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta2(3*(i-1)+3,rl)&
-                      +betaJmI(3*(r-1)+3,3*(j-1)+3)*beta2(3*(j-1)+3,rl) 
-
-  if (i.eq.j) then
-
-     beta31(3*(r-1)+1,nl)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta3(3*(i-1)+1,nl)
-     beta31(3*(r-1)+2,ml)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta3(3*(i-1)+2,ml)
-     beta31(3*(r-1)+3,rl)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta3(3*(i-1)+3,rl)
-
-     beta38(3*(r-1)+1,nl)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta2(3*(i-1)+1,nl)
-     beta38(3*(r-1)+2,ml)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta2(3*(i-1)+2,ml)
-     beta38(3*(r-1)+3,rl)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta2(3*(i-1)+3,rl)
-
-  endif
-enddo
-endif
-
-if (i_ll.ne.j_ll) then
-
-do r=1,n
-
-  beta28(3*(r-1)+1,3*(i-1)+1)=beta3(3*(r-1)+1,nl)*betaJmI(nl,3*(i-1)+1)&
-                             +beta3(3*(r-1)+1,sl)*betaJmI(sl,3*(i-1)+1)
-  beta28(3*(r-1)+2,3*(i-1)+2)=beta3(3*(r-1)+2,ml)*betaJmI(ml,3*(i-1)+2)&
-                             +beta3(3*(r-1)+2,gl)*betaJmI(gl,3*(i-1)+2) 
-  beta28(3*(r-1)+3,3*(i-1)+3)=beta3(3*(r-1)+3,rl)*betaJmI(rl,3*(i-1)+3)&
-                             +beta3(3*(r-1)+3,hl)*betaJmI(hl,3*(i-1)+3) 
-  beta28(3*(r-1)+1,3*(j-1)+1)=beta3(3*(r-1)+1,nl)*betaJmI(nl,3*(j-1)+1)&
-                             +beta3(3*(r-1)+1,sl)*betaJmI(sl,3*(j-1)+1)
-  beta28(3*(r-1)+2,3*(j-1)+2)=beta3(3*(r-1)+2,ml)*betaJmI(ml,3*(j-1)+2)&
-                             +beta3(3*(r-1)+2,gl)*betaJmI(gl,3*(j-1)+2)
-  beta28(3*(r-1)+3,3*(j-1)+3)=beta3(3*(r-1)+3,rl)*betaJmI(rl,3*(j-1)+3)&
-                             +beta3(3*(r-1)+3,hl)*betaJmI(hl,3*(j-1)+3)
-
-  beta29(3*(r-1)+1,3*(i-1)+1)=beta2(3*(r-1)+1,nl)*betaJmI(nl,3*(i-1)+1)&
-                             +beta2(3*(r-1)+1,sl)*betaJmI(sl,3*(i-1)+1) 
-  beta29(3*(r-1)+2,3*(i-1)+2)=beta2(3*(r-1)+2,ml)*betaJmI(ml,3*(i-1)+2)&
-                             +beta2(3*(r-1)+2,gl)*betaJmI(gl,3*(i-1)+2) 
-  beta29(3*(r-1)+3,3*(i-1)+3)=beta2(3*(r-1)+3,rl)*betaJmI(rl,3*(i-1)+3)&
-                             +beta2(3*(r-1)+3,hl)*betaJmI(hl,3*(i-1)+3) 
-  beta29(3*(r-1)+1,3*(j-1)+1)=beta2(3*(r-1)+1,nl)*betaJmI(nl,3*(j-1)+1)&
-                             +beta2(3*(r-1)+1,sl)*betaJmI(sl,3*(j-1)+1) 
-  beta29(3*(r-1)+2,3*(j-1)+2)=beta2(3*(r-1)+2,ml)*betaJmI(ml,3*(j-1)+2)&
-                             +beta2(3*(r-1)+2,gl)*betaJmI(gl,3*(j-1)+2) 
-  beta29(3*(r-1)+3,3*(j-1)+3)=beta2(3*(r-1)+3,rl)*betaJmI(rl,3*(j-1)+3)&
-                             +beta2(3*(r-1)+3,hl)*betaJmI(hl,3*(j-1)+3) 
-
-   beta31(3*(r-1)+1,nl)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta3(3*(i-1)+1,nl)&
-                       +betaJmI(3*(r-1)+1,3*(j-1)+1)*beta3(3*(j-1)+1,nl)
-   beta31(3*(r-1)+2,ml)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta3(3*(i-1)+2,ml)&
-                       +betaJmI(3*(r-1)+2,3*(j-1)+2)*beta3(3*(j-1)+2,ml)
-   beta31(3*(r-1)+3,rl)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta3(3*(i-1)+3,rl)&
-                       +betaJmI(3*(r-1)+3,3*(j-1)+3)*beta3(3*(j-1)+3,rl)
-   beta31(3*(r-1)+1,sl)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta3(3*(i-1)+1,sl)&
-                       +betaJmI(3*(r-1)+1,3*(j-1)+1)*beta3(3*(j-1)+1,sl)
-   beta31(3*(r-1)+2,gl)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta3(3*(i-1)+2,gl)&
-                       +betaJmI(3*(r-1)+2,3*(j-1)+2)*beta3(3*(j-1)+2,gl)
-   beta31(3*(r-1)+3,hl)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta3(3*(i-1)+3,hl)&
-                       +betaJmI(3*(r-1)+3,3*(j-1)+3)*beta3(3*(j-1)+3,hl)
-
-   beta38(3*(r-1)+1,nl)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta2(3*(i-1)+1,nl)&
-                       +betaJmI(3*(r-1)+1,3*(j-1)+1)*beta2(3*(j-1)+1,nl) 
-   beta38(3*(r-1)+2,ml)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta2(3*(i-1)+2,ml)&
-                       +betaJmI(3*(r-1)+2,3*(j-1)+2)*beta2(3*(j-1)+2,ml) 
-   beta38(3*(r-1)+3,rl)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta2(3*(i-1)+3,rl)&
-                       +betaJmI(3*(r-1)+3,3*(j-1)+3)*beta2(3*(j-1)+3,rl) 
-   beta38(3*(r-1)+1,sl)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta2(3*(i-1)+1,sl)&
-                       +betaJmI(3*(r-1)+1,3*(j-1)+1)*beta2(3*(j-1)+1,sl) 
-   beta38(3*(r-1)+2,gl)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta2(3*(i-1)+2,gl)&
-                       +betaJmI(3*(r-1)+2,3*(j-1)+2)*beta2(3*(j-1)+2,gl) 
-   beta38(3*(r-1)+3,hl)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta2(3*(i-1)+3,hl)&
-                       +betaJmI(3*(r-1)+3,3*(j-1)+3)*beta2(3*(j-1)+3,hl) 
-
-  if (i.eq.j) then
- 
-     beta31(3*(r-1)+1,nl)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta3(3*(i-1)+1,nl)
-     beta31(3*(r-1)+2,ml)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta3(3*(i-1)+2,ml)
-     beta31(3*(r-1)+3,rl)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta3(3*(i-1)+3,rl)
-     beta31(3*(r-1)+1,sl)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta3(3*(i-1)+1,sl)
-     beta31(3*(r-1)+2,gl)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta3(3*(i-1)+2,gl)
-     beta31(3*(r-1)+3,hl)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta3(3*(i-1)+3,hl)
-  
-     beta38(3*(r-1)+1,nl)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta2(3*(i-1)+1,nl)
-     beta38(3*(r-1)+2,ml)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta2(3*(i-1)+2,ml)
-     beta38(3*(r-1)+3,rl)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta2(3*(i-1)+3,rl)
-     beta38(3*(r-1)+1,sl)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta2(3*(i-1)+1,sl)
-     beta38(3*(r-1)+2,gl)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta2(3*(i-1)+2,gl)
-     beta38(3*(r-1)+3,hl)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta2(3*(i-1)+3,hl)
-
-  endif
-enddo
-endif
-
-beta30=ZERO
-beta32=ZERO
-beta34=ZERO
-beta36=ZERO
-beta39=ZERO
-
-do r=1,n
-  
-if (i_kk.eq.j_kk) then
-
-  beta30(3*(r-1)+1,nk)=beta29(3*(r-1)+1,3*(i-1)+1)*beta1(3*(i-1)+1,nk)&
-                      +beta29(3*(r-1)+1,3*(j-1)+1)*beta1(3*(j-1)+1,nk)
-  beta30(3*(r-1)+2,mk)=beta29(3*(r-1)+2,3*(i-1)+2)*beta1(3*(i-1)+2,mk)&
-                      +beta29(3*(r-1)+2,3*(j-1)+2)*beta1(3*(j-1)+2,mk)
-  beta30(3*(r-1)+3,rk)=beta29(3*(r-1)+3,3*(i-1)+3)*beta1(3*(i-1)+3,rk)&
-                      +beta29(3*(r-1)+3,3*(j-1)+3)*beta1(3*(j-1)+3,rk)
-
-  beta36(3*(r-1)+1,nk)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta33(3*(i-1)+1,nk)&
-                      +betaJmI(3*(r-1)+1,3*(j-1)+1)*beta33(3*(j-1)+1,nk)
-  beta36(3*(r-1)+2,mk)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta33(3*(i-1)+2,mk)&
-                      +betaJmI(3*(r-1)+2,3*(j-1)+2)*beta33(3*(j-1)+2,mk)
-  beta36(3*(r-1)+3,rk)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta33(3*(i-1)+3,rk)&
-                      +betaJmI(3*(r-1)+3,3*(j-1)+3)*beta33(3*(j-1)+3,rk)
-
-  beta39(3*(r-1)+1,nk)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta1(3*(i-1)+1,nk)&
-                      +betaJmI(3*(r-1)+1,3*(j-1)+1)*beta1(3*(j-1)+1,nk) 
-  beta39(3*(r-1)+2,mk)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta1(3*(i-1)+2,mk)&
-                      +betaJmI(3*(r-1)+2,3*(j-1)+2)*beta1(3*(j-1)+2,mk) 
-  beta39(3*(r-1)+3,rk)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta1(3*(i-1)+3,rk)&
-                      +betaJmI(3*(r-1)+3,3*(j-1)+3)*beta1(3*(j-1)+3,rk)
-
-  if (i.eq.j) then
-
-    beta30(3*(r-1)+1,nk)=beta29(3*(r-1)+1,3*(i-1)+1)*beta1(3*(i-1)+1,nk)
-    beta30(3*(r-1)+2,mk)=beta29(3*(r-1)+2,3*(i-1)+2)*beta1(3*(i-1)+2,mk)
-    beta30(3*(r-1)+3,rk)=beta29(3*(r-1)+3,3*(i-1)+3)*beta1(3*(i-1)+3,rk)
-
-    beta36(3*(r-1)+1,nk)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta33(3*(i-1)+1,nk)
-    beta36(3*(r-1)+2,mk)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta33(3*(i-1)+2,mk)
-    beta36(3*(r-1)+3,rk)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta33(3*(i-1)+3,rk)
-
-    beta39(3*(r-1)+1,nk)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta1(3*(i-1)+1,nk)
-    beta39(3*(r-1)+2,mk)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta1(3*(i-1)+2,mk)
-    beta39(3*(r-1)+3,rk)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta1(3*(i-1)+3,rk)
-
-  endif
-
-  beta32(3*(r-1)+1,3*(i-1)+1)=beta33(3*(r-1)+1,nk)*betaJmI(nk,3*(i-1)+1)
-  beta32(3*(r-1)+2,3*(i-1)+2)=beta33(3*(r-1)+2,mk)*betaJmI(mk,3*(i-1)+2)
-  beta32(3*(r-1)+3,3*(i-1)+3)=beta33(3*(r-1)+3,rk)*betaJmI(rk,3*(i-1)+3)
-  beta32(3*(r-1)+1,3*(j-1)+1)=beta33(3*(r-1)+1,nk)*betaJmI(nk,3*(j-1)+1)
-  beta32(3*(r-1)+2,3*(j-1)+2)=beta33(3*(r-1)+2,mk)*betaJmI(mk,3*(j-1)+2)
-  beta32(3*(r-1)+3,3*(j-1)+3)=beta33(3*(r-1)+3,rk)*betaJmI(rk,3*(j-1)+3)
-
-  beta34(3*(r-1)+1,3*(i-1)+1)=beta1(3*(r-1)+1,nk)*betaJmI(nk,3*(i-1)+1)  
-  beta34(3*(r-1)+2,3*(i-1)+2)=beta1(3*(r-1)+2,mk)*betaJmI(mk,3*(i-1)+2) 
-  beta34(3*(r-1)+3,3*(i-1)+3)=beta1(3*(r-1)+3,rk)*betaJmI(rk,3*(i-1)+3)  
-  beta34(3*(r-1)+1,3*(j-1)+1)=beta1(3*(r-1)+1,nk)*betaJmI(nk,3*(j-1)+1) 
-  beta34(3*(r-1)+2,3*(j-1)+2)=beta1(3*(r-1)+2,mk)*betaJmI(mk,3*(j-1)+2)  
-  beta34(3*(r-1)+3,3*(j-1)+3)=beta1(3*(r-1)+3,rk)*betaJmI(rk,3*(j-1)+3)
- 
-endif
-
-if (i_kk.ne.j_kk) then
-
-  beta30(3*(r-1)+1,nk)=beta29(3*(r-1)+1,3*(i-1)+1)*beta1(3*(i-1)+1,nk)&
-                      +beta29(3*(r-1)+1,3*(j-1)+1)*beta1(3*(j-1)+1,nk)
-  beta30(3*(r-1)+2,mk)=beta29(3*(r-1)+2,3*(i-1)+2)*beta1(3*(i-1)+2,mk)&
-                      +beta29(3*(r-1)+2,3*(j-1)+2)*beta1(3*(j-1)+2,mk)
-  beta30(3*(r-1)+3,rk)=beta29(3*(r-1)+3,3*(i-1)+3)*beta1(3*(i-1)+3,rk)&
-                      +beta29(3*(r-1)+3,3*(j-1)+3)*beta1(3*(j-1)+3,rk)
-  beta30(3*(r-1)+1,sk)=beta29(3*(r-1)+1,3*(i-1)+1)*beta1(3*(i-1)+1,sk)&
-                      +beta29(3*(r-1)+1,3*(j-1)+1)*beta1(3*(j-1)+1,sk)
-  beta30(3*(r-1)+2,gk)=beta29(3*(r-1)+2,3*(i-1)+2)*beta1(3*(i-1)+2,gk)&
-                      +beta29(3*(r-1)+2,3*(j-1)+2)*beta1(3*(j-1)+2,gk)
-  beta30(3*(r-1)+3,hk)=beta29(3*(r-1)+3,3*(i-1)+3)*beta1(3*(i-1)+3,hk)&
-                      +beta29(3*(r-1)+3,3*(j-1)+3)*beta1(3*(j-1)+3,hk)
-
-  beta36(3*(r-1)+1,nk)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta33(3*(i-1)+1,nk)&
-                      +betaJmI(3*(r-1)+1,3*(j-1)+1)*beta33(3*(j-1)+1,nk)
-  beta36(3*(r-1)+2,mk)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta33(3*(i-1)+2,mk)&
-                      +betaJmI(3*(r-1)+2,3*(j-1)+2)*beta33(3*(j-1)+2,mk)
-  beta36(3*(r-1)+3,rk)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta33(3*(i-1)+3,rk)&
-                      +betaJmI(3*(r-1)+3,3*(j-1)+3)*beta33(3*(j-1)+3,rk)
-  beta36(3*(r-1)+1,sk)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta33(3*(i-1)+1,sk)&
-                      +betaJmI(3*(r-1)+1,3*(j-1)+1)*beta33(3*(j-1)+1,sk)
-  beta36(3*(r-1)+2,gk)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta33(3*(i-1)+2,gk)&
-                      +betaJmI(3*(r-1)+2,3*(j-1)+2)*beta33(3*(j-1)+2,gk)
-  beta36(3*(r-1)+3,hk)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta33(3*(i-1)+3,hk)&
-                      +betaJmI(3*(r-1)+3,3*(j-1)+3)*beta33(3*(j-1)+3,hk)
-
-  beta39(3*(r-1)+1,nk)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta1(3*(i-1)+1,nk)&
-                      +betaJmI(3*(r-1)+1,3*(j-1)+1)*beta1(3*(j-1)+1,nk) 
-  beta39(3*(r-1)+2,mk)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta1(3*(i-1)+2,mk)&
-                      +betaJmI(3*(r-1)+2,3*(j-1)+2)*beta1(3*(j-1)+2,mk) 
-  beta39(3*(r-1)+3,rk)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta1(3*(i-1)+3,rk)&
-                      +betaJmI(3*(r-1)+3,3*(j-1)+3)*beta1(3*(j-1)+3,rk) 
-  beta39(3*(r-1)+1,sk)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta1(3*(i-1)+1,sk)&
-                      +betaJmI(3*(r-1)+1,3*(j-1)+1)*beta1(3*(j-1)+1,sk) 
-  beta39(3*(r-1)+2,gk)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta1(3*(i-1)+2,gk)&
-                      +betaJmI(3*(r-1)+2,3*(j-1)+2)*beta1(3*(j-1)+2,gk) 
-  beta39(3*(r-1)+3,hk)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta1(3*(i-1)+3,hk)&
-                      +betaJmI(3*(r-1)+3,3*(j-1)+3)*beta1(3*(j-1)+3,hk) 
-
-  if (i.eq.j) then
-
-    beta30(3*(r-1)+1,nk)=beta29(3*(r-1)+1,3*(i-1)+1)*beta1(3*(i-1)+1,nk)
-    beta30(3*(r-1)+2,mk)=beta29(3*(r-1)+2,3*(i-1)+2)*beta1(3*(i-1)+2,mk)
-    beta30(3*(r-1)+3,rk)=beta29(3*(r-1)+3,3*(i-1)+3)*beta1(3*(i-1)+3,rk)
-    beta30(3*(r-1)+1,sk)=beta29(3*(r-1)+1,3*(i-1)+1)*beta1(3*(i-1)+1,sk)
-    beta30(3*(r-1)+2,gk)=beta29(3*(r-1)+2,3*(i-1)+2)*beta1(3*(i-1)+2,gk)
-    beta30(3*(r-1)+3,hk)=beta29(3*(r-1)+3,3*(i-1)+3)*beta1(3*(i-1)+3,hk)
-
-    beta36(3*(r-1)+1,nk)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta33(3*(i-1)+1,nk)
-    beta36(3*(r-1)+2,mk)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta33(3*(i-1)+2,mk)
-    beta36(3*(r-1)+3,rk)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta33(3*(i-1)+3,rk)
-    beta36(3*(r-1)+1,sk)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta33(3*(i-1)+1,sk)
-    beta36(3*(r-1)+2,gk)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta33(3*(i-1)+2,gk)
-    beta36(3*(r-1)+3,hk)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta33(3*(i-1)+3,hk)
-
-    beta39(3*(r-1)+1,nk)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta1(3*(i-1)+1,nk)
-    beta39(3*(r-1)+2,mk)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta1(3*(i-1)+2,mk)
-    beta39(3*(r-1)+3,rk)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta1(3*(i-1)+3,rk)
-    beta39(3*(r-1)+1,sk)=betaJmI(3*(r-1)+1,3*(i-1)+1)*beta1(3*(i-1)+1,sk)
-    beta39(3*(r-1)+2,gk)=betaJmI(3*(r-1)+2,3*(i-1)+2)*beta1(3*(i-1)+2,gk)
-    beta39(3*(r-1)+3,hk)=betaJmI(3*(r-1)+3,3*(i-1)+3)*beta1(3*(i-1)+3,hk)
-
-  endif
-
-  beta32(3*(r-1)+1,3*(i-1)+1)=beta33(3*(r-1)+1,nk)*betaJmI(nk,3*(i-1)+1)&
-                             +beta33(3*(r-1)+1,sk)*betaJmI(sk,3*(i-1)+1)  
-  beta32(3*(r-1)+2,3*(i-1)+2)=beta33(3*(r-1)+2,mk)*betaJmI(mk,3*(i-1)+2)&
-                             +beta33(3*(r-1)+2,gk)*betaJmI(gk,3*(i-1)+2)  
-  beta32(3*(r-1)+3,3*(i-1)+3)=beta33(3*(r-1)+3,rk)*betaJmI(rk,3*(i-1)+3)&
-                             +beta33(3*(r-1)+3,hk)*betaJmI(hk,3*(i-1)+3)  
-  beta32(3*(r-1)+1,3*(j-1)+1)=beta33(3*(r-1)+1,nk)*betaJmI(nk,3*(j-1)+1)&
-                             +beta33(3*(r-1)+1,sk)*betaJmI(sk,3*(j-1)+1)  
-  beta32(3*(r-1)+2,3*(j-1)+2)=beta33(3*(r-1)+2,mk)*betaJmI(mk,3*(j-1)+2)&
-                             +beta33(3*(r-1)+2,gk)*betaJmI(gk,3*(j-1)+2)  
-  beta32(3*(r-1)+3,3*(j-1)+3)=beta33(3*(r-1)+3,rk)*betaJmI(rk,3*(j-1)+3)&
-                             +beta33(3*(r-1)+3,hk)*betaJmI(hk,3*(j-1)+3)  
-
-  beta34(3*(r-1)+1,3*(i-1)+1)=beta1(3*(r-1)+1,nk)*betaJmI(nk,3*(i-1)+1)&
-                             +beta1(3*(r-1)+1,sk)*betaJmI(sk,3*(i-1)+1)
-  beta34(3*(r-1)+2,3*(i-1)+2)=beta1(3*(r-1)+2,mk)*betaJmI(mk,3*(i-1)+2)&
-                             +beta1(3*(r-1)+2,gk)*betaJmI(gk,3*(i-1)+2)   
-  beta34(3*(r-1)+3,3*(i-1)+3)=beta1(3*(r-1)+3,rk)*betaJmI(rk,3*(i-1)+3)&  
-                             +beta1(3*(r-1)+3,hk)*betaJmI(hk,3*(i-1)+3)   
-  beta34(3*(r-1)+1,3*(j-1)+1)=beta1(3*(r-1)+1,nk)*betaJmI(nk,3*(j-1)+1)&  
-                             +beta1(3*(r-1)+1,sk)*betaJmI(sk,3*(j-1)+1)   
-  beta34(3*(r-1)+2,3*(j-1)+2)=beta1(3*(r-1)+2,mk)*betaJmI(mk,3*(j-1)+2)&  
-                             +beta1(3*(r-1)+2,gk)*betaJmI(gk,3*(j-1)+2)
-  beta34(3*(r-1)+3,3*(j-1)+3)=beta1(3*(r-1)+3,rk)*betaJmI(rk,3*(j-1)+3)&
-                             +beta1(3*(r-1)+3,hk)*betaJmI(hk,3*(j-1)+3)
-
-endif
-
-enddo
-
-beta35=ZERO
-beta37=ZERO
-beta41=ZERO
-
-do r=1,n
-
-if (i_ll.eq.j_ll) then
-
-  beta35(3*(r-1)+1,nl)=beta34(3*(r-1)+1,3*(i-1)+1)*beta2(3*(i-1)+1,nl)&
-                      +beta34(3*(r-1)+1,3*(j-1)+1)*beta2(3*(j-1)+1,nl) 
-  beta35(3*(r-1)+2,ml)=beta34(3*(r-1)+2,3*(i-1)+2)*beta2(3*(i-1)+2,ml)&
-                      +beta34(3*(r-1)+2,3*(j-1)+2)*beta2(3*(j-1)+2,ml) 
-  beta35(3*(r-1)+3,rl)=beta34(3*(r-1)+3,3*(i-1)+3)*beta2(3*(i-1)+3,rl)&
-                      +beta34(3*(r-1)+3,3*(j-1)+3)*beta2(3*(j-1)+3,rl) 
-
-  if (i.eq.j) then
-
-    beta35(3*(r-1)+1,nl)=beta34(3*(r-1)+1,3*(i-1)+1)*beta2(3*(i-1)+1,nl)
-    beta35(3*(r-1)+2,ml)=beta34(3*(r-1)+2,3*(i-1)+2)*beta2(3*(i-1)+2,ml)
-    beta35(3*(r-1)+3,rl)=beta34(3*(r-1)+3,3*(i-1)+3)*beta2(3*(i-1)+3,rl)
-
-  endif
-endif
-
-if (i_ll.ne.j_ll) then
-
-  beta35(3*(r-1)+1,nl)=beta34(3*(r-1)+1,3*(i-1)+1)*beta2(3*(i-1)+1,nl)& 
-                      +beta34(3*(r-1)+1,3*(j-1)+1)*beta2(3*(j-1)+1,nl)
-  beta35(3*(r-1)+2,ml)=beta34(3*(r-1)+2,3*(i-1)+2)*beta2(3*(i-1)+2,ml)& 
-                      +beta34(3*(r-1)+2,3*(j-1)+2)*beta2(3*(j-1)+2,ml)  
-  beta35(3*(r-1)+3,rl)=beta34(3*(r-1)+3,3*(i-1)+3)*beta2(3*(i-1)+3,rl)& 
-                      +beta34(3*(r-1)+3,3*(j-1)+3)*beta2(3*(j-1)+3,rl)    
-  beta35(3*(r-1)+1,sl)=beta34(3*(r-1)+1,3*(i-1)+1)*beta2(3*(i-1)+1,sl)& 
-                      +beta34(3*(r-1)+1,3*(j-1)+1)*beta2(3*(j-1)+1,sl)
-  beta35(3*(r-1)+2,gl)=beta34(3*(r-1)+2,3*(i-1)+2)*beta2(3*(i-1)+2,gl)& 
-                      +beta34(3*(r-1)+2,3*(j-1)+2)*beta2(3*(j-1)+2,gl)  
-  beta35(3*(r-1)+3,hl)=beta34(3*(r-1)+3,3*(i-1)+3)*beta2(3*(i-1)+3,hl)& 
-                      +beta34(3*(r-1)+3,3*(j-1)+3)*beta2(3*(j-1)+3,hl)    
-
-  if (i.eq.j) then
-
-    beta35(3*(r-1)+1,nl)=beta34(3*(r-1)+1,3*(i-1)+1)*beta2(3*(i-1)+1,nl)  
-    beta35(3*(r-1)+2,ml)=beta34(3*(r-1)+2,3*(i-1)+2)*beta2(3*(i-1)+2,ml)  
-    beta35(3*(r-1)+3,rl)=beta34(3*(r-1)+3,3*(i-1)+3)*beta2(3*(i-1)+3,rl)
-    beta35(3*(r-1)+1,sl)=beta34(3*(r-1)+1,3*(i-1)+1)*beta2(3*(i-1)+1,sl)
-    beta35(3*(r-1)+2,gl)=beta34(3*(r-1)+2,3*(i-1)+2)*beta2(3*(i-1)+2,gl)
-    beta35(3*(r-1)+3,hl)=beta34(3*(r-1)+3,3*(i-1)+3)*beta2(3*(i-1)+3,hl)
-
-  endif
-endif
-
-  beta37(3*(r-1)+1,3*(i-1)+1)=beta34(3*(r-1)+1,3*(i-1)+1)*beta29(3*(i-1)+1,3*(i-1)+1)&
-                             +beta34(3*(r-1)+1,3*(j-1)+1)*beta29(3*(j-1)+1,3*(i-1)+1)
-  beta37(3*(r-1)+2,3*(i-1)+2)=beta34(3*(r-1)+2,3*(i-1)+2)*beta29(3*(i-1)+2,3*(i-1)+2)&
-                             +beta34(3*(r-1)+2,3*(j-1)+2)*beta29(3*(j-1)+2,3*(i-1)+2)
-  beta37(3*(r-1)+3,3*(i-1)+3)=beta34(3*(r-1)+3,3*(i-1)+3)*beta29(3*(i-1)+3,3*(i-1)+3)&
-                             +beta34(3*(r-1)+3,3*(j-1)+3)*beta29(3*(j-1)+3,3*(i-1)+3)
-  beta37(3*(r-1)+1,3*(j-1)+1)=beta34(3*(r-1)+1,3*(i-1)+1)*beta29(3*(i-1)+1,3*(j-1)+1)&
-                             +beta34(3*(r-1)+1,3*(j-1)+1)*beta29(3*(j-1)+1,3*(j-1)+1)
-  beta37(3*(r-1)+2,3*(j-1)+2)=beta34(3*(r-1)+2,3*(i-1)+2)*beta29(3*(i-1)+2,3*(j-1)+2)&
-                             +beta34(3*(r-1)+2,3*(j-1)+2)*beta29(3*(j-1)+2,3*(j-1)+2)
-  beta37(3*(r-1)+3,3*(j-1)+3)=beta34(3*(r-1)+3,3*(i-1)+3)*beta29(3*(i-1)+3,3*(j-1)+3)&
-                             +beta34(3*(r-1)+3,3*(j-1)+3)*beta29(3*(j-1)+3,3*(j-1)+3)
-
-  beta41(3*(r-1)+1,3*(i-1)+1)=beta29(3*(r-1)+1,3*(i-1)+1)*beta34(3*(i-1)+1,3*(i-1)+1)&
-                             +beta29(3*(r-1)+1,3*(j-1)+1)*beta34(3*(j-1)+1,3*(i-1)+1) 
-  beta41(3*(r-1)+2,3*(i-1)+2)=beta29(3*(r-1)+2,3*(i-1)+2)*beta34(3*(i-1)+2,3*(i-1)+2)&
-                             +beta29(3*(r-1)+2,3*(j-1)+2)*beta34(3*(j-1)+2,3*(i-1)+2) 
-  beta41(3*(r-1)+3,3*(i-1)+3)=beta29(3*(r-1)+3,3*(i-1)+3)*beta34(3*(i-1)+3,3*(i-1)+3)&
-                             +beta29(3*(r-1)+3,3*(j-1)+3)*beta34(3*(j-1)+3,3*(i-1)+3) 
-  beta41(3*(r-1)+1,3*(j-1)+1)=beta29(3*(r-1)+1,3*(i-1)+1)*beta34(3*(i-1)+1,3*(j-1)+1)&
-                             +beta29(3*(r-1)+1,3*(j-1)+1)*beta34(3*(j-1)+1,3*(j-1)+1) 
-  beta41(3*(r-1)+2,3*(j-1)+2)=beta29(3*(r-1)+2,3*(i-1)+2)*beta34(3*(i-1)+2,3*(j-1)+2)&
-                             +beta29(3*(r-1)+2,3*(j-1)+2)*beta34(3*(j-1)+2,3*(j-1)+2) 
-  beta41(3*(r-1)+3,3*(j-1)+3)=beta29(3*(r-1)+3,3*(i-1)+3)*beta34(3*(i-1)+3,3*(j-1)+3)&
-                             +beta29(3*(r-1)+3,3*(j-1)+3)*beta34(3*(j-1)+3,3*(j-1)+3) 
-
-if (i.eq.j) then
-
-  beta37(3*(r-1)+1,3*(i-1)+1)=beta34(3*(r-1)+1,3*(i-1)+1)*beta29(3*(i-1)+1,3*(i-1)+1)
-  beta37(3*(r-1)+2,3*(i-1)+2)=beta34(3*(r-1)+2,3*(i-1)+2)*beta29(3*(i-1)+2,3*(i-1)+2)
-  beta37(3*(r-1)+3,3*(i-1)+3)=beta34(3*(r-1)+3,3*(i-1)+3)*beta29(3*(i-1)+3,3*(i-1)+3)
-
-  beta41(3*(r-1)+1,3*(i-1)+1)=beta29(3*(r-1)+1,3*(i-1)+1)*beta34(3*(i-1)+1,3*(i-1)+1)
-  beta41(3*(r-1)+2,3*(i-1)+2)=beta29(3*(r-1)+2,3*(i-1)+2)*beta34(3*(i-1)+2,3*(i-1)+2)
-  beta41(3*(r-1)+3,3*(i-1)+3)=beta29(3*(r-1)+3,3*(i-1)+3)*beta34(3*(i-1)+3,3*(i-1)+3)
-
-endif
-enddo
-
-beta40=ZERO
-beta42=ZERO
-
-do r=1,n
-
-  if (i_kk.ne.j_kk.and.i_ll.ne.j_ll) then
-
-    beta40(3*(r-1)+1,nk)=beta38(3*(r-1)+1,nl)*beta39(nl,nk)&
-                        +beta38(3*(r-1)+1,sl)*beta39(sl,nk)    
-    beta40(3*(r-1)+2,mk)=beta38(3*(r-1)+2,ml)*beta39(ml,mk)&
-                        +beta38(3*(r-1)+2,gl)*beta39(gl,mk) 
-    beta40(3*(r-1)+3,rk)=beta38(3*(r-1)+3,rl)*beta39(rl,rk)&
-                        +beta38(3*(r-1)+3,hl)*beta39(hl,rk) 
-    beta40(3*(r-1)+1,sk)=beta38(3*(r-1)+1,nl)*beta39(nl,sk)&
-                        +beta38(3*(r-1)+1,sl)*beta39(sl,sk) 
-    beta40(3*(r-1)+2,gk)=beta38(3*(r-1)+2,ml)*beta39(ml,gk)&
-                        +beta38(3*(r-1)+2,gl)*beta39(gl,gk) 
-    beta40(3*(r-1)+3,hk)=beta38(3*(r-1)+3,rl)*beta39(rl,hk)&
-                        +beta38(3*(r-1)+3,hl)*beta39(hl,hk) 
-    
-    beta42(3*(r-1)+1,nl)=beta39(3*(r-1)+1,nk)*beta38(nk,nl)&
-                        +beta39(3*(r-1)+1,sk)*beta38(sk,nl) 
-    beta42(3*(r-1)+2,ml)=beta39(3*(r-1)+2,mk)*beta38(mk,ml)&
-                        +beta39(3*(r-1)+2,gk)*beta38(gk,ml) 
-    beta42(3*(r-1)+3,rl)=beta39(3*(r-1)+3,rk)*beta38(rk,rl)&
-                        +beta39(3*(r-1)+3,hk)*beta38(hk,rl) 
-    beta42(3*(r-1)+1,sl)=beta39(3*(r-1)+1,nk)*beta38(nk,sl)&
-                        +beta39(3*(r-1)+1,sk)*beta38(sk,sl) 
-    beta42(3*(r-1)+2,gl)=beta39(3*(r-1)+2,mk)*beta38(mk,gl)&
-                        +beta39(3*(r-1)+2,gk)*beta38(gk,gl) 
-    beta42(3*(r-1)+3,hl)=beta39(3*(r-1)+3,rk)*beta38(rk,hl)&
-                        +beta39(3*(r-1)+3,hk)*beta38(hk,hl)
-  endif
-
-  if (i_kk.ne.j_kk.and.i_ll.eq.j_ll) then
-
-    beta40(3*(r-1)+1,nk)=beta38(3*(r-1)+1,nl)*beta39(nl,nk)
-    beta40(3*(r-1)+2,mk)=beta38(3*(r-1)+2,ml)*beta39(ml,mk)
-    beta40(3*(r-1)+3,rk)=beta38(3*(r-1)+3,rl)*beta39(rl,rk)
-    beta40(3*(r-1)+1,sk)=beta38(3*(r-1)+1,nl)*beta39(nl,sk)
-    beta40(3*(r-1)+2,gk)=beta38(3*(r-1)+2,ml)*beta39(ml,gk)
-    beta40(3*(r-1)+3,hk)=beta38(3*(r-1)+3,rl)*beta39(rl,hk)
-
-    beta42(3*(r-1)+1,nl)=beta39(3*(r-1)+1,nk)*beta38(nk,nl)&
-                        +beta39(3*(r-1)+1,sk)*beta38(sk,nl) 
-    beta42(3*(r-1)+2,ml)=beta39(3*(r-1)+2,mk)*beta38(mk,ml)&
-                        +beta39(3*(r-1)+2,gk)*beta38(gk,ml) 
-    beta42(3*(r-1)+3,rl)=beta39(3*(r-1)+3,rk)*beta38(rk,rl)&
-                        +beta39(3*(r-1)+3,hk)*beta38(hk,rl) 
-
-  endif
-
-  if (i_kk.eq.j_kk.and.i_ll.ne.j_ll) then
-
-    beta40(3*(r-1)+1,nk)=beta38(3*(r-1)+1,nl)*beta39(nl,nk)&
-                        +beta38(3*(r-1)+1,sl)*beta39(sl,nk) 
-    beta40(3*(r-1)+2,mk)=beta38(3*(r-1)+2,ml)*beta39(ml,mk)&
-                        +beta38(3*(r-1)+2,gl)*beta39(gl,mk) 
-    beta40(3*(r-1)+3,rk)=beta38(3*(r-1)+3,rl)*beta39(rl,rk)&
-                        +beta38(3*(r-1)+3,hl)*beta39(hl,rk) 
-
-    beta42(3*(r-1)+1,nl)=beta39(3*(r-1)+1,nk)*beta38(nk,nl)
-    beta42(3*(r-1)+2,ml)=beta39(3*(r-1)+2,mk)*beta38(mk,ml)
-    beta42(3*(r-1)+3,rl)=beta39(3*(r-1)+3,rk)*beta38(rk,rl)
-    beta42(3*(r-1)+1,sl)=beta39(3*(r-1)+1,nk)*beta38(nk,sl)
-    beta42(3*(r-1)+2,gl)=beta39(3*(r-1)+2,mk)*beta38(mk,gl)
-    beta42(3*(r-1)+3,hl)=beta39(3*(r-1)+3,rk)*beta38(rk,hl)
-
-  endif
-
-  if (i_kk.eq.j_kk.and.i_ll.eq.j_ll) then
-
-    beta40(3*(r-1)+1,nk)=beta38(3*(r-1)+1,nl)*beta39(nl,nk)
-    beta40(3*(r-1)+2,mk)=beta38(3*(r-1)+2,ml)*beta39(ml,mk)
-    beta40(3*(r-1)+3,rk)=beta38(3*(r-1)+3,rl)*beta39(rl,rk)
-
-    beta42(3*(r-1)+1,nl)=beta39(3*(r-1)+1,nk)*beta38(nk,nl)
-    beta42(3*(r-1)+2,ml)=beta39(3*(r-1)+2,mk)*beta38(mk,ml)
-    beta42(3*(r-1)+3,rl)=beta39(3*(r-1)+3,rk)*beta38(rk,rl)
-
-  endif
-
-enddo
-
-!**************************
-!
-! FINDING TRACE OF MATRICES
-!
-!**************************
-
-!Xi=tr[betaJm]
-
-Xi=betaJm(i,i)+betaJm(j,j)
-
-nu6=beta28(3*(i-1)+1,3*(i-1)+1)&
-   +beta28(3*(i-1)+2,3*(i-1)+2)&
-   +beta28(3*(i-1)+3,3*(i-1)+3)&
-   +beta28(3*(j-1)+1,3*(j-1)+1)&
-   +beta28(3*(j-1)+2,3*(j-1)+2)&
-   +beta28(3*(j-1)+3,3*(j-1)+3)
-
-nu7=beta32(3*(i-1)+1,3*(i-1)+1)&
-   +beta32(3*(i-1)+2,3*(i-1)+2)&
-   +beta32(3*(i-1)+3,3*(i-1)+3)&
-   +beta32(3*(j-1)+1,3*(j-1)+1)&
-   +beta32(3*(j-1)+2,3*(j-1)+2)&
-   +beta32(3*(j-1)+3,3*(j-1)+3) 
-
-nu8=beta37(3*(i-1)+1,3*(i-1)+1)&
-   +beta37(3*(i-1)+2,3*(i-1)+2)&
-   +beta37(3*(i-1)+3,3*(i-1)+3)&
-   +beta37(3*(j-1)+1,3*(j-1)+1)&
-   +beta37(3*(j-1)+2,3*(j-1)+2)&
-   +beta37(3*(j-1)+3,3*(j-1)+3) 
-
-if (i.eq.j) then 
-
-  Xi=betaJm(i,i)
-
-nu6=beta28(3*(i-1)+1,3*(i-1)+1)&
-   +beta28(3*(i-1)+2,3*(i-1)+2)&
-   +beta28(3*(i-1)+3,3*(i-1)+3)
-
-nu7=beta32(3*(i-1)+1,3*(i-1)+1)&
-   +beta32(3*(i-1)+2,3*(i-1)+2)&
-   +beta32(3*(i-1)+3,3*(i-1)+3)
-
-nu8=beta37(3*(i-1)+1,3*(i-1)+1)&
-   +beta37(3*(i-1)+2,3*(i-1)+2)&
-   +beta37(3*(i-1)+3,3*(i-1)+3) 
-
-endif
-
-!write(*,*)'Xi',Xi
-
-!write(*,*)'nu6,nu7,nu8',nu6,nu7,nu8
-
-!**************************
-!
-! Potential Energy Gradient
-!
-!**************************
-
-if (grad_k.or.grad_l) then
-
-  alpha25=ZERO
-
-  do r=1,n
-    do t=1,n
-
-      alpha25(r,t)=betaJm(r,i)*inv_tAkl(i,t)&
-                  +betaJm(r,j)*inv_tAkl(j,t)
-
-      alpha25(r,t)=betaJm(r,i)*inv_tAkl(i,t)&
-                  +betaJm(r,j)*inv_tAkl(j,t) 
-
-      if (i.eq.j) then
-   
-        alpha25(r,t)=betaJm(r,i)*inv_tAkl(i,t)
-   
-      endif
-
-    enddo
-  enddo
-
-!write(*,*)'alpha25'
-!do r=1,n
-!  write(*,9292)(alpha25(r,t),t=1,n)
-!enddo
-
-  resultJk=ZERO  
-  indx=ZERO
-  do t=1,n  
-    do r=t,n  
-      indx=indx+1
-      temp1=ZERO  
-      do k=1,n  
-        temp1=temp1+(alpha25(r,k)+alpha25(k,r))*Lk(k,t)
-      enddo
-      resultJk(indx)=temp1
-    enddo
-  enddo
-
-!write(*,*)'resultJk',resultJk
-
-dnu6=ZERO
-dnu66=ZERO
-dnu666=ZERO
-dnu7=ZERO
-dnu77=ZERO
-dnu777=ZERO
-dnu8=ZERO
-dnu88=ZERO
-dnu888=ZERO
-dnu8888=ZERO
-
-do r=1,n
-
-  do t=1,n
-
-    dnu6(3*(r-1)+1,3*(t-1)+1)=beta28(3*(r-1)+1,3*(i-1)+1)*inv_tAklI(3*(i-1)+1,3*(t-1)+1)&
-                             +beta28(3*(r-1)+1,3*(j-1)+1)*inv_tAklI(3*(j-1)+1,3*(t-1)+1)
-    dnu6(3*(r-1)+2,3*(t-1)+2)=beta28(3*(r-1)+2,3*(i-1)+2)*inv_tAklI(3*(i-1)+2,3*(t-1)+2)&
-                             +beta28(3*(r-1)+2,3*(j-1)+2)*inv_tAklI(3*(j-1)+2,3*(t-1)+2)
-    dnu6(3*(r-1)+3,3*(t-1)+3)=beta28(3*(r-1)+3,3*(i-1)+3)*inv_tAklI(3*(i-1)+3,3*(t-1)+3)&
-                             +beta28(3*(r-1)+3,3*(j-1)+3)*inv_tAklI(3*(j-1)+3,3*(t-1)+3)
-
-    dnu7(3*(r-1)+1,3*(t-1)+1)=beta32(3*(r-1)+1,3*(i-1)+1)*inv_tAklI(3*(i-1)+1,3*(t-1)+1)&
-                             +beta32(3*(r-1)+1,3*(j-1)+1)*inv_tAklI(3*(j-1)+1,3*(t-1)+1) 
-    dnu7(3*(r-1)+2,3*(t-1)+2)=beta32(3*(r-1)+2,3*(i-1)+2)*inv_tAklI(3*(i-1)+2,3*(t-1)+2)&
-                             +beta32(3*(r-1)+2,3*(j-1)+2)*inv_tAklI(3*(j-1)+2,3*(t-1)+2) 
-    dnu7(3*(r-1)+3,3*(t-1)+3)=beta32(3*(r-1)+3,3*(i-1)+3)*inv_tAklI(3*(i-1)+3,3*(t-1)+3)&
-                             +beta32(3*(r-1)+3,3*(j-1)+3)*inv_tAklI(3*(j-1)+3,3*(t-1)+3) 
-
-    dnu8(3*(r-1)+1,3*(t-1)+1)=beta37(3*(r-1)+1,3*(i-1)+1)*inv_tAklI(3*(i-1)+1,3*(t-1)+1)&
-                             +beta37(3*(r-1)+1,3*(j-1)+1)*inv_tAklI(3*(j-1)+1,3*(t-1)+1)
-    dnu8(3*(r-1)+2,3*(t-1)+2)=beta37(3*(r-1)+2,3*(i-1)+2)*inv_tAklI(3*(i-1)+2,3*(t-1)+2)&
-                             +beta37(3*(r-1)+2,3*(j-1)+2)*inv_tAklI(3*(j-1)+2,3*(t-1)+2)
-    dnu8(3*(r-1)+3,3*(t-1)+3)=beta37(3*(r-1)+3,3*(i-1)+3)*inv_tAklI(3*(i-1)+3,3*(t-1)+3)&
-                             +beta37(3*(r-1)+3,3*(j-1)+3)*inv_tAklI(3*(j-1)+3,3*(t-1)+3)
-
-    dnu888(3*(r-1)+1,3*(t-1)+1)=beta41(3*(r-1)+1,3*(i-1)+1)*inv_tAklI(3*(i-1)+1,3*(t-1)+1)&
-                               +beta41(3*(r-1)+1,3*(j-1)+1)*inv_tAklI(3*(j-1)+1,3*(t-1)+1)
-    dnu888(3*(r-1)+2,3*(t-1)+2)=beta41(3*(r-1)+2,3*(i-1)+2)*inv_tAklI(3*(i-1)+2,3*(t-1)+2)&
-                               +beta41(3*(r-1)+2,3*(j-1)+2)*inv_tAklI(3*(j-1)+2,3*(t-1)+2)
-    dnu888(3*(r-1)+3,3*(t-1)+3)=beta41(3*(r-1)+3,3*(i-1)+3)*inv_tAklI(3*(i-1)+3,3*(t-1)+3)&
-                               +beta41(3*(r-1)+3,3*(j-1)+3)*inv_tAklI(3*(j-1)+3,3*(t-1)+3)
-
-if (i.eq.j) then
-
-    dnu6(3*(r-1)+1,3*(t-1)+1)=beta28(3*(r-1)+1,3*(i-1)+1)*inv_tAklI(3*(i-1)+1,3*(t-1)+1)
-    dnu6(3*(r-1)+2,3*(t-1)+2)=beta28(3*(r-1)+2,3*(i-1)+2)*inv_tAklI(3*(i-1)+2,3*(t-1)+2)
-    dnu6(3*(r-1)+3,3*(t-1)+3)=beta28(3*(r-1)+3,3*(i-1)+3)*inv_tAklI(3*(i-1)+3,3*(t-1)+3)
-
-    dnu7(3*(r-1)+1,3*(t-1)+1)=beta32(3*(r-1)+1,3*(i-1)+1)*inv_tAklI(3*(i-1)+1,3*(t-1)+1)
-    dnu7(3*(r-1)+2,3*(t-1)+2)=beta32(3*(r-1)+2,3*(i-1)+2)*inv_tAklI(3*(i-1)+2,3*(t-1)+2)
-    dnu7(3*(r-1)+3,3*(t-1)+3)=beta32(3*(r-1)+3,3*(i-1)+3)*inv_tAklI(3*(i-1)+3,3*(t-1)+3)
-
-    dnu8(3*(r-1)+1,3*(t-1)+1)=beta37(3*(r-1)+1,3*(i-1)+1)*inv_tAklI(3*(i-1)+1,3*(t-1)+1)
-    dnu8(3*(r-1)+2,3*(t-1)+2)=beta37(3*(r-1)+2,3*(i-1)+2)*inv_tAklI(3*(i-1)+2,3*(t-1)+2)
-    dnu8(3*(r-1)+3,3*(t-1)+3)=beta37(3*(r-1)+3,3*(i-1)+3)*inv_tAklI(3*(i-1)+3,3*(t-1)+3)
-
-    dnu888(3*(r-1)+1,3*(t-1)+1)=beta41(3*(r-1)+1,3*(i-1)+1)*inv_tAklI(3*(i-1)+1,3*(t-1)+1)
-    dnu888(3*(r-1)+2,3*(t-1)+2)=beta41(3*(r-1)+2,3*(i-1)+2)*inv_tAklI(3*(i-1)+2,3*(t-1)+2)
-    dnu888(3*(r-1)+3,3*(t-1)+3)=beta41(3*(r-1)+3,3*(i-1)+3)*inv_tAklI(3*(i-1)+3,3*(t-1)+3)
-
-endif
- 
-if (i_kk.ne.j_kk) then
-
-   dnu66(3*(r-1)+1,3*(t-1)+1)=beta30(3*(r-1)+1,nk)*inv_tAklI(nk,3*(t-1)+1)&
-                             +beta30(3*(r-1)+1,sk)*inv_tAklI(sk,3*(t-1)+1)
-   dnu66(3*(r-1)+2,3*(t-1)+2)=beta30(3*(r-1)+2,mk)*inv_tAklI(mk,3*(t-1)+2)&
-                             +beta30(3*(r-1)+2,gk)*inv_tAklI(gk,3*(t-1)+2)
-   dnu66(3*(r-1)+3,3*(t-1)+3)=beta30(3*(r-1)+3,rk)*inv_tAklI(rk,3*(t-1)+3)&
-                             +beta30(3*(r-1)+3,hk)*inv_tAklI(hk,3*(t-1)+3)
-
-   dnu777(3*(r-1)+1,3*(t-1)+1)=beta36(3*(r-1)+1,nk)*inv_tAklI(nk,3*(t-1)+1)&
-                              +beta36(3*(r-1)+1,sk)*inv_tAklI(sk,3*(t-1)+1) 
-   dnu777(3*(r-1)+2,3*(t-1)+2)=beta36(3*(r-1)+2,mk)*inv_tAklI(mk,3*(t-1)+2)&
-                              +beta36(3*(r-1)+2,gk)*inv_tAklI(gk,3*(t-1)+2) 
-   dnu777(3*(r-1)+3,3*(t-1)+3)=beta36(3*(r-1)+3,rk)*inv_tAklI(rk,3*(t-1)+3)&
-                              +beta36(3*(r-1)+3,hk)*inv_tAklI(hk,3*(t-1)+3)
-
-   dnu88(3*(r-1)+1,3*(t-1)+1)=beta40(3*(r-1)+1,nk)*inv_tAklI(nk,3*(t-1)+1)&
-                             +beta40(3*(r-1)+1,sk)*inv_tAklI(sk,3*(t-1)+1)
-   dnu88(3*(r-1)+2,3*(t-1)+2)=beta40(3*(r-1)+2,mk)*inv_tAklI(mk,3*(t-1)+2)&
-                             +beta40(3*(r-1)+2,gk)*inv_tAklI(gk,3*(t-1)+2)
-   dnu88(3*(r-1)+3,3*(t-1)+3)=beta40(3*(r-1)+3,rk)*inv_tAklI(rk,3*(t-1)+3)&
-                             +beta40(3*(r-1)+3,hk)*inv_tAklI(hk,3*(t-1)+3)
-
-endif
-
-if (i_kk.eq.j_kk) then
-
-  dnu66(3*(r-1)+1,3*(t-1)+1)=beta30(3*(r-1)+1,nk)*inv_tAklI(nk,3*(t-1)+1)
-  dnu66(3*(r-1)+2,3*(t-1)+2)=beta30(3*(r-1)+2,mk)*inv_tAklI(mk,3*(t-1)+2)
-  dnu66(3*(r-1)+3,3*(t-1)+3)=beta30(3*(r-1)+3,rk)*inv_tAklI(rk,3*(t-1)+3)
-
-  dnu777(3*(r-1)+1,3*(t-1)+1)=beta36(3*(r-1)+1,nk)*inv_tAklI(nk,3*(t-1)+1)
-  dnu777(3*(r-1)+2,3*(t-1)+2)=beta36(3*(r-1)+2,mk)*inv_tAklI(mk,3*(t-1)+2)   
-  dnu777(3*(r-1)+3,3*(t-1)+3)=beta36(3*(r-1)+3,rk)*inv_tAklI(rk,3*(t-1)+3)
-
-  dnu88(3*(r-1)+1,3*(t-1)+1)=beta40(3*(r-1)+1,nk)*inv_tAklI(nk,3*(t-1)+1)
-  dnu88(3*(r-1)+2,3*(t-1)+2)=beta40(3*(r-1)+2,mk)*inv_tAklI(mk,3*(t-1)+2)
-  dnu88(3*(r-1)+3,3*(t-1)+3)=beta40(3*(r-1)+3,rk)*inv_tAklI(rk,3*(t-1)+3)
-
-endif
-
-if (i_ll.ne.j_ll) then
-
-   dnu666(3*(r-1)+1,3*(t-1)+1)=beta31(3*(r-1)+1,nl)*inv_tAklI(nl,3*(t-1)+1)&
-                              +beta31(3*(r-1)+1,sl)*inv_tAklI(sl,3*(t-1)+1)
-   dnu666(3*(r-1)+2,3*(t-1)+2)=beta31(3*(r-1)+2,ml)*inv_tAklI(ml,3*(t-1)+2)&
-                              +beta31(3*(r-1)+2,gl)*inv_tAklI(gl,3*(t-1)+2)
-   dnu666(3*(r-1)+3,3*(t-1)+3)=beta31(3*(r-1)+3,rl)*inv_tAklI(rl,3*(t-1)+3)&
-                              +beta31(3*(r-1)+3,hl)*inv_tAklI(hl,3*(t-1)+3)
-
-   dnu77(3*(r-1)+1,3*(t-1)+1)=beta35(3*(r-1)+1,nl)*inv_tAklI(nl,3*(t-1)+1)&
-                             +beta35(3*(r-1)+1,sl)*inv_tAklI(sl,3*(t-1)+1) 
-   dnu77(3*(r-1)+2,3*(t-1)+2)=beta35(3*(r-1)+2,ml)*inv_tAklI(ml,3*(t-1)+2)&
-                             +beta35(3*(r-1)+2,gl)*inv_tAklI(gl,3*(t-1)+2) 
-   dnu77(3*(r-1)+3,3*(t-1)+3)=beta35(3*(r-1)+3,rl)*inv_tAklI(rl,3*(t-1)+3)&
-                             +beta35(3*(r-1)+3,hl)*inv_tAklI(hl,3*(t-1)+3) 
-
-   dnu8888(3*(r-1)+1,3*(t-1)+1)=beta42(3*(r-1)+1,nl)*inv_tAklI(nl,3*(t-1)+1)&
-                               +beta42(3*(r-1)+1,sl)*inv_tAklI(sl,3*(t-1)+1) 
-   dnu8888(3*(r-1)+2,3*(t-1)+2)=beta42(3*(r-1)+2,ml)*inv_tAklI(ml,3*(t-1)+2)&
-                               +beta42(3*(r-1)+2,gl)*inv_tAklI(gl,3*(t-1)+2) 
-   dnu8888(3*(r-1)+3,3*(t-1)+3)=beta42(3*(r-1)+3,rl)*inv_tAklI(rl,3*(t-1)+3)&
-                               +beta42(3*(r-1)+3,hl)*inv_tAklI(hl,3*(t-1)+3) 
-
-endif
-
-if (i_ll.eq.j_ll) then
-
-  dnu666(3*(r-1)+1,3*(t-1)+1)=beta31(3*(r-1)+1,nl)*inv_tAklI(nl,3*(t-1)+1)
-  dnu666(3*(r-1)+2,3*(t-1)+2)=beta31(3*(r-1)+2,ml)*inv_tAklI(ml,3*(t-1)+2)
-  dnu666(3*(r-1)+3,3*(t-1)+3)=beta31(3*(r-1)+3,rl)*inv_tAklI(rl,3*(t-1)+3)
-
-  dnu77(3*(r-1)+1,3*(t-1)+1)=beta35(3*(r-1)+1,nl)*inv_tAklI(nl,3*(t-1)+1)
-  dnu77(3*(r-1)+2,3*(t-1)+2)=beta35(3*(r-1)+2,ml)*inv_tAklI(ml,3*(t-1)+2)
-  dnu77(3*(r-1)+3,3*(t-1)+3)=beta35(3*(r-1)+3,rl)*inv_tAklI(rl,3*(t-1)+3)
-
-  dnu8888(3*(r-1)+1,3*(t-1)+1)=beta42(3*(r-1)+1,nl)*inv_tAklI(nl,3*(t-1)+1)
-  dnu8888(3*(r-1)+2,3*(t-1)+2)=beta42(3*(r-1)+2,ml)*inv_tAklI(ml,3*(t-1)+2)
-  dnu8888(3*(r-1)+3,3*(t-1)+3)=beta42(3*(r-1)+3,rl)*inv_tAklI(rl,3*(t-1)+3)
-
-endif
-
-  enddo
-enddo
-
-endif
-
-if (grad_k) then
-
-  dnu6k=ZERO
-  dnu7k=ZERO
-  dnu8k=ZERO
-
-  indx=ZERO
-
-  do t=1,3*n
-    do r=t,3*n
-
-     indx=indx+1
-
-      temp1=ZERO
-      temp2=ZERO
-      temp3=ZERO
-      temp4=ZERO
-      temp5=ZERO
-      temp6=ZERO
-      temp7=ZERO
-      temp8=ZERO
-      temp9=ZERO
-      temp10=ZERO
-
-      do k=1,3*n
-
-        temp1=temp1+(dnu6(r,k)+dnu6(k,r))*LkI(k,t)
-        temp2=temp2+(dnu66(r,k)+dnu66(k,r))*LkI(k,t)
-        temp3=temp3+(dnu666(r,k)+dnu666(k,r))*LkI(k,t)
-        temp4=temp4+(dnu7(r,k)+dnu7(k,r))*LkI(k,t)
-        temp5=temp5+(dnu77(r,k)+dnu77(k,r))*LkI(k,t)
-        temp6=temp6+(dnu777(r,k)+dnu777(k,r))*LkI(k,t)
-        temp7=temp7+(dnu8(r,k)+dnu8(k,r))*LkI(k,t)
-        temp8=temp8+(dnu88(r,k)+dnu88(k,r))*LkI(k,t)
-        temp9=temp9+(dnu888(r,k)+dnu888(k,r))*LkI(k,t)
-        temp10=temp10+(dnu8888(r,k)+dnu8888(k,r))*LkI(k,t)
-
-     enddo
-
-     dnu6k(indx)=temp1+temp2+temp3
-     dnu7k(indx)=temp4+temp5+temp6
-     dnu8k(indx)=temp7+temp8+temp9+temp10
-
-  enddo
-enddo
-
-endif
-
-if (grad_l) then 
-
-  Z1=ZERO
-  do r=1,n
-    do t=1,n
-      temp1=ZERO
-      do k=1,n
-        temp1=temp1+P(r,k)*alpha25(k,t)
-      enddo
-      Z1(r,t)=temp1
-    enddo
-  enddo
-  do r=1,n
-    do t=1,n
-      temp1=ZERO
-      do k=1,n
-        temp1=temp1+Z1(r,k)*P(t,k)
-      enddo
-      alpha25p(r,t)=temp1
-    enddo
-  enddo
-
-  resultJl=ZERO
-  indx=ZERO
-  do t=1,n
-    do r=t,n
-      indx=indx+1  
-      temp1=ZERO
-      do k=1,n    
-
-        temp1=temp1+(alpha25p(r,k)+alpha25p(k,r))*Ll(k,t)
-
-      enddo
-
-      resultJl(indx)=temp1
-
-    enddo
-  enddo
-
-  Z3=ZERO
-  Z4=ZERO
-  Z5=ZERO
-  Z6=ZERO
-  Z7=ZERO
-  Z8=ZERO
-  Z9=ZERO
-  Z10=ZERO
-  Z11=ZERO
-  Z12=ZERO
-
-  do r=1,3*n
-    do t=1,3*n
-
-      temp1=ZERO
-      temp2=ZERO
-      temp3=ZERO
-      temp4=ZERO
-      temp5=ZERO
-      temp6=ZERO
-      temp7=ZERO
-      temp8=ZERO
-      temp9=ZERO
-      temp10=ZERO
-
-      do k=1,3*n
-
-        temp1=temp1+pP(r,k)*dnu6(k,t)
-        temp2=temp2+pP(r,k)*dnu66(k,t)
-        temp3=temp3+pP(r,k)*dnu666(k,t)
-        temp4=temp4+pP(r,k)*dnu7(k,t)
-        temp5=temp5+pP(r,k)*dnu77(k,t)
-        temp6=temp6+pP(r,k)*dnu777(k,t)
-        temp7=temp7+pP(r,k)*dnu8(k,t)
-        temp8=temp8+pP(r,k)*dnu88(k,t)  
-        temp9=temp9+pP(r,k)*dnu888(k,t) 
-        temp10=temp10+pP(r,k)*dnu8888(k,t)
-
-    enddo
-
-      Z3(r,t)=temp1
-      Z4(r,t)=temp2
-      Z5(r,t)=temp3
-      Z6(r,t)=temp4
-      Z7(r,t)=temp5
-      Z8(r,t)=temp6
-      Z9(r,t)=temp7
-      Z10(r,t)=temp8
-      Z11(r,t)=temp9
-      Z12(r,t)=temp10
-
-    enddo
-  enddo
-
-  do r=1,3*n
-    do t=1,3*n
-
-      temp1=ZERO
-      temp2=ZERO
-      temp3=ZERO
-      temp4=ZERO
-      temp5=ZERO
-      temp6=ZERO
-      temp7=ZERO
-      temp8=ZERO
-      temp9=ZERO
-      temp10=ZERO
-
-      do k=1,3*n
-
-        temp1=temp1+Z3(r,k)*Pp(t,k)
-        temp2=temp2+Z4(r,k)*Pp(t,k)
-        temp3=temp3+Z5(r,k)*Pp(t,k)
-        temp4=temp4+Z6(r,k)*Pp(t,k)
-        temp5=temp5+Z7(r,k)*Pp(t,k)
-        temp6=temp6+Z8(r,k)*Pp(t,k)
-        temp7=temp7+Z9(r,k)*Pp(t,k)
-        temp8=temp8+Z10(r,k)*Pp(t,k)
-        temp9=temp9+Z11(r,k)*Pp(t,k)
-        temp10=temp10+Z12(r,k)*Pp(t,k)
-
-      enddo
-
-      dnu6p(r,t)=temp1
-      dnu66p(r,t)=temp2
-      dnu666p(r,t)=temp3
-      dnu7p(r,t)=temp4
-      dnu77p(r,t)=temp5
-      dnu777p(r,t)=temp6
-      dnu8p(r,t)=temp7
-      dnu88p(r,t)=temp8  
-      dnu888p(r,t)=temp9 
-      dnu8888p(r,t)=temp10
-
-    enddo
-  enddo
-
-  dnu6l=ZERO
-  dnu7l=ZERO
-  dnu8l=ZERO
-
-  indx=ZERO
-  do t=1,3*n
-    do r=t,3*n
-
-      indx=indx+1
-      
-      temp1=ZERO
-      temp2=ZERO
-      temp3=ZERO
-      temp4=ZERO
-      temp5=ZERO
-      temp6=ZERO
-      temp7=ZERO
-      temp8=ZERO
-      temp9=ZERO
-      temp10=ZERO
-
-      do k=1,3*n
-
-        temp1=temp1+(dnu6p(r,k)+dnu6p(k,r))*LlI(k,t)
-        temp2=temp2+(dnu66p(r,k)+dnu66p(k,r))*LlI(k,t)
-        temp3=temp3+(dnu666p(r,k)+dnu666p(k,r))*LlI(k,t)
-        temp4=temp4+(dnu7p(r,k)+dnu7p(k,r))*LlI(k,t)
-        temp5=temp5+(dnu77p(r,k)+dnu77p(k,r))*LlI(k,t)
-        temp6=temp6+(dnu777p(r,k)+dnu777p(k,r))*LlI(k,t)
-        temp7=temp7+(dnu8p(r,k)+dnu8p(k,r))*LlI(k,t)
-        temp8=temp8+(dnu88p(r,k)+dnu88p(k,r))*LlI(k,t)
-        temp9=temp9+(dnu888p(r,k)+dnu888p(k,r))*LlI(k,t)
-        temp10=temp10+(dnu8888p(r,k)+dnu8888p(k,r))*LlI(k,t)
-
-     enddo
-
-     dnu6l(indx)=temp1+temp2+temp3
-     dnu7l(indx)=temp4+temp5+temp6
-     dnu8l(indx)=temp7+temp8+temp9+temp10
-
-  enddo
-enddo
-
-endif
-
-!********************
-!
-! COMPUTING POTENTIAL
-! (non-normalized)   
-!********************
-
-Rkl=TWO*(PI**((THREE*n-ONE)/TWO))&
-*(det_tAkl**(-THREE/TWO))&
-*(Xi**(-ONE/TWO))&
-*(ONEHALF*nu3&
--(ONE/(SIX))*(Xi**(-ONE))*(nu6+nu7)&
-+(ONE/(TEN))*(Xi**(-TWO))*nu8)
-
-if (i.ne.j) Vkl=Vkl+Glob_PseudoCharge(i)*Glob_PseudoCharge(j)*Rkl
-
-if (i.eq.j) Vkl=Vkl+Glob_PseudoCharge0*Glob_PseudoCharge(i)*Rkl
-
-!if (i.ne.j) write(*,*)'i,j,Rkl,Vkl',i,j,Rkl,Glob_PseudoCharge(i)*Glob_PseudoCharge(j)*Rkl
-!if (i.eq.j) write(*,*)'i,j,Rkl,Vkl',i,j,Rkl,Glob_PseudoCharge0*Glob_PseudoCharge(i)*Rkl
-
-if (grad_k) then
-
-pk=ZERO
-
-  do r=1,n*(n+1)/2
-
-    temp1=ZERO
-    temp2=ZERO
-    temp3=ZERO
-    temp4=ZERO
-       
-    do k=1,3*n*(3*n+1)/2
-
-!dnu3
-      temp1=temp1+dnu3k(k)*trans(k,r)
-!dnu6
-      temp2=temp2+dnu6k(k)*trans(k,r)
-!dnu7
-      temp3=temp3+dnu7k(k)*trans(k,r)
-!dnu8
-      temp4=temp4+dnu8k(k)*trans(k,r)
-
-   enddo
-
-pk(r)=pk(r)+TWO*(PI**((THREE*n-ONE)/TWO))&
-    *(det_tAkl**(-THREE/TWO))&
-    *(Xi**(-ONE/TWO))&
-    *((ONEHALF*(Xi**(-ONE))*resultJk(r)-THREEHALF*resultAk(r))&
-      *(ONEHALF*nu3&
-        -(ONE/SIX)*(Xi**(-ONE))*(nu6+nu7)&
-        +(ONE/TEN)*(Xi**(-TWO))*nu8)&
-      -ONEHALF*temp1&
-      -(ONE/SIX)*(Xi**(-TWO))*resultJk(r)*(nu6+nu7)&
-      +(ONE/SIX)*(Xi**(-ONE))*(temp2+temp3)&
-      +(ONE/FIVE)*(Xi**(-THREE))*resultJk(r)*nu8&
-      -(ONE/TEN)*(Xi**(-TWO))*temp4)
-
-  enddo
-
-  do r=1,n*(n+1)/2
-
-!    if (i.ne.j) write(*,*)'i,j,pk',i,j,Glob_PseudoCharge(i)*Glob_PseudoCharge(j)*pk(r)
-!    if (i.eq.j) write(*,*)'i,j,pk',i,j,Glob_PseudoCharge0*Glob_PseudoCharge(i)*pk(r)
-
-    if (i.ne.j) Dk(r)=Dk(r)+Glob_PseudoCharge(i)*Glob_PseudoCharge(j)*pk(r)
-
-    if (i.eq.j) Dk(r)=Dk(r)+Glob_PseudoCharge0*Glob_PseudoCharge(i)*pk(r)
-
-  enddo
-
- endif
-
-if (grad_l) then
-
-pl=ZERO
-
-  do r=1,n*(n+1)/2
-
-    temp1=ZERO
-    temp2=ZERO
-    temp3=ZERO
-    temp4=ZERO
-
-    do k=1,3*n*(3*n+1)/2
-
-!dnu3
-      temp1=temp1+dnu3l(k)*trans(k,r)
-!dnu6
-      temp2=temp2+dnu6l(k)*trans(k,r)
-!dnu7
-      temp3=temp3+dnu7l(k)*trans(k,r)  
-!dnu8
-      temp4=temp4+dnu8l(k)*trans(k,r)  
-
-   enddo
-
-pl(r)=pl(r)+TWO*(PI**((THREE*n-ONE)/TWO))&
-    *(det_tAkl**(-THREE/TWO))&
-    *(Xi**(-ONE/TWO))&
-    *((ONEHALF*(Xi**(-ONE))*resultJl(r)-THREEHALF*resultAl(r))&
-      *(ONEHALF*nu3&
-        -(ONE/SIX)*(Xi**(-ONE))*(nu6+nu7)&
-        +(ONE/TEN)*(Xi**(-TWO))*nu8)&
-      -ONEHALF*temp1&        
-      -(ONE/SIX)*(Xi**(-TWO))*resultJl(r)*(nu6+nu7)&
-      +(ONE/SIX)*(Xi**(-ONE))*(temp2+temp3)&
-      +(ONE/FIVE)*(Xi**(-THREE))*resultJl(r)*nu8&
-      -(ONE/TEN)*(Xi**(-TWO))*temp4)
-
-  enddo
-
-  do r=1,n*(n+1)/2
-
-!    if (i.ne.j) write(*,*)'i,j,pl',i,j,Glob_PseudoCharge(i)*Glob_PseudoCharge(j)*pl(r)
-!    if (i.eq.j) write(*,*)'i,j,pl',i,j,Glob_PseudoCharge0*Glob_PseudoCharge(i)*pl(r)
-
-    if (i.ne.j) Dl(r)=Dl(r)+Glob_PseudoCharge(i)*Glob_PseudoCharge(j)*pl(r)
-
-    if (i.eq.j) Dl(r)=Dl(r)+Glob_PseudoCharge0*Glob_PseudoCharge(i)*pl(r)
-
-  enddo
-
- endif
-
-  enddo !POTENTIAL LOOP
-enddo  !POTENTIAL LOOP
-
-!1111 continue
-
-!write(*,*)'Dk',Dk
-!write(*,*)'Dl',Dl
-
-Hkl=Tkl+Vkl
-
-!write(*,*)'Skl,Tkl,Vkl,Hkl',Skl,Tkl,Vkl,Hkl
-
-end subroutine
-
-subroutine MatrixElementsL1ForExpcVals(m_k, m_l, vechLk, vechLl, Pbra, Pket, Hkl, Skl, Tkl, Vkl, &
-               rm2kl, rmkl, rkl, r2kl, deltarkl, MVkl, Darwinkl, OOkl)
-!This subroutine computes symmetry adapted matrix elements 
-!with two real L=1 correlated Gaussians. These matrix elements
-!are used in calculations of expectation values.
-!Symmetry adaption is applied to the bra and ket using permutation matrices Pbra and Pket
+!where m_k,mm_k is some integers between 1 and n (n is the number of 
+!pseudoparticles). Symmetry adaption is applied to the ket using 
+!permutation matrix P
 !
 !Input:     
-!   m_k, m_l :: integers that determine which z-component is in the
-!       premultiplier of the Gaussian
-!   vechLk, vechLl :: Arrays of length (n(n+1)/2) of exponential parameters. 
-!   Pbra :: The symmetry permutation matrix of size n x n that is applied to bra
-!   Pket :: The symmetry permutation matrix of size n x n that is applied to ket
-!Output (all matrix elements are computed with normilized functions):
-!   Hkl	 ::	Hamiltonian
-!   Skl	 ::	Overlap
-!   Tkl  :: Kinetic energy
-!   Vkl  :: Potential energy
-!   rm2kl :: 1/r_i^2, 1/r_{ij}^2
-!   rmkl :: 1/r_i, 1/r_{ij}
-!   rkl  :: r_i, r_{ij}
-!   r2kl :: r_i^2, r_{ij}^2
-!deltarkl:: delta(r_i), delta(r_{ij})
-!   MVkl :: Mass-velocity correction (without the factor of alpha**2)
-!Darwinkl:: Darwin correction (without the factor of alpha**2)
-!   OOkl :: Orbit-Orbit correction (without the factor of alpha**2)
+!   m_k,m_l,mm_k, mm_l :: integers that determine which x or y-components is in the
+!                premultiplier of the Gaussian
+!   vechLk, vechLl :: Arrays of length (n(n+1)/2) of 
+!     exponential parameters. 
+!   P  :: The symmetry permutation matrix of size n x n
+!   grad_k, grad_l :: Gradient flags
+!   grad_k=.true.  means that dHkldvechLk, dSkldvechLk need to be computed. 
+!   grad_l=.true.  means that dHkldvechLl, dSkldvechLl need to be computed.
+!Output:
+!   Hkl	 ::	Hamiltonian term (normalized)
+!   Skl	 ::	Overlap matrix element (normalized) 
+!   Dk,Dl:: derivatives of normalized Hkl and Skl wrt Paramk
+!           and Paraml respectively. They are ordered in the 
+!           following manner:
+!           Dk=(dHkldvechLk,dSkldvechLk)
+!           Dl=(dHkldvechLl,dSkldvechLl)
+
 
 !Arguments
-integer,intent(in)       :: m_k,m_l
-real(dprec),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
-real(dprec),intent(in)   :: Pbra(Glob_n,Glob_n),Pket(Glob_n,Glob_n)
-real(dprec),intent(out)  :: Hkl,Skl,Tkl,Vkl,MVkl,Darwinkl,OOkl
-real(dprec),intent(out)  :: rm2kl(Glob_n,Glob_n),rmkl(Glob_n,Glob_n)
-real(dprec),intent(out)  :: rkl(Glob_n,Glob_n),r2kl(Glob_n,Glob_n)
-real(dprec),intent(out)  :: deltarkl(Glob_n,Glob_n)
+integer,intent(in)          :: m_k,m_l,mm_k,mm_l
+real(dprec),intent(in)      :: vechLk(Glob_np), vechLl(Glob_np)
+real(dprec),intent(in)      :: P(Glob_n,Glob_n)
+real(dprec),intent(out)     :: Skl,Hkl,Tkl, Vkl
+real(dprec),intent(out)     :: Dk(2*Glob_np),Dl(2*Glob_np)
+logical,intent(in)          :: grad_k, grad_l
 
 !Parameters (These are needed to declare static arrays. Using static 
 !arrays makes the function call a little faster in comparison with 
@@ -3848,25 +52,42 @@ integer,parameter :: nnp=nn*(nn+1)/2
 
 !Local variables
 integer           n, np
-integer           tvk(nn),tvl(nn)
+integer           vl(nn),bl(nn),bk(nn)
+real(dprec)       dHkldvechLk(nnp), dHkldvechLl(nnp)
+real(dprec)       dSkldvechLk(nnp), dSkldvechLl(nnp)
 real(dprec)       Lk(nn,nn),Ll(nn,nn),inv_Lk(nn,nn),inv_Ll(nn,nn)
-real(dprec)       tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn)
+real(dprec)       Ak(nn,nn),tAl(nn,nn),tAkl(nn,nn)
 real(dprec)       inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn)
 real(dprec)       inv_tAkltAl(nn,nn),inv_tAkltAlM(nn,nn)
-real(dprec)       inv_tAklAk(nn,nn),inv_tAklAkM(nn,nn)
-real(dprec)       eta1(nn,nn),sqrt_eta1(nn,nn),eta2(nn,nn)
+real(dprec)       inv_tAklAk(nn,nn),inv_tAklAkM(nn,nn),MAkinv_tAkl(nn,nn),MAk(nn,nn)
+real(dprec)       eta1(nn,nn),sqrt_eta1(nn,nn),eta2(nn,nn),Rkl(nn,nn)
+real(dprec)       eta11(nn,nn),eta22(nn,nn),eta(nn,nn)
+real(dprec)       eta221(nn,nn),eta222(nn,nn),eta223(nn,nn),eta224(nn,nn),etan(nn,nn)
 real(dprec)       W1(nn,nn),W2(nn,nn),W3(nn,nn),W4(nn,nn)
-real(dprec)       inv_tAkltvl(nn),tvkinv_tAkl(nn),tvkinv_tAkltAlM(nn)
-real(dprec)       u1(nn),u2(nn),u3(nn)
-real(dprec)       temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8
+real(dprec)       twosym_tFkl(nn,nn),two_Fkk(nn,nn),two_Fll(nn,nn),twosym_tGkl(nn,nn)
+real(dprec)       tKkl1(nn,nn),tUkl(nn,nn),tWkl(nn,nn), Pkl(nn,nn), Mkl(nn,nn),tKkll(nn,nn)
+real(dprec)       tKkl2(nn,nn),tKkl3(nn,nn),tKkl4(nn,nn),tKkl5(nn,nn),tKkl6(nn,nn)
+real(dprec)       gkl(nn,nn)
+real(dprec)       twosym_tQkl(nn,nn),twosym_tDkl(nn,nn)
+real(dprec)       inv_tAklvl(nn),vkinv_tAkl(nn),vkinv_tAkltAlM(nn),inv_tAklbk(nn),vlinv_tAkl(nn)
+real(dprec)       inv_tAklbl(nn),bkinv_tAkl(nn),bkinv_tAkltAlM(nn),vlinv_tAklAkM(nn),vlMAkinv_tAkl(nn)
+real(dprec)       u1(nn),u2(nn),u3(nn),u331(nn),u332(nn),u333(nn),u334(nn),vlinv_tAkltAlM(nn)
+real(dprec)       u11(nn),u22(nn),u33(nn),u111(nn),u112(nn),u113(nn),u114(nn)
+real(dprec)       u221(nn),u222(nn),u223(nn),u224(nn)
+real(dprec)       temp1, temp2, temp3, temp4, temp5, temp6,temp44,temp444,temp11,temp22,temp66,temp666
+real(dprec)       temp661,temp662,temp663,temp664,h1
 real(dprec)       det_Lk, det_Ll, det_tAkl
-real(dprec)       tau1,tau2,tau3
+real(dprec)       tau1,tau2,tau3,tau11,tau22,tau33,m,kkl
+!real(dprec)       Tkl, Vkl
+real(dprec)       m1,m2,m3,tau331,tau332,tau333,tau334,tau221,tau222,tau223,tau224,tau221_new,tau222_new,tau221_ad,tau222_ad
+real(dprec)       temp441,temp442,temp443,temp4440,temp4441,temp4442,term1,term2,h,temp_n,temp4_new
 integer           i,j,k,q,t,indx
-real(dprec)       Mass_For_Darwin(0:nn)
+
+
 
 n=Glob_n
 np=Glob_np
-
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
 indx=0
 do i=1,n
@@ -3882,13 +103,13 @@ enddo
 do i=1,n
   do j=i,n
     temp1=ZERO
-	do k=1,j
+	do k=1,i
 	  temp1=temp1+Lk(i,k)*Lk(j,k)
 	enddo 
-	tAk(i,j)=temp1
-	tAk(j,i)=temp1
-    temp1=ZERO
-	do k=1,j
+	Ak(i,j)=temp1
+	Ak(j,i)=temp1
+        temp1=ZERO
+	do k=1,i
 	  temp1=temp1+Ll(i,k)*Ll(j,k)
 	enddo 
 	tAl(i,j)=temp1
@@ -3896,11 +117,802 @@ do i=1,n
   enddo
 enddo
 
-!Then we permute elements of Ak and Al to account for 
+!Then we permute elements of Al to account for 
 !the action of the permutation matrix
-!  tAl=Pket'*Al*Pket
-!  tAk=Pbra'*Ak*Pbra
-!We also form matrix tAkl=tAk+tAl
+!tAl=P'*Al*P
+!We also form matrix tAkl=Ak+tAl
+do i=1,n
+  do j=1,n
+	temp1=ZERO
+    do k=1,n
+       temp1=temp1+P(k,j)*tAl(k,i)
+	enddo
+	W1(j,i)=temp1
+  enddo
+enddo
+do i=1,n  
+  do j=i,n
+    temp1=ZERO
+    do k=1,n
+	   temp1=temp1+W1(i,k)*P(k,j)
+	enddo
+  	tAl(i,j)=temp1
+	tAl(j,i)=temp1
+	tAkl(i,j)=Ak(i,j)+temp1
+	tAkl(j,i)=tAkl(i,j)
+  enddo
+enddo
+
+
+!After this we can do Cholesky factorization of tAkl.
+!The Cholesky factor will be temporarily stored in the 
+!lower triangle of W1
+det_tAkl=ONE
+!temp1=ZERO
+do i=1,n
+  do j=i,n
+    temp1=tAkl(i,j)
+    do k=i-1,1,-1
+      temp1=temp1-W1(i,k)*W1(j,k)
+    enddo
+    if (i==j) then
+      W1(i,i)=sqrt(temp1)
+      det_tAkl=det_tAkl*temp1
+    else
+      W1(j,i)=temp1/W1(i,i)
+      W1(i,j)=ZERO
+    endif
+  enddo
+enddo
+
+!Inverting tAkl using its Cholesky factor (stored in W1)
+!and placing the result into inv_tAkl
+do i=1,n
+  W1(i,i)=ONE/W1(i,i)
+  do j=i+1,n
+    temp1=ZERO
+    do k=i,j-1
+      temp1=temp1-W1(j,k)*W1(k,i)
+    enddo
+    W1(j,i)=temp1/W1(j,j)
+  enddo
+enddo 
+
+do i=1,n
+  do j=i,n
+     temp1=ZERO
+     do k=j,n
+       temp1=temp1+W1(k,i)*W1(k,j)
+     enddo
+     inv_tAkl(i,j)=temp1
+	 inv_tAkl(j,i)=temp1
+   enddo
+enddo  
+
+!Computing vl=P'*vl, bl=P'*bl 
+do i=1,n
+  vl(i)=P(m_l,i)
+  bl(i)=P(mm_l,i)
+  bk(i)=P(mm_k,i)
+enddo
+
+!Compute inv_tAklvl = inv_tAkl * vl, inv_tAklbl = inv_tAkl * bl
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do j=1,n
+    temp1=temp1+inv_tAkl(j,i)*vl(j)
+    temp2=temp2+inv_tAkl(j,i)*bl(j)
+    temp3=temp3+inv_tAkl(j,i)*bk(j)
+  enddo
+  inv_tAklvl(i)=temp1
+  inv_tAklbl(i)=temp2
+  inv_tAklbk(i)=temp3
+enddo
+
+!Compute vkinv_tAkl=vk'*inv_tAkl, bkinv_tAkl=bk'*inv_tAkl
+do i=1,n
+  vkinv_tAkl(i)=inv_tAkl(m_k,i)
+  vlinv_tAkl(i)=inv_tAkl(m_l,i)
+  bkinv_tAkl(i)=inv_tAkl(mm_k,i)
+enddo
+
+!Compute tau3=vkinv_tAkl*vl, tau33=bkinv_tAkl*bl
+tau3=ZERO
+tau33=ZERO
+tau333=ZERO
+tau334=ZERO
+do i=1,n
+  tau3=tau3+vkinv_tAkl(i)*vl(i)
+  tau33=tau33+bkinv_tAkl(i)*bl(i)
+  tau333=tau333+vkinv_tAkl(i)*bl(i)
+  tau334=tau334+bkinv_tAkl(i)*vl(i)
+enddo
+m1=tau3*tau33
+m3=tau333*tau334
+m=m1+m3  !look formula 40 in document
+
+!Evaluating overlap
+!temp1=ZERO
+temp1=FOUR*det_tAkl*sqrt(det_tAkl)
+Skl=Glob_Piraised3n2*m/temp1
+
+!Doing multiplication inv_tAkltAl=inv_tAkl*tAl
+do i=1,n
+  do j=1,n
+    temp1=ZERO
+    temp2=ZERO
+    do k=1,n
+      temp1=temp1+inv_tAkl(j,k)*tAl(k,i)
+      temp2=temp2+inv_tAkl(j,k)*Ak(k,i) 
+    enddo
+    inv_tAkltAl(j,i)=temp1
+    inv_tAklAk(j,i)=temp2
+  enddo
+enddo
+
+!Doing multiplication inv_tAkltAlM=inv_tAkltAl*M
+do i=1,n
+  do j=1,n
+    temp1=ZERO
+    temp2=ZERO
+    do k=1,n
+      temp1=temp1+inv_tAkltAl(j,k)*Glob_MassMatrix(k,i)
+      temp2=temp2+inv_tAklAk(j,k)*Glob_MassMatrix(k,i)  
+    enddo
+    inv_tAkltAlM(j,i)=temp1
+    inv_tAklAkM(j,i)=temp2
+  enddo
+enddo
+
+
+!Computing tau1=tr[inv_tAkltAlM*Ak]
+tau1=ZERO
+do i=1,n
+  temp1=ZERO
+  do k=1,n
+    temp1=temp1+inv_tAkltAlM(i,k)*Ak(k,i)
+  enddo
+  tau1=tau1+temp1
+enddo
+!Computing tau2 = vk'*inv_tAkltAlM*Ak*inv_tAklvl
+!We do it by multiplying twice the row-vector on the left
+!by a matrix on the right and computing a dot product in the end.
+
+!vkinv_tAkltAlM'=vk'*inv_tAkltAlM ,  bkinv_tAkltAlM'=bk'*inv_tAkltAlM
+
+do i=1,n
+  vkinv_tAkltAlM(i)=inv_tAkltAlM(m_k,i)
+  bkinv_tAkltAlM(i)=inv_tAkltAlM(mm_k,i)
+  vlinv_tAkltAlM(i)=inv_tAkltAlM(m_l,i)
+  vlinv_tAklAkM(i)=inv_tAklAkM(m_l,i)
+enddo
+
+
+
+
+!u1=vkinv_tAkltAlM'*Ak, u11=bkinv_tAkltAlM'*Ak
+!tau2=u1'*inv_tAklvl (storage for u1 as such is not needed, we use temp1=u1(i))
+!tau22=u11'*inv_tAklbl
+tau2=ZERO
+tau22=ZERO
+tau223=ZERO
+tau224=ZERO
+temp4_new=ZERO
+tau221_new=ZERO
+tau222_new=ZERO
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  do j=1,n
+    temp1=temp1+vkinv_tAkltAlM(j)*Ak(j,i)
+    temp2=temp2+bkinv_tAkltAlM(j)*Ak(j,i)     
+  enddo
+  tau2=tau2+temp1*inv_tAklvl(i)
+  tau22=tau22+temp2*inv_tAklbl(i)
+  tau223=tau223+temp1*inv_tAklbl(i)
+  tau224=tau224+temp2*inv_tAklvl(i)
+enddo
+
+h=tau3*tau22+tau33*tau2+tau333*tau224+tau334*tau223  
+
+Tkl=Skl*(SIX*tau1+FOUR*h/m)
+!Evaluating eta1(i,j), sqrt_eta1(i,j), eta2(i,j), Rkl(i,j),
+!and the potential energy. Notice that only the lower triangles
+!of eta1, sqrt_eta1, eta2, and Rkl are filled.
+!temp1=ZERO
+Vkl=ZERO
+temp1=Skl*(TWO/SQRTPI)
+!temp1=Glob_Piraised3n2/(TWO*SQRTPI*det_tAkl*sqrt(det_tAkl))
+do i=1,n
+  temp2=inv_tAkl(i,i)
+  temp3=sqrt(temp2)
+  eta1(i,i)=temp2
+  sqrt_eta1(i,i)=temp3
+  !Getting row m_k of matrix inv_tAkl*Jii*inv_tAkl
+  !as only this row is needed to compute eta2(i,i)
+  do k=1,n
+    u1(k)=inv_tAkl(i,m_k)*inv_tAkl(k,i) 
+    u11(k)=inv_tAkl(i,mm_k)*inv_tAkl(k,i) 
+  enddo
+  temp4=ZERO
+  temp44=ZERO
+  temp443=ZERO
+  temp444=ZERO
+  temp4440=ZERO
+  temp4442=ZERO
+  do k=1,n
+    temp4=temp4+u1(k)*vl(k)
+    temp44=temp44+u11(k)*bl(k)
+    temp443=temp443+u1(k)*bl(k)
+    temp444=temp444+u11(k)*vl(k)
+  enddo
+  eta2(i,i)=temp44 ! to make consistent notation in document
+  eta22(i,i)=temp4
+  eta223(i,i)= temp444
+  eta224(i,i)= temp443  
+  eta(i,i)=temp4*temp44+temp443*temp444
+  Rkl(i,i)=temp1*(ONE-ONETHIRD*(tau3*temp44+tau33*temp4+tau333*temp444+tau334*temp443)/(m*temp2) &
+  + ONEFIFTH*(temp4*temp44+temp443*temp444)/(m*temp2*temp2))/temp3
+  Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge0)*Rkl(i,i)
+enddo
+do i=1,n
+  do j=i+1,n
+    temp2=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
+    temp3=sqrt(temp2)
+    eta1(j,i)=temp2
+    sqrt_eta1(j,i)=temp3
+    do k=1,n
+      u1(k)=(inv_tAkl(i,m_k)-inv_tAkl(j,m_k))*(inv_tAkl(k,i)-inv_tAkl(k,j))
+      u11(k)=(inv_tAkl(i,mm_k)-inv_tAkl(j,mm_k))*(inv_tAkl(k,i)-inv_tAkl(k,j))
+    enddo
+    temp4=ZERO
+    temp44=ZERO
+    temp443=ZERO
+    temp444=ZERO
+    temp4440=ZERO
+    temp4442=ZERO
+    do k=1,n
+      temp4=temp4+u1(k)*vl(k)
+      temp44=temp44+u11(k)*bl(k)   
+      temp443=temp443+u1(k)*bl(k)
+      temp444=temp444+u11(k)*vl(k)
+    enddo
+    eta2(j,i)=temp44
+    eta22(j,i)=temp4
+    eta223(j,i)= temp444
+    eta224(j,i)= temp443  
+    eta(j,i)=temp4*temp44+temp443*temp444
+    Rkl(j,i)=temp1*(ONE-ONETHIRD*(tau3*temp44+tau33*temp4+tau333*temp444+tau334*temp443)/(m*temp2)+ &
+                 ONEFIFTH*(temp4*temp44+temp443*temp444)/(m*temp2*temp2))/temp3
+    Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*Rkl(j,i)
+  enddo  
+enddo
+!Hkl=ZERO
+Hkl=Tkl+Vkl
+
+!Now we start computing the gradient of Skl  (in gradient I follow the notation in document))
+
+if (grad_k.or.grad_l) then
+  !Evaluating matrix tKkl = inv_tAklvl * vkinv_tAkl'
+  !which will be used a lot below. 
+  do i=1,n
+    do j=1,n
+      tKkl1(i,j)=inv_tAklbl(i)*bkinv_tAkl(j)
+      tKkl2(i,j)=inv_tAklvl(i)*vkinv_tAkl(j)
+      tKkl5(i,j)=inv_tAklvl(i)*bkinv_tAkl(j)
+      tKkl6(i,j)=inv_tAklbl(i)*vkinv_tAkl(j)   
+      tKkll(i,j)= tKkl1(i,j)*tau3+tKkl2(i,j)*tau33+tKkl5(i,j)*tau333+tKkl6(i,j)*tau334                                          
+      gkl(i,j)= -tKkl1(i,j)*tau2-tKkl2(i,j)*tau22-tKkl5(i,j)*tau223-tKkl6(i,j)*tau224      
+    enddo
+  enddo
+  
+  
+do i=1,n  
+        do j=1,i     
+      twosym_tFkl(i,j)=THREE*inv_tAkl(j,i)+(tKkll(i,j)+tKkll(j,i))/m
+      twosym_tFkl(j,i)=twosym_tFkl(i,j)
+    enddo
+  enddo
+endif
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+if (grad_k) then  
+  indx=0
+  do i=1,n
+    do j=i,n
+      temp1=ZERO
+      do k=i,n
+        temp1=temp1-twosym_tFkl(k,j)*Lk(k,i)
+      enddo
+      indx=indx+1
+      Dk(Glob_np+indx)=Skl*temp1
+    enddo
+  enddo
+endif
+
+if (grad_l) then
+  !Evaluating twosym_tGkl = P * twosym_tFkl *P'
+  do i=1,n
+    do j=1,n
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+P(i,k)*twosym_tFkl(k,j)
+      enddo  
+      W1(i,j)=temp1
+    enddo
+  enddo
+  
+  do i=1,n
+    do j=1,i
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+W1(i,k)*P(j,k)
+      enddo  
+      twosym_tGkl(i,j)=temp1
+      twosym_tGkl(j,i)=temp1
+    enddo
+  enddo  
+  
+  indx=0
+  do i=1,n
+    do j=i,n
+      temp1=ZERO
+      do k=i,n
+        temp1=temp1-twosym_tGkl(k,j)*Ll(k,i)
+      enddo
+      indx=indx+1
+      Dl(Glob_np+indx)=Skl*temp1
+    enddo
+  enddo
+endif
+
+!Gradient of Tkl
+
+if (grad_k) then
+  !Computing W1=6*inv_tAkltAlM*inv_tAkltAl'
+  do i=1,n
+    do j=i,n
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+inv_tAkltAlM(j,k)*inv_tAkltAl(i,k)
+      enddo
+      W1(j,i)=SIX*temp1
+      W1(i,j)=W1(j,i)
+    enddo
+  enddo
+  !Computing u1'=vkinv_tAkltAlM'*inv_tAkltAl'
+  do i=1,n
+    temp1=ZERO
+    temp2=ZERO
+    temp3=ZERO
+    do j=1,n
+      temp1=temp1+vkinv_tAkltAlM(j)*inv_tAkltAl(i,j)
+      temp2=temp2+bkinv_tAkltAlM(j)*inv_tAkltAl(i,j)
+      temp3=temp3+vlinv_tAklAkM(j)*inv_tAkltAl(i,j)
+    enddo
+    u1(i)=temp1
+    u11(i)=temp2
+    u111(i)=temp3
+  enddo
+  !Computing u2=inv_tAkltAlM*Ak*inv_tAklvl
+  do i=1,n
+    temp1=ZERO
+    temp2=ZERO
+    temp3=ZERO
+    do j=1,n
+      temp1=temp1+Ak(i,j)*inv_tAklvl(j)
+      temp2=temp2+Ak(i,j)*inv_tAklbl(j)
+      temp3=temp3+tAl(i,j)*inv_tAklbk(j)
+    enddo
+    u3(i)=temp1
+    u33(i)=temp2
+    u333(i)=temp3
+  enddo
+  
+  do i=1,n
+    temp1=ZERO
+    temp2=ZERO
+    temp3=ZERO
+    do j=1,n
+      temp1=temp1+inv_tAkltAlM(i,j)*u3(j)
+      temp2=temp2+inv_tAkltAlM(i,j)*u33(j)
+      temp3=temp3+inv_tAkltAlM(i,j)*u333(j)
+    enddo
+    u2(i)=temp1
+    u22(i)=temp2
+    u222(i)=temp3
+  enddo   
+  temp1=FOUR/m
+  temp2=temp1*h/m
+  do i=1,n
+    do j=1,n                        
+       tUkl(j,i)= W1(j,i)+temp2*tKkll(j,i)+temp1*(gkl(j,i)&     
+       +tau33*(inv_tAklvl(j)*u1(i)-u2(j)*vkinv_tAkl(i))+tau3*(inv_tAklbl(j)*u11(i)-u22(j)*bkinv_tAkl(i))&                   
+       +tau333*(inv_tAklvl(j)*u11(i)-u2(j)*bkinv_tAkl(i))+tau334*(inv_tAklbl(j)*u1(i)-u22(j)*vkinv_tAkl(i)))
+    enddo
+  enddo 
+  !Evaluating (Tkl/Skl)*dSkldvechLk' + Skl*vech((tUkl+tUkl')*Lk)'
+  temp4=Tkl/Skl
+  indx=0
+  do i=1,n
+    do j=i,n
+      temp1=ZERO
+      do k=i,n
+        temp1=temp1+(tUkl(k,j)+tUkl(j,k))*Lk(k,i)
+      enddo
+      indx=indx+1
+      Dk(indx)=Skl*temp1+temp4*Dk(Glob_np+indx)
+    enddo
+  enddo  
+endif
+
+if (grad_l) then
+  !Computing W1=6*inv_tAklAkM*inv_tAklAk' 
+  do i=1,n
+    do j=i,n
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+inv_tAklAkM(j,k)*inv_tAklAk(i,k)
+      enddo
+      W1(j,i)=SIX*temp1
+      W1(i,j)=W1(j,i)
+    enddo
+  enddo 
+  !Computing u1=inv_tAklAkM*inv_tAklAk'*vl
+  do i=1,n
+    temp1=ZERO
+    temp2=ZERO
+    temp3=ZERO
+    do j=1,n
+      temp1=temp1+inv_tAklAk(j,i)*vl(j)
+      temp2=temp2+inv_tAklAk(j,i)*bl(j)
+      temp3=temp3+inv_tAkltAl(j,i)*bk(j)
+    enddo
+    u3(i)=temp1
+    u33(i)=temp2
+    u333(i)=temp3
+  enddo
+  
+  do i=1,n
+    temp1=ZERO
+    temp2=ZERO
+    temp3=ZERO
+    do j=1,n
+      temp1=temp1+inv_tAklAkM(i,j)*u3(j)
+      temp2=temp2+inv_tAklAkM(i,j)*u33(j)
+      temp3=temp3+inv_tAklAkM(i,j)*u333(j)
+    enddo
+    u1(i)=temp1
+    u11(i)=temp2
+    u111(i)=temp3
+  enddo 
+  
+  !Computing u2'=vkinv_tAkltAlM'*inv_tAklAk'
+  do i=1,n
+    temp1=ZERO
+    temp2=ZERO
+    temp3=ZERO
+    do j=1,n
+      temp1=temp1+vkinv_tAkltAlM(j)*inv_tAklAk(i,j)
+      temp2=temp2+bkinv_tAkltAlM(j)*inv_tAklAk(i,j)
+      temp3=temp3+vlinv_tAklAkM(j)*inv_tAklAk(i,j)
+    enddo
+    u2(i)=temp1
+    u22(i)=temp2
+    u222(i)=temp3
+  enddo     
+
+  temp1=FOUR/m
+  temp2=temp1*h/m
+  do i=1,n
+    do j=1,n
+      W3(j,i)= W1(j,i)+temp2*tKkll(j,i)+temp1*( gkl(j,i) &  
+      +tau33*(u1(j)*vkinv_tAkl(i)-inv_tAklvl(j)*u2(i))+tau3*(u11(j)*bkinv_tAkl(i)-inv_tAklbl(j)*u22(i))&
+      + tau333*(u1(j)*bkinv_tAkl(i)-inv_tAklvl(j)*u22(i))+tau334*(u11(j)*vkinv_tAkl(i)-inv_tAklbl(j)*u2(i)))
+    enddo
+  enddo   
+  
+  do i=1,n
+    do j=1,n
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+P(i,k)*W3(k,j)
+      enddo
+      W2(i,j)=temp1
+    enddo
+  enddo
+  
+  do i=1,n
+    do j=1,n
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+W2(i,k)*P(j,k)
+      enddo
+      tWkl(i,j)=temp1
+    enddo
+  enddo 
+  !Evaluating (Tkl/Skl)*dSkldvechLl' + Skl*vech((tWkl+tWkl')*Ll)'
+  temp4=Tkl/Skl  
+  indx=0
+  do i=1,n
+    do j=i,n
+      temp1=ZERO
+      do k=i,n
+        temp1=temp1+(tWkl(k,j)+tWkl(j,k))*Ll(k,i)
+      enddo
+      indx=indx+1
+      Dl(indx)=Skl*temp1+temp4*Dl(Glob_np+indx)
+    enddo
+  enddo    
+endif
+
+!Dk(1:Glob_np)=ZERO
+!Dl(1:Glob_np)=ZERO
+!Gradient of Vkl
+if (grad_k.or.grad_l) then
+  do i=1,n
+    !Computing twosym_tQkl(i,i)=tQkl(i,i)+tQkl(i,i)'
+    temp_n= tau3*eta2(i,i)+tau33*eta22(i,i)+tau333*eta223(i,i)+tau334*eta224(i,i)
+    temp1=(TWO/SQRTPI)/(eta1(i,i)*sqrt_eta1(i,i))
+    temp2=ONE+(eta(i,i)/eta1(i,i)-temp_n)/(eta1(i,i)*m) !first term
+    temp3=(ONEFIFTH*eta(i,i)/eta1(i,i)-ONETHIRD*temp_n)/(m*m) !second term
+    temp4=ONETHIRD/m    !3rd term
+    temp11=ONEFIFTH/(eta1(i,i)*m)  !4th term                                            
+    do t=1,n
+      do q=t,n
+        temp5=inv_tAkl(q,i)*inv_tAkl(i,t)              
+        temp6=inv_tAkl(q,i)*(tKkl1(i,t)+tKkl1(t,i))+inv_tAkl(t,i)*(tKkl1(i,q)+tKkl1(q,i)) !old
+        temp66=inv_tAkl(q,i)*(tKkl2(i,t)+tKkl2(t,i))+inv_tAkl(t,i)*(tKkl2(i,q)+tKkl2(q,i))                 
+        temp663=inv_tAkl(q,i)*(tKkl5(i,t)+tKkl5(t,i))+inv_tAkl(t,i)*(tKkl5(i,q)+tKkl5(q,i)) 
+        temp664=inv_tAkl(q,i)*(tKkl6(i,t)+tKkl6(t,i))+inv_tAkl(t,i)*(tKkl6(i,q)+tKkl6(q,i))    
+        
+        temp44=eta2(i,i)*temp66+eta22(i,i)*temp6+eta223(i,i)*temp664+eta224(i,i)*temp663       
+               
+        temp666= eta2(i,i)*(tKkl2(q,t)+tKkl2(t,q))+eta22(i,i)*(tKkl1(q,t)+tKkl1(t,q))+&                  
+               eta223(i,i)*(tKkl6(q,t)+tKkl6(t,q))+eta224(i,i)*(tKkl5(q,t)+tKkl5(t,q))+ &
+               tau3*temp6+tau33*temp66+tau333*temp663+tau334*temp664  !3rd term              
+        twosym_tQkl(q,t)=temp1*(temp2*temp5+temp3*(tKkll(q,t)+tKkll(t,q))+temp4*temp666-temp11*temp44)  
+        twosym_tQkl(t,q)=twosym_tQkl(q,t)
+      enddo
+    enddo 
+    
+    temp5=ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge0)
+    if (grad_k) then
+      !Evaluating (Rkl(i,i)/Skl)*dSkldvechLk' + Skl*vech(twosym_tQkl*Lk)'
+      !and updating Dk
+      temp2=Rkl(i,i)/Skl
+      indx=0
+      do t=1,n
+        do q=t,n
+          temp1=ZERO
+          do k=t,n
+            temp1=temp1+twosym_tQkl(k,q)*Lk(k,t)
+          enddo
+          indx=indx+1
+          Dk(indx)=Dk(indx)+temp5*(temp2*Dk(Glob_np+indx)+Skl*temp1)
+        enddo
+      enddo
+    endif 
+    
+    if (grad_l) then
+      !Computing twosym_tDkl = P * twosym_tQkl * P'
+      do t=1,n
+        do q=1,n
+          temp1=ZERO
+          do k=1,n
+            temp1=temp1+P(q,k)*twosym_tQkl(k,t)
+          enddo
+          W1(q,t)=temp1
+        enddo
+      enddo
+      
+      do t=1,n
+        do q=t,n
+          temp1=ZERO
+          do k=1,n
+            temp1=temp1+W1(q,k)*P(t,k)
+          enddo
+          twosym_tDkl(q,t)=temp1
+          twosym_tDkl(t,q)=temp1
+        enddo
+      enddo
+      !Evaluating (Rkl(i,i)/Skl)*dSkldvechLl' + Skl*vech(twosym_tDkl*Ll)'
+      !and updating Dl
+      temp2=Rkl(i,i)/Skl
+      indx=0
+      do t=1,n
+        do q=t,n
+          temp1=ZERO
+          do k=t,n
+            temp1=temp1+twosym_tDkl(k,q)*Ll(k,t)
+          enddo
+          indx=indx+1
+          Dl(indx)=Dl(indx)+temp5*(temp2*Dl(Glob_np+indx)+Skl*temp1)
+        enddo
+      enddo            
+    endif        
+  enddo
+  
+  do i=1,n
+    do j=i+1,n
+      !Computing twosym_tQkl(j,i)=tQkl(j,i)+tQkl(j,i)'  
+       temp_n= tau3*eta2(j,i)+tau33*eta22(j,i)+tau333*eta223(j,i)+tau334*eta224(j,i)
+       temp1=(TWO/SQRTPI)/(eta1(j,i)*sqrt_eta1(j,i))
+       temp2=ONE+(eta(j,i)/eta1(j,i)-temp_n)/(eta1(j,i)*m) !first term
+       temp3=(ONEFIFTH*eta(j,i)/eta1(j,i)-ONETHIRD*temp_n)/(m*m) !second term
+       temp4=ONETHIRD/m    !3rd term
+       temp11=ONEFIFTH/(eta1(j,i)*m)  !4th term    
+      do t=1,n
+        do q=t,n
+          temp5=(inv_tAkl(q,i)-inv_tAkl(q,j))*(inv_tAkl(i,t)-inv_tAkl(j,t))                
+          temp6=(inv_tAkl(q,i)-inv_tAkl(q,j))*(tKkl1(i,t)-tKkl1(j,t)+tKkl1(t,i)-tKkl1(t,j))+ &
+                (tKkl1(q,i)-tKkl1(q,j)+tKkl1(i,q)-tKkl1(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))                   
+          temp66=(inv_tAkl(q,i)-inv_tAkl(q,j))*(tKkl2(i,t)-tKkl2(j,t)+tKkl2(t,i)-tKkl2(t,j))+ &
+                (tKkl2(q,i)-tKkl2(q,j)+tKkl2(i,q)-tKkl2(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))                                 
+          temp663=(inv_tAkl(q,i)-inv_tAkl(q,j))*(tKkl5(i,t)-tKkl5(j,t)+tKkl5(t,i)-tKkl5(t,j))+ &
+                (tKkl5(q,i)-tKkl5(q,j)+tKkl5(i,q)-tKkl5(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))                
+          temp664=(inv_tAkl(q,i)-inv_tAkl(q,j))*(tKkl6(i,t)-tKkl6(j,t)+tKkl6(t,i)-tKkl6(t,j))+ &
+                (tKkl6(q,i)-tKkl6(q,j)+tKkl6(i,q)-tKkl6(j,q))*(inv_tAkl(t,i)-inv_tAkl(t,j))      
+          temp44=eta2(j,i)*temp66+eta22(j,i)*temp6+eta223(j,i)*temp664+eta224(j,i)*temp663  
+          temp666= eta2(j,i)*(tKkl2(q,t)+tKkl2(t,q))+eta22(j,i)*(tKkl1(q,t)+tKkl1(t,q))+&                  
+               eta223(j,i)*(tKkl6(q,t)+tKkl6(t,q))+eta224(j,i)*(tKkl5(q,t)+tKkl5(t,q))+ &
+               tau3*temp6+tau33*temp66+tau333*temp663+tau334*temp664  !3rd term            
+          twosym_tQkl(q,t)=temp1*(temp2*temp5+temp3*(tKkll(q,t)+tKkll(t,q))+temp4*temp666-temp11*temp44) 
+          twosym_tQkl(t,q)=twosym_tQkl(q,t)    
+        enddo
+      enddo 
+      temp5=ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))
+      
+      if (grad_k) then  
+        !Evaluating (Rkl(j,i)/Skl)*dSkldvechLk' + Skl*vech(twosym_tQkl*Lk)'
+        !and updating Dk
+        temp2=Rkl(j,i)/Skl
+        indx=0
+        do t=1,n
+          do q=t,n
+            temp1=ZERO
+            do k=t,n
+              temp1=temp1+twosym_tQkl(k,q)*Lk(k,t)
+            enddo
+            indx=indx+1
+            Dk(indx)=Dk(indx)+temp5*(temp2*Dk(Glob_np+indx)+Skl*temp1)
+          enddo
+        enddo 
+      endif 
+      
+      if (grad_l) then
+        !Computing twosym_tDkl = P * twosym_tQkl * P'
+        do t=1,n
+          do q=1,n
+            temp1=ZERO
+            do k=1,n
+              temp1=temp1+P(q,k)*twosym_tQkl(k,t)
+            enddo
+            W1(q,t)=temp1
+          enddo
+        enddo
+        
+        do t=1,n
+          do q=t,n
+            temp1=ZERO
+            do k=1,n
+              temp1=temp1+W1(q,k)*P(t,k)
+            enddo
+            twosym_tDkl(q,t)=temp1
+            twosym_tDkl(t,q)=temp1
+          enddo
+        enddo
+        !Evaluating (Rkl(j,i)/Skl)*dSkldvechLl' + Skl*vech(twosym_tQkl*Ll)'
+        !and updating Dl
+        temp2=Rkl(j,i)/Skl
+        indx=0
+        do t=1,n
+          do q=t,n
+            temp1=ZERO
+            do k=t,n
+              temp1=temp1+twosym_tDkl(k,q)*Ll(k,t)
+            enddo
+            indx=indx+1
+            Dl(indx)=Dl(indx)+temp5*(temp2*Dl(Glob_np+indx)+Skl*temp1)
+          enddo
+        enddo   
+      endif 
+    enddo
+  enddo
+endif
+
+end subroutine MatrixElementsLD
+
+subroutine MatrixElementsL1ForExpcValsD(m_k, mm_k, m_l, mm_l, vechLk, vechLl, Pbra, Pket, &
+           Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
+           MVkl, drach_MVkl, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, prvalkl, &
+           NumCFGridPoints, CFGrid, &
+           CFkl, NumDensGridPoints, DensGrid, Denskl, AreCorrFuncNeeded, ArePartDensNeeded)
+
+           
+!Arguments
+integer,intent(in)       :: m_k,m_l,mm_k,mm_l
+real(dprec),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
+real(dprec),intent(in)   :: Pbra(Glob_n,Glob_n),Pket(Glob_n,Glob_n)
+real(dprec),intent(out)  :: Hkl,Skl,Tkl,Vkl,MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
+real(dprec),intent(out)  :: rm2kl(Glob_n,Glob_n),rmkl(Glob_n,Glob_n)
+real(dprec),intent(out)  :: rkl(Glob_n,Glob_n),r2kl(Glob_n,Glob_n)
+real(dprec),intent(out)  :: deltarkl(Glob_n,Glob_n)
+real(dprec),intent(out)  :: drach_deltarkl(Glob_n,Glob_n)
+real(dprec),intent(out)  :: prvalkl(Glob_n,Glob_n)
+real(dprec),intent(out)  :: rmrmkl(Glob_n,Glob_n,Glob_n,Glob_n)
+integer,intent(in)       :: NumCFGridPoints,NumDensGridPoints
+real(dprec),intent(in)   :: CFGrid(2,NumCFGridPoints),DensGrid(2,NumDensGridPoints)
+real(dprec),intent(out)  :: CFkl(Glob_n*(Glob_n+1)/2,NumCFGridPoints)
+real(dprec),intent(out)  :: Denskl(Glob_n+1,NumDensGridPoints)
+logical,intent(in)       :: AreCorrFuncNeeded,ArePartDensNeeded
+
+
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+integer,parameter :: nnp=nn*(nn+1)/2
+
+!Local variables
+integer           n,np
+integer           tvk(nn),tvl(nn),tbk(nn),tbl(nn)
+real(dprec)       Lk(nn,nn),Ll(nn,nn),inv_Lk(nn,nn),inv_Ll(nn,nn),tvl8(nn)
+real(dprec)       tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn),rmkl1(nn,nn),Vkl1,Hkl1
+real(dprec)       inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn), inv_tAkltAl(nn,nn)
+real(dprec)       eta2(nn,nn),inv_tAkltAlM(nn,nn),eta22(nn,nn)
+real(dprec)       eta(nn,nn)
+real(dprec)       W1(nn,nn),W2(nn,nn),W3(nn,nn),W4(nn,nn),W5(nn,nn),W6(nn,nn),W7(nn,nn)
+real(dprec)       W44(nn,nn),W55(nn,nn),W77(nn,nn)
+real(dprec)       W4b(nn,nn),W5b(nn,nn),W7b(nn,nn)
+real(dprec)       W44b(nn,nn),W55b(nn,nn),W77b(nn,nn),temp444,temp4444,temp444b,temp4444b
+real(dprec)       inv_tAkltvl(nn),tvkinv_tAkl(nn),tvkinv_tAkltAlM(nn),u1(nn) 
+real(dprec)       inv_tAkltbl(nn),tbkinv_tAkl(nn),tbkinv_tAkltAlM(nn),u11(nn) 
+real(dprec)       temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8,temp9,temp44
+real(dprec)       temp55,temp66,temp55b,temp66b,temp44b,temp4b,temp5b,temp6b,temp1b,temp11b
+real(dprec)       temp10,temp11,temp12,temp13,temp14,threshold,tr1, tr2, tr3, tr4,tr4vkvl,tr4bkbl,tr4bkvl,tr4vkbl
+real(dprec)       det_Lk, det_Ll, det_tAkl,tau1,tau2,tau3,inv_tau3 ,V2kl,tau22,tau33,m
+integer           i,j,k,t,indx,p,q
+real(dprec)       TrAJ(nn,nn),sqrtTrAJ(nn,nn),TrAJAJ(nn,nn,nn,nn)
+real(dprec)       jAj(nn,nn,nn,nn),jAtvl(nn,nn),tvkAj(nn,nn),Mass_For_Darwin(0:nn)
+
+real(dprec)   m1,m2,m3,tau331,tau332,tau333,tau334,tau221,tau222,tau223,tau224,temp38,temp338,temp36,temp336,temp37,temp337
+real(dprec)   temp31,temp331,temp32,temp332,temp33,temp333,temp34,temp334,temp35,temp335,templast
+real(dprec)   eta221(nn,nn),eta222(nn,nn),eta223(nn,nn),eta224(nn,nn),u111(nn) 
+real(dprec)   temp441,temp442,temp443,temp4440,temp4441,temp4442,h,term1,term2
+real(dprec)   inv_tAkltAk(nn,nn),inv_tAkltAkM(nn,nn)
+real(dprec)   inv_tAkltbk(nn),tvlinv_tAkl(nn),tvlinv_tAkltAkM(nn),tvlinv_tAkltAlM(nn)
+real(dprec)   tbltbk(nn,nn),tvltvk(nn,nn),tbltvk(nn,nn),tvltbk(nn,nn),tvktbk(nn,nn),tvltbl(nn,nn)
+n=Glob_n
+np=Glob_np
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+!First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
+indx=0
+do i=1,n
+  do j=i,n
+    indx=indx+1
+	Lk(i,j)=ZERO
+	Lk(j,i)=vechLk(indx)
+	Ll(i,j)=ZERO
+	Ll(j,i)=vechLl(indx)
+  enddo
+enddo
+
+do i=1,n
+  do j=i,n
+    temp1=ZERO
+	do k=1,i
+	  temp1=temp1+Lk(i,k)*Lk(j,k)
+	enddo 
+	tAk(i,j)=temp1
+	tAk(j,i)=temp1
+    temp1=ZERO
+	do k=1,i
+	  temp1=temp1+Ll(i,k)*Ll(j,k)
+	enddo 
+	tAl(i,j)=temp1
+	tAl(j,i)=temp1
+  enddo
+enddo
+
 do i=1,n
   do j=1,n
 	temp1=ZERO
@@ -3932,18 +944,7 @@ do i=1,n
   enddo
 enddo
 
-!The determinants of Lk and Ll are just
-!the products of their diagonal elements
-det_Lk=ONE
-det_Ll=ONE
-do i=1,n
-  det_Lk=det_Lk*Lk(i,i)
-  det_Ll=det_Ll*Ll(i,i)
-enddo
 
-!After this we can do Cholesky factorization of tAkl.
-!The Cholesky factor will be temporarily stored in the 
-!lower triangle of W1
 det_tAkl=ONE
 do i=1,n
   do j=i,n
@@ -3985,81 +986,17 @@ do i=1,n
    enddo
 enddo  
 
-!Finding the inverse of Akk and All using their Cholesky factors
-!The result is placed in inv_Akk and inv_All
+!Doing multiplication inv_tAkltAl=inv_tAkl*tAl, inv_tAkltAk=inv_tAkl*tAk
 do i=1,n
-  W1(i,i)=ONE/Lk(i,i)
-  W2(i,i)=ONE/Ll(i,i)  
-  do j=i+1,n
+  do j=1,n
     temp1=ZERO
     temp2=ZERO
-    do k=i,j-1
-      temp1=temp1-Lk(j,k)*W1(k,i)
-      temp2=temp2-Ll(j,k)*W2(k,i)
-    enddo
-    W1(j,i)=temp1/Lk(j,j)
-    W2(j,i)=temp2/Ll(j,j)
-  enddo
-enddo 
-
-do i=1,n
-  do j=i,n
-     temp1=ZERO
-     temp2=ZERO
-     do k=j,n
-       temp1=temp1+W1(k,i)*W1(k,j)
-       temp2=temp2+W2(k,i)*W2(k,j)       
-     enddo
-     inv_Akk(i,j)=ONEHALF*temp1
-	 inv_Akk(j,i)=ONEHALF*temp1
-     inv_All(i,j)=ONEHALF*temp2
-	 inv_All(j,i)=ONEHALF*temp2	 
-   enddo
-enddo  
-
-!Computing tvk=Pbra'*vk and tvl=Pket'*vl
-do i=1,n
-  tvk(i)=Pbra(m_k,i)
-  tvl(i)=Pket(m_l,i)
-enddo
-
-!Compute inv_tAkltvl = inv_tAkl * tvl
-do i=1,n
-  temp1=ZERO
-  do j=1,n
-    temp1=temp1+inv_tAkl(j,i)*tvl(j)
-  enddo
-  inv_tAkltvl(i)=temp1
-enddo
-
-!Compute tvkinv_tAkl=tvk'*inv_tAkl
-do i=1,n
-  temp1=ZERO
-  do j=1,n
-    temp1=temp1+tvk(j)*inv_tAkl(j,i)
-  enddo
-  tvkinv_tAkl(i)=temp1
-enddo
-
-
-!Compute tau3=tvkinv_tAkl*tvl
-tau3=ZERO
-do i=1,n
-  tau3=tau3+tvkinv_tAkl(i)*tvl(i)
-enddo
-
-!Evaluating overlap
-temp1=abs(det_Ll*det_Lk)/det_tAkl
-Skl=Glob_2raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
-
-!Doing multiplication inv_tAkltAl=inv_tAkl*tAl
-do i=1,n
-  do j=1,n
-    temp1=ZERO
     do k=1,n
       temp1=temp1+inv_tAkl(j,k)*tAl(k,i)
+      temp2=temp2+inv_tAkl(j,k)*tAk(k,i)
     enddo
     inv_tAkltAl(j,i)=temp1
+    inv_tAkltAk(j,i)=temp2
   enddo
 enddo
 
@@ -4067,10 +1004,13 @@ enddo
 do i=1,n
   do j=1,n
     temp1=ZERO
+    temp2=ZERO
     do k=1,n
       temp1=temp1+inv_tAkltAl(j,k)*Glob_MassMatrix(k,i)
+      temp2=temp2+inv_tAkltAk(j,k)*Glob_MassMatrix(k,i)
     enddo
     inv_tAkltAlM(j,i)=temp1
+    inv_tAkltAkM(j,i)=temp2
   enddo
 enddo
 
@@ -4084,108 +1024,410 @@ do i=1,n
   tau1=tau1+temp1
 enddo
 
-!Computing tau2 = tvk'*inv_tAkltAlM*tAk*inv_tAkltvl
-!We do it by multiplying twice the row-vector on the left
-!by a matrix on the right and computing a dot product in the end.
 
-!tvkinv_tAkltAlM'=tvk'*inv_tAkltAlM
+!Computing tvk=Pbra'*vk and tvl=Pket'*vl
+do i=1,n
+  tvk(i)=Pbra(m_k,i)
+  tvl(i)=Pket(m_l,i)
+  tbk(i)=Pbra(mm_k,i)
+  tbl(i)=Pket(mm_l,i)
+enddo
+
+
+
+!Compute inv_tAkltvl = inv_tAkl * tvl
+
+
 do i=1,n
   temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do j=1,n
+    temp1=temp1+inv_tAkl(j,i)*tvl(j)
+    temp2=temp2+inv_tAkl(j,i)*tbl(j)
+    temp3=temp3+inv_tAkl(j,i)*tbk(j)
+  enddo
+  inv_tAkltvl(i)=temp1
+  inv_tAkltbl(i)=temp2
+  inv_tAkltbk(i)=temp3
+enddo
+
+!Compute tvkinv_tAkl=tvk'*inv_tAkl
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do j=1,n
+    temp1=temp1+tvk(j)*inv_tAkl(j,i)
+    temp2=temp2+tbk(j)*inv_tAkl(j,i)
+    temp3=temp3+tvl(j)*inv_tAkl(j,i)
+  enddo
+  tvkinv_tAkl(i)=temp1
+  tbkinv_tAkl(i)=temp2
+  tvlinv_tAkl(i)=temp3
+enddo
+
+
+!Compute tau3=tvkinv_tAkl*tvl
+tau3=ZERO
+tau33=ZERO
+tau333=ZERO
+tau334=ZERO
+do i=1,n
+  tau3=tau3+tvkinv_tAkl(i)*tvl(i)
+  tau33=tau33+tbkinv_tAkl(i)*tbl(i)
+  tau333=tau333+tvkinv_tAkl(i)*tbl(i)
+  tau334=tau334+tbkinv_tAkl(i)*tvl(i)
+enddo
+m1=tau3*tau33
+m3=tau333*tau334
+m=m1+m3  !look formula 40 in document
+!Evaluating overlap
+!temp1=abs(det_Ll*det_Lk)/det_tAkl
+!Skl=Glob_2raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
+temp1=FOUR*det_tAkl*sqrt(det_tAkl)
+Skl=Glob_Piraised3n2*m/temp1
+
+
+
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  temp4=ZERO
   do j=1,n
     temp1=temp1+tvk(j)*inv_tAkltAlM(j,i)
+    temp2=temp2+tbk(j)*inv_tAkltAlM(j,i)
+    temp3=temp3+tvl(j)*inv_tAkltAlM(j,i)
+    temp4=temp4+tvl(j)*inv_tAkltAkM(j,i)
   enddo
   tvkinv_tAkltAlM(i)=temp1
+  tbkinv_tAkltAlM(i)=temp2
+  tvlinv_tAkltAlM(i)=temp3
+  tvlinv_tAkltAkM(i)=temp4
 enddo
 
 !u1=tvkinv_tAkltAlM'*tAk
 !tau2=u1'*inv_tAkltvl (storage for u1 as such is not needed, we use temp1=u1(i))
 tau2=ZERO
+tau22=ZERO
+tau223=ZERO
+tau224=ZERO
 do i=1,n
   temp1=ZERO
+  temp2=ZERO
   do j=1,n
     temp1=temp1+tvkinv_tAkltAlM(j)*tAk(j,i)
+    temp2=temp2+tbkinv_tAkltAlM(j)*tAk(j,i)
   enddo
   tau2=tau2+temp1*inv_tAkltvl(i)
+  tau22=tau22+temp2*inv_tAkltbl(i)
+  tau223=tau223+temp1*inv_tAkltbl(i)
+  tau224=tau224+temp2*inv_tAkltvl(i)
 enddo
-
+h=tau3*tau22+tau33*tau2+tau333*tau224+tau334*tau223 
 !Evaluating the kinetic energy
-Tkl=Skl*(SIX*tau1+FOUR*tau2/tau3)
-
-!Evaluating eta1(i,j)=Tr[inv_tAkl*Jij], sqrt_eta1(i,j),
-!           eta2(i,j)=tvk'*inv_tAkl*Jij*inv_tAkl*tvl,
-!Vkl, (1/r_{ij}^2)_kl, (1/r_{ij})_kl, (r_{ij})_kl, (r_{ij}^2)_kl
-!and delta(r_{ij})_kl
+Tkl=Skl*(SIX*tau1+FOUR*h/m)
 Vkl=ZERO
+Vkl1=ZERO
 temp5=Skl*TWO
 temp1=temp5/SQRTPI
 temp8=Skl/(PI*SQRTPI)
 do i=1,n
   temp2=inv_tAkl(i,i)
+  TrAJ(i,i)=temp2
   temp3=sqrt(temp2)
-  eta1(i,i)=temp2
-  sqrt_eta1(i,i)=temp3  
+  sqrtTrAJ(i,i)=temp3
   !u1'=tvk'*inv_tAkl*Jii*inv_tAkl
   do q=1,n
     temp4=ZERO
+    temp44=ZERO
+    temp444=ZERO
     do k=1,n
       temp4=temp4+tvk(k)*inv_tAkl(k,i)*inv_tAkl(q,i)
+      temp44=temp44+tbk(k)*inv_tAkl(k,i)*inv_tAkl(q,i)
+      temp444=temp444+tvl(k)*inv_tAkl(k,i)*inv_tAkl(q,i)
     enddo
     u1(q)=temp4
+    u11(q)=temp44
+    u111(q)=temp444
   enddo
   !eta2=u1'*tvl
   temp4=ZERO
+  temp44=ZERO
+  temp443=ZERO
+  temp444=ZERO
+  temp4440=ZERO
+  temp4441=ZERO
+  temp4442=ZERO
   do k=1,n
     temp4=temp4+u1(k)*tvl(k)
+    temp44=temp44+u11(k)*tbl(k) 
+    temp443=temp443+u1(k)*tbl(k)
+    temp444=temp444+u11(k)*tvl(k)
   enddo
-  eta2(i,i)=temp4
-  temp7=temp4/(temp2*tau3)
-  temp6=temp7/THREE
-  rm2kl(i,i)=temp5*(ONE-2*temp6)/temp2
-  rmkl(i,i)=temp1*(ONE-temp6)/temp3
-  Vkl=Vkl+Glob_PseudoCharge(i)*rmkl(i,i)
-  rkl(i,i)=temp1*(ONE+temp6)*temp3
-  r2kl(i,i)=Skl*THREEHALF*(ONE+2*temp6)*temp2
-  deltarkl(i,i)=temp8*(ONE-temp7)/(temp2*temp3)
+  eta2(i,i)=temp44
+  eta22(i,i)=temp4
+  eta223(i,i)= temp444
+  eta224(i,i)= temp443  
+  !temp444=temp4*temp44
+  eta(i,i)=temp4*temp44+temp443*temp444
+  term1=tau3*temp44+tau33*temp4+tau333*temp444+tau334*temp443
+  term2=temp4*temp44+temp443*temp444
+  rm2kl(i,i)=temp5*(ONE-TWO*ONETHIRD*term1/(m*temp2) + EIGHT*ONEFIFTH*term2/(THREE*m*temp2*temp2))/temp2
+  rmkl(i,i)=temp1*(ONE-ONETHIRD*term1/(m*temp2) + ONEFIFTH*term2/(m*temp2*temp2))/temp3
+  !rmkl(i,i)=ME_over_rij(i,i,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+  Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge0)*rmkl(i,i)
+  !Vkl1=Vkl1+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge0)*rmkl1(i,i)
+  rkl(i,i)= temp1*temp3*(ONE+ONETHIRD*term1/(m*temp2) - ONEFIFTH*term2/(THREE*m*temp2*temp2))
+  r2kl(i,i)=Skl*THREEHALF*temp2*(ONE+TWO*ONETHIRD*term1/(m*temp2))
+  temp10=temp8/(temp2*temp3)
+  deltarkl(i,i)=temp10*(ONE-term1/(m*temp2)+term2/(THREE*m*temp2*temp2))
+  prvalkl(i,i)=PI*temp10*( TWO*(Glob_EulerConst+log(temp2))*(ONE-term1/(m*temp2)+term2/(m*temp2*temp2)) &
+  + FOUR*(term1-TWO*term2/temp2)/(THREE*m*temp2)+EIGHT*term2/(15*m*temp2*temp2) )
 enddo
-Vkl=Vkl*Glob_PseudoCharge0
 do i=1,n
   do j=i+1,n
     temp2=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
+    TrAJ(i,j)=temp2
+    TrAJ(j,i)=temp2
     temp3=sqrt(temp2)
-    eta1(j,i)=temp2
-    sqrt_eta1(j,i)=temp3
+    sqrtTrAJ(j,i)=temp3
+    sqrtTrAJ(i,j)=temp3
     !u1'=tvk'*inv_tAkl*Jij*inv_tAkl
     do q=1,n
       temp4=ZERO
+      temp44=ZERO
+      temp444=ZERO
+      temp10=ZERO
       do k=1,n
         temp4=temp4+tvk(k)*(inv_tAkl(k,i)-inv_tAkl(k,j))*(inv_tAkl(q,i)-inv_tAkl(q,j))
+        temp44=temp44+tbk(k)*(inv_tAkl(k,i)-inv_tAkl(k,j))*(inv_tAkl(q,i)-inv_tAkl(q,j))
+        temp444=temp444+tvl(k)*(inv_tAkl(k,i)-inv_tAkl(k,j))*(inv_tAkl(q,i)-inv_tAkl(q,j))
       enddo
       u1(q)=temp4
+      u11(q)=temp44
+      u111(q)=temp444
     enddo
     temp4=ZERO
+    temp44=ZERO
+    temp443=ZERO
+    temp444=ZERO
+    temp4440=ZERO
+    temp4441=ZERO
+    temp4442=ZERO
     do k=1,n
       temp4=temp4+u1(k)*tvl(k)
+      temp44=temp44+u11(k)*tbl(k) 
+      temp443=temp443+u1(k)*tbl(k)
+      temp444=temp444+u11(k)*tvl(k)
     enddo
-    eta2(j,i)=temp4
-    temp7=temp4/(temp2*tau3)
-    temp6=temp7/THREE
-    rm2kl(j,i)=temp5*(ONE-2*temp6)/temp2
+    !temp444=temp4*temp44
+    eta2(j,i)=temp44
+    eta2(i,j)=temp44   
+    eta22(j,i)=temp4
+    eta22(i,j)=temp4  
+    eta223(j,i)= temp444
+    eta224(j,i)= temp443  
+    eta(j,i)=temp4*temp44+temp443*temp444
+    eta(i,j)=temp4*temp44+temp443*temp444  
+    term1=tau3*temp44+tau33*temp4+tau333*temp444+tau334*temp443
+    term2=temp4*temp44+temp443*temp444
+    rm2kl(j,i)=temp5*(ONE-TWO*ONETHIRD*term1/(m*temp2) + EIGHT*ONEFIFTH*term2/(THREE*m*temp2*temp2))/temp2
     rm2kl(i,j)=rm2kl(j,i)
-    rmkl(j,i)=temp1*(ONE-temp6)/temp3
+    rmkl(j,i)=temp1*(ONE-ONETHIRD*term1/(m*temp2)+ONEFIFTH*term2/(m*temp2*temp2))/temp3
+    !rmkl(j,i)=ME_over_rij(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
     rmkl(i,j)=rmkl(j,i)
-    Vkl=Vkl+Glob_PseudoCharge(i)*Glob_PseudoCharge(j)*rmkl(j,i)
-    rkl(j,i)=temp1*(ONE+temp6)*temp3
+    !rmkl1(i,j)=rmkl1(j,i)
+    Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*rmkl(j,i)
+    !Vkl1=Vkl1+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*rmkl1(j,i)
+    rkl(j,i)=temp1*temp3*(ONE+ONETHIRD*term1/(m*temp2) - ONEFIFTH*term2/(THREE*m*temp2*temp2))
     rkl(i,j)=rkl(j,i)
-    r2kl(j,i)=Skl*THREEHALF*(ONE+2*temp6)*temp2
+    r2kl(j,i)=Skl*THREEHALF*temp2*(ONE+TWO*ONETHIRD*term1/(m*temp2))
     r2kl(i,j)=r2kl(j,i)
-    deltarkl(j,i)=temp8*(ONE-temp7)/(temp2*temp3)
+    temp10=temp8/(temp2*temp3)
+    deltarkl(j,i)=temp10*(ONE-term1/(m*temp2)+term2/(THREE*m*temp2*temp2))
     deltarkl(i,j)=deltarkl(j,i)
+    prvalkl(j,i)=PI*temp10*( TWO*(Glob_EulerConst+log(temp2))*(ONE-term1/(m*temp2)+term2/(m*temp2*temp2)) &
+      + FOUR*(term1-TWO*term2/temp2)/(THREE*m*temp2)+EIGHT*term2/(15*m*temp2*temp2) )
+    prvalkl(i,j)=prvalkl(j,i)
   enddo  
 enddo
-
 Hkl=Tkl+Vkl
 
-!Evaluation of the Darwin correction
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! 1/(r_ij*r_pq) is not implemented yet
+
+!Evaluating tr[inv_tAkl Jij inv_tAkl Jpq] and
+!j^{ij}' inv_tAkl j^{p,q}  where j^{ij}=e^i-e^j and 
+!the only nonzero element of e^i is the i-th element
+do i=1,n
+  temp2=inv_tAkl(i,i)
+  temp1=temp2*temp2
+  TrAJAJ(i,i,i,i)=temp1
+  jAj(i,i,i,i)=temp2
+  do p=i+1,n
+    do q=p+1,n
+      temp2=inv_tAkl(p,i)-inv_tAkl(q,i)
+      temp1=temp2*temp2
+      TrAJAJ(i,i,p,q)=temp1
+      TrAJAJ(i,i,q,p)=temp1
+      TrAJAJ(p,q,i,i)=temp1
+      TrAJAJ(q,p,i,i)=temp1
+      jAj(i,i,p,q)=temp2
+      jAj(i,i,q,p)=-temp2
+      jAj(p,q,i,i)=temp2
+      jAj(q,p,i,i)=-temp2      
+    enddo
+  enddo
+  do j=i+1,n
+    temp2=inv_tAkl(j,i)
+    temp1=temp2*temp2
+    TrAJAJ(j,j,i,i)=temp1
+    TrAJAJ(i,i,j,j)=temp1
+    jAj(j,j,i,i)=temp2
+    jAj(i,i,j,j)=temp2    
+    do p=i,n
+      temp2=inv_tAkl(p,i)-inv_tAkl(p,j)
+      temp1=temp2*temp2
+      TrAJAJ(i,j,p,p)=temp1
+      TrAJAJ(j,i,p,p)=temp1
+      TrAJAJ(p,p,i,j)=temp1
+      TrAJAJ(p,p,j,i)=temp1
+      jAj(i,j,p,p)=temp2
+      jAj(j,i,p,p)=-temp2
+      jAj(p,p,i,j)=temp2
+      jAj(p,p,j,i)=-temp2      
+      do q=p+1,n
+        temp2=inv_tAkl(p,i)-inv_tAkl(q,i)-inv_tAkl(p,j)+inv_tAkl(q,j)
+        temp1=temp2*temp2
+        TrAJAJ(i,j,p,q)=temp1
+        TrAJAJ(j,i,p,q)=temp1
+        TrAJAJ(i,j,q,p)=temp1
+        TrAJAJ(j,i,q,p)=temp1
+        TrAJAJ(p,q,i,j)=temp1
+        TrAJAJ(p,q,j,i)=temp1
+        TrAJAJ(q,p,i,j)=temp1
+        TrAJAJ(q,p,j,i)=temp1
+        jAj(i,j,p,q)=temp2
+        jAj(j,i,p,q)=-temp2
+        jAj(i,j,q,p)=-temp2
+        jAj(j,i,q,p)=temp2
+        jAj(p,q,i,j)=temp2
+        jAj(p,q,j,i)=-temp2
+        jAj(q,p,i,j)=-temp2
+        jAj(q,p,j,i)=temp2        
+      enddo
+    enddo
+  enddo
+enddo
+
+!Evaluating vector-matrix-vector products
+!j^{ij}' inv_tAkl tvl
+!tvk' inv_tAkl j^{ij}
+do j=1,n
+  do i=1,n
+    if (i==j) then
+      jAtvl(i,i)=inv_tAkltvl(i)
+      tvkAj(i,i)=tvkinv_tAkl(i)
+    else
+      jAtvl(i,j)=inv_tAkltvl(i)-inv_tAkltvl(j)
+      tvkAj(i,j)=tvkinv_tAkl(i)-tvkinv_tAkl(j)
+    endif  
+  enddo
+enddo 
+
+!Evaluation of (1/r_{ij}*1/r_{pq}))_kl is not implemented yet
+temp1=4*Skl/(3*PI)
+do i=1,n
+  do j=i,n
+    do p=i,n
+      do q=p,n   !try q=max(p,j),n - it may speed things up a little
+        if (((p==i).and.(q==j)).or.((p==j).and.(q==i))) then
+          temp2=rm2kl(i,j)
+          rmrmkl(i,j,p,q)=temp2
+          rmrmkl(j,i,p,q)=temp2
+          rmrmkl(i,j,q,p)=temp2
+          rmrmkl(j,i,q,p)=temp2
+          rmrmkl(p,q,i,j)=temp2
+          rmrmkl(p,q,j,i)=temp2
+          rmrmkl(q,p,i,j)=temp2
+          rmrmkl(q,p,j,i)=temp2       
+        else  
+          !jAj(nn,nn,nn,nn),jAtvl(nn,nn),tvkAj(nn,nn)
+          temp2=TrAJ(i,j)          !sigma    a
+          temp3=TrAJ(p,q)          !chi      b
+          temp4=jAj(p,q,i,j)       !         c
+          !tau3                    !zeta     w
+          temp5=tvkAj(i,j)         !         f
+          temp6=tvkAj(p,q)         !         g          
+          temp7=jAtvl(i,j)         !         u
+          temp8=jAtvl(p,q)         !         v
+          temp9 = sqrt(temp2*temp3)
+          temp10 = temp4/temp9
+          threshold = ONE - temp10*temp10
+          if ( threshold  < TEN * EPSILON(threshold) )then
+            ! employed expression
+            ! expansion_term_2 = 2*Skl* (Sqrt(a*b)*g*u + Sqrt(a*b)*f*v - 3*a*b*tau3) / (3*a*b*Sqrt(a*b)*tau3)   
+            temp11 = temp9 * temp6 * temp7                                                              ! Sqrt(a*b)*g*u
+            temp12 = temp9 * temp5 * temp8                                                              ! Sqrt(a*b)*f*v	 
+            temp13 = THREE * temp2 * temp3 * tau3                                                       ! 3*a*b*tau3
+            temp14 = (TWO * Skl) * (temp11 + temp12 - temp13) / (temp13 * temp9)
+          else
+            temp11=sqrt(ONE-temp10*temp10)                                                                              ! sqrt(1-x^2)
+            temp12=(temp6*temp7+temp5*temp8)/(temp2*temp3*tau3)                                                         ! h
+            temp13=(temp2*temp6*temp8+temp3*temp5*temp7)/(temp2*temp3*temp9*tau3)                                       ! t
+            temp14=(temp1/temp11)*(THREE/temp9-temp13+(temp12-temp10*THREE/temp9)*ftransaux(temp10))
+          endif
+          rmrmkl(i,j,p,q)=temp14
+          rmrmkl(j,i,p,q)=temp14
+          rmrmkl(i,j,q,p)=temp14
+          rmrmkl(j,i,q,p)=temp14
+          rmrmkl(p,q,i,j)=temp14
+          rmrmkl(p,q,j,i)=temp14
+          rmrmkl(q,p,i,j)=temp14
+          rmrmkl(q,p,j,i)=temp14
+        endif  
+      enddo
+    enddo
+  enddo
+enddo
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+V2kl=ZERO
+do p=1,n 
+  do q=p,n
+    temp1=ZERO
+    do i=1,n
+      temp1=temp1+ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*rmrmkl(p,q,i,i)
+      do j=i+1,n
+        temp1=temp1+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*rmrmkl(p,q,i,j)
+      enddo
+    enddo
+	temp4=ZERO
+	temp5=ZERO
+    if (p==q) then
+      temp4=2*PI*Glob_MassMatrix(p,p)
+      temp5=ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(p))
+    else
+      temp4=2*PI*(Glob_MassMatrix(p,p)+Glob_MassMatrix(q,q) &
+        -Glob_MassMatrix(p,q)-Glob_MassMatrix(p,q))
+      temp5=ScaledChargeProd(Glob_PseudoCharge(p),Glob_PseudoCharge(q))  
+    endif
+
+    !temp2=ME_rXr_over_rij(W2,p,q,inv_tAkl,rmkl(p,q),TrAJ(p,q))
+    temp2=ZERO
+    temp2=ME_d_X_over_rij_d(p,q,Glob_dmvM,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+    !temp2=ME_d_X_over_rij_d(p,q,Glob_dmvM,tAk,tAl,inv_tAkl,tvk,tvl, &
+    !inv_tAkltvl,tvkinv_tAkl,trAJ(p,q),tau3,eta2(p,q),Skl)
+    drach_deltarkl(p,q)=(Glob_CurrEnergy*rmkl(p,q)-temp1-temp2)/temp4
+    drach_deltarkl(q,p)=drach_deltarkl(p,q)
+    V2kl=V2kl+temp5*temp1    
+  enddo
+enddo
+
+!Evaluation of the Darwin correction 
 Mass_For_Darwin(0)=Glob_Mass(1)
 Mass_For_Darwin(1:n)=Glob_Mass(2:n+1)
 !Mass_For_Darwin(0)=10.0D20
@@ -4196,25 +1438,2786 @@ do i=1,n
   Darwinkl=Darwinkl+(   &
      ONE/(Mass_For_Darwin(0)*Mass_For_Darwin(0)) &
     +ONE/(Mass_For_Darwin(i)*Mass_For_Darwin(i)) &
-    )*Glob_PseudoCharge0*Glob_PseudoCharge(i)*deltarkl(i,i)
+    )*ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*deltarkl(i,i)    
 enddo
 do i=1,n
   do j=1,n
     if(j/=i) then
       Darwinkl=Darwinkl+   &
         ONE/(Mass_For_Darwin(i)*Mass_For_Darwin(i)) &
-       *Glob_PseudoCharge(i)*Glob_PseudoCharge(j)*deltarkl(i,j)
+       *ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*deltarkl(i,j)
     endif   
   enddo  
 enddo
 Darwinkl=-Darwinkl*PI/2
+!Evaluation of the drachmanized Darwin correction
+drach_Darwinkl=ZERO
+do i=1,n
+  drach_Darwinkl=drach_Darwinkl+(   &
+     ONE/(Mass_For_Darwin(0)*Mass_For_Darwin(0)) &
+    +ONE/(Mass_For_Darwin(i)*Mass_For_Darwin(i)) &
+    )*ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*drach_deltarkl(i,i)    
+enddo
+do i=1,n
+  do j=1,n
+    if(j/=i) then
+      drach_Darwinkl=drach_Darwinkl+   &
+        ONE/(Mass_For_Darwin(i)*Mass_For_Darwin(i)) &
+       *ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*drach_deltarkl(i,j)
+    endif   
+  enddo  
+enddo
+drach_Darwinkl=-drach_Darwinkl*PI/2
 
-!Mass-velocity and Orbit-Orbit are yet to be implemented
-MVkl=Skl
-OOkl=Skl
+!Mass-velocity correction
+inv_tau3=1/tau3
+W1(1:n,1:n)=ONE
+temp1=Glob_Mass(1)*Glob_Mass(1)*Glob_Mass(1)
+!MVkl=ME_dWd2(W1,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,inv_tau3,Skl)/temp1
+MVkl=dXddYd(W1,W1,tvk,tbk,tvl,tbl,tAl,tAk,inv_tAkl,det_tAkl,tau3,tau33,tau333,tau334,inv_tAkltAl,inv_tAkltAk)/temp1
+W1(1:n,1:n)=ZERO
+do i=1,n 
+  W1(i,i)=ONE
+  temp1=Glob_Mass(i+1)*Glob_Mass(i+1)*Glob_Mass(i+1)
+  !MVkl=MVkl+ME_dWd2(W1,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,inv_tau3,Skl)/temp1
+  MVkl=MVkl+dXddYd(W1,W1,tvk,tbk,tvl,tbl,tAl,tAk,inv_tAkl,det_tAkl,tau3,tau33,tau333,tau334,inv_tAkltAl,inv_tAkltAk)/temp1
+  W1(i,i)=ZERO
+enddo
+MVkl=-MVkl/8
 
-end subroutine MatrixElementsL1ForExpcVals
+
+drach_MVkl=ZERO		   
+!drach_MVkl=ME_dWd21(Glob_dmvM,Glob_dmvMB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,inv_tau3,Skl) &
+drach_MVkl=dXddYd(Glob_dmvM,Glob_dmvMB,tvk,tbk,tvl,tbl,tAl,tAk,inv_tAkl,det_tAkl,tau3,tau33,tau333,tau334,inv_tAkltAl,inv_tAkltAk)&
+  -V2kl-Glob_CurrEnergy*Glob_CurrEnergy*Skl+2*Glob_CurrEnergy*Vkl+ &
+  !Glob_CurrEnergy*ME_dXd(Glob_dmvB,tvk,tvl,inv_tAkltvl,inv_tAkl,tAk,tAl,inv_tAkltAl,Skl,tau3)!+&
+  Glob_CurrEnergy*dXddYd(Glob_dmvB,Glob_dmvB,tvk,tbk,tvl,tbl,tAl,tAk,inv_tAkl,det_tAkl,tau3,tau33,tau333,tau334, &
+                         inv_tAkltAl,inv_tAkltAk)
+do i=1,n                                        
+  drach_MVkl=drach_MVkl-ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i)) &
+                        *ME_d_X_over_rij_d(i,i,Glob_dmvB,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+                        !*ME_d_X_over_rij_d(i,i,Glob_dmvB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl, &
+                         !          tvkinv_tAkl,trAJ(i,i),tau3,eta2(i,i),Skl)
+                                   
+  do j=i+1,n                                                                  
+  drach_MVkl=drach_MVkl-ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j)) &
+                        *ME_d_X_over_rij_d(i,j,Glob_dmvB,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+                       ! *ME_d_X_over_rij_d(i,j,Glob_dmvB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl, &
+                       !            tvkinv_tAkl,trAJ(i,j),tau3,eta2(i,j),Skl)                        
+  enddo                
+enddo
+drach_MVkl = drach_MVkl*Glob_dmva2 + MVkl
+   
+
+do i=1,n
+  do j=1,n
+    tbltbk(i,j)=tbl(j)*tbk(i)
+    tvltvk(i,j)=tvl(j)*tvk(i)
+    tbltvk(i,j)=tbl(j)*tvk(i)
+    tvltbk(i,j)=tvl(j)*tbk(i)
+    
+    tvltbl(i,j)=tvl(j)*tbl(i)
+    tvktbk(i,j)=tvk(j)*tbk(i)
+  enddo
+enddo
+
+call symmetrize_matrix(tbltbk)
+call symmetrize_matrix(tvltvk)
+call symmetrize_matrix(tvltbk)
+call symmetrize_matrix(tbltvk)
+call symmetrize_matrix(tvltbl)
+call symmetrize_matrix(tvktbk)
 
 
+!Evaluating Orbit-Orbit (OO) matrix element (without the factor of alpha**2)
+OOkl=ZERO
+!First double loop for OO
+do i=1,n
+  do j=1,n  
+    tr1=tAl(j,i)
+    tr2=tAl(i,j)
+    tr3=3*tAl(j,j)
+    do p=1,n
+      do q=1,n
+        W1(p,q)=tAl(p,i)*tAl(j,q)+tAl(p,j)*tAl(i,q)
+      enddo
+    enddo
+    do p=1,n
+      W1(p,j)=W1(p,j)+tAkl(p,j)*tAl(j,i)      
+    enddo
+
+    do q=1,n
+      W1(j,q)=W1(j,q)+tAl(i,j)*tAl(j,q)+tr3*tAl(i,q)      
+    enddo    
+    !W2 = Akl Ejj Al
+    do p=1,n
+      do q=1,n
+        W2(p,q)=tAkl(p,j)*tAl(j,q)
+      enddo
+    enddo
+    !W3 = Eji Al
+    W3(1:n,1:n)=ZERO
+    do q=1,n
+      W3(j,q)=tAl(i,q)
+    enddo
+
+    do p=1,n
+      do q=1,n
+        W4(p,q) = 2*tAl(p,j)*tvl(i)*tvk(q) + 2*tAl(p,i)*tvl(j)*tvk(q)
+        W44(p,q) = 2*tAl(p,j)*tbk(i)*tvk(q) + 2*tAl(p,i)*tbk(j)*tvk(q)        
+        W4b(p,q) = 2*tAl(p,j)*tbl(i)*tbk(q) + 2*tAl(p,i)*tbl(j)*tbk(q)
+        W44b(p,q) = 2*tAl(p,j)*tvk(i)*tbk(q) + 2*tAl(p,i)*tvk(j)*tbk(q)
+      enddo
+    enddo
+    !W4 = W4 + vl vk' Ejj Al Eij
+    do p=1,n
+      W4(p,j) = W4(p,j) + tvl(p)*tvk(j)*tAl(j,i)
+      W44(p,j) = W44(p,j) + tbk(p)*tvk(j)*tAl(j,i)     
+      W4b(p,j) = W4b(p,j) + tbl(p)*tbk(j)*tAl(j,i)
+      W44b(p,j) = W44b(p,j) + tvk(p)*tbk(j)*tAl(j,i)
+    enddo
+    do q=1,n
+      W4(j,q) = W4(j,q) + 2*tAl(i,j)*tvl(j)*tvk(q) + tr3*tvl(i)*tvk(q) + tvl(i)*tvk(j)*tAl(j,q)     
+      W44(j,q) = W44(j,q) + 2*tAl(i,j)*tbk(j)*tvk(q) + tr3*tbk(i)*tvk(q) + tbk(i)*tvk(j)*tAl(j,q)      
+      W4b(j,q) = W4b(j,q) + 2*tAl(i,j)*tbl(j)*tbk(q) + tr3*tbl(i)*tbk(q) + tbl(i)*tbk(j)*tAl(j,q)     
+      W44b(j,q) = W44b(j,q) + 2*tAl(i,j)*tvk(j)*tbk(q) + tr3*tvk(i)*tbk(q) + tvk(i)*tbk(j)*tAl(j,q)
+    enddo
+
+    do p=1,n
+      do q=1,n
+        W5(p,q) = tAkl(p,j)*tvl(j)*tvk(q) + tAl(p,j)*tvl(j)*tvk(q) + tvl(p)*tvk(j)*tAl(j,q)
+        W55(p,q) = tAkl(p,j)*tbk(j)*tvk(q) + tAl(p,j)*tbk(j)*tvk(q) + tbk(p)*tvk(j)*tAl(j,q)       
+        W5b(p,q) = tAkl(p,j)*tbl(j)*tbk(q) + tAl(p,j)*tbl(j)*tbk(q) + tbl(p)*tbk(j)*tAl(j,q)
+        W55b(p,q) = tAkl(p,j)*tvk(j)*tbk(q) + tAl(p,j)*tvk(j)*tbk(q) + tvk(p)*tbk(j)*tAl(j,q)
+      enddo
+    enddo
+    
+    !W6 = Akl Ejj Al
+    do p=1,n
+      do q=1,n
+        W6(p,q) = tAkl(p,j)*tAl(j,q)
+      enddo
+    enddo
+    
+    !W7 = Eji vl vk'
+    W7(1:n,1:n)=ZERO
+    W77(1:n,1:n)=ZERO
+    W7b(1:n,1:n)=ZERO
+    W77b(1:n,1:n)=ZERO
+    do q=1,n
+      W7(j,q) = tvl(i)*tvk(q)
+      W77(j,q) = tbl(i)*tvl(q)
+      W7b(j,q) = tbl(i)*tbk(q)
+      W77b(j,q) = tvl(i)*tbl(q)
+    enddo
+    
+    call symmetrize_matrix(W1)
+    call symmetrize_matrix(W2)
+    call symmetrize_matrix(W3)
+    call symmetrize_matrix(W4)
+    call symmetrize_matrix(W5)
+    call symmetrize_matrix(W44)
+    call symmetrize_matrix(W55)
+    call symmetrize_matrix(W6)
+    call symmetrize_matrix(W7)
+    call symmetrize_matrix(W77)    
+    call symmetrize_matrix(W4b)
+    call symmetrize_matrix(W5b)
+    call symmetrize_matrix(W44b)
+    call symmetrize_matrix(W55b)
+    call symmetrize_matrix(W7b)
+    call symmetrize_matrix(W77b)
+    !compute integrals   
+                          temp1=ME_rXr_over_rij(j,j,W1,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+                      temp2=ME_rXr_rYr_over_rij(j,j,W2,W3,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)              
+          temp4=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W4,tbltbk,inv_tAkl,det_tAkl)
+         temp44=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W44,tvltbl,inv_tAkl,det_tAkl)
+         temp4b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W4b,tvltvk,inv_tAkl,det_tAkl)
+        temp44b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W44b,tvltbl,inv_tAkl,det_tAkl)    
+        temp444=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W7,W5b,inv_tAkl,det_tAkl)    
+       temp4444=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W77,W55b,inv_tAkl,det_tAkl)    
+       temp444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W7b,W5,inv_tAkl,det_tAkl)
+      temp4444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W77b,W55,inv_tAkl,det_tAkl)    
+      temp5=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W5,tbltbk,inv_tAkl,det_tAkl)
+     temp55=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W55,tvltbl,inv_tAkl,det_tAkl)  
+     temp5b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W5b,tvltvk,inv_tAkl,det_tAkl)
+    temp55b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W55b,tvltbl,inv_tAkl,det_tAkl) 
+      temp6=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W7,tbltbk,inv_tAkl,det_tAkl)
+     temp66=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W77,tvktbk,inv_tAkl,det_tAkl)
+     temp6b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W7b,tvltvk,inv_tAkl,det_tAkl)
+    temp66b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W77b,tvktbk,inv_tAkl,det_tAkl)
+    temp7=-6*(tr1+tr2)*rmkl(j,j)+4*temp1-8*temp2-2*(temp4-temp44)+4*(temp5-temp55)+4*(temp6-temp66)    
+    temp7=temp7-2*(temp4b-temp44b)+4*(temp5b-temp55b)+4*(temp6b-temp66b)-2*(temp444-temp4444)-2*(temp444b-temp444b)
+    OOkl=OOkl-temp7*ScaledChargeProd(Glob_PseudoCharge(j),Glob_PseudoCharge0)/Glob_Mass(j+1)
+  enddo
+enddo
+OOkl=OOkl/Glob_Mass(1)
+
+
+!Second double loop for OO
+do i=1,n
+  do j=i+1,n
+    tr1=tAl(j,i)
+    tr2=tAl(i,j)
+    tr3=3*tAl(j,j)   
+    tr4=tvl(j)*tvk(j)
+    !W1 = Al Eji Al + Al Ejj (Eji - Eii) Al 
+    do p=1,n
+      do q=1,n
+        W1(p,q)=tAl(p,i)*tAl(j,q)+tAl(p,j)*tAl(i,q)
+      enddo
+    enddo
+    !W1 = W1 + Akl Ejj Al (Eij - Eii) 
+    do p=1,n
+      W1(p,j)=W1(p,j)+tAkl(p,j)*tAl(j,i)
+      W1(p,i)=W1(p,i)-tAkl(p,j)*tAl(j,i)    
+    enddo
+    !W1 = W1 + (Eji - Eii) Al Ejj Al + tr3 (Eji - Eii) Al 
+    do q=1,n
+      temp1=tAl(i,j)*tAl(j,q)+tr3*tAl(i,q)
+      W1(j,q)=W1(j,q)+temp1
+      W1(i,q)=W1(i,q)-temp1    
+    enddo   
+    !W2 = Akl Ejj Al
+    do p=1,n
+      do q=1,n
+        W2(p,q)=tAkl(p,j)*tAl(j,q)
+      enddo
+    enddo
+    !W3 = (Eji - Eii) Al
+    W3(1:n,1:n)=ZERO
+    do q=1,n
+      W3(j,q)=tAl(i,q)
+      W3(i,q)=-tAl(i,q)
+    enddo
+
+    do p=1,n
+      do q=1,n
+        W4(p,q) = 2*tAl(p,j)*tvl(i)*tvk(q) + 2*tAl(p,i)*tvl(j)*tvk(q)
+        W44(p,q) = 2*tAl(p,j)*tbk(i)*tvk(q) + 2*tAl(p,i)*tbk(j)*tvk(q)        
+        W4b(p,q) = 2*tAl(p,j)*tbl(i)*tbk(q) + 2*tAl(p,i)*tbl(j)*tbk(q)
+        W44b(p,q) = 2*tAl(p,j)*tvk(i)*tbk(q) + 2*tAl(p,i)*tvk(j)*tbk(q)
+      enddo
+    enddo
+    !W4 = W4 + vl vk' Ejj Al (Eij-Eii)
+    do p=1,n
+      W4(p,j) = W4(p,j) + tvl(p)*tvk(j)*tAl(j,i)
+      W4(p,i) = W4(p,i) - tvl(p)*tvk(j)*tAl(j,i)
+      W44(p,j) = W44(p,j) + tbk(p)*tvk(j)*tAl(j,i)
+      W44(p,i) = W44(p,i) - tbk(p)*tvk(j)*tAl(j,i)      
+      W4b(p,j) = W4b(p,j) + tbl(p)*tbk(j)*tAl(j,i)
+      W4b(p,i) = W4b(p,i) - tbl(p)*tbk(j)*tAl(j,i)     
+      W44b(p,j) = W44b(p,j) + tvk(p)*tbk(j)*tAl(j,i)
+      W44b(p,i) = W44b(p,i) - tvk(p)*tbk(j)*tAl(j,i)      
+    enddo
+
+    do q=1,n
+      temp1 = 2*tAl(i,j)*tvl(j)*tvk(q) + tr3*tvl(i)*tvk(q) + tvl(i)*tvk(j)*tAl(j,q)      
+      temp11 = 2*tAl(i,j)*tbk(j)*tvk(q) + tr3*tbk(i)*tvk(q) + tbk(i)*tvk(j)*tAl(j,q)     
+      temp1b = 2*tAl(i,j)*tbl(j)*tbk(q) + tr3*tbl(i)*tbk(q) + tbl(i)*tbk(j)*tAl(j,q)
+      temp11b = 2*tAl(i,j)*tvk(j)*tbk(q) + tr3*tvk(i)*tbk(q) + tvk(i)*tbk(j)*tAl(j,q)
+      W4(j,q) = W4(j,q) + temp1
+      W4(i,q) = W4(i,q) - temp1
+      W44(j,q) = W44(j,q) + temp11
+      W44(i,q) = W44(i,q) - temp11      
+      W4b(j,q) = W4b(j,q) + temp1b
+      W4b(i,q) = W4b(i,q) - temp1b
+      W44b(j,q) = W44b(j,q) + temp11b
+      W44b(i,q) = W44b(i,q) - temp11b
+    enddo
+    
+    !W5 = Akl Ejj vl vk' + Al Ejj vl vk' + vl vk' Ejj Al
+    do p=1,n
+      do q=1,n
+        W5(p,q) = tAkl(p,j)*tvl(j)*tvk(q) + tAl(p,j)*tvl(j)*tvk(q) + tvl(p)*tvk(j)*tAl(j,q)        
+        W55(p,q) = tAkl(p,j)*tbk(j)*tvk(q) + tAl(p,j)*tbk(j)*tvk(q) + tbk(p)*tvk(j)*tAl(j,q)       
+        W5b(p,q) = tAkl(p,j)*tbl(j)*tbk(q) + tAl(p,j)*tbl(j)*tbk(q) + tbl(p)*tbk(j)*tAl(j,q)
+        W55b(p,q) = tAkl(p,j)*tvk(j)*tbk(q) + tAl(p,j)*tvk(j)*tbk(q) + tvk(p)*tbk(j)*tAl(j,q)
+      enddo
+    enddo
+    
+    !W6 = Akl Ejj Al
+    do p=1,n
+      do q=1,n
+        W6(p,q) = tAkl(p,j)*tAl(j,q)
+      enddo
+    enddo
+    
+    !W7 = (Eji - Eii) vl vk'
+    W7(1:n,1:n)=ZERO
+    W77(1:n,1:n)=ZERO
+    W7b(1:n,1:n)=ZERO
+    W77b(1:n,1:n)=ZERO
+    do q=1,n
+      W7(j,q) = tvl(i)*tvk(q)
+      W7(i,q) = -tvl(i)*tvk(q)      
+      W77(j,q) = tbl(i)*tvl(q)
+      W77(i,q) = -tbl(i)*tvl(q)
+      W7b(j,q) = tbl(i)*tbk(q)
+      W7b(i,q) = -tbl(i)*tbk(q)
+      W77b(j,q) = tvl(i)*tbl(q)
+      W77b(i,q) = -tvl(i)*tbl(q)
+    enddo
+    
+    call symmetrize_matrix(W1)
+    call symmetrize_matrix(W2)
+    call symmetrize_matrix(W3)
+    call symmetrize_matrix(W4)
+    call symmetrize_matrix(W44)
+    call symmetrize_matrix(W5)
+    call symmetrize_matrix(W55)
+    call symmetrize_matrix(W6)
+    call symmetrize_matrix(W7)
+    call symmetrize_matrix(W77)
+    call symmetrize_matrix(W4b)
+    call symmetrize_matrix(W5b)
+    call symmetrize_matrix(W44b)
+    call symmetrize_matrix(W55b)
+    call symmetrize_matrix(W7b)
+    call symmetrize_matrix(W77b)
+    !compute integrals (remember to take the difference)
+    temp1=ME_rXr_over_rij(i,j,W1,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+    temp2=ME_rXr_rYr_over_rij(i,j,W2,W3,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+       temp4=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W4,tbltbk,inv_tAkl,det_tAkl)
+      temp44=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W44,tvltbl,inv_tAkl,det_tAkl)     
+      temp4b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W4b,tvltvk,inv_tAkl,det_tAkl)     
+     temp44b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W44b,tvltbl,inv_tAkl,det_tAkl)      
+     temp444=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W7,W5b,inv_tAkl,det_tAkl)    
+    temp4444=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W77,W55b,inv_tAkl,det_tAkl)    
+    temp444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W7b,W5,inv_tAkl,det_tAkl)
+   temp4444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W77b,W55,inv_tAkl,det_tAkl)    
+   temp5=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W5,tbltbk,inv_tAkl,det_tAkl)
+  temp55=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W55,tvltbl,inv_tAkl,det_tAkl)     
+  temp5b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W5b,tvltvk,inv_tAkl,det_tAkl)
+ temp55b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W55b,tvltbl,inv_tAkl,det_tAkl)     
+   temp6=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W7,tbltbk,inv_tAkl,det_tAkl)
+  temp66=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W77,tvktbk,inv_tAkl,det_tAkl)    
+  temp6b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W7b,tvltvk,inv_tAkl,det_tAkl)
+ temp66b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W77b,tvktbk,inv_tAkl,det_tAkl)
+    temp7=-6*(tr1+tr2)*rmkl(i,j)+4*temp1-8*temp2-2*(temp4-temp44)+4*(temp5-temp55)+4*(temp6-temp66)
+    temp7=temp7-2*(temp4b-temp44b)+4*(temp5b-temp55b)+4*(temp6b-temp66b)-2*(temp444-temp4444)-2*(temp444b-temp4444b)
+    OOkl=OOkl+&
+      temp7*ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))/(Glob_Mass(i+1)*Glob_Mass(j+1))
+  enddo
+enddo
+OOkl=OOkl/2
+    
+
+!Evaluation of correlation functions
+if (AreCorrFuncNeeded) then
+  temp1=Skl/(PI*SQRTPI)
+  p=0
+  do i=1,n
+    do j=i,n
+      p=p+1
+      temp2=temp1/(sqrtTrAJ(j,i)*TrAJ(j,i))
+      temp3=-1/TrAJ(j,i)
+      temp4=2/TrAJ(j,i)
+      temp5=eta2(j,i)/(TrAJ(j,i)*tau3)
+      do k=1,NumCFGridPoints
+        temp6=CFGrid(2,k)*CFGrid(2,k)         !this is \xi_z^2
+        temp7=temp6+CFGrid(1,k)*CFGrid(1,k)   !this is  \xi^2
+        temp8=ONE+(temp4*temp6-ONE)*temp5
+        CFkl(p,k)=temp2*temp8*exp(temp7*temp3)
+      enddo
+    enddo
+  enddo
+endif
+
+if (ArePartDensNeeded) then
+  temp1=Skl/(PI*SQRTPI)
+  do i=1,n+1
+    temp2=ZERO
+    do p=1,n
+      temp2=temp2+Glob_bvc(p,i)*Glob_bvc(p,i)*inv_tAkl(p,p)
+      do q=p+1,n
+        temp2=temp2+2*Glob_bvc(q,i)*Glob_bvc(p,i)*inv_tAkl(q,p)
+      enddo
+    enddo
+    temp3=ZERO
+    temp4=ZERO
+    do p=1,n
+      temp3=temp3+tvkinv_tAkl(p)*Glob_bvc(p,i)
+      temp4=temp4+Glob_bvc(p,i)*inv_tAkltvl(p)
+    enddo
+    temp5=temp3*temp4/(temp2*tau3)
+    temp6=-1/temp2
+    temp7=2/temp2
+    temp8=temp1/(sqrt(temp2)*temp2)
+    do k=1,NumDensGridPoints
+      temp9=DensGrid(2,k)*DensGrid(2,k)          !this is  \xi_z^2
+      temp10=temp9+DensGrid(1,k)*DensGrid(1,k)   !this is -\xi^2
+      temp11=ONE+(temp7*temp9-ONE)*temp5
+      Denskl(i,k)=temp8*temp11*exp(temp10*temp6)
+    enddo
+  enddo
+endif
+
+end subroutine MatrixElementsL1ForExpcValsD
+
+subroutine symmetrize_matrix(W)
+!subroutine symmetrize_matrix makes an arbitrary square matrix W
+!symmetric by the following procedure:
+!W = (1/2)*(W + W')
+!Input:
+!   W :: n x n real matrix
+
+integer, parameter :: nn = Glob_MaxAllowedNumOfPseudoParticles
+real(dprec)           W(nn, nn), t
+integer               i,j,n
+
+n = Glob_n
+
+do i = 1,n
+    do j = i+1,n
+	    t=ONEHALF*(W(j,i)+W(i,j))
+        W(j,i) = t
+        W(i,j) = t
+    end do
+end do
+
+end subroutine symmetrize_matrix
+
+
+
+function ScaledChargeProd(q1,q2)
+real(dprec) ScaledChargeProd,q1,q2,x
+x=q1*q2
+if (x<0.0_dprec) then
+  ScaledChargeProd=x*Glob_AttractionScalingParam
+else
+  if ((q1>0.0_dprec).and.(q2>0.0_dprec)) then
+    ScaledChargeProd=x*Glob_RepulsionScalingParam*Glob_RepulsionScalingParamPlus
+  else 
+    ScaledChargeProd=x*Glob_RepulsionScalingParam*Glob_RepulsionScalingParamMinus
+  endif 
+endif
+end function ScaledChargeProd
+
+
+function SG_ME_rXr_rYr_over_rij(i,j,X,Y,inv_tAkl,det_tAkl)
+!function ME_rXr_rYr_over_rij computes the following matrix element:
+!<\tilde phi_k| (r' X r)(r' Y r)/r_ij |\tilde phi_l>
+!Here X and Y are some real symmetric matrices. If matrices X or Y are not symmetric
+!then user needs to symmetrize them before calling this function.
+!Input:
+!            X  :: n x n real matrix
+!            Y  :: n x n real matrix
+!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
+!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
+!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
+real(dprec)   SG_ME_rXr_rYr_over_rij
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+!Arguments:
+real(dprec)   X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn)
+integer       i,j
+real(dprec)   t_V,Skl
+!Local variables:
+integer       p,q,s,n
+real(dprec)   temp1,temp2,temp3,temp4,temp5,temp6
+real(dprec)   AX(nn,nn),AY(nn,nn)
+real(dprec)   Aj(nn),AjX(nn),AjY(nn),AXAj(nn),AYAj(nn)
+real(dprec)   t_J,t_X,t_Y
+real(dprec)   t_XJ,t_YJ,t_XY
+real(dprec)   t_XYJ,t_YXJ,Glob_Piraised3n2,det_tAkl
+
+n=Glob_n
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+!Form Aj=inv_tAkl*ji        j/=i 
+!     Aj=inv_tAkl*(ji-jj)   j/=i 
+!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
+if (i==j) then
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)
+ enddo
+else
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
+ enddo
+endif 
+
+!Compute AjX'=Aj'*X
+!    and AjY'=Aj'*Y
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  do q=1,n
+    temp1=temp1+Aj(q)*X(q,p)
+    temp2=temp2+Aj(q)*Y(q,p)
+  enddo
+  AjX(p)=temp1
+  AjY(p)=temp2
+enddo
+
+!Compute AX=inv_tAkl*X  t_X=tr[inv_tAkl*X]
+!        AY=inv_tAkl*Y  t_Y=tr[inv_tAkl*Y]
+t_X=ZERO
+t_Y=ZERO
+do p=1,n
+  do q=1,n
+    temp1=ZERO
+    temp2=ZERO
+    do s=1,n
+      temp1=temp1+inv_tAkl(s,q)*X(p,s)
+      temp2=temp2+inv_tAkl(s,q)*Y(p,s)
+    enddo
+    AX(q,p)=temp1
+    AY(q,p)=temp2
+  enddo
+  t_X=t_X+AX(p,p)
+  t_Y=t_Y+AY(p,p)
+enddo
+
+!Compute t_J=tr[inv_tAkl*Jij] 
+if (i==j) then
+  t_J=inv_tAkl(i,i)
+else
+  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
+endif
+
+!Compute t_XY=tr[inv_tAkl*X*inv_tAkl*Y]=tr[AX*AY]
+!        AXAj=AX*Aj
+!        AYAj=AY*Aj
+t_XY=ZERO
+do p=1,n
+  temp3=ZERO
+  temp4=ZERO 
+  do q=1,n
+    t_XY=t_XY+AX(p,q)*AY(q,p)
+    temp3=temp3+AX(p,q)*Aj(q)
+    temp4=temp4+AY(p,q)*Aj(q)  
+  enddo
+  AXAj(p)=temp3
+  AYAj(p)=temp4
+enddo
+
+!Compute 
+!t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
+!t_YJ=tr[inv_tAkl*Y*inv_tAkl*Jij]=AjY'*Aj 
+!t_XYJ=tr[inv_tAkl*X*inv_tAkl*Y*inv_tAkl*Jij]=AjX'*AYAj  
+
+t_XJ=ZERO
+t_YJ=ZERO
+t_XYJ=ZERO
+
+
+do p=1,n
+  t_XJ=t_XJ+AjX(p)*Aj(p)
+  t_YJ=t_YJ+AjY(p)*Aj(p)  
+  t_XYJ=t_XYJ+AjX(p)*AYAj(p)
+enddo
+
+!Compute t_YXJ=tr[inv_tAkl*Y*inv_tAkl*X*inv_tAkl*Jij]
+t_YXJ=t_XYJ
+
+temp1=Glob_Piraised3n2/(SQRTPI*det_tAkl**(THREEHALF))
+temp3=1/t_J
+SG_ME_rXr_rYr_over_rij=THREE*temp1*temp3*sqrt(temp3)*(  &
+THREEHALF*t_J*t_X*t_Y - ONEHALF*(t_Y*t_XJ + t_X*t_YJ) + &
+t_J*t_XY  - ONETHIRD*(t_XYJ + t_YXJ) + ONEHALF*temp3*t_XJ*t_YJ&
+)
+
+end function SG_ME_rXr_rYr_over_rij
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+function SG_ME_rXr_rYr_rZr_over_rij(i,j,X,Y,Z,inv_tAkl,det_tAkl)
+!function ME_rXr_rYr_over_rij computes the following matrix element:
+!<\tilde phi_k| (r' X r)(r' Y r)/r_ij |\tilde phi_l>
+!Here X and Y are some real symmetric matrices. If matrices X or Y are not symmetric
+!then user needs to symmetrize them before calling this function.
+!Input:
+!            X  :: n x n real matrix
+!            Y  :: n x n real matrix
+!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
+!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
+!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
+real(dprec)   SG_ME_rXr_rYr_rZr_over_rij
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+!Arguments:
+real(dprec)   X(nn,nn),Y(nn,nn),Z(nn,nn),inv_tAkl(nn,nn)
+integer       i,j
+!Local variables:
+integer       p,q,s,n
+real(dprec)   temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8,temp9,temp10,temp11,temp12
+real(dprec)   AX(nn,nn),AY(nn,nn),AZ(nn,nn)
+real(dprec)   Aj(nn),AjX(nn),AjY(nn),AjZ(nn),AXAj(nn),AYAj(nn),AZAj(nn)
+real(dprec)   AZAY(nn,nn),AYAZ(nn,nn),AZAX(nn,nn),AXAZ(nn,nn),AXAY(nn,nn),AYAX(nn,nn)
+real(dprec)   AZAYAj(nn),AYAZAj(nn),AZAXAj(nn),AXAZAj(nn),AXAYAj(nn),AYAXAj(nn)
+real(dprec)   t_J,t_X,t_Y,t_Z
+real(dprec)   t_XJ,t_YJ,t_ZJ
+real(dprec)   t_XY,t_ZY,t_ZX,t_YX,t_ZYX,t_YZX
+real(dprec)   t_XYJ,t_YXJ,t_ZYJ,t_YZJ,t_XZJ,t_ZXJ
+real(dprec)   t_ZYXJ,t_YZXJ,t_YXZJ,t_XYZJ,t_ZXYJ,t_XZYJ
+real(dprec)   Glob_Piraised3n2,det_tAkl,term1,term2,term3,term4,term5,term6,term7,term8
+
+n=Glob_n
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+!Form Aj=inv_tAkl*ji        j/=i 
+!     Aj=inv_tAkl*(ji-jj)   j/=i 
+!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
+if (i==j) then
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)
+ enddo
+else
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
+ enddo
+endif 
+
+!Compute AjX'=Aj'*X
+!    and AjY'=Aj'*Y
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+Aj(q)*X(q,p)
+    temp2=temp2+Aj(q)*Y(q,p)
+    temp3=temp3+Aj(q)*Z(q,p)
+  enddo
+  AjX(p)=temp1
+  AjY(p)=temp2
+  AjZ(p)=temp3
+enddo
+
+!Compute AX=inv_tAkl*X  t_X=tr[inv_tAkl*X]
+!        AY=inv_tAkl*Y  t_Y=tr[inv_tAkl*Y]
+t_X=ZERO
+t_Y=ZERO
+t_Z=ZERO
+do p=1,n
+  do q=1,n
+    temp1=ZERO
+    temp2=ZERO
+    temp3=ZERO
+    do s=1,n
+      temp1=temp1+inv_tAkl(s,q)*X(p,s)
+      temp2=temp2+inv_tAkl(s,q)*Y(p,s)
+      temp3=temp3+inv_tAkl(s,q)*Z(p,s)
+    enddo
+    AX(q,p)=temp1
+    AY(q,p)=temp2
+    AZ(q,p)=temp3
+  enddo
+  t_X=t_X+AX(p,p)
+  t_Y=t_Y+AY(p,p)
+  t_Z=t_Z+AZ(p,p)
+enddo
+
+do p=1,n
+  do q=1,n
+    temp1=ZERO
+    temp2=ZERO
+    temp3=ZERO
+    temp4=ZERO
+    temp5=ZERO
+    temp6=ZERO
+    do s=1,n
+      temp1=temp1+AZ(s,q)*AY(p,s)
+      temp2=temp2+AY(s,q)*AZ(p,s)
+      temp3=temp3+AZ(s,q)*AX(p,s)
+      temp4=temp4+AX(s,q)*AZ(p,s)
+      temp5=temp5+AX(s,q)*AY(p,s)
+      temp6=temp6+AY(s,q)*AX(p,s)
+    enddo
+    AZAY(q,p)=temp1
+    AYAZ(q,p)=temp2
+    AZAX(q,p)=temp3
+    AXAZ(q,p)=temp4
+    AXAY(q,p)=temp5
+    AYAX(q,p)=temp6
+  enddo
+enddo
+
+
+!Compute t_J=tr[inv_tAkl*Jij] 
+if (i==j) then
+  t_J=inv_tAkl(i,i)
+else
+  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
+endif
+
+!Compute t_XY=tr[inv_tAkl*X*inv_tAkl*Y]=tr[AX*AY]
+!        AXAj=AX*Aj
+!        AYAj=AY*Aj
+t_XY=ZERO
+t_ZX=ZERO
+t_ZY=ZERO
+t_ZYX=ZERO
+t_YZX=ZERO
+do p=1,n
+  temp3=ZERO
+  temp4=ZERO
+  temp5=ZERO  
+  temp6=ZERO
+  temp7=ZERO
+  temp8=ZERO
+  temp9=ZERO
+  temp10=ZERO
+  temp11=ZERO
+  do q=1,n
+    t_XY=t_XY+AX(p,q)*AY(q,p)
+    t_ZX=t_ZX+AZ(p,q)*AX(q,p)
+    t_ZY=t_ZY+AZ(p,q)*AY(q,p)
+    t_ZYX=t_ZYX+AZAY(p,q)*AX(q,p)
+    t_YZX=t_YZX+AYAZ(p,q)*AX(q,p)
+    temp3=temp3+AX(p,q)*Aj(q)
+    temp4=temp4+AY(p,q)*Aj(q)
+    temp5=temp5+AZ(p,q)*Aj(q)  
+    temp6=temp6+AZAY(p,q)*Aj(q)
+    temp7=temp7+AYAZ(p,q)*Aj(q)
+    temp8=temp8+AZAX(p,q)*Aj(q)
+    temp9=temp9+AXAZ(p,q)*Aj(q)
+    temp10=temp10+AXAY(p,q)*Aj(q)
+    temp11=temp11+AYAX(p,q)*Aj(q)
+  enddo
+  AXAj(p)=temp3
+  AYAj(p)=temp4
+  AZAj(p)=temp5
+  AZAYAj(p)=temp6
+  AYAZAj(p)=temp7
+  AZAXAj(p)=temp8
+  AXAZAj(p)=temp9
+  AXAYAj(p)=temp10
+  AYAXAj(p)=temp11
+enddo
+
+!Compute 
+!t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
+!t_YJ=tr[inv_tAkl*Y*inv_tAkl*Jij]=AjY'*Aj 
+!t_XYJ=tr[inv_tAkl*X*inv_tAkl*Y*inv_tAkl*Jij]=AjX'*AYAj  
+
+t_XJ=ZERO
+t_YJ=ZERO
+t_ZJ=ZERO
+t_XYJ=ZERO
+t_ZYJ=ZERO
+t_ZXJ=ZERO
+t_ZYXJ=ZERO
+t_YZXJ=ZERO
+t_ZXYJ=ZERO
+t_XZYJ=ZERO
+t_YXZJ=ZERO
+t_XYZJ=ZERO
+do p=1,n
+  t_XJ=t_XJ+AjX(p)*Aj(p)
+  t_YJ=t_YJ+AjY(p)*Aj(p)
+  t_ZJ=t_ZJ+AjZ(p)*Aj(p)  
+  t_XYJ=t_XYJ+AjX(p)*AYAj(p)
+  t_ZYJ=t_ZYJ+AjZ(p)*AYAj(p)
+  t_ZXJ=t_ZXJ+AjZ(p)*AXAj(p) 
+  t_ZYXJ=t_ZYXJ+AjZ(p)*AYAXAj(p)
+  t_YZXJ=t_YZXJ+AjY(p)*AZAXAj(p)
+  t_ZXYJ=t_ZXYJ+AjZ(p)*AXAYAj(p)
+  t_XZYJ=t_XZYJ+AjX(p)*AZAYAj(p)
+  t_YXZJ=t_YXZJ+AjY(p)*AXAZAj(p)
+  t_XYZJ=t_XYZJ+AjX(p)*AYAZAj(p)
+enddo
+
+!Compute t_YXJ=tr[inv_tAkl*Y*inv_tAkl*X*inv_tAkl*Jij]
+t_YXJ=t_XYJ
+t_YZJ=t_ZYJ
+t_XZJ=t_ZXJ
+
+
+
+temp1=Glob_Piraised3n2/(SQRTPI*det_tAkl**(THREEHALF))
+temp3=1/t_J
+term1=THREE*temp1*temp3*sqrt(temp3)*THREEHALF*t_Z*(  &
+THREEHALF*t_J*t_X*t_Y - ONEHALF*(t_Y*t_XJ + t_X*t_YJ) + &
+t_J*t_XY  - ONETHIRD*(t_XYJ + t_YXJ) + ONEHALF*temp3*t_XJ*t_YJ&
+)
+term2=-THREEHALF*t_ZY*(3*t_X/sqrt(t_J)-t_XJ/(t_J*sqrt(t_J)))
+term3=THREEHALF*t_Y*(THREEHALF*t_X*t_ZJ/(t_J*sqrt(t_J))-3*t_ZX/sqrt(t_J)&
+     -THREEHALF*t_XJ*t_ZJ/(sqrt(t_J)*t_J*t_J)+(t_ZXJ+t_XZJ)/(t_J*sqrt(t_J)))
+term4= THREEHALF*t_YX*t_ZJ/(t_J*sqrt(t_J))
+term5=-3*(t_ZYX+t_YZX)/sqrt(t_J)-9*t_X*t_YJ*t_ZJ/(4*t_J*t_J*sqrt(t_J))
+term6=THREEHALF*(t_ZX*t_YJ+t_X*(t_ZYJ+t_YZJ))/(t_J*sqrt(t_J))+15*t_XJ*t_YJ*t_ZJ/(4*t_J*t_J*t_J*sqrt(t_J))
+term7=-THREEHALF*(t_YJ*(t_ZXJ+t_XZJ)+t_XJ*(t_ZYJ+t_YZJ)+t_ZJ*(t_YXJ+t_XYJ))/(t_J*t_J*sqrt(t_J))
+term8=(t_ZYXJ+t_YZXJ+t_YXZJ+t_XYZJ+t_ZXYJ+t_XZYJ)/(t_J*sqrt(t_J))
+
+SG_ME_rXr_rYr_rZr_over_rij=term1-temp1*(term2+term3+term4+term5+term6+term7+term8)
+end function SG_ME_rXr_rYr_rZr_over_rij
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+function ME_rXr_over_rij(i,j,X,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+!function ME_rXr_over_rij computes the following matrix element:
+!<\tilde phi_k| (r' X r)/r_ij |\tilde phi_l>
+!Here X is a some real symmetric matrix. If matrix X is not symmetric
+!then user needs to symmetrize it before calling this function.
+!Input:
+!            X  :: n x n real matrix
+!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
+!   tvkinv_tAkl :: n-component vector where tvk*inv_tAkl is stored
+!   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
+!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
+!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
+real(dprec)   ME_rXr_over_rij
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+!Arguments:
+real(dprec)   X(nn,nn),inv_tAkl(nn,nn),det_tAkl
+integer       i,j,tvk(nn),tvl(nn),tbk(nn),tbl(nn)
+
+real(dprec)   inv_tAkltvl(nn),inv_tAkltbl(nn),inv_tAkltbk(nn)
+real(dprec)   tvkinv_tAkl(nn),tbkinv_tAkl(nn),tvlinv_tAkl(nn)
+real(dprec)   tau3,tau33,tau333,tau334,m1,m3,m
+!Local variables:
+integer       p,q,n
+real(dprec)   Aj(nn),AjX(nn)
+real(dprec)   t_J,t_X,t_XJ
+real(dprec)   t_JV1,t_XV1,t_JXV1,t_XJV1
+real(dprec)   t_JV2,t_XV2,t_JXV2,t_XJV2
+real(dprec)   t_JV5,t_XV5,t_JXV5,t_XJV5
+real(dprec)   t_JV6,t_XV6,t_JXV6,t_XJV6
+real(dprec)   Ajtvl,Ajtbl
+real(dprec)    temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8
+real(dprec)    temp11,temp22,temp33,mu,mX,mXJ,u,Xmu,muXJ
+
+n=Glob_n
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+
+!Compute inv_tAkltvl = inv_tAkl * tvl
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+inv_tAkl(q,p)*tvl(q)
+    temp2=temp2+inv_tAkl(q,p)*tbl(q)
+    temp3=temp3+inv_tAkl(q,p)*tbk(q)
+  enddo
+  inv_tAkltvl(p)=temp1
+  inv_tAkltbl(p)=temp2
+  inv_tAkltbk(p)=temp3
+enddo
+
+!Compute tvkinv_tAkl=tvk'*inv_tAkl
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+tvk(q)*inv_tAkl(q,p)
+    temp2=temp2+tbk(q)*inv_tAkl(q,p)
+    temp3=temp3+tvl(q)*inv_tAkl(q,p)
+  enddo
+  tvkinv_tAkl(p)=temp1
+  tbkinv_tAkl(p)=temp2
+  tvlinv_tAkl(p)=temp3
+enddo
+
+
+!Compute tau3=tvkinv_tAkl*tvl
+tau3=ZERO
+tau33=ZERO
+tau333=ZERO
+tau334=ZERO
+do p=1,n
+  tau3=tau3+tvkinv_tAkl(p)*tvl(p)
+  tau33=tau33+tbkinv_tAkl(p)*tbl(p)
+  tau333=tau333+tvkinv_tAkl(p)*tbl(p)
+  tau334=tau334+tbkinv_tAkl(p)*tvl(p)
+enddo
+m1=tau3*tau33
+m3=tau333*tau334
+m=m1+m3  !look formula 40 in document
+
+!Form Aj=inv_tAkl*ji        j/=i 
+!     Aj=inv_tAkl*(ji-jj)   j/=i 
+!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
+if (i==j) then
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)
+ enddo
+else
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
+ enddo
+endif 
+
+!Compute AjX'=Aj'*X
+do p=1,n
+  temp1=ZERO
+  do q=1,n
+    temp1=temp1+Aj(q)*X(q,p)
+  enddo
+  AjX(p)=temp1
+enddo
+
+!Compute t_J=tr[inv_tAkl*Jij] 
+if (i==j) then
+  t_J=inv_tAkl(i,i)
+else
+  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
+endif
+
+!Compute Ajtvl=Aj'*tvl
+!        t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
+!        t_JV=tr[inv_tAkl*Jij*inv_tAkl*tvl*tvk']=tvk'*Aj*Ajtvl
+!        t_JXV=tr[inv_tAkl*Jij*inv_tAkl*X*inv_tAkl*tvl*tvk']=tvk'*Aj*AjX'*inv_tAkltvl
+Ajtvl=ZERO
+Ajtbl=ZERO
+t_XJ=ZERO
+temp1=ZERO
+temp2=ZERO
+temp11=ZERO
+temp22=ZERO
+do p=1,n
+  Ajtvl=Ajtvl+Aj(p)*tvl(p)
+  Ajtbl=Ajtbl+Aj(p)*tbl(p)  
+  t_XJ=t_XJ+AjX(p)*Aj(p) 
+  temp1=temp1+tvk(p)*Aj(p)
+  temp2=temp2+AjX(p)*inv_tAkltvl(p) 
+  temp11=temp11+tbk(p)*Aj(p)
+  temp22=temp22+AjX(p)*inv_tAkltbl(p)
+enddo
+t_JV1=temp11*Ajtbl
+t_JXV1=temp11*temp22
+t_JV2=temp1*Ajtvl
+t_JXV2=temp1*temp2
+t_JV5=temp11*Ajtvl
+t_JXV5=temp11*temp2
+t_JV6=temp1*Ajtbl
+t_JXV6=temp1*temp22
+!Compute t_X=tr[inv_tAkl*X]
+!        t_XV=tr[inv_tAkl*X*inv_tAkl*tvl*tvk']=tvkinv_tAkl'*X*inv_tAkltvl
+!        t_XJV=tr[inv_tAkl*X*inv_tAkl*Jij*inv_tAkl*tvl*tvk']=tvkinv_tAkl'*X*Aj*Ajtvl
+t_X=ZERO
+t_XV1=ZERO
+t_XV2=ZERO
+t_XV5=ZERO
+t_XV6=ZERO
+temp2=ZERO
+temp22=ZERO
+do p=1,n
+  temp1=ZERO
+  temp11=ZERO
+  do q=1,n
+    t_X=t_X+inv_tAkl(q,p)*X(q,p)    
+    temp1=temp1+tvkinv_tAkl(q)*X(q,p)
+    temp11=temp11+tbkinv_tAkl(q)*X(q,p)
+  enddo
+  t_XV1=t_XV1+temp11*inv_tAkltbl(p)
+  t_XV2=t_XV2+temp1*inv_tAkltvl(p)
+  t_XV5=t_XV5+temp11*inv_tAkltvl(p)
+  t_XV6=t_XV6+temp1*inv_tAkltbl(p)
+  temp2=temp2+temp1*Aj(p)
+  temp22=temp22+temp11*Aj(p)
+enddo
+t_XJV1=temp22*Ajtbl
+t_XJV2=temp2*Ajtvl
+t_XJV5=temp22*Ajtvl
+t_XJV6=temp2*Ajtbl
+
+mu=tau3*t_JV1+tau33*t_JV2+tau333*t_JV5+tau334*t_JV6
+mX=tau3*t_XV1+tau33*t_XV2+tau333*t_XV5+tau334*t_XV6
+u=t_JV1*t_JV2+t_JV5*t_JV6
+mXJ=tau3*(t_XJV1+t_JXV1)+tau33*(t_XJV2+t_JXV2)+tau333*(t_XJV5+t_JXV5)+tau334*(t_XJV6+t_JXV6)
+muXJ=t_JV2*(t_XJV1+t_JXV1)+t_JV1*(t_XJV2+t_JXV2)+t_JV6*(t_XJV5+t_JXV5)+t_JV5*(t_XJV6+t_JXV6)
+Xmu=t_XV2*t_JV1+t_XV1*t_JV2+t_XV6*t_JV5+t_XV5*t_JV6
+
+
+temp1=Glob_Piraised3n2/(TWO*SQRTPI*det_tAkl**(THREEHALF))
+temp2=+THREEHALF*t_X*(m+ONEFIFTH*u/(t_J*t_J)-ONETHIRD*mu/t_J)/sqrt(t_J)
+temp3=-m*t_XJ/(TWO*t_J*sqrt(t_J))
+temp4=+mX/sqrt(t_J)
+temp5=+mu*t_XJ/(TWO*t_J*t_J*sqrt(t_J))
+temp6=-(mXJ+Xmu)/(THREE*t_J*sqrt(t_J))
+temp7=-u*t_XJ/(TWO*t_J*t_J*t_J*sqrt(t_J))
+temp8=+ONEFIFTH*muXJ/(t_J*t_J*sqrt(t_J))
+ME_rXr_over_rij=temp1*(temp2+temp3+temp4+temp5+temp6+temp7+temp8)
+
+end function ME_rXr_over_rij
+
+
+function ME_over_rij(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+!function ME_rXr_over_rij computes the following matrix element:
+!<\tilde phi_k| (r' X r)/r_ij |\tilde phi_l>
+!Here X is a some real symmetric matrix. If matrix X is not symmetric
+!then user needs to symmetrize it before calling this function.
+!Input:
+!            X  :: n x n real matrix
+!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
+!   tvkinv_tAkl :: n-component vector where tvk*inv_tAkl is stored
+!   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
+!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
+!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
+real(dprec)   ME_over_rij
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+!Arguments:
+real(dprec)   inv_tAkl(nn,nn),det_tAkl
+integer       i,j,tvk(nn),tvl(nn),tbk(nn),tbl(nn)
+
+real(dprec)   inv_tAkltvl(nn),inv_tAkltbl(nn),inv_tAkltbk(nn)
+real(dprec)   tvkinv_tAkl(nn),tbkinv_tAkl(nn),tvlinv_tAkl(nn)
+real(dprec)   tau3,tau33,tau333,tau334,m1,m3,m
+!Local variables:
+integer       p,q,n
+real(dprec)   Aj(nn),AjX(nn),t_JV1,t_JV2,t_JV5,t_JV6,t_J,Ajtvl,Ajtbl    
+real(dprec)    temp1,temp2,temp3,temp11,temp22,temp33,mu,u
+
+n=Glob_n
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+
+!Compute inv_tAkltvl = inv_tAkl * tvl
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+inv_tAkl(q,p)*tvl(q)
+    temp2=temp2+inv_tAkl(q,p)*tbl(q)
+    temp3=temp3+inv_tAkl(q,p)*tbk(q)
+  enddo
+  inv_tAkltvl(p)=temp1
+  inv_tAkltbl(p)=temp2
+  inv_tAkltbk(p)=temp3
+enddo
+
+!Compute tvkinv_tAkl=tvk'*inv_tAkl
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+tvk(q)*inv_tAkl(q,p)
+    temp2=temp2+tbk(q)*inv_tAkl(q,p)
+    temp3=temp3+tvl(q)*inv_tAkl(q,p)
+  enddo
+  tvkinv_tAkl(p)=temp1
+  tbkinv_tAkl(p)=temp2
+  tvlinv_tAkl(p)=temp3
+enddo
+
+
+!Compute tau3=tvkinv_tAkl*tvl
+tau3=ZERO
+tau33=ZERO
+tau333=ZERO
+tau334=ZERO
+do p=1,n
+  tau3=tau3+tvkinv_tAkl(p)*tvl(p)
+  tau33=tau33+tbkinv_tAkl(p)*tbl(p)
+  tau333=tau333+tvkinv_tAkl(p)*tbl(p)
+  tau334=tau334+tbkinv_tAkl(p)*tvl(p)
+enddo
+m1=tau3*tau33
+m3=tau333*tau334
+m=m1+m3  !look formula 40 in document
+
+!Form Aj=inv_tAkl*ji        j/=i 
+!     Aj=inv_tAkl*(ji-jj)   j/=i 
+!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
+if (i==j) then
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)
+ enddo
+else
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
+ enddo
+endif 
+
+
+!Compute t_J=tr[inv_tAkl*Jij] 
+if (i==j) then
+  t_J=inv_tAkl(i,i)
+else
+  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
+endif
+
+!Compute Ajtvl=Aj'*tvl
+!        t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
+!        t_JV=tr[inv_tAkl*Jij*inv_tAkl*tvl*tvk']=tvk'*Aj*Ajtvl
+!        t_JXV=tr[inv_tAkl*Jij*inv_tAkl*X*inv_tAkl*tvl*tvk']=tvk'*Aj*AjX'*inv_tAkltvl
+Ajtvl=ZERO
+Ajtbl=ZERO
+temp1=ZERO
+temp11=ZERO
+do p=1,n
+  Ajtvl=Ajtvl+Aj(p)*tvl(p)
+  Ajtbl=Ajtbl+Aj(p)*tbl(p)  
+  temp1=temp1+tvk(p)*Aj(p)
+  temp11=temp11+tbk(p)*Aj(p)
+enddo
+t_JV1=temp11*Ajtbl
+t_JV2=temp1*Ajtvl
+t_JV5=temp11*Ajtvl
+t_JV6=temp1*Ajtbl
+
+mu=tau3*t_JV1+tau33*t_JV2+tau333*t_JV5+tau334*t_JV6
+u=t_JV1*t_JV2+t_JV5*t_JV6
+
+temp1=Glob_Piraised3n2/(TWO*SQRTPI*det_tAkl**(THREEHALF))
+
+ME_over_rij=temp1*(m+ONEFIFTH*u/(t_J*t_J)-ONETHIRD*mu/t_J)/sqrt(t_J)
+
+end function ME_over_rij
+
+
+
+function ME_d_X_over_rij_d(i,j,X,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+    
+real(dprec)   ME_d_X_over_rij_d
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+!Arguments:
+real(dprec)   X(nn,nn),tAl(nn,nn),tAk(nn,nn),inv_tAkl(nn,nn),det_tAkl
+integer       i,j,tvk(nn),tvl(nn),tbk(nn),tbl(nn)
+
+!Local variables:
+integer       c,s,p,q,n,k
+real(dprec)   tvkXtAl(nn),tbkXtAl(nn)
+real(dprec)   temp1,temp2,temp3,temp4,temp5
+real(dprec)   tAkX(nn,nn),tAkXtAl(nn,nn),tAkXtvl(nn),tAkXtbl(nn),XtAl(nn,nn)
+
+
+!Doing multiplication Xtvl=X*tvl,tvkX=tvk*X
+n=Glob_n
+do s=1,n
+  do c=1,n
+    temp1=ZERO
+    temp2=ZERO
+    do k=1,n
+      temp1=temp1+tAk(c,k)*X(k,s)
+      temp2=temp2+X(c,k)*tAl(k,s)
+    enddo
+    tAkX(c,s)=temp1
+    XtAl(c,s)=temp2
+  enddo
+enddo
+
+!Doing multiplication tAlXtAk=tAlX*tAk,tAkXtAl=tAkX*tAl
+do s=1,n
+  do c=1,n
+    temp1=ZERO
+    do k=1,n
+      temp1=temp1+tAkX(c,k)*tAl(k,s)
+    enddo
+    tAkXtAl(c,s)=temp1
+  enddo
+enddo
+
+call symmetrize_matrix(tAkXtAl)
+
+do s=1,n
+  temp1=ZERO
+  temp2=ZERO
+  do c=1,n
+	temp1=temp1+tAkX(c,s)*tvl(c)
+        temp2=temp2+tAkX(c,s)*tbl(c)
+  enddo
+  tAkXtvl(s)=temp1
+  tAkXtbl(s)=temp2
+enddo
+
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  do q=1,n
+    temp1=temp1+tvk(q)*XtAl(q,p)
+    temp2=temp2+tbk(q)*XtAl(q,p)
+  enddo
+  tvkXtAl(p)=temp1
+  tbkXtAl(p)=temp2
+enddo
+
+
+temp1=4*ME_rXr_over_rij(i,j,tAkXtAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+temp2=-2*ME_over_rij_tvl(i,j,inv_tAkl,det_tAkl,tvk,tAkXtvl,tbk,tbl)
+temp3=-2*ME_over_rij_tbl(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tAkXtbl)
+temp4=-2*ME_over_rij_tvk(i,j,inv_tAkl,det_tAkl,tvkXtAl,tvl,tbk,tbl)
+temp5=-2*ME_over_rij_tbk(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbkXtAl,tbl)
+ME_d_X_over_rij_d=temp1+temp2+temp3+temp4+temp5
+
+end function ME_d_X_over_rij_d
+
+
+function ME_rXr_rYr_over_rij(i,j,X,Y,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+!function ME_rXr_over_rij computes the following matrix element:
+!<\tilde phi_k| (r' X r)/r_ij |\tilde phi_l>
+!Here X is a some real symmetric matrix. If matrix X is not symmetric
+!then user needs to symmetrize it before calling this function.
+!Input:
+!            X  :: n x n real matrix
+!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
+!   tvkinv_tAkl :: n-component vector where tvk*inv_tAkl is stored
+!   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
+!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
+!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
+real(dprec)   ME_rXr_rYr_over_rij
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+!Arguments:
+real(dprec)   X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn),det_tAkl
+integer       i,j,tvk(nn),tvl(nn),tbk(nn),tbl(nn)
+
+real(dprec)   inv_tAkltvl(nn),inv_tAkltbl(nn),inv_tAkltbk(nn)
+real(dprec)   tvkinv_tAkl(nn),tbkinv_tAkl(nn),tvlinv_tAkl(nn)
+real(dprec)   tau3,tau33,tau333,tau334,m1,m3,m
+!Local variables:
+integer       p,q,n,s,k
+real(dprec)   Aj(nn),AjX(nn),AjY(nn)
+real(dprec)   t_J,t_X,t_XJ,t_Y,t_YJ,t_XYJ
+real(dprec)   t_JV1,t_XV1,t_JXV1,t_XJV1,t_YV1,t_JYV1,t_YJV1,t_XYV1,t_YXV1,t_XYJV1,t_YXJV1,t_XJYV1,t_YJXV1,t_JXYV1,t_JYXV1
+real(dprec)   t_JV2,t_XV2,t_JXV2,t_XJV2,t_YV2,t_JYV2,t_YJV2,t_XYV2,t_YXV2,t_XYJV2,t_YXJV2,t_XJYV2,t_YJXV2,t_JXYV2,t_JYXV2
+real(dprec)   t_JV5,t_XV5,t_JXV5,t_XJV5,t_YV5,t_JYV5,t_YJV5,t_XYV5,t_YXV5,t_XYJV5,t_YXJV5,t_XJYV5,t_YJXV5,t_JXYV5,t_JYXV5
+real(dprec)   t_JV6,t_XV6,t_JXV6,t_XJV6,t_YV6,t_JYV6,t_YJV6,t_XYV6,t_YXV6,t_XYJV6,t_YXJV6,t_XJYV6,t_YJXV6,t_JXYV6,t_JYXV6
+real(dprec)    Ajtvl,Ajtbl,tvkAj,tbkAj,prod
+real(dprec)    temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8,temp9,temp44,temp77,temp88,temp99
+real(dprec)    temp11,temp22,temp33,mu,mX,mXJ,u,Xmu,muXJ,mY,mYJ,Ymu,muYJ,t_XYJV11,t_XYJV22,t_XYJV55,t_XYJV66,YX,mXYJ
+real(dprec)    temp2Y,temp22Y,t_XY,temp55,temp66,AXAj(nn),AYAj(nn),muYX,muXYJ,XYJ,YXJ,t_YXJ,XJYJ,mYX
+real(dprec)    tvkinv_tAklX(nn),tbkinv_tAklX(nn),tvkinv_tAklY(nn),tbkinv_tAklY(nn),AY(nn,nn),AX(nn,nn)
+real(dprec)    AXinv_tAkltvl(nn),AXinv_tAkltbl(nn),AYinv_tAkltvl(nn),AYinv_tAkltbl(nn)
+real(dprec)    term1,term2,term3,term4,term5,term6,term7,term8,term9,term10,term11,term12,term13,temp1Y,temp11Y
+
+
+n=Glob_n
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+
+!Compute inv_tAkltvl = inv_tAkl * tvl
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+inv_tAkl(q,p)*tvl(q)
+    temp2=temp2+inv_tAkl(q,p)*tbl(q)
+    temp3=temp3+inv_tAkl(q,p)*tbk(q)
+  enddo
+  inv_tAkltvl(p)=temp1
+  inv_tAkltbl(p)=temp2
+  inv_tAkltbk(p)=temp3
+enddo
+
+!Compute tvkinv_tAkl=tvk'*inv_tAkl
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+tvk(q)*inv_tAkl(q,p)
+    temp2=temp2+tbk(q)*inv_tAkl(q,p)
+    temp3=temp3+tvl(q)*inv_tAkl(q,p)
+  enddo
+  tvkinv_tAkl(p)=temp1
+  tbkinv_tAkl(p)=temp2
+  tvlinv_tAkl(p)=temp3
+enddo
+
+
+!Compute tau3=tvkinv_tAkl*tvl
+tau3=ZERO
+tau33=ZERO
+tau333=ZERO
+tau334=ZERO
+do p=1,n
+  tau3=tau3+tvkinv_tAkl(p)*tvl(p)
+  tau33=tau33+tbkinv_tAkl(p)*tbl(p)
+  tau333=tau333+tvkinv_tAkl(p)*tbl(p)
+  tau334=tau334+tbkinv_tAkl(p)*tvl(p)
+enddo
+m1=tau3*tau33
+m3=tau333*tau334
+m=m1+m3  !look formula 40 in document
+
+!Form Aj=inv_tAkl*ji        j/=i 
+!     Aj=inv_tAkl*(ji-jj)   j/=i 
+!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
+if (i==j) then
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)
+ enddo
+else
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
+ enddo
+endif 
+
+!Compute AjX'=Aj'*X
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  do q=1,n
+    temp1=temp1+Aj(q)*X(q,p)
+    temp2=temp2+Aj(q)*Y(q,p)
+  enddo
+  AjX(p)=temp1
+  AjY(p)=temp2
+enddo
+
+!Compute t_J=tr[inv_tAkl*Jij] 
+if (i==j) then
+  t_J=inv_tAkl(i,i)
+else
+  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
+endif
+
+!Compute Ajtvl=Aj'*tvl
+!        t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
+!        t_JV=tr[inv_tAkl*Jij*inv_tAkl*tvl*tvk']=tvk'*Aj*Ajtvl
+!        t_JXV=tr[inv_tAkl*Jij*inv_tAkl*X*inv_tAkl*tvl*tvk']=tvk'*Aj*AjX'*inv_tAkltvl
+Ajtvl=ZERO
+Ajtbl=ZERO
+t_XJ=ZERO
+t_YJ=ZERO
+temp1=ZERO
+temp2=ZERO
+temp2Y=ZERO
+temp11=ZERO
+temp22=ZERO
+temp22Y=ZERO
+do p=1,n
+  Ajtvl=Ajtvl+Aj(p)*tvl(p)
+  Ajtbl=Ajtbl+Aj(p)*tbl(p)  
+  t_XJ=t_XJ+AjX(p)*Aj(p)
+  t_YJ=t_YJ+AjY(p)*Aj(p)
+  temp1=temp1+tvk(p)*Aj(p)
+  temp2=temp2+AjX(p)*inv_tAkltvl(p)
+  temp2Y=temp2Y+AjY(p)*inv_tAkltvl(p)
+  temp11=temp11+tbk(p)*Aj(p)
+  temp22=temp22+AjX(p)*inv_tAkltbl(p)
+  temp22Y=temp22Y+AjY(p)*inv_tAkltbl(p)
+enddo
+t_JV1=temp11*Ajtbl
+t_JXV1=temp11*temp22
+t_JYV1=temp11*temp22Y
+t_JV2=temp1*Ajtvl
+t_JXV2=temp1*temp2
+t_JYV2=temp1*temp2Y
+t_JV5=temp11*Ajtvl
+t_JXV5=temp11*temp2
+t_JYV5=temp11*temp2Y
+t_JV6=temp1*Ajtbl
+t_JXV6=temp1*temp22
+t_JYV6=temp1*temp22Y
+!Compute t_X=tr[inv_tAkl*X]
+!        t_XV=tr[inv_tAkl*X*inv_tAkl*tvl*tvk']=tvkinv_tAkl'*X*inv_tAkltvl
+!        t_XJV=tr[inv_tAkl*X*inv_tAkl*Jij*inv_tAkl*tvl*tvk']=tvkinv_tAkl'*X*Aj*Ajtvl
+do p=1,n
+  do q=1,n
+    temp1=ZERO
+    temp2=ZERO
+    do s=1,n
+      temp1=temp1+inv_tAkl(s,q)*X(p,s)
+      temp2=temp2+inv_tAkl(s,q)*Y(p,s)
+    enddo
+    AX(q,p)=temp1
+    AY(q,p)=temp2
+  enddo
+enddo
+
+t_X=ZERO
+t_Y=ZERO
+t_XV1=ZERO
+t_XV2=ZERO
+t_XV5=ZERO
+t_XV6=ZERO
+t_YV1=ZERO
+t_YV2=ZERO
+t_YV5=ZERO
+t_YV6=ZERO
+temp2=ZERO
+temp22=ZERO
+temp2Y=ZERO
+temp22Y=ZERO
+do p=1,n
+  temp1=ZERO
+  temp11=ZERO
+  temp1Y=ZERO
+  temp11Y=ZERO
+  do q=1,n
+    t_X=t_X+inv_tAkl(q,p)*X(q,p)
+    t_Y=t_Y+inv_tAkl(q,p)*Y(q,p)    
+    temp1=temp1+tvkinv_tAkl(q)*X(q,p)
+    temp11=temp11+tbkinv_tAkl(q)*X(q,p)
+    temp1Y=temp1Y+tvkinv_tAkl(q)*Y(q,p)
+    temp11Y=temp11Y+tbkinv_tAkl(q)*Y(q,p)
+  enddo
+  t_XV1=t_XV1+temp11*inv_tAkltbl(p)
+  t_XV2=t_XV2+temp1*inv_tAkltvl(p)
+  t_XV5=t_XV5+temp11*inv_tAkltvl(p)
+  t_XV6=t_XV6+temp1*inv_tAkltbl(p)
+  t_YV1=t_YV1+temp11Y*inv_tAkltbl(p)
+  t_YV2=t_YV2+temp1Y*inv_tAkltvl(p)
+  t_YV5=t_YV5+temp11Y*inv_tAkltvl(p)
+  t_YV6=t_YV6+temp1Y*inv_tAkltbl(p)
+  temp2=temp2+temp1*Aj(p)
+  temp22=temp22+temp11*Aj(p)
+  temp2Y=temp2Y+temp1Y*Aj(p)
+  temp22Y=temp22Y+temp11Y*Aj(p)
+enddo
+t_XJV1=temp22*Ajtbl
+t_XJV2=temp2*Ajtvl
+t_XJV5=temp22*Ajtvl
+t_XJV6=temp2*Ajtbl
+t_YJV1=temp22Y*Ajtbl
+t_YJV2=temp2Y*Ajtvl
+t_YJV5=temp22Y*Ajtvl
+t_YJV6=temp2Y*Ajtbl
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+t_XY=ZERO
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp11=ZERO
+  temp22=ZERO
+  temp3=ZERO
+  temp4=ZERO
+  temp5=ZERO
+  temp6=ZERO 
+  temp55=ZERO
+  temp66=ZERO 
+  do q=1,n
+    t_XY=t_XY+AX(p,q)*AY(q,p)
+    temp1=temp1+AX(p,q)*inv_tAkltvl(q)
+    temp2=temp2+AY(p,q)*inv_tAkltvl(q)
+    temp11=temp11+AX(p,q)*inv_tAkltbl(q)
+    temp22=temp22+AY(p,q)*inv_tAkltbl(q)
+    temp3=temp3+AX(p,q)*Aj(q)
+    temp4=temp4+AY(p,q)*Aj(q)
+    temp5=temp5+tvkinv_tAkl(q)*X(q,p)
+    temp6=temp6+tvkinv_tAkl(q)*Y(q,p)  
+    temp55=temp55+tbkinv_tAkl(q)*X(q,p)
+    temp66=temp66+tbkinv_tAkl(q)*Y(q,p)  
+  enddo
+  AXinv_tAkltvl(p)=temp1
+  AYinv_tAkltvl(p)=temp2
+  AXinv_tAkltbl(p)=temp11
+  AYinv_tAkltbl(p)=temp22
+  AXAj(p)=temp3
+  AYAj(p)=temp4
+  tvkinv_tAklX(p)=temp5
+  tvkinv_tAklY(p)=temp6 
+  tbkinv_tAklX(p)=temp55
+  tbkinv_tAklY(p)=temp66 
+enddo
+
+tvkAj=ZERO
+tbkAj=ZERO
+temp1=ZERO
+temp11=ZERO
+temp2=ZERO
+temp22=ZERO
+temp3=ZERO
+temp33=ZERO
+t_XYJ=ZERO
+t_YXJ=ZERO
+t_XYV1=ZERO
+t_YXV1=ZERO
+t_XYV2=ZERO
+t_YXV2=ZERO
+t_XYV5=ZERO
+t_YXV5=ZERO
+t_XYV6=ZERO
+t_YXV6=ZERO
+temp4=ZERO
+temp5=ZERO
+temp44=ZERO
+temp55=ZERO
+temp6=ZERO
+temp7=ZERO
+temp8=ZERO
+temp9=ZERO
+temp66=ZERO
+temp77=ZERO
+temp88=ZERO
+temp99=ZERO
+do p=1,n
+  tvkAj=tvkAj+tvk(p)*Aj(p)
+  tbkAj=tbkAj+tbk(p)*Aj(p)
+!  temp1=temp1+tvk(p)*Aj(p)
+!  temp11=temp11+tbk(p)*Aj(p)
+  temp2=temp2+AjX(p)*inv_tAkltvl(p)
+  temp22=temp22+AjX(p)*inv_tAkltbl(p)
+  temp3=temp3+AjY(p)*inv_tAkltvl(p)
+  temp33=temp33+AjY(p)*inv_tAkltbl(p)
+  t_XYJ=t_XYJ+AjX(p)*AYAj(p)
+  t_YXJ=t_YXJ+AjY(p)*AXAj(p)
+  t_XYV1=t_XYV1+tbkinv_tAklX(p)*AYinv_tAkltbl(p)
+  t_XYV2=t_XYV2+tvkinv_tAklX(p)*AYinv_tAkltvl(p)
+  t_XYV5=t_XYV5+tbkinv_tAklX(p)*AYinv_tAkltvl(p)
+  t_XYV6=t_XYV6+tvkinv_tAklX(p)*AYinv_tAkltbl(p) 
+  t_YXV1=t_YXV1+tbkinv_tAklY(p)*AXinv_tAkltbl(p)
+  t_YXV2=t_YXV2+tvkinv_tAklY(p)*AXinv_tAkltvl(p)
+  t_YXV5=t_YXV5+tbkinv_tAklY(p)*AXinv_tAkltvl(p)
+  t_YXV6=t_YXV6+tvkinv_tAklY(p)*AXinv_tAkltbl(p)  
+  temp4=temp4+tvkinv_tAklX(p)*Aj(p)
+  temp5=temp5+tvkinv_tAklY(p)*Aj(p)
+  temp44=temp44+tbkinv_tAklX(p)*Aj(p)
+  temp55=temp55+tbkinv_tAklY(p)*Aj(p)  
+  temp6=temp6+tvkinv_tAklX(p)*AYAj(p)
+  temp7=temp7+tvkinv_tAklY(p)*AXAj(p) 
+  temp8=temp8+AjX(p)*AYinv_tAkltvl(p) 
+  temp9=temp9+AjY(p)*AXinv_tAkltvl(p)
+  temp66=temp66+tbkinv_tAklX(p)*AYAj(p)
+  temp77=temp77+tbkinv_tAklY(p)*AXAj(p) 
+  temp88=temp88+AjX(p)*AYinv_tAkltbl(p) 
+  temp99=temp99+AjY(p)*AXinv_tAkltbl(p) 
+enddo
+t_XYJV1=temp66*Ajtbl
+t_XYJV2=temp6*Ajtvl
+t_XYJV5=temp66*Ajtvl
+t_XYJV6=temp6*Ajtbl
+t_YXJV1=temp77*Ajtbl
+t_YXJV2=temp7*Ajtvl
+t_YXJV5=temp77*Ajtvl
+t_YXJV6=temp7*Ajtbl
+t_XJYV1=temp44*temp33
+t_XJYV2=temp4*temp3
+t_XJYV5=temp44*temp3
+t_XJYV6=temp4*temp33
+t_YJXV1=temp55*temp22
+t_YJXV2=temp5*temp2
+t_YJXV5=temp55*temp2
+t_YJXV6=temp5*temp22
+t_JXYV1=tbkAj*temp88
+t_JXYV2=tvkAj*temp8
+t_JXYV5=tbkAj*temp8
+t_JXYV6=tvkAj*temp88
+t_JYXV1=tbkAj*temp99
+t_JYXV2=tvkAj*temp9
+t_JYXV5=tbkAj*temp9
+t_JYXV6=tvkAj*temp99
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+t_XYJV11=(t_XYJV1+t_YXJV1+t_XJYV1+t_YJXV1+t_JXYV1+t_JYXV1)
+t_XYJV22=(t_XYJV2+t_YXJV2+t_XJYV2+t_YJXV2+t_JXYV2+t_JYXV2)
+t_XYJV55=(t_XYJV5+t_YXJV5+t_XJYV5+t_YJXV5+t_JXYV5+t_JYXV5)
+t_XYJV66=(t_XYJV6+t_YXJV6+t_XJYV6+t_YJXV6+t_JXYV6+t_JYXV6)
+!!!!!!!!!!!!!!!!!!!!!!
+mu=tau3*t_JV1+tau33*t_JV2+tau333*t_JV5+tau334*t_JV6
+mX=tau3*t_XV1+tau33*t_XV2+tau333*t_XV5+tau334*t_XV6
+mY=tau3*t_YV1+tau33*t_YV2+tau333*t_YV5+tau334*t_YV6
+mYX=tau3*t_YXV1+tau33*t_YXV2+tau333*t_YXV5+tau334*t_YXV6
+u=t_JV1*t_JV2+t_JV5*t_JV6
+mXJ=tau3*(t_XJV1+t_JXV1)+tau33*(t_XJV2+t_JXV2)+tau333*(t_XJV5+t_JXV5)+tau334*(t_XJV6+t_JXV6)
+mYJ=tau3*(t_YJV1+t_JYV1)+tau33*(t_YJV2+t_JYV2)+tau333*(t_YJV5+t_JYV5)+tau334*(t_YJV6+t_JYV6)
+muXJ=t_JV2*(t_XJV1+t_JXV1)+t_JV1*(t_XJV2+t_JXV2)+t_JV6*(t_XJV5+t_JXV5)+t_JV5*(t_XJV6+t_JXV6)
+muYJ=t_JV2*(t_YJV1+t_JYV1)+t_JV1*(t_YJV2+t_JYV2)+t_JV6*(t_YJV5+t_JYV5)+t_JV5*(t_YJV6+t_JYV6)
+Xmu=t_XV2*t_JV1+t_XV1*t_JV2+t_XV6*t_JV5+t_XV5*t_JV6
+Ymu=t_YV2*t_JV1+t_YV1*t_JV2+t_YV6*t_JV5+t_YV5*t_JV6
+
+mXYJ=tau3*t_XYJV11+tau33*t_XYJV22+tau333*t_XYJV55+tau334*t_XYJV66
+YX=t_YV2*t_XV1+t_YV1*t_XV2+t_YV6*t_XV5+t_YV5*t_XV6
+muYX=t_JV1*t_YXV2+t_JV2*t_YXV1+t_JV6*t_YXV5+t_JV5*t_YXV6
+muXYJ=t_JV1*t_XYJV22+t_JV2*t_XYJV11+t_JV6*t_XYJV55+t_JV5*t_XYJV66
+XYJ=t_XV1*t_YJV2+t_XV2*t_YJV1+t_XV5*t_YJV6+t_XV6*t_YJV5
+YXJ=t_YV1*t_XJV2+t_YV2*t_XJV1+t_YV5*t_XJV6+t_YV6*t_XJV5
+XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)+(t_XJV5+t_JXV5)*(t_YJV6+t_JYV6)+(t_XJV6+t_JXV6)*(t_YJV5+t_JYV5)
+
+temp1=Glob_Piraised3n2/(TWO*SQRTPI*det_tAkl**(THREEHALF))
+temp2=+THREEHALF*t_X*(m+ONEFIFTH*u/(t_J*t_J)-ONETHIRD*mu/t_J)/sqrt(t_J)
+temp3=-m*t_XJ/(TWO*t_J*sqrt(t_J))
+temp4=+mX/sqrt(t_J)
+temp5=+mu*t_XJ/(TWO*t_J*t_J*sqrt(t_J))
+temp6=-(mXJ+Xmu)/(THREE*t_J*sqrt(t_J))
+temp7=-u*t_XJ/(TWO*t_J*t_J*t_J*sqrt(t_J))
+temp8=+ONEFIFTH*muXJ/(t_J*t_J*sqrt(t_J))
+
+term1=THREEHALF*temp1*t_Y*(temp2+temp3+temp4+temp5+temp6+temp7+temp8)
+term2=-THREEHALF*t_XY*(m-ONETHIRD*mu/t_J+ONEFIFTH*u/(t_J*t_J))/sqrt(t_J)
+term3=+THREEHALF*t_X*(t_YJ*m/(TWO*t_J)-mY-t_YJ*mu/(TWO*t_J*t_J) &
+     +ONETHIRD*(Ymu+mYJ)/t_J+t_YJ*u/(TWO*t_J**3)-ONEFIFTH*muYJ/(t_J*t_J))/sqrt(t_J)
+term4=-3*m*t_XJ*t_YJ/(4*t_J*t_J*sqrt(t_J))
+term5=+(mY*t_XJ+m*(t_YXJ+t_XYJ)+mX*t_YJ)/(2*t_J*sqrt(t_J))
+term6=-(YX+mYX)/sqrt(t_J)
+term7=+5*mu*t_XJ*t_YJ/(4*sqrt(t_J)*t_J**3)
+term8=-(mu*(t_YXJ+t_XYJ)+t_XJ*(Ymu+mYJ)+t_YJ*(Xmu+mXJ))/(2*sqrt(t_J)*t_J**2)
+term9=+ONETHIRD*(muYX+XYJ+YXJ+mXYJ)/(sqrt(t_J)*t_J)
+term10=-7*t_YJ*t_XJ*u/(4*sqrt(t_J)*t_J**4)
+term11=+(u*(t_YXJ+t_XYJ)+t_XJ*muYJ+t_YJ*muXJ)/(2*sqrt(t_J)*t_J**3)
+term12=-ONEFIFTH*(muXYJ+XJYJ)/(sqrt(t_J)*t_J**2)
+
+term13=temp1*(term2+term3+term4+term5+term6+term7+term8+term9+term10+term11+term12)
+
+ME_rXr_rYr_over_rij=term1-term13
+
+end function ME_rXr_rYr_over_rij
+
+
+function rPr_rQr(P,Q,tvk,tbk,inv_tAkl,det_tAkl,tau3,tau33,tau333,tau334,tvkinv_tAkl,tbkinv_tAkl,inv_tAkltvl,inv_tAkltbl)
+real(dprec)   rPr_rQr
+!arguments
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+integer       tvk(nn),tbk(nn)
+real(dprec)   P(nn,nn),Q(nn,nn),inv_tAkl(nn,nn),tau3,tau33,tau333,tau334,det_tAkl
+real(dprec)   inv_tAkltvl(nn),inv_tAkltbl(nn),tvkinv_tAkl(nn),tbkinv_tAkl(nn)
+
+!decleration
+integer       i,j,n,k
+real(dprec)   temp1,temp2,temp3,temp4,P1,P2,P5,P6,Q1,Q2,Q5,Q6,trP,trQ,trQP
+real(dprec)   PQ1,PQ2,PQ5,PQ6,QP1,QP2,QP5,QP6
+real(dprec)   inv_tAklP(nn,nn),inv_tAklQ(nn,nn),inv_tAklQP(nn,nn)
+real(dprec)   tvkinv_tAklP(nn),tbkinv_tAklP(nn),tvkinv_tAklQ(nn),tbkinv_tAklQ(nn)
+real(dprec)   Pgamma,Qgamma,PQgamma,QPgamma
+n=Glob_n
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+
+!Doing multiplication inv_tAkltAlM=inv_tAkltAl*M
+do i=1,n
+  do j=1,n
+    temp1=ZERO
+    temp2=ZERO
+    do k=1,n
+      temp1=temp1+inv_tAkl(j,k)*P(k,i)
+      temp2=temp2+inv_tAkl(j,k)*Q(k,i)     
+    enddo
+    inv_tAklP(j,i)=temp1
+    inv_tAklQ(j,i)=temp2
+  enddo
+enddo
+
+do i=1,n
+  do j=1,n
+    temp1=ZERO
+    do k=1,n
+      temp1=temp1+inv_tAklQ(j,k)*inv_tAklP(k,i)    
+    enddo
+    inv_tAklQP(j,i)=temp1
+  enddo
+enddo
+
+trQP=ZERO
+trP=ZERO
+trQ=ZERO
+do i=1,n
+  trQP=trQP+inv_tAklQP(i,i)
+enddo
+
+do i=1,n
+  do j=1,n
+    trP=trP+inv_tAkl(i,j)*P(j,i)
+    trQ=trQ+inv_tAkl(i,j)*Q(j,i)
+  enddo
+enddo
+
+Q1=ZERO
+Q2=ZERO
+Q5=ZERO
+Q6=ZERO
+P1=ZERO
+P2=ZERO
+P5=ZERO
+P6=ZERO
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  temp4=ZERO
+  do j=1,n
+    temp1=temp1+tbkinv_tAkl(j)*P(j,i)
+    temp2=temp2+tvkinv_tAkl(j)*P(j,i)   
+    temp3=temp3+tbkinv_tAkl(j)*Q(j,i)
+    temp4=temp4+tvkinv_tAkl(j)*Q(j,i)
+  enddo
+  P1=P1+temp1*inv_tAkltbl(i)
+  P2=P2+temp2*inv_tAkltvl(i) 
+  P5=P5+temp1*inv_tAkltvl(i)
+  P6=P6+temp2*inv_tAkltbl(i)
+  Q1=Q1+temp3*inv_tAkltbl(i)
+  Q2=Q2+temp4*inv_tAkltvl(i) 
+  Q5=Q5+temp3*inv_tAkltvl(i)
+  Q6=Q6+temp4*inv_tAkltbl(i)
+enddo
+
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  temp4=ZERO
+  do j=1,n
+    temp1=temp1+tvk(j)*inv_tAklP(j,i)
+    temp2=temp2+tbk(j)*inv_tAklP(j,i)
+    temp3=temp3+tvk(j)*inv_tAklQ(j,i)
+    temp4=temp4+tbk(j)*inv_tAklQ(j,i)
+  enddo
+  tvkinv_tAklP(i)=temp1
+  tbkinv_tAklP(i)=temp2
+  tvkinv_tAklQ(i)=temp3
+  tbkinv_tAklQ(i)=temp4
+enddo
+
+PQ1=ZERO
+PQ2=ZERO
+PQ5=ZERO
+PQ6=ZERO
+QP1=ZERO
+QP2=ZERO
+QP5=ZERO
+QP6=ZERO
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  temp4=ZERO
+  do j=1,n
+    temp1=temp1+tbkinv_tAklP(j)*inv_tAklQ(j,i)
+    temp2=temp2+tvkinv_tAklP(j)*inv_tAklQ(j,i)   
+    temp3=temp3+tbkinv_tAklQ(j)*inv_tAklP(j,i)
+    temp4=temp4+tvkinv_tAklQ(j)*inv_tAklP(j,i)
+  enddo
+  PQ1=PQ1+temp1*inv_tAkltbl(i)
+  PQ2=PQ2+temp2*inv_tAkltvl(i)
+  PQ5=PQ5+temp1*inv_tAkltvl(i)
+  PQ6=PQ6+temp2*inv_tAkltbl(i) 
+  QP1=QP1+temp3*inv_tAkltbl(i)
+  QP2=QP2+temp4*inv_tAkltvl(i)
+  QP5=QP5+temp3*inv_tAkltvl(i)
+  QP6=QP6+temp4*inv_tAkltbl(i)
+enddo
+
+temp1=Glob_Piraised3n2/(FOUR*det_tAkl**(THREEHALF))
+temp2=THREEHALF*(tau3*tau33+tau333*tau334)*(trQP+THREEHALF*trQ*trP)
+temp3=Q1*P2+Q2*P1+Q5*P6+Q6*P5
+Pgamma=P1*tau3+P2*tau33+P5*tau333+P6*tau334
+Qgamma=Q1*tau3+Q2*tau33+Q5*tau333+Q6*tau334
+PQgamma=PQ1*tau3+PQ2*tau33+PQ5*tau333+PQ6*tau334
+QPgamma=QP1*tau3+QP2*tau33+QP5*tau333+QP6*tau334
+
+rPr_rQr= temp1*(THREEHALF*trQ*Pgamma+THREEHALF*trP*Qgamma+PQgamma+QPgamma+temp2+temp3)
+
+end function rPr_rQr
+
+
+function dXddYd(X,Y,tvk,tbk,tvl,tbl,tAl,tAk,inv_tAkl,det_tAkl,tau3,tau33,tau333,tau334,inv_tAkltAl,inv_tAkltAk)
+real(dprec)   dXddYd
+!arguments
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+integer       tvk(nn),tbk(nn),tvl(nn),tbl(nn)
+real(dprec)   X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn),tau3,tau33,tau333,tau334,det_tAkl
+real(dprec)   tAk(nn,nn),tAl(nn,nn)
+real(dprec)   inv_tAkltvl(nn),inv_tAkltbl(nn),tvkinv_tAkl(nn),tbkinv_tAkl(nn)
+real(dprec)   inv_tAkltAl(nn,nn),inv_tAkltAk(nn,nn)
+!decleration
+integer       i,j,n,k
+real(dprec)   P(nn,nn),Q(nn,nn),trAkX,trAlY
+real(dprec)   temp1,temp2,temp3,temp4,temp33,temp44,P1,P2,P5,P6,Q1,Q2,Q5,Q6,trP,trQ,trQP
+real(dprec)   PQ1,PQ2,PQ5,PQ6,QP1,QP2,QP5,QP6
+real(dprec)   inv_tAklP(nn,nn),inv_tAklQ(nn,nn),inv_tAklQP(nn,nn),tvkXtAk(nn),tbkXtAk(nn)
+real(dprec)   tvkinv_tAklP(nn),tbkinv_tAklP(nn),tvkinv_tAklQ(nn),tbkinv_tAklQ(nn)
+real(dprec)   XtAk(nn,nn),YtAl(nn,nn)
+real(dprec)   Pgamma,Qgamma,PQgamma,QPgamma,big_term1,big_term2,big_term3,big_term4
+real(dprec)   term1,term2,term3,term4,term5,term6,term7,term8,prod,gamma
+real(dprec)   term9,term10,term11,term12,term13,term14,term15,term16
+real(dprec)   term17,term18,term19,term20,term21,term22,term23,term24,term25
+real(dprec)   tAkX(nn,nn),tAlY(nn,nn),Ytvl(nn),Ytbl(nn),Xtbk(nn),tvkX(nn),tbkX(nn),tvlY(nn)
+real(dprec)   term3_1,term3_2,term4_1,term4_2,term8_1,term8_2,term9_1,term9_2,term11_1,term11_2,term16_1,term16_2
+real(dprec)   term12_1,term12_2,term17_1,term17_2,term13_1,term14_2,term18_2,term19_1,temp5,temp6
+
+n=Glob_n
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+prod=Glob_Piraised3n2/(FOUR*det_tAkl**(THREEHALF))
+gamma=tau3*tau33+tau333*tau334
+
+
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  do j=1,n
+    temp1=temp1+inv_tAkl(i,j)*tvl(j)
+    temp2=temp2+inv_tAkl(i,j)*tbl(j)
+  enddo
+  inv_tAkltvl(i)=temp1
+  inv_tAkltbl(i)=temp2
+enddo
+
+!Compute tvkinv_tAkl=tvk'*inv_tAkl
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  do j=1,n
+    temp1=temp1+tvk(j)*inv_tAkl(j,i)
+    temp2=temp2+tbk(j)*inv_tAkl(j,i)
+  enddo
+  tvkinv_tAkl(i)=temp1
+  tbkinv_tAkl(i)=temp2
+enddo
+ !carefully look at the i,j indices !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do j=1,n
+    temp1=temp1+Y(i,j)*tvl(j)
+    temp2=temp2+Y(i,j)*tbl(j)
+    temp3=temp3+X(i,j)*tbk(j)
+  enddo
+  Ytvl(i)=temp1
+  Ytbl(i)=temp2
+  Xtbk(i)=temp3
+enddo
+
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do j=1,n
+    temp1=temp1+tvk(j)*X(j,i)
+    temp2=temp2+tbk(j)*X(j,i)
+    temp3=temp3+tvl(j)*Y(j,i)
+  enddo
+  tvkX(i)=temp1
+  tbkX(i)=temp2
+  tvlY(i)=temp3
+enddo
+
+trAkX=ZERO
+trAlY=ZERO
+do i=1,n
+  do j=1,n
+    trAkX=trAkX+tAk(i,j)*X(j,i)
+    trAlY=trAlY+tAl(i,j)*Y(j,i)
+  enddo
+enddo
+
+do i=1,n
+  do j=1,n
+    temp1=ZERO
+    temp2=ZERO
+    temp3=ZERO
+    temp4=ZERO
+    do k=1,n
+      temp1=temp1+tAk(j,k)*X(k,i)
+      temp2=temp2+tAl(j,k)*Y(k,i)  
+      temp3=temp3+X(j,k)*tAk(k,i)
+      temp4=temp4+Y(j,k)*tAl(k,i)
+    enddo
+    tAkX(j,i)=temp1
+    tAlY(j,i)=temp2
+    XtAk(j,i)=temp3
+    YtAl(j,i)=temp4
+  enddo
+enddo
+
+do i=1,n
+  do j=1,n
+    temp1=ZERO
+    temp2=ZERO
+    do k=1,n
+      temp1=temp1+tAkX(j,k)*tAk(k,i)
+      temp2=temp2+tAlY(j,k)*tAl(k,i)     
+    enddo
+    P(j,i)=temp1
+    Q(j,i)=temp2
+  enddo
+enddo
+
+do i=1,n
+  do j=1,n
+    temp1=ZERO
+    temp2=ZERO
+    do k=1,n
+      temp1=temp1+inv_tAkl(j,k)*P(k,i)
+      temp2=temp2+inv_tAkl(j,k)*Q(k,i)     
+    enddo
+    inv_tAklP(j,i)=temp1
+    inv_tAklQ(j,i)=temp2
+  enddo
+enddo
+
+
+
+trP=ZERO
+trQ=ZERO
+do i=1,n
+  do j=1,n
+    trP=trP+inv_tAkl(i,j)*P(j,i)
+    trQ=trQ+inv_tAkl(i,j)*Q(j,i)
+  enddo
+enddo
+
+Q1=ZERO
+Q2=ZERO
+Q5=ZERO
+Q6=ZERO
+P1=ZERO
+P2=ZERO
+P5=ZERO
+P6=ZERO
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  temp4=ZERO
+  do j=1,n
+    temp1=temp1+tbkinv_tAkl(j)*P(j,i)
+    temp2=temp2+tvkinv_tAkl(j)*P(j,i)   
+    temp3=temp3+tbkinv_tAkl(j)*Q(j,i)
+    temp4=temp4+tvkinv_tAkl(j)*Q(j,i)
+  enddo
+  P1=P1+temp1*inv_tAkltbl(i)
+  P2=P2+temp2*inv_tAkltvl(i) 
+  P5=P5+temp1*inv_tAkltvl(i)
+  P6=P6+temp2*inv_tAkltbl(i)
+  Q1=Q1+temp3*inv_tAkltbl(i)
+  Q2=Q2+temp4*inv_tAkltvl(i) 
+  Q5=Q5+temp3*inv_tAkltvl(i)
+  Q6=Q6+temp4*inv_tAkltbl(i)
+enddo
+Qgamma=Q1*tau3+Q2*tau33+Q5*tau333+Q6*tau334
+Pgamma=P1*tau3+P2*tau33+P5*tau333+P6*tau334
+
+term3_1=ZERO
+term3_2=ZERO
+term4_1=ZERO
+term4_2=ZERO
+term11_1=ZERO
+term11_2=ZERO
+term16_1=ZERO
+term16_2=ZERO
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  temp4=ZERO
+  temp33=ZERO
+  temp44=ZERO
+  do j=1,n
+    temp1=temp1+tvkinv_tAkl(j)*tAl(j,i)
+    temp2=temp2+tbkinv_tAkl(j)*tAl(j,i)
+    temp3=temp3+tbkinv_tAkl(j)*tAl(j,i)
+    temp4=temp4+tvkinv_tAkl(j)*tAl(j,i)    
+    temp33=temp33+tvkX(j)*tAk(j,i)
+    temp44=temp44+tbkX(j)*tAk(j,i)
+  enddo
+  term3_1=term3_1+temp1*Ytvl(i)
+  term3_2=term3_2+temp2*Ytvl(i)
+  term4_1=term4_1+temp3*Ytbl(i)
+  term4_2=term4_2+temp4*Ytbl(i)
+  term11_1=term11_1+temp33*inv_tAkltvl(i)
+  term11_2=term11_2+temp33*inv_tAkltbl(i)
+  term16_1=term16_1+temp44*inv_tAkltbl(i)
+  term16_2=term16_2+temp44*inv_tAkltvl(i)
+enddo
+
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  temp4=ZERO
+  do j=1,n
+    temp1=temp1+tvk(j)*inv_tAklP(j,i)
+    temp2=temp2+tbk(j)*inv_tAklP(j,i)
+    temp3=temp3+tvk(j)*inv_tAklQ(j,i)
+    temp4=temp4+tbk(j)*inv_tAklQ(j,i)
+  enddo
+  tvkinv_tAklP(i)=temp1
+  tbkinv_tAklP(i)=temp2
+  tvkinv_tAklQ(i)=temp3
+  tbkinv_tAklQ(i)=temp4
+enddo
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  do j=1,n
+    temp1=temp1+tvkX(j)*tAk(j,i)
+    temp2=temp2+tbkX(j)*tAk(j,i)
+  enddo
+  tvkXtAk(i)=temp1
+  tbkXtAk(i)=temp2
+enddo
+term8_1=ZERO
+term8_2=ZERO
+term9_1=ZERO
+term9_2=ZERO
+term12_1=ZERO
+term12_2=ZERO
+term17_1=ZERO
+term17_2=ZERO
+term13_1=ZERO
+term14_2=ZERO
+term18_2=ZERO
+term19_1=ZERO
+do i=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  temp4=ZERO
+  temp5=ZERO
+  temp6=ZERO
+  do j=1,n
+    temp1=temp1+tvkinv_tAklP(j)*inv_tAkltAl(j,i)
+    temp2=temp2+tbkinv_tAklP(j)*inv_tAkltAl(j,i)  
+    temp3=temp3+tvkXtAk(j)*inv_tAklQ(j,i)
+    temp4=temp4+tbkXtAk(j)*inv_tAklQ(j,i)
+    temp5=temp5+tvkXtAk(j)*inv_tAkltAl(j,i)
+    temp6=temp6+tbkXtAk(j)*inv_tAkltAl(j,i)
+  enddo
+  term8_1=term8_1+temp1*Ytvl(i)
+  term8_2=term8_2+temp2*Ytvl(i)
+  term9_1=term9_1+temp2*Ytbl(i)
+  term9_2=term9_2+temp1*Ytbl(i)
+  term12_1=term12_1+temp3*inv_tAkltvl(i)
+  term12_2=term12_2+temp3*inv_tAkltbl(i)
+  term17_1=term17_1+temp4*inv_tAkltbl(i)
+  term17_2=term17_2+temp4*inv_tAkltvl(i)
+  term13_1=term13_1+temp5*Ytvl(i)
+  term14_2=term14_2+temp5*Ytbl(i)
+  term18_2=term18_2+temp6*Ytvl(i)
+  term19_1=term19_1+temp6*Ytbl(i)
+enddo
+term1=36*trAkX*trAlY*prod*gamma
+term2=-24*trAkX*prod*(THREEHALF*trQ*gamma + Qgamma)
+term3=24*trAkX*prod*(tau33*term3_1+tau333*term3_2)
+term4=24*trAkX*prod*(tau3*term4_1+tau334*term4_2)
+term6=-24*trAlY*prod*(THREEHALF*trP*gamma+Pgamma)
+term7=16*rPr_rQr(P,Q,tvk,tbk,inv_tAkl,det_tAkl,tau3,tau33,tau333,tau334,tvkinv_tAkl,tbkinv_tAkl,inv_tAkltvl,inv_tAkltbl)
+term8=-24*trP*prod*(tau33*term3_1+tau333*term3_2)-16*prod*(tau33*term8_1+P1*term3_1+P6*term3_2+tau333*term8_2)
+term9=-24*trP*prod*(tau3*term4_1+tau334*term4_2)-16*prod*(P2*term4_1+tau3*term9_1+tau334*term9_2+P5*term4_2)
+term11=24*trAlY*prod*(tau33*term11_1+tau334*term11_2)
+term12=-24*trQ*prod*(tau33*term11_1+tau334*term11_2)-16*prod*(tau33*term12_1+Q1*term11_1+tau334*term12_2+Q5*term11_2)
+term13=16*prod*(tau33*term13_1+term11_2*term3_2)
+term14=16*prod*(term11_1*term4_1+tau334*term14_2)
+term16=24*trAlY*prod*(tau3*term16_1+tau333*term16_2)
+term17=-24*trQ*prod*(tau3*term16_1+tau333*term16_2)&
+-16*prod*(Q2*term16_1+tau3*term17_1+Q6*term16_2+tau333*term17_2)
+term18=16*prod*(term3_1*term16_1+tau333*term18_2)
+term19=16*prod*(tau3*term19_1+term4_2*term16_1)
+
+big_term1=term1+term2+term3+term4+term6
+big_term2=term7+term8+term9+term11
+big_term3=term12+term13+term14
+big_term4=term16+term17+term18+term19
+dXddYd= big_term1+big_term2+big_term3+big_term4
+
+end function dXddYd
+function ME_over_rij_tbk(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+!function ME_rXr_over_rij computes the following matrix element:
+!<\tilde phi_k| (r' X r)/r_ij |\tilde phi_l>
+!Here X is a some real symmetric matrix. If matrix X is not symmetric
+!then user needs to symmetrize it before calling this function.
+!Input:
+!            X  :: n x n real matrix
+!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
+!   tvkinv_tAkl :: n-component vector where tvk*inv_tAkl is stored
+!   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
+!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
+!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
+real(dprec)   ME_over_rij_tbk
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+!Arguments:
+real(dprec)   inv_tAkl(nn,nn),det_tAkl
+integer       i,j,tvl(nn),tvk(nn),tbl(nn)
+
+real(dprec)   inv_tAkltvl(nn),inv_tAkltbl(nn),inv_tAkltbk(nn)
+real(dprec)   tvkinv_tAkl(nn),tbkinv_tAkl(nn),tvlinv_tAkl(nn)
+real(dprec)   tau3,tau33,tau333,tau334,m1,m3,m,tbk(nn)
+!Local variables:
+integer       p,q,n
+real(dprec)   Aj(nn),AjX(nn),t_JV1,t_JV2,t_JV5,t_JV6,t_J,Ajtvl,Ajtbl    
+real(dprec)    temp1,temp2,temp3,temp11,temp22,temp33,mu,u
+
+n=Glob_n
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+
+!Compute inv_tAkltvl = inv_tAkl * tvl
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+inv_tAkl(q,p)*tvl(q)
+    temp2=temp2+inv_tAkl(q,p)*tbl(q)
+    temp3=temp3+inv_tAkl(q,p)*tbk(q)
+  enddo
+  inv_tAkltvl(p)=temp1
+  inv_tAkltbl(p)=temp2
+  inv_tAkltbk(p)=temp3
+enddo
+
+!Compute tvkinv_tAkl=tvk'*inv_tAkl
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+tvk(q)*inv_tAkl(q,p)
+    temp2=temp2+tbk(q)*inv_tAkl(q,p)
+    temp3=temp3+tvl(q)*inv_tAkl(q,p)
+  enddo
+  tvkinv_tAkl(p)=temp1
+  tbkinv_tAkl(p)=temp2
+  tvlinv_tAkl(p)=temp3
+enddo
+
+
+!Compute tau3=tvkinv_tAkl*tvl
+tau3=ZERO
+tau33=ZERO
+tau333=ZERO
+tau334=ZERO
+do p=1,n
+  tau3=tau3+tvkinv_tAkl(p)*tvl(p)
+  tau33=tau33+tbkinv_tAkl(p)*tbl(p)
+  tau333=tau333+tvkinv_tAkl(p)*tbl(p)
+  tau334=tau334+tbkinv_tAkl(p)*tvl(p)
+enddo
+m1=tau3*tau33
+m3=tau333*tau334
+m=m1+m3  !look formula 40 in document
+
+!Form Aj=inv_tAkl*ji        j/=i 
+!     Aj=inv_tAkl*(ji-jj)   j/=i 
+!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
+if (i==j) then
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)
+ enddo
+else
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
+ enddo
+endif 
+
+
+!Compute t_J=tr[inv_tAkl*Jij] 
+if (i==j) then
+  t_J=inv_tAkl(i,i)
+else
+  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
+endif
+
+!Compute Ajtvl=Aj'*tvl
+!        t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
+!        t_JV=tr[inv_tAkl*Jij*inv_tAkl*tvl*tvk']=tvk'*Aj*Ajtvl
+!        t_JXV=tr[inv_tAkl*Jij*inv_tAkl*X*inv_tAkl*tvl*tvk']=tvk'*Aj*AjX'*inv_tAkltvl
+Ajtvl=ZERO
+Ajtbl=ZERO
+temp1=ZERO
+temp11=ZERO
+do p=1,n
+  Ajtvl=Ajtvl+Aj(p)*tvl(p)
+  Ajtbl=Ajtbl+Aj(p)*tbl(p)  
+  temp1=temp1+tvk(p)*Aj(p)
+  temp11=temp11+tbk(p)*Aj(p)
+enddo
+t_JV1=temp11*Ajtbl
+t_JV2=temp1*Ajtvl
+t_JV5=temp11*Ajtvl
+t_JV6=temp1*Ajtbl
+
+mu=tau3*t_JV1+tau33*t_JV2+tau333*t_JV5+tau334*t_JV6
+u=t_JV1*t_JV2+t_JV5*t_JV6
+
+temp1=Glob_Piraised3n2/(TWO*SQRTPI*det_tAkl**(THREEHALF))
+
+ME_over_rij_tbk=temp1*(m+ONEFIFTH*u/(t_J*t_J)-ONETHIRD*mu/t_J)/sqrt(t_J)
+
+end function ME_over_rij_tbk
+
+
+function ME_over_rij_tvk(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+!function ME_rXr_over_rij computes the following matrix element:
+!<\tilde phi_k| (r' X r)/r_ij |\tilde phi_l>
+!Here X is a some real symmetric matrix. If matrix X is not symmetric
+!then user needs to symmetrize it before calling this function.
+!Input:
+!            X  :: n x n real matrix
+!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
+!   tvkinv_tAkl :: n-component vector where tvk*inv_tAkl is stored
+!   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
+!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
+!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
+real(dprec)   ME_over_rij_tvk
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+!Arguments:
+real(dprec)   inv_tAkl(nn,nn),det_tAkl
+integer       i,j,tvl(nn),tbk(nn),tbl(nn)
+
+real(dprec)   inv_tAkltvl(nn),inv_tAkltbl(nn),inv_tAkltbk(nn)
+real(dprec)   tvkinv_tAkl(nn),tbkinv_tAkl(nn),tvlinv_tAkl(nn)
+real(dprec)   tau3,tau33,tau333,tau334,m1,m3,m,tvk(nn)
+!Local variables:
+integer       p,q,n
+real(dprec)   Aj(nn),AjX(nn),t_JV1,t_JV2,t_JV5,t_JV6,t_J,Ajtvl,Ajtbl    
+real(dprec)    temp1,temp2,temp3,temp11,temp22,temp33,mu,u
+
+n=Glob_n
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+
+!Compute inv_tAkltvl = inv_tAkl * tvl
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+inv_tAkl(q,p)*tvl(q)
+    temp2=temp2+inv_tAkl(q,p)*tbl(q)
+    temp3=temp3+inv_tAkl(q,p)*tbk(q)
+  enddo
+  inv_tAkltvl(p)=temp1
+  inv_tAkltbl(p)=temp2
+  inv_tAkltbk(p)=temp3
+enddo
+
+!Compute tvkinv_tAkl=tvk'*inv_tAkl
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+tvk(q)*inv_tAkl(q,p)
+    temp2=temp2+tbk(q)*inv_tAkl(q,p)
+    temp3=temp3+tvl(q)*inv_tAkl(q,p)
+  enddo
+  tvkinv_tAkl(p)=temp1
+  tbkinv_tAkl(p)=temp2
+  tvlinv_tAkl(p)=temp3
+enddo
+
+
+!Compute tau3=tvkinv_tAkl*tvl
+tau3=ZERO
+tau33=ZERO
+tau333=ZERO
+tau334=ZERO
+do p=1,n
+  tau3=tau3+tvkinv_tAkl(p)*tvl(p)
+  tau33=tau33+tbkinv_tAkl(p)*tbl(p)
+  tau333=tau333+tvkinv_tAkl(p)*tbl(p)
+  tau334=tau334+tbkinv_tAkl(p)*tvl(p)
+enddo
+m1=tau3*tau33
+m3=tau333*tau334
+m=m1+m3  !look formula 40 in document
+
+!Form Aj=inv_tAkl*ji        j/=i 
+!     Aj=inv_tAkl*(ji-jj)   j/=i 
+!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
+if (i==j) then
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)
+ enddo
+else
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
+ enddo
+endif 
+
+
+!Compute t_J=tr[inv_tAkl*Jij] 
+if (i==j) then
+  t_J=inv_tAkl(i,i)
+else
+  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
+endif
+
+!Compute Ajtvl=Aj'*tvl
+!        t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
+!        t_JV=tr[inv_tAkl*Jij*inv_tAkl*tvl*tvk']=tvk'*Aj*Ajtvl
+!        t_JXV=tr[inv_tAkl*Jij*inv_tAkl*X*inv_tAkl*tvl*tvk']=tvk'*Aj*AjX'*inv_tAkltvl
+Ajtvl=ZERO
+Ajtbl=ZERO
+temp1=ZERO
+temp11=ZERO
+do p=1,n
+  Ajtvl=Ajtvl+Aj(p)*tvl(p)
+  Ajtbl=Ajtbl+Aj(p)*tbl(p)  
+  temp1=temp1+tvk(p)*Aj(p)
+  temp11=temp11+tbk(p)*Aj(p)
+enddo
+t_JV1=temp11*Ajtbl
+t_JV2=temp1*Ajtvl
+t_JV5=temp11*Ajtvl
+t_JV6=temp1*Ajtbl
+
+mu=tau3*t_JV1+tau33*t_JV2+tau333*t_JV5+tau334*t_JV6
+u=t_JV1*t_JV2+t_JV5*t_JV6
+
+temp1=Glob_Piraised3n2/(TWO*SQRTPI*det_tAkl**(THREEHALF))
+
+ME_over_rij_tvk=temp1*(m+ONEFIFTH*u/(t_J*t_J)-ONETHIRD*mu/t_J)/sqrt(t_J)
+
+end function ME_over_rij_tvk
+
+
+function ME_over_rij_tbl(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+!function ME_rXr_over_rij computes the following matrix element:
+!<\tilde phi_k| (r' X r)/r_ij |\tilde phi_l>
+!Here X is a some real symmetric matrix. If matrix X is not symmetric
+!then user needs to symmetrize it before calling this function.
+!Input:
+!            X  :: n x n real matrix
+!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
+!   tvkinv_tAkl :: n-component vector where tvk*inv_tAkl is stored
+!   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
+!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
+!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
+real(dprec)   ME_over_rij_tbl
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+!Arguments:
+real(dprec)   inv_tAkl(nn,nn),det_tAkl
+integer       i,j,tvk(nn),tvl(nn),tbk(nn)
+
+real(dprec)   inv_tAkltvl(nn),inv_tAkltbl(nn),inv_tAkltbk(nn)
+real(dprec)   tvkinv_tAkl(nn),tbkinv_tAkl(nn),tvlinv_tAkl(nn)
+real(dprec)   tau3,tau33,tau333,tau334,m1,m3,m,tbl(nn)
+!Local variables:
+integer       p,q,n
+real(dprec)   Aj(nn),AjX(nn),t_JV1,t_JV2,t_JV5,t_JV6,t_J,Ajtvl,Ajtbl    
+real(dprec)    temp1,temp2,temp3,temp11,temp22,temp33,mu,u
+
+n=Glob_n
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+
+!Compute inv_tAkltvl = inv_tAkl * tvl
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+inv_tAkl(q,p)*tvl(q)
+    temp2=temp2+inv_tAkl(q,p)*tbl(q)
+    temp3=temp3+inv_tAkl(q,p)*tbk(q)
+  enddo
+  inv_tAkltvl(p)=temp1
+  inv_tAkltbl(p)=temp2
+  inv_tAkltbk(p)=temp3
+enddo
+
+!Compute tvkinv_tAkl=tvk'*inv_tAkl
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+tvk(q)*inv_tAkl(q,p)
+    temp2=temp2+tbk(q)*inv_tAkl(q,p)
+    temp3=temp3+tvl(q)*inv_tAkl(q,p)
+  enddo
+  tvkinv_tAkl(p)=temp1
+  tbkinv_tAkl(p)=temp2
+  tvlinv_tAkl(p)=temp3
+enddo
+
+
+!Compute tau3=tvkinv_tAkl*tvl
+tau3=ZERO
+tau33=ZERO
+tau333=ZERO
+tau334=ZERO
+do p=1,n
+  tau3=tau3+tvkinv_tAkl(p)*tvl(p)
+  tau33=tau33+tbkinv_tAkl(p)*tbl(p)
+  tau333=tau333+tvkinv_tAkl(p)*tbl(p)
+  tau334=tau334+tbkinv_tAkl(p)*tvl(p)
+enddo
+m1=tau3*tau33
+m3=tau333*tau334
+m=m1+m3  !look formula 40 in document
+
+!Form Aj=inv_tAkl*ji        j/=i 
+!     Aj=inv_tAkl*(ji-jj)   j/=i 
+!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
+if (i==j) then
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)
+ enddo
+else
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
+ enddo
+endif 
+
+
+!Compute t_J=tr[inv_tAkl*Jij] 
+if (i==j) then
+  t_J=inv_tAkl(i,i)
+else
+  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
+endif
+
+!Compute Ajtvl=Aj'*tvl
+!        t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
+!        t_JV=tr[inv_tAkl*Jij*inv_tAkl*tvl*tvk']=tvk'*Aj*Ajtvl
+!        t_JXV=tr[inv_tAkl*Jij*inv_tAkl*X*inv_tAkl*tvl*tvk']=tvk'*Aj*AjX'*inv_tAkltvl
+Ajtvl=ZERO
+Ajtbl=ZERO
+temp1=ZERO
+temp11=ZERO
+do p=1,n
+  Ajtvl=Ajtvl+Aj(p)*tvl(p)
+  Ajtbl=Ajtbl+Aj(p)*tbl(p)  
+  temp1=temp1+tvk(p)*Aj(p)
+  temp11=temp11+tbk(p)*Aj(p)
+enddo
+t_JV1=temp11*Ajtbl
+t_JV2=temp1*Ajtvl
+t_JV5=temp11*Ajtvl
+t_JV6=temp1*Ajtbl
+
+mu=tau3*t_JV1+tau33*t_JV2+tau333*t_JV5+tau334*t_JV6
+u=t_JV1*t_JV2+t_JV5*t_JV6
+
+temp1=Glob_Piraised3n2/(TWO*SQRTPI*det_tAkl**(THREEHALF))
+
+ME_over_rij_tbl=temp1*(m+ONEFIFTH*u/(t_J*t_J)-ONETHIRD*mu/t_J)/sqrt(t_J)
+
+end function ME_over_rij_tbl
+
+function ME_over_rij_tvl(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+!function ME_rXr_over_rij computes the following matrix element:
+!<\tilde phi_k| (r' X r)/r_ij |\tilde phi_l>
+!Here X is a some real symmetric matrix. If matrix X is not symmetric
+!then user needs to symmetrize it before calling this function.
+!Input:
+!            X  :: n x n real matrix
+!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
+!   tvkinv_tAkl :: n-component vector where tvk*inv_tAkl is stored
+!   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
+!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
+!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
+real(dprec)   ME_over_rij_tvl
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+!Arguments:
+real(dprec)   inv_tAkl(nn,nn),det_tAkl
+integer       i,j,tvk(nn),tbk(nn),tbl(nn)
+
+real(dprec)   inv_tAkltvl(nn),inv_tAkltbl(nn),inv_tAkltbk(nn)
+real(dprec)   tvkinv_tAkl(nn),tbkinv_tAkl(nn),tvlinv_tAkl(nn)
+real(dprec)   tau3,tau33,tau333,tau334,m1,m3,m,tvl(nn)
+!Local variables:
+integer       p,q,n,k
+real(dprec)   Aj(nn),AjX(nn),t_JV1,t_JV2,t_JV5,t_JV6,t_J,Ajtvl,Ajtbl    
+real(dprec)    temp1,temp2,temp3,temp11,temp22,temp33,mu,u
+
+n=Glob_n
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+
+!Compute inv_tAkltvl = inv_tAkl * tvl
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+inv_tAkl(q,p)*tvl(q)
+    temp2=temp2+inv_tAkl(q,p)*tbl(q)
+    temp3=temp3+inv_tAkl(q,p)*tbk(q)
+  enddo
+  inv_tAkltvl(p)=temp1
+  inv_tAkltbl(p)=temp2
+  inv_tAkltbk(p)=temp3
+enddo
+
+!Compute tvkinv_tAkl=tvk'*inv_tAkl
+do p=1,n
+  temp1=ZERO
+  temp2=ZERO
+  temp3=ZERO
+  do q=1,n
+    temp1=temp1+tvk(q)*inv_tAkl(q,p)
+    temp2=temp2+tbk(q)*inv_tAkl(q,p)
+    temp3=temp3+tvl(q)*inv_tAkl(q,p)
+  enddo
+  tvkinv_tAkl(p)=temp1
+  tbkinv_tAkl(p)=temp2
+  tvlinv_tAkl(p)=temp3
+enddo
+
+
+!Compute tau3=tvkinv_tAkl*tvl
+tau3=ZERO
+tau33=ZERO
+tau333=ZERO
+tau334=ZERO
+do p=1,n
+  tau3=tau3+tvkinv_tAkl(p)*tvl(p)
+  tau33=tau33+tbkinv_tAkl(p)*tbl(p)
+  tau333=tau333+tvkinv_tAkl(p)*tbl(p)
+  tau334=tau334+tbkinv_tAkl(p)*tvl(p)
+enddo
+m1=tau3*tau33
+m3=tau333*tau334
+m=m1+m3  !look formula 40 in document
+
+!Form Aj=inv_tAkl*ji        j/=i 
+!     Aj=inv_tAkl*(ji-jj)   j/=i 
+!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
+if (i==j) then
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)
+ enddo
+else
+ do p=1,n
+   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
+ enddo
+endif 
+
+
+!Compute t_J=tr[inv_tAkl*Jij] 
+if (i==j) then
+  t_J=inv_tAkl(i,i)
+else
+  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
+endif
+
+!Compute Ajtvl=Aj'*tvl
+!        t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
+!        t_JV=tr[inv_tAkl*Jij*inv_tAkl*tvl*tvk']=tvk'*Aj*Ajtvl
+!        t_JXV=tr[inv_tAkl*Jij*inv_tAkl*X*inv_tAkl*tvl*tvk']=tvk'*Aj*AjX'*inv_tAkltvl
+Ajtvl=ZERO
+Ajtbl=ZERO
+temp1=ZERO
+temp11=ZERO
+do p=1,n
+  Ajtvl=Ajtvl+Aj(p)*tvl(p)
+  Ajtbl=Ajtbl+Aj(p)*tbl(p)  
+  temp1=temp1+tvk(p)*Aj(p)
+  temp11=temp11+tbk(p)*Aj(p)
+enddo
+t_JV1=temp11*Ajtbl
+t_JV2=temp1*Ajtvl
+t_JV5=temp11*Ajtvl
+t_JV6=temp1*Ajtbl
+
+mu=tau3*t_JV1+tau33*t_JV2+tau333*t_JV5+tau334*t_JV6
+u=t_JV1*t_JV2+t_JV5*t_JV6
+
+temp1=Glob_Piraised3n2/(TWO*SQRTPI*det_tAkl**(THREEHALF))
+
+ME_over_rij_tvl=temp1*(m+ONEFIFTH*u/(t_J*t_J)-ONETHIRD*mu/t_J)/sqrt(t_J)
+
+end function ME_over_rij_tvl
+
+
+function ME_dXd(X,tvk,tvl,inv_tAkltvl,inv_tAkl,tAk,tAl,inv_tAkltAl,Skl,tau3)
+real(dprec)   ME_dXd
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+real(dprec)   X(nn,nn),tAk(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn),inv_tAkltAl(nn,nn)
+integer       i,j,n,k,tvk(nn),tvl(nn)
+real(dprec)   inv_tAkltAlX(nn,nn),inv_tAkltAlXtAk(nn,nn),tvkinv_tAkltAlX(nn),inv_tAkltvl(nn)
+real(dprec)   temp1, Skl,tau,tau1,tau2,tau3
+n=Glob_n
+do i=1,n
+  do j=1,n
+    temp1=ZERO
+    do k=1,n
+      temp1=temp1+inv_tAkltAl(j,k)*X(k,i)
+    enddo
+    inv_tAkltAlX(j,i)=temp1
+  enddo
+enddo
+tau1=ZERO
+do i=1,n
+  temp1=ZERO
+  do k=1,n
+    temp1=temp1+inv_tAkltAlX(i,k)*tAk(k,i)
+  enddo
+  tau1=tau1+temp1
+enddo
+do i=1,n
+  temp1=ZERO
+  do j=1,n
+    temp1=temp1+tvk(j)*inv_tAkltAlX(j,i)
+  enddo
+  tvkinv_tAkltAlX(i)=temp1
+enddo
+tau2=ZERO
+do i=1,n
+  temp1=ZERO
+  do j=1,n
+    temp1=temp1+tvkinv_tAkltAlX(j)*tAk(j,i)
+  enddo
+  tau2=tau2+temp1*inv_tAkltvl(i)
+enddo
+ME_dXd=Skl*(SIX*tau1+FOUR*tau2/tau3)
+end function ME_dXd
+
+function ftransaux(x)
+!This function evaluates
+!f(x) = ( |x| - sqrt(1-x^2)arccos(sqrt(1-x^2)) ) / (x |x|)   
+!given a real valued -1<x<1 argument. |x| stands for absolute value.
+!A series representation is employed for |x|<xmin
+!Depending on the kind parameter (dprec=4,8,10,16 - double, extended, or quadruple 
+!precision) for real numbers, a different xmin is used. 
+!In all cases the accuracy is close to machine precision corresponding to 
+!that kind parameter (1-2 last significant figures might be inaccurate in 
+!the worst case).
+real(dprec) ftransaux,x
+real(dprec),parameter :: xmin_4=0.30_dprec !for single precision
+real(dprec),parameter :: xmin_8=0.27_dprec !for double precision
+real(dprec),parameter :: xmin_10=0.2_dprec !for extended precision
+real(dprec),parameter :: xmin_16=0.065_dprec !for quadruple precision
+!Local variables
+real(dprec) x2,ax,t,xmin
+
+ax=abs(x)
+selectcase (dprec)
+  case(0:4) 
+    xmin=xmin_4
+  case(5:8) 
+    xmin=xmin_8
+  case(9:10) 
+    xmin=xmin_10
+  case(11:16) 
+    xmin=xmin_16
+endselect  
+if (ax<xmin) then
+  x2=x*x
+  t=(524288.0_dprec/50702925.0_dprec)
+  t=(262144.0_dprec/22309287.0_dprec)+x2*t
+  t=(65536.0_dprec/4849845.0_dprec)+x2*t
+  t=(32768.0_dprec/2078505.0_dprec)+x2*t
+  t=(2048.0_dprec/109395.0_dprec)+x2*t
+  t=(1024.0_dprec/45045.0_dprec)+x2*t
+  t=(256.0_dprec/9009.0_dprec)+x2*t
+  t=(128.0_dprec/3465.0_dprec)+x2*t
+  t=(16.0_dprec/315.0_dprec)+x2*t
+  t=(8.0_dprec/105.0_dprec)+x2*t
+  t=(2.0_dprec/15.0_dprec)+x2*t
+  t=(1.0_dprec/3.0_dprec)+x2*t
+  ftransaux=x*t
+else
+  t=sqrt(1.0_dprec-x*x)
+  ftransaux=(ax-t*acos(t))/(ax*x)
+endif
+
+end function ftransaux
+
+!function SG_ME_rXr_over_rij(i,j,X,inv_tAkl,det_tAkl)
+!!function SG_ME_rXr_over_rij computes the following matrix element:
+!!<\tilde psi_k| (r' X r)/r_ij |\tilde psi_l>
+!!where psi_k = exp[-(r' Ak r)] is a Simple Gaussian wavefunction
+!!Here X is a some real symmetric matrix. If matrix X is not symmetric
+!!then user needs to symmetrize it before calling this function.
+!!Input:
+!!            X  :: n x n real matrix
+!!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
+!!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
+!!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
+!real(dprec)   SG_ME_rXr_over_rij
+!integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+!!Arguments:
+!real(dprec)   X(nn,nn),inv_tAkl(nn,nn),det_tAkl
+!integer       i,j
+!!Local variables:
+!integer       p,q,n
+!real(dprec)   temp1,temp2,temp3
+!real(dprec)   Aj(nn),AjX(nn)
+!real(dprec)   t_J,t_X,t_XJ,Glob_Piraised3n2
+!
+!n=Glob_n
+!Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+!!Form Aj=inv_tAkl*ji        j/=i 
+!!     Aj=inv_tAkl*(ji-jj)   j/=i 
+!!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
+!if (i==j) then
+! do p=1,n
+!   Aj(p)=inv_tAkl(p,i)
+! enddo
+!else
+! do p=1,n
+!   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
+! enddo
+!endif 
+!
+!!Compute AjX'=Aj'*X
+!do p=1,n
+!  temp1=ZERO
+!  do q=1,n
+!    temp1=temp1+Aj(q)*X(q,p)
+!  enddo
+!  AjX(p)=temp1
+!enddo
+!
+!!Compute t_J=tr[inv_tAkl*Jij] 
+!if (i==j) then
+!  t_J=inv_tAkl(i,i)
+!else
+!  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
+!endif
+!
+!!Compute t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
+!t_XJ=ZERO
+!do p=1,n
+!  t_XJ=t_XJ+AjX(p)*Aj(p)
+!enddo
+!
+!!Compute t_X=tr[inv_tAkl*X]
+!t_X=ZERO
+!do p=1,n
+!  do q=1,n
+!    t_X=t_X+inv_tAkl(q,p)*X(q,p)
+!  enddo
+!enddo
+!
+!temp1=Glob_Piraised3n2/(SQRTPI*det_tAkl**(THREEHALF))
+!temp3=1/t_J
+!SG_ME_rXr_over_rij=temp1*temp3*sqrt(temp3)*(THREE*t_J*t_X - t_XJ)
+!
+!end function SG_ME_rXr_over_rij
+!function ME_d_X_over_rij_d1(i,j,X,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+!    
+!real(dprec)   ME_d_X_over_rij_d1
+!integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+!!Arguments:
+!real(dprec)   X(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn),det_tAkl
+!integer       i,j,tvk(nn),tvl(nn),tbk(nn),tbl(nn)
+!
+!!Local variables:
+!integer       c,s,p,q,n,k
+!real(dprec)   Xtvl(nn),Xtbl(nn),tAlX(nn,nn),tAlXtAl(nn,nn),tAlXtvl(nn),tAlXtbl(nn)
+!real(dprec)   temp1,temp2,temp3,temp4,t_tAlX
+!
+!
+!!Doing multiplication Xtvl=X*tvl,tvkX=tvk*X
+!n=Glob_n
+!do s=1,n
+!  temp1=ZERO
+!  temp2=ZERO
+!  do c=1,n
+!	temp1=temp1+X(c,s)*tvl(c)
+!        temp2=temp2+X(c,s)*tbl(c)
+!  enddo
+!  Xtvl(s)=temp1
+!  Xtbl(s)=temp2
+!enddo
+!
+!do s=1,n
+!  do c=1,n
+!    temp1=ZERO
+!    do k=1,n
+!      temp1=temp1+tAl(c,k)*X(k,s) 
+!    enddo
+!    tAlX(c,s)=temp1
+!  enddo
+!enddo
+!
+!!Doing multiplication tAlXtAk=tAlX*tAk,tAkXtAl=tAkX*tAl
+!do s=1,n
+!  do c=1,n
+!    temp1=ZERO
+!    do k=1,n
+!      temp1=temp1+tAlX(c,k)*tAl(k,s)
+!    enddo
+!    tAlXtAl(c,s)=temp1
+!  enddo
+!enddo
+!
+!do s=1,n
+!  temp1=ZERO
+!  temp2=ZERO
+!  do c=1,n
+!	temp1=temp1+tAlX(c,s)*tvl(c)
+!        temp2=temp2+tAlX(c,s)*tbl(c)
+!  enddo
+!  tAlXtvl(s)=temp1
+!  tAlXtbl(s)=temp2
+!enddo
+!
+!t_tAlX=ZERO
+!do p=1,n
+!  do q=1,n
+!    t_tAlX=t_tAlX+tAl(q,p)*X(q,p)  
+!  enddo
+!enddo
+!
+!temp1=-6*t_tAlX*ME_over_rij(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+!temp2=4*ME_rXr_over_rij(i,j,tAlXtAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+!temp3=-4*ME_over_rij_tvl(i,j,inv_tAkl,det_tAkl,tvk,tAlXtvl,tbk,tbl)
+!temp4=-4*ME_over_rij_tbl(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tAlXtbl)
+!ME_d_X_over_rij_d1=-(temp1+temp2+temp3+temp4)
+!end function ME_d_X_over_rij_d1
 
 end module matelem

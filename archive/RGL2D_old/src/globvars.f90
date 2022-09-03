@@ -27,7 +27,7 @@ PI=3.1415926535897932384626433832795029E0_dprec,     &
 SQRTPI=1.7724538509055160272981674833411452E0_dprec, &
 Glob_FineStructConst=7.2973525698E-03_dprec, &  !CODATA 2010 value
 Glob_EulerConst=0.57721566490153286060651209008240E0_dprec
-
+      
 !=============================================================
 !Global parameters
 !=============================================================
@@ -58,7 +58,6 @@ integer,parameter :: Glob_np_MaxAllowed= &
 integer,parameter :: Glob_npt_MaxAllowed=Glob_np_MaxAllowed
 
 real(dprec)   Glob_2raised3n2  !2^(3n/2)
-real(dprec)   Glob_Piraised3n2 !pi^(3n/2)
 
 !Glob_CurrBasisSize is a variable whose value equals the current 
 !size of the basis
@@ -97,41 +96,15 @@ real(dprec),allocatable,dimension(:),save ::  Glob_Mass
 !Glob_MassTotal is the total mass of the system (all particles)
 real(dprec)   Glob_MassTotal
 
-!Glob_dmva2 is a constant depending on the masses of particles,
-!which is used in the evaluation of drachmanized mass-velocity correction
-real(dprec)   Glob_dmva2
-
-!Glob_dmvB, Glob_dmvM, and Glob_dmvMB are constant diagonal matrices used in 
-!the evaluation of drachmanized mass-velocity correction. their elements depend 
-!of the masses of particles
-real(dprec)   Glob_dmvM(Glob_MaxAllowedNumOfPseudoParticles,Glob_MaxAllowedNumOfPseudoParticles)
-real(dprec)   Glob_dmvB(Glob_MaxAllowedNumOfPseudoParticles,Glob_MaxAllowedNumOfPseudoParticles)
-real(dprec)   Glob_dmvMB(Glob_MaxAllowedNumOfPseudoParticles,Glob_MaxAllowedNumOfPseudoParticles)
-
 !Glob_PseudoCharge is the charges of pseudoparticles, qi
 real(dprec),allocatable,dimension(:),save ::  Glob_PseudoCharge
 
 !Glob_PseudoCharge0 is the charge of the reference particle, q0
 real(dprec)   Glob_PseudoCharge0
 
-!Glob_RepulsionScalingParam and Glob_AttractionScalingParam
-!(may range from 0 to inf; deafault is 1) are parameters
-!that change the repulsion and attraction strength between particles
-!Glob_RepulsionScalingParamPlus and Glob_RepulsionScalingParamMinus
-!are additional scaling parameters that scale the repulsion between
-!positive and negative charges. 
-real(dprec)  ::  Glob_RepulsionScalingParam=1.0_dprec
-real(dprec)  ::  Glob_RepulsionScalingParamPlus=1.0_dprec
-real(dprec)  ::  Glob_RepulsionScalingParamMinus=1.0_dprec
-real(dprec)  :: Glob_AttractionScalingParam=1.0_dprec
-logical      ::  Glob_RepScalParamSupplied=.false.
-logical      ::  Glob_RepScalParamPlusSupplied=.false.
-logical      ::  Glob_RepScalParamMinusSupplied=.false.
-logical      ::  Glob_AttrScalParamSupplied=.false.
-
 !Glob_YOperatorStringLength definess the length of string
 !Glob_YOperatorString
-integer, parameter  ::  Glob_YOperatorStringLength=255
+integer, parameter  ::  Glob_YOperatorStringLength=100
 
 !Glob_YOperatorString is a string that contains the symbolic 
 !expression or the Young operator that is read from an 
@@ -299,10 +272,6 @@ integer                                 :: Glob_lbf
 !before accesing Glob_Blacklisted(i) it should be checked whether i>=Glob_lbf.
 logical,allocatable,dimension(:),save :: Glob_Blacklisted
 
-!Vector Glob_bvc is used for computing particle densities. Its components
-!depend on the masses of particles
-real(dprec),allocatable,dimension(:,:),save :: Glob_bvc
-
 !This variable is used to tune routine DSYGVX (from LAPACK) accuracy
 real(dprec)  Glob_AbsTolForDSYGVX
 
@@ -463,7 +432,6 @@ character(Glob_FileNameLength)          :: Glob_DataFileName='inout.txt'
 character(Glob_FileNameLength)          :: Glob_SwapFileName='swapfile.dat'
 character(Glob_FileNameLength)          :: Glob_ReallocFileName='realloc.dat'
 character(Glob_FileNameLength)          :: Glob_BlackListFileName='blacklist.txt'
-character(Glob_FileNameLength)          :: Glob_ExpValFileName='expvals.txt'
 
 !These are the variables that specify whether swapping
 !is allowed and whether a temporary file should be used

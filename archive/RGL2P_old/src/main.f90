@@ -1,12 +1,11 @@
-
 program main
-
 use workproc
 implicit none
 
+
 !Local variables
 integer      i,iw,Kstart,Kstop,Kstep,OpenFileErr,OptimizationType
-real(8)      r8 
+real(dprec)  r  
 
 !These variables are used to set random number generators
 integer RNSeedSize
@@ -19,7 +18,7 @@ call MPI_COMM_SIZE(MPI_COMM_WORLD,Glob_NumOfProcs,Glob_MPIErrCode)
 
 if (Glob_ProcID==0) then
   write (*,*) 'Program Expilitly Correlated Real Gaussians has started'
-  write (*,*) 'Number of parallel processes running ',Glob_NumOfProcs
+  write (*,*) 'Number of parallel processes running',Glob_NumOfProcs
   write (*,*)
 endif
 
@@ -35,11 +34,11 @@ call random_seed(get=Seed(1:RNSeedSize))
 call system_clock(count=Seed(1))
 Seed(1:RNSeedSize)=Seed(1:RNSeedSize)+Glob_ProcID
 call random_seed(put=Seed(1:RNSeedSize))
-call random_number(r8)
-call random_number(r8)
-call random_number(r8)
-call random_number(r8)
-r8=drnor_start(nint(r8*25000)+Glob_ProcID)
+call random_number(r)
+call random_number(r)
+call random_number(r)
+call random_number(r)
+r=drnor_start(nint(r*25000)+Glob_ProcID)
 
 !Empty swap file as it may contain some garbage left
 !after last run (if there was a failure)
@@ -187,30 +186,8 @@ do i=1,Glob_NumOfBBOPSteps
 		write(*,*) 'One or more parameters in SEPR_FLCF are incorrect'
       endif
 	endif
-	    
-  case('EXPC_VALS')
-    if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then     
-	  call ExpectationValues(1,Glob_FileNameNone,Glob_FileNameNone,Glob_FileNameNone, &
-	           Glob_FileNameNone,Glob_BBOP(i)%GSEPSolutionMethod)
-	else
-      if (Glob_ProcID==0) then
-        write(*,*) 'Error in main: incorrect BBOP step ',i
-		write(*,*) 'Second parameter in EXPC_VALS is incorrect'
-      endif
-	endif
-
-  case('DENSITIES')
-    if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then
-	  call ExpectationValues(1,Glob_BBOP(i)%FileName1,Glob_BBOP(i)%FileName2, &
-	           Glob_BBOP(i)%FileName3,Glob_BBOP(i)%FileName4,Glob_BBOP(i)%GSEPSolutionMethod)
-	else
-      if (Glob_ProcID==0) then
-        write(*,*) 'Error in main: incorrect BBOP step ',i
-		write(*,*) 'Second parameter in DENSITIES is incorrect'
-      endif
-	endif
-
-      case('SAVE_FILE')
+	
+  case('SAVE_FILE')
     if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then
 	  if (Glob_ProcID==0) then
 	    iw=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
@@ -219,21 +196,25 @@ do i=1,Glob_NumOfBBOPSteps
 	    call SaveResults(Filename=Glob_BBOP(i)%FileName1,Sort='no')
 	    write(*,*) ' done'
 	    write(*,*)
-	  endif
-    endif
+	  endif  
+    endif	
     
-  case('SAVE_HSWF')
-    if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then     
-	  call SaveHSWF(Glob_BBOP(i)%FileName1,Glob_BBOP(i)%FileName2, &
-	           Glob_BBOP(i)%FileName3,Glob_BBOP(i)%FileName4, &
-                   Glob_BBOP(i)%GSEPSolutionMethod)
+  case('EXPC_VALS')
+    if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then
+	  select case (Glob_BBOP(i)%GSEPSolutionMethod)
+      case('G')      
+	    call ExpectationValuesG(1)	  
+      case('I')
+        if (Glob_ProcID==0) write(*,*) &
+          'Sorry, GSEP soluton method I has not been implemented in EXPC_VALS'
+	  endselect
 	else
       if (Glob_ProcID==0) then
         write(*,*) 'Error in main: incorrect BBOP step ',i
-		write(*,*) 'Second parameter in SAVE_HSEV is incorrect'
+		write(*,*) 'Second parameters in EXPC_VALS is incorrect'
       endif
-	endif	     
-    
+	endif    
+	
   endselect
 enddo
 
