@@ -616,7 +616,7 @@ end subroutine MatrixElements
 subroutine MatrixElementsForExpcVals(vechLk, vechLl, Pbra, Pket, &
            Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
            MVkl, drach_MVkl, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, del2kl, prvalkl, &
-           wforiginkl, NumCFGridPoints, CFGrid, CFkl, NumDensGridPoints, DensGrid, Denskl, &
+           wf2originkl, NumCFGridPoints, CFGrid, CFkl, NumDensGridPoints, DensGrid, Denskl, &
            AreCorrFuncNeeded, ArePartDensNeeded)
 !This subroutine computes symmetry adapted matrix elements 
 !with two real L=0 correlated Gaussians. These matrix elements
@@ -646,7 +646,7 @@ subroutine MatrixElementsForExpcVals(vechLk, vechLl, Pbra, Pket, &
 ! rmrmkl    :: 1/(r_{ij}*r_{pq})
 ! del2kl    :: delta(r_{ij})delta(r_{pq}) when r_{ij}/=r_{pq}
 ! prvalkl   :: P(1/r^3_ij) - principal values of matric element 1/r^3_ij  (appears in the Araki-Sucker term for QED correction)                
-! wforiginkl:: wave function at the origin
+! wf2originkl:: n-particle density at all-particle coalescence point (absolute square of the wave function at the origin)
 !NumCFGridPoints   :: Number of grid points for correlation function calculations
 !CFGrid            :: Array containing grid points where matrix elements of 
 !                     correlation functions should be computed   
@@ -672,7 +672,7 @@ real(dprec),intent(out)  :: drach_deltarkl(Glob_n,Glob_n)
 real(dprec),intent(out)  :: prvalkl(Glob_n,Glob_n)
 real(dprec),intent(out)  :: rmrmkl(Glob_n,Glob_n,Glob_n,Glob_n)
 real(dprec),intent(out)  :: del2kl(Glob_n,Glob_n,Glob_n,Glob_n)
-real(dprec),intent(out)  :: wforiginkl
+real(dprec),intent(out)  :: wf2originkl
 integer,intent(in)       :: NumCFGridPoints,NumDensGridPoints
 real(dprec),intent(in)   :: CFGrid(NumCFGridPoints),DensGrid(NumDensGridPoints)
 real(dprec),intent(out)  :: CFkl(Glob_n*(Glob_n+1)/2,NumCFGridPoints)
@@ -826,7 +826,8 @@ enddo
 !temp2=abs(det_Ll*det_Lk)
 !temp1=temp2/det_tAkl
 !Skl=Glob_2raised3n2*temp1*sqrt(temp1)
-!wforiginkl=Glob_2raised3n2*(temp2*sqrt(temp2))/(PI**(THREE*n/TWO)) !wafe function at the origin???
+!wf2originkl=Glob_2raised3n2*(temp2*sqrt(temp2))/(PI**(THREE*n/TWO))
+wf2originkl=ONE
 Skl=Glob_Piraised3n2/(det_tAkl*sqrt(det_tAkl))  !new line
 !Doing multiplication W2=inv_tAkl*tAl
 do i=1,n
