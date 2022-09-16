@@ -9338,11 +9338,12 @@ do a=1,n
   enddo
 enddo
 
-!Opening an additional file where selected expectation values will be saved
-open(2,file=Glob_ExpValFileName,status='replace')
-
 !Printing results
 if (Glob_ProcID==0) then
+
+  !Opening an additional file where selected expectation values will be saved
+  open(2,file=Glob_ExpValFileName,status='replace')
+  
   write(*,*) 'done'
   write(*,*) 
   write(*,*) 'Expectation values:'
