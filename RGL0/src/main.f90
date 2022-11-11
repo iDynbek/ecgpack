@@ -189,7 +189,7 @@ do i=1,Glob_NumOfBBOPSteps
 	
   case('EXPC_VALS')
     if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then  
-	  call ExpectationValues(1,Glob_FileNameNone,Glob_FileNameNone,Glob_FileNameNone, &
+	  call ExpectationValues(Glob_BBOP(i)%Action,1,Glob_FileNameNone,Glob_FileNameNone,Glob_FileNameNone, &
 	           Glob_FileNameNone,Glob_BBOP(i)%GSEPSolutionMethod)
 	else
       if (Glob_ProcID==0) then
@@ -200,7 +200,7 @@ do i=1,Glob_NumOfBBOPSteps
 	
   case('DENSITIES')
     if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then     
-	  call ExpectationValues(1,Glob_BBOP(i)%FileName1,Glob_BBOP(i)%FileName2, &
+	  call ExpectationValues(Glob_BBOP(i)%Action,1,Glob_BBOP(i)%FileName1,Glob_BBOP(i)%FileName2, &
 	           Glob_BBOP(i)%FileName3,Glob_BBOP(i)%FileName4,Glob_BBOP(i)%GSEPSolutionMethod)
 	else
       if (Glob_ProcID==0) then
@@ -209,6 +209,17 @@ do i=1,Glob_NumOfBBOPSteps
       endif
 	endif	
 	
+  case('MOMT_DENS')
+  if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then     
+  call ExpectationValues(Glob_BBOP(i)%Action,1,Glob_BBOP(i)%FileName1,Glob_BBOP(i)%FileName2, &
+           Glob_BBOP(i)%FileName3,Glob_BBOP(i)%FileName4,Glob_BBOP(i)%GSEPSolutionMethod)
+  else
+    if (Glob_ProcID==0) then
+      write(*,*) 'Error in main: incorrect BBOP step ',i
+  write(*,*) 'Second parameter in MOMT_DENS is incorrect'
+    endif
+  endif 
+
   case('SAVE_FILE')
     if (Glob_BBOP(i)%A==Glob_CurrBasisSize) then
 	  if (Glob_ProcID==0) then

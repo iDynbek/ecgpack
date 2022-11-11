@@ -258,7 +258,7 @@ if (Glob_ProcID==0) then
 		(ReadChar(1:9)=='ELIM_LCFN').or.(ReadChar(1:9)=='ELIM_LND1').or.  &
 		(ReadChar(1:9)=='SEPR_LND1').or.(ReadChar(1:9)=='SEPR_FLCF').or.  &
 		(ReadChar(1:9)=='DENSITIES').or.(ReadChar(1:9)=='SAVE_FILE').or.  &
-                (ReadChar(1:9)=='SAVE_HSWF')) then
+    (ReadChar(1:9)=='MOMT_DENS').or.(ReadChar(1:9)=='SAVE_HSWF')) then
 	  Glob_NumOfBBOPSteps=Glob_NumOfBBOPSteps+1
     else
       IsBBOPStep=.false.
@@ -335,7 +335,23 @@ if (Glob_ProcID==0) then
       !call writestring(6,Glob_BBOP(i)%FileName2,j2)  
       !call writestring(6,Glob_BBOP(i)%FileName3,j3)  
       !call writestringadv(6,Glob_BBOP(i)%FileName4,j4)       	              
-	case('ELIM_LCFN') 
+    case('MOMT_DENS')
+      read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &
+            Glob_BBOP(i)%A,Glob_BBOP(i)%FileName1(1:Glob_FileNameLength), &
+            Glob_BBOP(i)%FileName2(1:Glob_FileNameLength),                &
+            Glob_BBOP(i)%FileName3(1:Glob_FileNameLength),                &
+            Glob_BBOP(i)%FileName4(1:Glob_FileNameLength)
+      j1=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
+      j2=len_trim(Glob_BBOP(i)%FileName2(1:Glob_FileNameLength))
+      j3=len_trim(Glob_BBOP(i)%FileName3(1:Glob_FileNameLength))
+      j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength))                              	
+      !write(*,'(1x,a9,1x,a1,1x,i6)',advance='no')              &
+      !      Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
+      !call writestring(6,Glob_BBOP(i)%FileName1,j1) 
+      !call writestring(6,Glob_BBOP(i)%FileName2,j2)  
+      !call writestring(6,Glob_BBOP(i)%FileName3,j3)  
+      !call writestringadv(6,Glob_BBOP(i)%FileName4,j4)       	              
+    case('ELIM_LCFN') 
 	  read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &		
             Glob_BBOP(i)%A,Glob_BBOP(i)%Q,Glob_BBOP(i)%FileName1(1:Glob_FileNameLength)
       j=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
@@ -637,7 +653,18 @@ if (Glob_ProcID==0) then
       call writestring(1,Glob_BBOP(i)%FileName2,j2)  
       call writestring(1,Glob_BBOP(i)%FileName3,j3)  
       call writestringadv(1,Glob_BBOP(i)%FileName4,j4) 
-	case('ELIM_LCFN') 
+    case('MOMT_DENS')
+    j1=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))  
+    j2=len_trim(Glob_BBOP(i)%FileName2(1:Glob_FileNameLength)) 
+    j3=len_trim(Glob_BBOP(i)%FileName3(1:Glob_FileNameLength)) 
+    j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength)) 	  	  	    
+      write(1,'(1x,a9,1x,a1,1x,i6)',advance='no')              &
+            Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
+      call writestring(1,Glob_BBOP(i)%FileName1,j1) 
+      call writestring(1,Glob_BBOP(i)%FileName2,j2)  
+      call writestring(1,Glob_BBOP(i)%FileName3,j3)  
+      call writestringadv(1,Glob_BBOP(i)%FileName4,j4) 
+    case('ELIM_LCFN') 
 	  j=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
       write(1,'(1x,a9,1x,a1,1x,i6)',advance='no') Glob_BBOP(i)%Action(1:9),  &
 	        Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
@@ -8404,12 +8431,14 @@ if (Glob_ProcID==0) write (*,*) 'Routine SaveHSWF has finished'
 end subroutine SaveHSWF
 
 
-subroutine ExpectationValues(SymmAdaptMethod,FileName1,FileName2,FileName3,FileName4,GSEPSolMethod)
+subroutine ExpectationValues(Action,SymmAdaptMethod,FileName1,FileName2,FileName3,FileName4,GSEPSolMethod)
 !ExpectationValues computes expectation values in the basis of 
 !Glob_CurrBasisSize functions. Depending on the argument GSEPsolMethod,
 !it can use either LAPACK subroutine DSYGVX or the inverse iteration method to
 !solve GSEP.
 !Input parameters:
+!  Action - defines the action that needs to be used. It can be either
+!  "DENSITIES" or "MOMT_DENS".
 !  SymmAdaptMethod  - defines how the expectation values should be
 !calculated. If SymmAdaptMethod=1 then Y^{\dagger}Y operator is applied
 !to the ket. This option is faster but requires manual symmetrization
@@ -8431,12 +8460,13 @@ subroutine ExpectationValues(SymmAdaptMethod,FileName1,FileName2,FileName3,FileN
 !  GSEPsolMethod - can be either 'G' or 'I'. It defines the method used to solve GSEP
 
 !Parameters:
-integer,intent(in)  ::    SymmAdaptMethod
+character(9),intent(in) ::    Action
+integer,intent(in)      ::    SymmAdaptMethod
 character(Glob_FileNameLength),intent(in) :: FileName1
 character(Glob_FileNameLength),intent(in) :: FileName2
 character(Glob_FileNameLength),intent(in) :: FileName3
 character(Glob_FileNameLength),intent(in) :: FileName4
-character(1)        ::    GSEPSolMethod
+character(1)            ::    GSEPSolMethod
 
 !Local variables:
 integer        i,j,k,kk,counter,a,b,c,d,a1,b1
@@ -8454,7 +8484,7 @@ real(dprec)    factor
 real(dprec)    temp1,temp2
 real(dprec),allocatable,dimension(:,:)    ::  IdentityPerm
 real(dprec)    beta,mu
-logical        AreCorrFuncNeeded,ArePartDensNeeded
+logical        AreCorrFuncNeeded,ArePartDensNeeded,AreMCorrFuncNeeded,AreMPartDensNeeded
 logical        IsFile1OK,IsFile3OK
 
 !Local variables used to store temporary data
@@ -8506,26 +8536,46 @@ if (GSEPsolMethod=='I') NumOfEigvecs=1
 
 !Setting logical variables that determine whether correlation 
 !functions and particle densities need to be computed
-if ((FileName1==' ').or.(FileName1=='none').or. &
+if(Action=='DENSITIES') then
+  if ((FileName1==' ').or.(FileName1=='none').or. &
     (FileName1=='NONE').or.(FileName1=='None')) then
-  AreCorrFuncNeeded=.false.
-else
-  AreCorrFuncNeeded=.true.  
-endif 
-if ((FileName3==' ').or.(FileName3=='none').or. &
+    AreCorrFuncNeeded=.false.
+  else
+    AreCorrFuncNeeded=.true. 
+    AreMCorrFuncNeeded=.false. 
+  endif 
+  if ((FileName3==' ').or.(FileName3=='none').or. &
     (FileName3=='NONE').or.(FileName3=='None')) then
-  ArePartDensNeeded=.false.
-else
-  ArePartDensNeeded=.true.  
-endif 
+    ArePartDensNeeded=.false.
+  else
+    ArePartDensNeeded=.true.  
+    AreMPartDensNeeded=.false.
+  endif 
+endif
 
+if(Action=='MOMT_DENS') then
+  if ((FileName1==' ').or.(FileName1=='none').or. &
+    (FileName1=='NONE').or.(FileName1=='None')) then
+    AreMCorrFuncNeeded=.false.
+  else
+    AreMCorrFuncNeeded=.true. 
+    AreCorrFuncNeeded=.false. 
+  endif 
+  if ((FileName3==' ').or.(FileName3=='none').or. &
+    (FileName3=='NONE').or.(FileName3=='None')) then
+    AreMPartDensNeeded=.false.
+  else
+    AreMPartDensNeeded=.true.
+    ArePartDensNeeded=.false.  
+  endif 
+endif
 !If corellation functions and/or particle densities are needed
 !then we open files FileName1 and FileName3 that contain grids for
 !correlation functions and particle densities respectively
 
 !Here we determine the number of grid points for correlation 
 !function calculation
-if (AreCorrFuncNeeded) then
+if (AreCorrFuncNeeded.or.AreMCorrFuncNeeded) then
   if (Glob_ProcID==0) then
     IsFile1OK=.true.
     open(1,file=FileName1,status='old',iostat=OpenFileErr)
@@ -8563,7 +8613,7 @@ endif
 
 !Here we determine the number of grid points for particle density
 !calculations
-if (ArePartDensNeeded) then
+if (ArePartDensNeeded.or.AreMPartDensNeeded) then
   if (Glob_ProcID==0) then
     IsFile3OK=.true.
     open(1,file=FileName3,status='old',iostat=OpenFileErr)
@@ -8605,7 +8655,7 @@ endif
 
 NumOfCFAndDensExpVals=0
 
-if (AreCorrFuncNeeded) then
+if (AreCorrFuncNeeded.or.AreMCorrFuncNeeded) then
   allocate(CFGrid(NumCFGridPoints))
   NumOfCFAndDensExpVals=NumOfCFAndDensExpVals+NumCFGridPoints*n*(n+1)/2
   allocate(CFkl(n*(n+1)/2,NumCFGridPoints))
@@ -8616,7 +8666,7 @@ else
   allocate(CFkl(1,1))  
 endif
 
-if (ArePartDensNeeded) then
+if (ArePartDensNeeded.or.AreMPartDensNeeded) then
   allocate(DensGrid(NumDensGridPoints))
   NumOfCFAndDensExpVals=NumOfCFAndDensExpVals+NumDensGridPoints*(n+1)
   allocate(Denskl(n+1,NumDensGridPoints))
@@ -8627,13 +8677,13 @@ else
   allocate(Denskl(1,1)) 
 endif
 
-if((AreCorrFuncNeeded).or.(ArePartDensNeeded)) then
+if((AreCorrFuncNeeded.or.AreMCorrFuncNeeded).or.(ArePartDensNeeded.or.AreMPartDensNeeded)) then
   allocate(CFDMEkl_s(NumOfCFAndDensExpVals))
 endif
 
 !Now we open files FileName1 and FileName3 again, but this time
 !we read the data from them into arrays CFGrid and DensGrid
-if (AreCorrFuncNeeded) then
+if (AreCorrFuncNeeded.or.AreMCorrFuncNeeded) then
   if (Glob_ProcID==0) then
     open(1,file=FileName1,status='old')
       do i=1,NumCFGridPoints
@@ -8643,7 +8693,7 @@ if (AreCorrFuncNeeded) then
   endif  
   call MPI_BCAST(CFGrid,NumCFGridPoints,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 endif
-if (ArePartDensNeeded) then
+if (ArePartDensNeeded.or.AreMPartDensNeeded) then
   if (Glob_ProcID==0) then  
     open(1,file=FileName3,status='old')
       do i=1,NumDensGridPoints
@@ -8849,7 +8899,7 @@ if (Glob_ProcID==0) write(*,'(1x,a31)',advance='no') 'Computing expectation valu
 
 !main loop
 MEkl_s(1:NumOfExpcVals)=ZERO
-if (AreCorrFuncNeeded.or.ArePartDensNeeded) CFDMEkl_s(1:NumOfCFAndDensExpVals)=ZERO
+if (AreCorrFuncNeeded.or.AreMCorrFuncNeeded.or.ArePartDensNeeded.or.AreMPartDensNeeded) CFDMEkl_s(1:NumOfCFAndDensExpVals)=ZERO
 counter=0
 do i=1,cbs
   do j=1,i  !j=1,i
@@ -8866,7 +8916,7 @@ do i=1,cbs
 		    IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl,Skl,Tkl,Vkl,rm2kl,rmkl,rkl,r2kl,          &
 		    deltarkl,drach_deltarkl,MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl,rmrmkl,       &
                     del2kl,prvalkl,wf2originkl,NumCFGridPoints,CFGrid,CFkl,NumDensGridPoints,DensGrid, &
-		    Denskl,AreCorrFuncNeeded,ArePartDensNeeded)	    	            
+		    Denskl,AreCorrFuncNeeded,ArePartDensNeeded,AreMCorrFuncNeeded,AreMPartDensNeeded)	    	            
 	      c=0
               do a=1,n
 	        do b=a,n
@@ -8937,7 +8987,7 @@ do i=1,cbs
 	      enddo
 		  
               c=0
-              if (AreCorrFuncNeeded) then
+              if (AreCorrFuncNeeded.or.AreMCorrFuncNeeded) then
                 do a=1,NumCFGridPoints
                   do b=1,n*(n+1)/2
                     c=c+1 		      
@@ -8945,7 +8995,7 @@ do i=1,cbs
                   enddo
                 enddo
               endif
-              if (ArePartDensNeeded) then
+              if (ArePartDensNeeded.or.AreMPartDensNeeded) then
                 do a=1,NumDensGridPoints
                   do b=1,n+1
                     c=c+1 
@@ -8966,7 +9016,7 @@ do i=1,cbs
 		     Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl,Skl,Tkl,Vkl,rm2kl,rmkl,rkl,r2kl,  &
 		     deltarkl,drach_deltarkl,MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl,rmrmkl,       &
                      del2kl,prvalkl,wf2originkl,NumCFGridPoints,CFGrid,CFkl,NumDensGridPoints,DensGrid, &
-                     Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
+                     Denskl,AreCorrFuncNeeded,ArePartDensNeeded,AreMCorrFuncNeeded,AreMPartDensNeeded)
 		c=0
                 do a=1,n
 		  do b=a,n
@@ -9037,7 +9087,7 @@ do i=1,cbs
 		enddo
 		    
                 c=0
-                if (AreCorrFuncNeeded) then
+                if (AreCorrFuncNeeded.or.AreMCorrFuncNeeded) then
                   do a=1,NumCFGridPoints
                     do b=1,n*(n+1)/2
                       c=c+1 
@@ -9045,7 +9095,7 @@ do i=1,cbs
                     enddo
                   enddo
                 endif
-                if (ArePartDensNeeded) then
+                if (ArePartDensNeeded.or.AreMPartDensNeeded) then
                   do a=1,NumDensGridPoints
                     do b=1,n+1
                       c=c+1 
@@ -9069,11 +9119,11 @@ do a=1,NumOfExpcVals
   MEkl_s(a)=temp2
 enddo
 k=0
-if (AreCorrFuncNeeded) then
+if (AreCorrFuncNeeded.or.AreMCorrFuncNeeded) then
   k=NumCFGridPoints*n*(n+1)/2
   call MPI_ALLREDUCE(CFDMEkl_s,CF,k,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
 endif
-if (ArePartDensNeeded) then
+if (ArePartDensNeeded.or.AreMPartDensNeeded) then
   kk=NumDensGridPoints*(n+1)
   call MPI_ALLREDUCE(CFDMEkl_s(k+1:k+kk),Dens,kk,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)  
 endif
@@ -9169,12 +9219,13 @@ do a=1,n
   enddo
 enddo
 
+!Opening an additional file where selected expectation values will be saved
+if (Glob_ProcID==0) then
+open(2,file=Glob_ExpValFileName,status='replace')
+endif
+
 !Printing results
 if (Glob_ProcID==0) then
-  
-  !Opening an additional file where selected expectation values will be saved
-  open(2,file=Glob_ExpValFileName,status='replace')
-
   write(*,*) 'done'
   write(*,*) 
   write(*,*) 'Expectation values:'
@@ -9515,11 +9566,13 @@ if (Glob_ProcID==0) then
     enddo
     write(*,*)	    
   endif
-
+  
+  if (Glob_ProcID==0) then
   close(2)
-
+  endif
+  
   !Saving correlation functions
-  if (AreCorrFuncNeeded) then
+  if (AreCorrFuncNeeded.or.AreMCorrFuncNeeded) then
     open(1,file=FileName2,status='replace')
     !first we print titles of all data columns
     write(1,'(10x,a2,1x)',advance='no') '#r'
@@ -9560,8 +9613,8 @@ if (Glob_ProcID==0) then
     write(*,*)
   endif
   
-  !Saving particle densisities
-  if (ArePartDensNeeded) then
+  !Saving particle densities
+  if (ArePartDensNeeded.or.AreMPartDensNeeded) then
     open(1,file=FileName4,status='replace')
     !first we print titles of all data columns
     write(1,'(10x,a2,2x)',advance='no') '#r'
@@ -9647,16 +9700,16 @@ if (GSEPSolMethod=='G') deallocate(Glob_diagH)
 deallocate(Glob_S)
 deallocate(Glob_H)
 
-if((AreCorrFuncNeeded).or.(ArePartDensNeeded)) then
+if((AreCorrFuncNeeded.or.AreMCorrFuncNeeded).or.(ArePartDensNeeded.or.AreMPartDensNeeded)) then
   deallocate(CFDMEkl_s)
 endif
 
 deallocate(DensGrid) 
 deallocate(Denskl)  
-if (ArePartDensNeeded) deallocate(Dens)  
+if (ArePartDensNeeded.or.AreMPartDensNeeded) deallocate(Dens)  
 deallocate(CFGrid)
 deallocate(CFkl) 
-if (AreCorrFuncNeeded) deallocate(CF)
+if (AreCorrFuncNeeded.or.AreMCorrFuncNeeded) deallocate(CF)
  
 if (Glob_ProcID==0) write (*,*) 'Routine ExpectationValues has finished'
 
