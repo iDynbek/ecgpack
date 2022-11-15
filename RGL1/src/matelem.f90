@@ -759,8 +759,8 @@ end subroutine MatrixElementsL1
 subroutine MatrixElementsL1ForExpcVals(m_k, m_l, vechLk, vechLl, Pbra, Pket, &
            Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
            MVkl, drach_MVkl, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, prvalkl, &
-           NumCFGridPoints, CFGrid, &
-           CFkl, NumDensGridPoints, DensGrid, Denskl, AreCorrFuncNeeded, ArePartDensNeeded)
+           NumCFGridPoints, CFGrid, CFkl, NumDensGridPoints, DensGrid, Denskl, &
+           AreCorrFuncNeeded, ArePartDensNeeded, AreMCorrFuncNeeded, AreMPartDensNeeded)
 !This subroutine computes symmetry adapted matrix elements 
 !with two real L=1 correlated Gaussians. These matrix elements
 !are used in calculations of expectation values.
@@ -790,18 +790,22 @@ subroutine MatrixElementsL1ForExpcVals(m_k, m_l, vechLk, vechLl, Pbra, Pket, &
 !   OOkl    :: Orbit-Orbit correction (without the factor of alpha**2)
 ! rmrmkl    :: 1/(r_{ij}*r_{pq})      
 ! prvalkl   :: P(1/r^3_ij) - principal values of matric element 1/r^3_ij  (appears in the Araki-Sucker term for QED correction)           
-!NumCFGridPoints   :: Number of grid points for correlation function calculations
-!CFGrid            :: Array containing grid points where matrix elements of 
-!                     correlation functions should be computed   
-!CFkl              :: Matrix elements of correlation functions
-!NumDensGridPoints :: Number of grid points for particle density calculations
-!DensGrid          :: Array containing grid points where matrix elements of 
-!                     particle densities should be computed
-!Denskl            :: Matrix elements of particle densities
-!AreCorrFuncNeeded :: flag indicating whether matrix elements of correlation 
-!                     functions need be computed
-!ArePartDensNeeded :: flag indicating whether matrix elements of particle
-!                     densities need be computed
+!NumCFGridPoints    :: Number of grid points for correlation function calculations
+!CFGrid             :: Array containing grid points where matrix elements of 
+!                      correlation functions should be computed   
+!CFkl               :: Matrix elements of correlation functions
+!NumDensGridPoints  :: Number of grid points for particle density calculations
+!DensGrid           :: Array containing grid points where matrix elements of 
+!                      particle densities should be computed
+!Denskl             :: Matrix elements of particle densities
+!AreCorrFuncNeeded  :: flag indicating whether matrix elements of correlation 
+!                      functions need be computed
+!ArePartDensNeeded  :: flag indicating whether matrix elements of particle
+!                      densities need be computed
+!AreMCorrFuncNeeded :: flag indicating whether matrix elements of momentum correlation 
+!                      functions need be computed
+!AreMPartDensNeeded :: flag indicating whether matrix elements of particle
+!                      momentum densities need be computed
            
 !Arguments
 integer,intent(in)       :: m_k,m_l
@@ -818,7 +822,7 @@ integer,intent(in)       :: NumCFGridPoints,NumDensGridPoints
 real(dprec),intent(in)   :: CFGrid(2,NumCFGridPoints),DensGrid(2,NumDensGridPoints)
 real(dprec),intent(out)  :: CFkl(Glob_n*(Glob_n+1)/2,NumCFGridPoints)
 real(dprec),intent(out)  :: Denskl(Glob_n+1,NumDensGridPoints)
-logical,intent(in)       :: AreCorrFuncNeeded,ArePartDensNeeded
+logical,intent(in)       :: AreCorrFuncNeeded,ArePartDensNeeded,AreMCorrFuncNeeded,AreMPartDensNeeded
 
 !Parameters (These are needed to declare static arrays. Using static 
 !arrays makes the function call a little faster in comparison with 
@@ -830,16 +834,19 @@ integer,parameter :: nnp=nn*(nn+1)/2
 integer           n,np
 integer           tvk(nn),tvl(nn)
 real(dprec)       Lk(nn,nn),Ll(nn,nn),inv_Lk(nn,nn),inv_Ll(nn,nn)
-real(dprec)       tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn)
+real(dprec)       inv_tAk(nn,nn),inv_tAl(nn,nn),tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn)
 real(dprec)       inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn), inv_tAkltAl(nn,nn)
-real(dprec)       eta2(nn,nn),inv_tAkltAlM(nn,nn)
+real(dprec)       inv_invtAkinvtAl(nn,nn),tvkinv_tAk(nn),inv_tAltvl(nn)
+real(dprec)       eta2(nn,nn),meta2(nn,nn),inv_tAkltAlM(nn,nn)
 real(dprec)       W1(nn,nn),W2(nn,nn),W3(nn,nn),W4(nn,nn),W5(nn,nn),W6(nn,nn),W7(nn,nn)
-real(dprec)       inv_tAkltvl(nn),tvkinv_tAkl(nn),tvkinv_tAkltAlM(nn),u1(nn)  
+real(dprec)       inv_tAkltvl(nn),tvkinv_tAkl(nn),tvkinv_tAkltAlM(nn),u1(nn)
+real(dprec)       tvkinv_tAkinv_invtAkinvtAl(nn),inv_invtAkinvtAlinv_tAltvl(nn)
 real(dprec)       temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8,temp9
 real(dprec)       temp10,temp11,temp12,temp13,temp14,threshold,tr1, tr2, tr3, tr4
-real(dprec)       det_Lk, det_Ll, det_tAkl,tau1,tau2,tau3,inv_tau3 ,V2kl
+real(dprec)       det_Lk, det_Ll, det_tAkl, det_tAk, det_tAl, det_invtAkinvtAl
+real(dprec)       tau1,tau2,tau3,inv_tau3 ,V2kl, tau4
 integer           i,j,k,t,indx,p,q
-real(dprec)       TrAJ(nn,nn),sqrtTrAJ(nn,nn),TrAJAJ(nn,nn,nn,nn)
+real(dprec)       TrAJ(nn,nn),sqrtTrAJ(nn,nn),TrAJAJ(nn,nn,nn,nn),MTrAJ(nn,nn),sqrtMTrAJ(nn,nn)
 real(dprec)       jAj(nn,nn,nn,nn),jAtvl(nn,nn),tvkAj(nn,nn),Mass_For_Darwin(0:nn)
 
 n=Glob_n
@@ -964,6 +971,106 @@ do i=1,n
    enddo
 enddo  
 
+!Do Cholesky factorization of tAk and tAk and then invert
+if (AreMCorrFuncNeeded.or.AreMPartDensNeeded) then
+  det_tAk=ONE
+  det_tAl=ONE
+  do i=1,n
+    do j=i,n
+      temp1=tAk(i,j)
+      temp2=tAl(i,j)
+      do k=i-1,1,-1
+        temp1=temp1-W1(i,k)*W1(j,k)
+        temp2=temp2-W2(i,k)*W2(j,k)
+      enddo
+      if (i==j) then
+        W1(i,i)=sqrt(temp1)
+        det_tAk=det_tAk*temp1
+        W2(i,i)=sqrt(temp2)
+        det_tAl=det_tAl*temp2
+      else
+        W1(j,i)=temp1/W1(i,i)
+        W1(i,j)=ZERO
+        W2(j,i)=temp2/W2(i,i)
+        W2(i,j)=ZERO
+      endif
+    enddo
+  enddo
+  
+  !Inverting tAk and tAl using its Cholesky factors (stored in W1, W2)
+  !and placing the result into inv_tAk, inv_tAl
+  do i=1,n
+    W1(i,i)=ONE/W1(i,i)
+    W2(i,i)=ONE/W2(i,i)
+    do j=i+1,n
+      temp1=ZERO
+      temp2=ZERO
+      do k=i,j-1
+        temp1=temp1-W1(j,k)*W1(k,i)
+        temp2=temp2-W2(j,k)*W2(k,i)
+      enddo
+      W1(j,i)=temp1/W1(j,j)
+      W2(j,i)=temp2/W2(j,j)
+    enddo
+  enddo 
+  
+  do i=1,n
+    do j=i,n
+       temp1=ZERO
+       temp2=ZERO
+       do k=j,n
+         temp1=temp1+W1(k,i)*W1(k,j)
+         temp2=temp2+W2(k,i)*W2(k,j)
+       enddo
+       inv_tAk(i,j)=temp1
+       inv_tAl(i,j)=temp2
+     inv_tAk(j,i)=temp1
+     inv_tAl(j,i)=temp2
+     enddo
+  enddo  
+  
+  !Now calculate inv_invtAkinvtAl
+  det_invtAkinvtAl=ONE
+  do i=1,n
+    do j=i,n
+      temp1=inv_tAk(i,j)+inv_tAl(i,j)
+      do k=i-1,1,-1
+        temp1=temp1-W1(i,k)*W1(j,k)
+      enddo
+      if (i==j) then
+        W1(i,i)=sqrt(temp1)
+        det_invtAkinvtAl=det_invtAkinvtAl*temp1
+      else
+        W1(j,i)=temp1/W1(i,i)
+        W1(i,j)=ZERO
+      endif
+    enddo
+  enddo
+  
+  !Inverting invtAk+invtAl
+  do i=1,n
+    W1(i,i)=ONE/W1(i,i)
+    do j=i+1,n
+      temp1=ZERO
+      do k=i,j-1
+        temp1=temp1-W1(j,k)*W1(k,i)
+      enddo
+      W1(j,i)=temp1/W1(j,j)
+    enddo
+  enddo 
+  
+  do i=1,n
+    do j=i,n
+       temp1=ZERO
+       do k=j,n
+         temp1=temp1+W1(k,i)*W1(k,j)
+       enddo
+       inv_invtAkinvtAl(i,j)=temp1
+     inv_invtAkinvtAl(j,i)=temp1
+     enddo
+  enddo  
+endif
+
 !I delete non-necessary parts of the code
 !Finding the inverse of Akk and All using their Cholesky factors
 !The result is placed in inv_Akk and inv_All
@@ -1006,8 +1113,6 @@ enddo
 
 
 !Compute inv_tAkltvl = inv_tAkl * tvl
-
-
 do i=1,n
   temp1=ZERO
   do j=1,n
@@ -1032,14 +1137,65 @@ do i=1,n
   tau3=tau3+tvkinv_tAkl(i)*tvl(i)
 enddo
 
+if (AreMCorrFuncNeeded.or.AreMPartDensNeeded)  then
+  !Compute tvkinv_tAk
+  do i=1,n
+    temp1=ZERO
+    do j=1,n
+      temp1=temp1+tvk(j)*inv_tAk(j,i)
+    enddo
+    tvkinv_tAk(i)=temp1
+  enddo
+  
+  !Compute inv_tAltvl
+  do i=1,n
+    temp1=ZERO
+    do j=1,n
+      temp1=temp1+inv_tAl(j,i)*tvl(j)
+    enddo
+    inv_tAltvl(i)=temp1
+  enddo
+  
+  !Compute inv_invtAkinvtAlinv_tAltvl
+  do i=1,n
+    temp1=ZERO
+    do j=1,n
+      temp1=temp1+inv_invtAkinvtAl(j,i)*inv_tAltvl(j)
+    enddo
+    inv_invtAkinvtAlinv_tAltvl(i)=temp1
+  enddo
+
+  !Compute tvkinv_tAkinv_invtAkinvtAl
+  do i=1,n
+    temp1=ZERO
+    do j=1,n
+      temp1=temp1+inv_invtAkinvtAl(j,i)*tvkinv_tAk(j)
+    enddo
+    tvkinv_tAkinv_invtAkinvtAl(i)=temp1
+  enddo
+
+  !Compute tau4 = tvkinv_tAk*inv_invtAkinvtAl*inv_tAltvl
+  tau4=ZERO
+  do i=1,n
+    do j=1,n
+      tau4=tau4+tvkinv_tAk(i)*inv_invtAkinvtAl(i,j)*inv_tAltvl(j)
+    enddo
+  enddo    
+end if
+
 !Evaluating overlap
 !temp1=abs(det_Ll*det_Lk)/det_tAkl
 !Skl=Glob_2raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
-temp1=det_tAkl*sqrt(det_tAkl)
-Skl=Glob_Piraised3n2*tau3/(TWO*temp1)
+if(AreCorrFuncNeeded.or.ArePartDensNeeded) then
+  temp1=det_tAkl*sqrt(det_tAkl)
+  Skl=Glob_Piraised3n2*tau3/(TWO*temp1)
+endif 
 
-
-
+if(AreMCorrFuncNeeded.or.AreMPartDensNeeded) then
+  temp1=det_tAk*det_tAl*det_invtAkinvtAl
+  temp2=temp1*sqrt(temp1)
+  Skl=Glob_Piraised3n2*tau4/(TWO*temp2)
+endif 
 
 !Doing multiplication inv_tAkltAl=inv_tAkl*tAl, inv_tAkltAk=inv_tAkl*tAk
 do i=1,n
@@ -1188,6 +1344,35 @@ do i=1,n
     prvalkl(i,j)=prvalkl(j,i)
   enddo  
 enddo
+
+if (AreMCorrFuncNeeded) then
+  do i=1,n
+    MTrAJ(i,i)=inv_invtAkinvtAl(i,i)
+    sqrtMTrAJ(i,i)=sqrt(MTrAJ(i,i))
+    do q=1,n
+      temp4=ZERO
+      do k=1,n
+        temp4=temp4+tvkinv_tAk(k)*inv_invtAkinvtAl(k,i)*inv_invtAkinvtAl(q,i)
+      enddo
+      u1(q)=temp4
+    enddo
+    !eta2=u1'*tvl
+    temp4=ZERO
+    do k=1,n
+      temp4=temp4+u1(k)*inv_tAltvl(k)
+    enddo
+    meta2(i,i)=temp4
+  enddo
+  do i=1,n
+    do j=i+1,n
+      MTrAJ(i,j)=inv_invtAkinvtAl(i,i)+inv_invtAkinvtAl(j,j)-inv_invtAkinvtAl(j,i)-inv_invtAkinvtAl(j,i)
+      MTrAJ(j,i)=MTrAJ(i,j)
+      sqrtMTrAJ(j,i)=sqrt(MTrAJ(j,i))
+      sqrtMTrAJ(i,j)=sqrtMTrAJ(j,i) 
+    enddo
+  enddo
+end if
+
 Hkl=Tkl+Vkl
 
 !Evaluating tr[inv_tAkl Jij inv_tAkl Jpq] and
@@ -1739,6 +1924,55 @@ if (ArePartDensNeeded) then
       temp10=temp9+DensGrid(1,k)*DensGrid(1,k)   !this is -\xi^2
       temp11=ONE+(temp7*temp9-ONE)*temp5
       Denskl(i,k)=temp8*temp11*exp(temp10*temp6)
+    enddo
+  enddo
+endif
+
+if (AreMCorrFuncNeeded) then
+  temp1=Skl/(PI*SQRTPI)
+  p=0
+  do i=1,n
+    do j=i,n
+      p=p+1
+      temp2=temp1/(sqrtMTrAJ(j,i)*MTrAJ(j,i))/8
+      temp3=-1/MTrAJ(j,i)/4
+      temp4=1/MTrAJ(j,i)/2
+      temp5=meta2(j,i)/(MTrAJ(j,i)*tau4)
+      do k=1,NumCFGridPoints
+        temp6=CFGrid(2,k)*CFGrid(2,k)         !this is \xi_z^2
+        temp7=temp6+CFGrid(1,k)*CFGrid(1,k)   !this is  \xi^2
+        temp8=ONE+(temp4*temp6-ONE)*temp5
+        CFkl(p,k)=temp2*temp8*exp(temp7*temp3)
+      enddo
+    enddo
+  enddo
+endif
+
+if (AreMPartDensNeeded) then
+  temp1=Skl/(PI*SQRTPI)
+  do i=1,n+1
+    temp2=ZERO
+    do p=1,n
+      temp2=temp2+Glob_bvc(p,i)*Glob_bvc(p,i)*inv_invtAkinvtAl(p,p)
+      do q=p+1,n
+        temp2=temp2+2*Glob_bvc(q,i)*Glob_bvc(p,i)*inv_invtAkinvtAl(q,p)
+      enddo
+    enddo
+    temp3=ZERO
+    temp4=ZERO
+    do p=1,n
+      temp3=temp3+tvkinv_tAkinv_invtAkinvtAl(p)*Glob_bvc(p,i)
+      temp4=temp4+Glob_bvc(p,i)*inv_invtAkinvtAlinv_tAltvl(p)
+    enddo
+    temp5=temp3*temp4/(temp2*tau4)
+    temp6=-1/temp2
+    temp7=2/temp2
+    temp8=temp1/(sqrt(temp2)*temp2)
+    do k=1,NumDensGridPoints
+      temp9=DensGrid(2,k)*DensGrid(2,k)          !this is  \xi_z^2
+      temp10=temp9+DensGrid(1,k)*DensGrid(1,k)   !this is -\xi^2
+      temp11=ONE+(temp7*temp9/4-ONE)*temp5
+      Denskl(i,k)=temp8*temp11*exp(temp10*temp6/4)/8
     enddo
   enddo
 endif
