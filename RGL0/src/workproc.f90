@@ -8551,9 +8551,7 @@ if(Action=='DENSITIES') then
     ArePartDensNeeded=.true.  
     AreMPartDensNeeded=.false.
   endif 
-endif
-
-if(Action=='MOMT_DENS') then
+else if(Action=='MOMT_DENS') then
   if ((FileName1==' ').or.(FileName1=='none').or. &
     (FileName1=='NONE').or.(FileName1=='None')) then
     AreMCorrFuncNeeded=.false.
@@ -8568,6 +8566,11 @@ if(Action=='MOMT_DENS') then
     AreMPartDensNeeded=.true.
     ArePartDensNeeded=.false.  
   endif 
+else 
+  AreCorrFuncNeeded=.false.
+  AreMCorrFuncNeeded=.false.
+  AreMPartDensNeeded=.false.
+  ArePartDensNeeded=.false.  
 endif
 !If corellation functions and/or particle densities are needed
 !then we open files FileName1 and FileName3 that contain grids for

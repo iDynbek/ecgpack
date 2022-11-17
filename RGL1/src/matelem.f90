@@ -844,7 +844,7 @@ real(dprec)       tvkinv_tAkinv_invtAkinvtAl(nn),inv_invtAkinvtAlinv_tAltvl(nn)
 real(dprec)       temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8,temp9
 real(dprec)       temp10,temp11,temp12,temp13,temp14,threshold,tr1, tr2, tr3, tr4
 real(dprec)       det_Lk, det_Ll, det_tAkl, det_tAk, det_tAl, det_invtAkinvtAl
-real(dprec)       tau1,tau2,tau3,inv_tau3 ,V2kl, tau4
+real(dprec)       tau1,tau2,tau3,inv_tau3 ,V2kl, tau4, MSkl
 integer           i,j,k,t,indx,p,q
 real(dprec)       TrAJ(nn,nn),sqrtTrAJ(nn,nn),TrAJAJ(nn,nn,nn,nn),MTrAJ(nn,nn),sqrtMTrAJ(nn,nn)
 real(dprec)       jAj(nn,nn,nn,nn),jAtvl(nn,nn),tvkAj(nn,nn),Mass_For_Darwin(0:nn)
@@ -1186,15 +1186,14 @@ end if
 !Evaluating overlap
 !temp1=abs(det_Ll*det_Lk)/det_tAkl
 !Skl=Glob_2raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
-if(AreCorrFuncNeeded.or.ArePartDensNeeded) then
-  temp1=det_tAkl*sqrt(det_tAkl)
-  Skl=Glob_Piraised3n2*tau3/(TWO*temp1)
-endif 
+temp1=det_tAkl*sqrt(det_tAkl)
+Skl=Glob_Piraised3n2*tau3/(TWO*temp1)
+
 
 if(AreMCorrFuncNeeded.or.AreMPartDensNeeded) then
   temp1=det_tAk*det_tAl*det_invtAkinvtAl
   temp2=temp1*sqrt(temp1)
-  Skl=Glob_Piraised3n2*tau4/(TWO*temp2)
+  MSkl=Glob_Piraised3n2*tau4/(TWO*temp2)
 endif 
 
 !Doing multiplication inv_tAkltAl=inv_tAkl*tAl, inv_tAkltAk=inv_tAkl*tAk
@@ -1929,7 +1928,7 @@ if (ArePartDensNeeded) then
 endif
 
 if (AreMCorrFuncNeeded) then
-  temp1=Skl/(PI*SQRTPI)
+  temp1=MSkl/(PI*SQRTPI)
   p=0
   do i=1,n
     do j=i,n
@@ -1949,7 +1948,7 @@ if (AreMCorrFuncNeeded) then
 endif
 
 if (AreMPartDensNeeded) then
-  temp1=Skl/(PI*SQRTPI)
+  temp1=MSkl/(PI*SQRTPI)
   do i=1,n+1
     temp2=ZERO
     do p=1,n

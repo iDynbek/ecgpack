@@ -698,7 +698,7 @@ real(dprec)       det_Lk, det_Ll, det_tAkl, det_tAk, det_tAl, det_invtAkinvtAl
 integer           i,j,k,kk,kkk,indx,p,q
 real(dprec)       TrAJ(nn,nn),sqrtTrAJ(nn,nn),TrAJAJ(nn,nn,nn,nn),MTrAJ(nn,nn),sqrtMTrAJ(nn,nn)
 real(dprec)       Mass_For_Darwin(0:nn)
-real(dprec)       V2kl
+real(dprec)       V2kl, MSkl
 
 n=Glob_n
 np=Glob_np
@@ -928,13 +928,11 @@ endif
 !Skl=Glob_2raised3n2*temp1*sqrt(temp1)
 !wf2originkl=Glob_2raised3n2*(temp2*sqrt(temp2))/(PI**(THREE*n/TWO))
 wf2originkl=ONE
-if (AreCorrFuncNeeded.or.ArePartDensNeeded) then
-  Skl=Glob_Piraised3n2/(det_tAkl*sqrt(det_tAkl))  !new line  
-end if
+Skl=Glob_Piraised3n2/(det_tAkl*sqrt(det_tAkl))  !new line  
 
 if(AreMCorrFuncNeeded.or.AreMPartDensNeeded) then
   temp1=1/det_tAk/det_tAl/det_invtAkinvtAl
-  Skl=Glob_Piraised3n2*temp1*sqrt(temp1)
+  MSkl=Glob_Piraised3n2*temp1*sqrt(temp1)
 endif
 
 !Doing multiplication W2=inv_tAkl*tAl
@@ -1571,7 +1569,7 @@ if (ArePartDensNeeded) then
 endif
 
 if (AreMCorrFuncNeeded) then
-  temp1=Skl/(PI*SQRTPI)
+  temp1=MSkl/(PI*SQRTPI)
   p=0
   do i=1,n
     do j=i,n
@@ -1587,7 +1585,7 @@ if (AreMCorrFuncNeeded) then
 end if
 
 if (AreMPartDensNeeded) then
-  temp1=Skl/(PI*SQRTPI)
+  temp1=MSkl/(PI*SQRTPI)
   do i=1,n+1
     temp3=ZERO
     do p=1,n
