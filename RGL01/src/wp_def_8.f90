@@ -2,7 +2,8 @@ module wp_def
 !This module contains basic constants and basic input/output subroutines
 !which depend on the choice of precision, compiler, and MPI implementation
 
-include 'mpif.h'
+!include 'mpif.h'
+use mpi  
 
 !Define kind parameter for real type 
 integer,parameter     :: dprec=8
@@ -14,7 +15,7 @@ integer,parameter    :: MPI_DPREC=MPI_DOUBLE_PRECISION
 !This is the maximal allowed number of particles in the system. If needed,
 !this number can be increased. However it is not recommended to use a number 
 !that is larger than necessary as it may affect the performance of the program.
-integer,parameter :: Glob_MaxAllowedNumOfParticles=6
+integer,parameter :: Glob_MaxAllowedNumOfParticles=5
 
 contains
 

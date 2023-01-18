@@ -2,7 +2,8 @@ module wp_def
 !This module contains basic constants and basic input/output subroutines
 !which depend on the choice of precision, compiler, and MPI implementation
 
-include 'mpif.h'
+!include 'mpif.h'
+use mpi  
 
 !Define kind parameter for real type 
 integer,parameter     :: dprec=10
