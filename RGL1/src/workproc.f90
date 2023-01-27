@@ -70,6 +70,7 @@ call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 Glob_np=Glob_n*(Glob_n+1)/2
 Glob_npt=Glob_np
 Glob_2raised3n2=TWO**((3*Glob_n)/TWO)
+Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 
 allocate(Glob_Mass(Glob_n+1))
 if (Glob_ProcID==0) then

@@ -66,7 +66,6 @@ integer           i, j, k, kk, kkk, q, t, indx
 
 n=Glob_n
 np=Glob_np
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
 indx=0
 do i=1,n
@@ -702,7 +701,6 @@ real(dprec)       V2kl, MSkl
 
 n=Glob_n
 np=Glob_np
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
 indx=0
 do i=1,n

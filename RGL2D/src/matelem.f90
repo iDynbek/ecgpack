@@ -83,11 +83,8 @@ real(dprec)       m1,m2,m3,tau331,tau332,tau333,tau334,tau221,tau222,tau223,tau2
 real(dprec)       temp441,temp442,temp443,temp4440,temp4441,temp4442,term1,term2,h,temp_n,temp4_new
 integer           i,j,k,q,t,indx
 
-
-
 n=Glob_n
 np=Glob_np
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
 indx=0
 do i=1,n
@@ -142,7 +139,6 @@ do i=1,n
 	tAkl(j,i)=tAkl(i,j)
   enddo
 enddo
-
 
 !After this we can do Cholesky factorization of tAkl.
 !The Cholesky factor will be temporarily stored in the 
@@ -881,9 +877,9 @@ real(dprec)   temp441,temp442,temp443,temp4440,temp4441,temp4442,h,term1,term2
 real(dprec)   inv_tAkltAk(nn,nn),inv_tAkltAkM(nn,nn)
 real(dprec)   inv_tAkltbk(nn),tvlinv_tAkl(nn),tvlinv_tAkltAkM(nn),tvlinv_tAkltAlM(nn)
 real(dprec)   tbltbk(nn,nn),tvltvk(nn,nn),tbltvk(nn,nn),tvltbk(nn,nn),tvktbk(nn,nn),tvltbl(nn,nn)
+
 n=Glob_n
 np=Glob_np
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
 indx=0
 do i=1,n
@@ -1430,9 +1426,7 @@ enddo
 !Evaluation of the Darwin correction 
 Mass_For_Darwin(0)=Glob_Mass(1)
 Mass_For_Darwin(1:n)=Glob_Mass(2:n+1)
-!Mass_For_Darwin(0)=10.0D20
-!Mass_For_Darwin(1)=10.0D20
-!Mass_For_Darwin(2)=10.0D20
+
 Darwinkl=ZERO
 do i=1,n
   Darwinkl=Darwinkl+(   &
@@ -1919,10 +1913,9 @@ real(dprec)   AX(nn,nn),AY(nn,nn)
 real(dprec)   Aj(nn),AjX(nn),AjY(nn),AXAj(nn),AYAj(nn)
 real(dprec)   t_J,t_X,t_Y
 real(dprec)   t_XJ,t_YJ,t_XY
-real(dprec)   t_XYJ,t_YXJ,Glob_Piraised3n2,det_tAkl
+real(dprec)   t_XYJ,t_YXJ,det_tAkl
 
 n=Glob_n
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 !Form Aj=inv_tAkl*ji        j/=i 
 !     Aj=inv_tAkl*(ji-jj)   j/=i 
 !Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
@@ -2048,10 +2041,9 @@ real(dprec)   t_XJ,t_YJ,t_ZJ
 real(dprec)   t_XY,t_ZY,t_ZX,t_YX,t_ZYX,t_YZX
 real(dprec)   t_XYJ,t_YXJ,t_ZYJ,t_YZJ,t_XZJ,t_ZXJ
 real(dprec)   t_ZYXJ,t_YZXJ,t_YXZJ,t_XYZJ,t_ZXYJ,t_XZYJ
-real(dprec)   Glob_Piraised3n2,det_tAkl,term1,term2,term3,term4,term5,term6,term7,term8
+real(dprec)   det_tAkl,term1,term2,term3,term4,term5,term6,term7,term8
 
 n=Glob_n
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 !Form Aj=inv_tAkl*ji        j/=i 
 !     Aj=inv_tAkl*(ji-jj)   j/=i 
 !Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
@@ -2276,7 +2268,6 @@ real(dprec)    temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8
 real(dprec)    temp11,temp22,temp33,mu,mX,mXJ,u,Xmu,muXJ
 
 n=Glob_n
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 
 !Compute inv_tAkltvl = inv_tAkl * tvl
 do p=1,n
@@ -2459,7 +2450,6 @@ real(dprec)   Aj(nn),AjX(nn),t_JV1,t_JV2,t_JV5,t_JV6,t_J,Ajtvl,Ajtbl
 real(dprec)    temp1,temp2,temp3,temp11,temp22,temp33,mu,u
 
 n=Glob_n
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 
 !Compute inv_tAkltvl = inv_tAkl * tvl
 do p=1,n
@@ -2673,7 +2663,6 @@ real(dprec)    term1,term2,term3,term4,term5,term6,term7,term8,term9,term10,term
 
 
 n=Glob_n
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 
 !Compute inv_tAkltvl = inv_tAkl * tvl
 do p=1,n
@@ -3052,7 +3041,6 @@ real(dprec)   inv_tAklP(nn,nn),inv_tAklQ(nn,nn),inv_tAklQP(nn,nn)
 real(dprec)   tvkinv_tAklP(nn),tbkinv_tAklP(nn),tvkinv_tAklQ(nn),tbkinv_tAklQ(nn)
 real(dprec)   Pgamma,Qgamma,PQgamma,QPgamma
 n=Glob_n
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 
 !Doing multiplication inv_tAkltAlM=inv_tAkltAl*M
 do i=1,n
@@ -3206,7 +3194,6 @@ real(dprec)   term3_1,term3_2,term4_1,term4_2,term8_1,term8_2,term9_1,term9_2,te
 real(dprec)   term12_1,term12_2,term17_1,term17_2,term13_1,term14_2,term18_2,term19_1,temp5,temp6
 
 n=Glob_n
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 prod=Glob_Piraised3n2/(FOUR*det_tAkl**(THREEHALF))
 gamma=tau3*tau33+tau333*tau334
 
@@ -3509,7 +3496,6 @@ real(dprec)   Aj(nn),AjX(nn),t_JV1,t_JV2,t_JV5,t_JV6,t_J,Ajtvl,Ajtbl
 real(dprec)    temp1,temp2,temp3,temp11,temp22,temp33,mu,u
 
 n=Glob_n
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 
 !Compute inv_tAkltvl = inv_tAkl * tvl
 do p=1,n
@@ -3634,7 +3620,6 @@ real(dprec)   Aj(nn),AjX(nn),t_JV1,t_JV2,t_JV5,t_JV6,t_J,Ajtvl,Ajtbl
 real(dprec)    temp1,temp2,temp3,temp11,temp22,temp33,mu,u
 
 n=Glob_n
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 
 !Compute inv_tAkltvl = inv_tAkl * tvl
 do p=1,n
@@ -3759,7 +3744,6 @@ real(dprec)   Aj(nn),AjX(nn),t_JV1,t_JV2,t_JV5,t_JV6,t_J,Ajtvl,Ajtbl
 real(dprec)    temp1,temp2,temp3,temp11,temp22,temp33,mu,u
 
 n=Glob_n
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 
 !Compute inv_tAkltvl = inv_tAkl * tvl
 do p=1,n
@@ -3883,7 +3867,6 @@ real(dprec)   Aj(nn),AjX(nn),t_JV1,t_JV2,t_JV5,t_JV6,t_J,Ajtvl,Ajtbl
 real(dprec)    temp1,temp2,temp3,temp11,temp22,temp33,mu,u
 
 n=Glob_n
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 
 !Compute inv_tAkltvl = inv_tAkl * tvl
 do p=1,n
@@ -4095,10 +4078,9 @@ end function ftransaux
 !integer       p,q,n
 !real(dprec)   temp1,temp2,temp3
 !real(dprec)   Aj(nn),AjX(nn)
-!real(dprec)   t_J,t_X,t_XJ,Glob_Piraised3n2
+!real(dprec)   t_J,t_X,t_XJ
 !
 !n=Glob_n
-!Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 !!Form Aj=inv_tAkl*ji        j/=i 
 !!     Aj=inv_tAkl*(ji-jj)   j/=i 
 !!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'

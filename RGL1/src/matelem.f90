@@ -75,7 +75,6 @@ integer           i,j,k,q,t,indx
 
 n=Glob_n
 np=Glob_np
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
 indx=0
 do i=1,n
@@ -851,7 +850,6 @@ real(dprec)       jAj(nn,nn,nn,nn),jAtvl(nn,nn),tvkAj(nn,nn),Mass_For_Darwin(0:n
 
 n=Glob_n
 np=Glob_np
-Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
 indx=0
 do i=1,n
@@ -1616,9 +1614,7 @@ enddo
 !Evaluation of the Darwin correction 
 Mass_For_Darwin(0)=Glob_Mass(1)
 Mass_For_Darwin(1:n)=Glob_Mass(2:n+1)
-!Mass_For_Darwin(0)=10.0D20
-!Mass_For_Darwin(1)=10.0D20
-!Mass_For_Darwin(2)=10.0D20
+
 Darwinkl=ZERO
 do i=1,n
   Darwinkl=Darwinkl+(   &
