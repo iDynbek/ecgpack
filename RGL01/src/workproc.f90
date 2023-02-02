@@ -1260,6 +1260,8 @@ deallocate(IdentParticleSet)
   
 end subroutine ProgramDataInit
 
+
+
 subroutine ComputeTranDipoL0L1()
 
 !Subroutine ComputeTranDipoL0L1 computes expectation value of < L=0 | D{z} | L=1 >
@@ -1292,9 +1294,12 @@ subroutine ComputeTranDipoL0L1()
 
 
 integer       ::  n,np
-real(dprec)   ::  ExpVal, ExpValLoc
+real(dprec)   ::  ExpVal1, ExpVal2, ExpValLoc1, ExpValLoc2
 real(dprec)   ::  temp0
-real(dprec)   ::  Skk, Sll, TDklelement, TDkl_Loc, TDkl 
+real(dprec)   ::  Skk, Sll
+real(dprec)   ::  TranDipolLength_kl_element, TranDipolLength_kl_Loc, TranDipolLength_kl 
+real(dprec)   ::  TranDipolVelocity_kl_element, TranDipolVelocity_kl_Loc, TranDipolVelocity_kl 
+
 integer       ::  k,l,i,j,indx
 
 real(dprec),allocatable,dimension(:)     ::  diagS0, diagS1, temp1 
@@ -1340,30 +1345,60 @@ deallocate(temp1)
 
 
 
-indx=ZERO
-ExpValLoc=ZERO
-TDkl=ZERO			
+indx = ZERO
+ExpValLoc1 = ZERO
+ExpValLoc2 = ZERO
+TranDipolLength_kl=ZERO	
+TranDipolVelocity_kl = ZERO
+		
 Do k=1,Glob_CurrBasisSize0
 	Do l=1,Glob_CurrBasisSize1
 		indx=indx+1
+
 		IF(mod(indx,Glob_NumOfProcs)==Glob_ProcID) then
-			TDkl_Loc=ZERO
-			TDkl=ZERO
+
+			TranDipolLength_kl_Loc   = ZERO
+			TranDipolVelocity_kl_Loc = ZERO 
+			TranDipolLength_kl   = ZERO
+			TranDipolVelocity_kl = ZERO
+			
 			Do i=1,Glob_NumYTerms0
 				Do j=1,Glob_NumYTerms1
+
                     call MatrixElemenTranDipoleMoment(Glob_ZIndex(l),Glob_NonlinParam0(1:np,k), &
-                    Glob_NonlinParam1(1:np,l),Glob_YMatr0(1:n,1:n,i),Glob_YMatr1(1:n,1:n,j),TDklelement)
-                    TDkl_Loc=TDkl_Loc+Glob_YCoeff0(i)*TDklelement*Glob_YCoeff1(j)
+                    Glob_NonlinParam1(1:np,l),Glob_YMatr0(1:n,1:n,i),Glob_YMatr1(1:n,1:n,j), &
+					TranDipolLength_kl_element,TranDipolVelocity_kl_element)
+					
+                    TranDipolLength_kl_Loc = TranDipolLength_kl_Loc + &
+					Glob_YCoeff0(i) * TranDipolLength_kl_element * Glob_YCoeff1(j)
+					
+                    TranDipolVelocity_kl_Loc = TranDipolVelocity_kl_Loc + &
+					Glob_YCoeff0(i) * TranDipolVelocity_kl_element * Glob_YCoeff1(j)
+
 				EndDo
 			EndDo
-			TDkl=TDkl_Loc/sqrt(diagS0(k)*diagS1(l))
-			ExpValLoc=ExpValLoc+Glob_c0(k)*TDkl*Glob_c1(l)
+
+			TranDipolLength_kl = TranDipolLength_kl_Loc / sqrt(diagS0(k)*diagS1(l))
+			ExpValLoc1 = ExpValLoc1 + Glob_c0(k) * TranDipolLength_kl * Glob_c1(l)
+
+
+			TranDipolVelocity_kl = TranDipolVelocity_kl_Loc / sqrt(diagS0(k)*diagS1(l))
+			ExpValLoc2 = ExpValLoc2 + Glob_c0(k) * TranDipolVelocity_kl * Glob_c1(l)
+			
+			
 		EndIF
 	EndDo
 EndDo
 
-call MPI_ALLREDUCE(ExpValLoc,ExpVal,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-Glob_ExpVals=ExpVal
+
+call MPI_ALLREDUCE(ExpValLoc1,ExpVal1,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+Glob_ExpVals1 = ExpVal1
+
+call MPI_ALLREDUCE(ExpValLoc2,ExpVal2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+Glob_ExpVals2 = ExpVal2
+
+
+
 deallocate(diagS0)
 deallocate(diagS1)
 IF(Glob_ProcID==0) write(*,*) 'done'
