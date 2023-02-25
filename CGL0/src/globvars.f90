@@ -25,7 +25,7 @@ ONEFOURTH=ONE/FOUR,  &
 THREEHALF=THREE/TWO, &     
 PI=3.1415926535897932384626433832795029E0_dprec,     &  
 SQRTPI=1.7724538509055160272981674833411452E0_dprec, &
-Glob_FineStructConst=7.2973525698E-03_dprec, &  !CODATA 2010 value
+Glob_FineStructConst=7.2973525693E-03_dprec, &  !CODATA 2018
 Glob_EulerConst=0.57721566490153286060651209008240E0_dprec
       
 !=============================================================
@@ -48,14 +48,14 @@ integer       Glob_n          !Number of pseudoparticles
 integer       Glob_np    
 
 !Total number of nonlinear parameters per basis function 
-!In case of real L=0 Gaussians Glob_npt=Glob_np
+!In case of complex L=0 Gaussians Glob_npt=2*Glob_np
 integer       Glob_npt   
 
 !Glob_np_MaxAllowed and Glob_npt_MaxAllowed determine the 
 !maximal allowed values for Glob_np and Glob_npt 
 integer,parameter :: Glob_np_MaxAllowed=  &
   Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2
-integer,parameter :: Glob_npt_MaxAllowed=Glob_np_MaxAllowed
+integer,parameter :: Glob_npt_MaxAllowed=2*Glob_np_MaxAllowed
 
 real(dprec)   Glob_2raised3n2  !2^(3n/2)
 
@@ -122,7 +122,7 @@ real(dprec)   Glob_PseudoCharge0
 real(dprec)  ::  Glob_RepulsionScalingParam=1.0_dprec
 real(dprec)  ::  Glob_RepulsionScalingParamPlus=1.0_dprec
 real(dprec)  ::  Glob_RepulsionScalingParamMinus=1.0_dprec
-real(dprec)  :: Glob_AttractionScalingParam=1.0_dprec
+real(dprec)  ::  Glob_AttractionScalingParam=1.0_dprec
 logical      ::  Glob_RepScalParamSupplied=.false.
 logical      ::  Glob_RepScalParamPlusSupplied=.false.
 logical      ::  Glob_RepScalParamMinusSupplied=.false.
@@ -484,7 +484,7 @@ logical :: Glob_UseReallocFile=.false.
 logical,parameter :: Glob_FullOptSaveD=.true.
 
 !Parameter Glob_MinMandSavSteps defines how many initial steps
-!in cyclic optimization routines (OptCycleG, OptCycleG) should
+!in cyclic optimization routines (OptCycleG, OptCycleI) should
 !be followed by mandatary data saving (even if the user specifies
 !rare saving frequency in those routines)
 integer,parameter :: Glob_MinMandSavSteps=5

@@ -1,8 +1,10 @@
 # This is a makefile to compile an ECG code. Examples of compilations with this
 # makefile:
-#    make release COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg  
-#    make debug   COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg  
-#    make all     COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 OPTLPKBLS=no EXEFILE=ecg  
+#    make release  COMPILER_TYPE=gnu MACHINE=wsl_ubuntu20 PREC=8 EXEFILE=ecg
+#    make release  COMPILER_TYPE=gnu MACHINE=shabyt PREC=10 EXEFILE=ecg
+#    make release  COMPILER_TYPE=intel MACHINE=shabyt PREC=8 EXEFILE=ecg
+#    make debug  COMPILER_TYPE=intel MACHINE=mylinuxbox PREC=8 EXEFILE=ecg
+
 
 # Set default compiler type (intel, gnu, sun, etc..)
 COMPILER_TYPE=gnu
@@ -21,7 +23,7 @@ EXEFILE=ecg
 # Directory where all source files are located
 SRC_DIR=./src
 
-# Compiler flags for each machine and compiler type (for both release and debug builds). 
+# Compiler flags for each machine and compiler type (for both release and debug builds).
 
 # My work desktop computer
 ifeq ($(MACHINE), mylinuxbox)
@@ -90,7 +92,7 @@ ifeq ($(MACHINE), mylinuxbox)
       ifneq ($(OPTLPKBLS),yes)
         COMPILER_SUPPORTED=yes
       endif
-    endif	
+    endif
   endif
   # Sun Fortran and Sun MPI (mylinuxbox)
   ifeq ($(COMPILER_TYPE), sun)
@@ -117,8 +119,8 @@ ifeq ($(MACHINE), mylinuxbox)
   endif
 endif
 
-# WSL Ubntu 20.04 
-ifeq ($(MACHINE), wsl_ubuntu20) 
+# WSL Ubntu 20.04
+ifeq ($(MACHINE), wsl_ubuntu20)
   # gfortran 9.3.0 and Open MPI 4.0.3 (default in WSL Ubuntu 20.04)
   ifeq ($(COMPILER_TYPE), gnu)
     FC=mpif90
@@ -150,7 +152,7 @@ ifeq ($(MACHINE), wsl_ubuntu20)
       ifneq ($(OPTLPKBLS),yes)
         COMPILER_SUPPORTED=yes
       endif
-    endif	
+    endif
   endif
 endif
 
@@ -219,7 +221,7 @@ ifeq ($(MACHINE), puma)
   endif
 endif
 
-ifeq ($(MACHINE), ocelote)
+ifeq ($(MACHINE), ocelote) 
   # Intel Fortran and Intel MPI (ocelote)
   ifeq ($(COMPILER_TYPE), intel)
     FC=mpiifort
@@ -280,7 +282,7 @@ ifeq ($(MACHINE), ocelote)
   endif
 endif
 
-ifeq ($(MACHINE), elgato)
+ifeq ($(MACHINE), elgato) 
   # Intel Fortran and Open MPI (elgato)
   ifeq ($(COMPILER_TYPE), intel)
     FC=mpiifort
@@ -341,7 +343,7 @@ ifeq ($(MACHINE), elgato)
   endif
 endif
 
-ifeq ($(MACHINE), bluehive)
+ifeq ($(MACHINE), bluehive) 
   # Intel Fortran and Intel MPI (bluehive)
   ifeq ($(COMPILER_TYPE), intel)
     FC=mpiifort
@@ -361,7 +363,7 @@ ifeq ($(MACHINE), bluehive)
       COMPILER_SUPPORTED=yes
       ifeq ($(OPTLPKBLS),yes)
         # Link with MKL
-        #export LINKFLAGS+=-L$(MKLROOT)
+        #export LINKFLAGS+=-L$(MKLROOT) 
         export LINKFLAGS+=-lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm
         export LINKFLAGS+=-L/usr/local/intel/mkl/10.2.0.013/lib/em64t
       endif
@@ -402,7 +404,7 @@ ifeq ($(MACHINE), bluehive)
   endif
 endif
 
-ifeq ($(MACHINE), shabyt)
+ifeq ($(MACHINE), shabyt) 
   # Intel Fortran and Intel MPI (shabyt)
   ifeq ($(COMPILER_TYPE), intel)
     FC=mpiifort

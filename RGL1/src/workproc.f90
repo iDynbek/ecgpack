@@ -9714,9 +9714,8 @@ if (Glob_ProcID==0) then
     enddo
     write(*,*)	    
   endif
-if (Glob_ProcID == 0) then
+  
   close(2)
-end if
 
   !Saving correlation functions
   if (AreCorrFuncNeeded.or.AreMCorrFuncNeeded) then

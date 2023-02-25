@@ -9388,9 +9388,9 @@ if (Glob_ProcID==0) then
   write(*,*)
   if (Glob_NumOfIdentPartSets/=Glob_n+1) then
     write(*,*) 'Based on the particle mass and charge values it was determined'
-	write(*,*) 'that the system has the following sets of identical particles:'
+	  write(*,*) 'that the system has the following sets of identical particles:'
     do i=1,Glob_NumOfIdentPartSets
-	  j=Glob_NumOfPartInIdentPartSet(i)
+	    j=Glob_NumOfPartInIdentPartSet(i)
       write(*,'(1x,a3,i2,a13)',advance='no') 'set',i,' :  particles'
       write(*,*) Glob_IdentPartList(1:j,i)
     enddo
@@ -9571,9 +9571,7 @@ if (Glob_ProcID==0) then
     write(*,*)	    
   endif
   
-  if (Glob_ProcID==0) then
   close(2)
-  endif
   
   !Saving correlation functions
   if (AreCorrFuncNeeded.or.AreMCorrFuncNeeded) then
