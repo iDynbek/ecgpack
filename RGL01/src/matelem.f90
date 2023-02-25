@@ -411,7 +411,7 @@ end subroutine OverLapElementS1
 
 
 
-subroutine MatrixElemenTranDipoleMoment(ml, vechLk, vechLl, Pk, Pl, TDkl)
+subroutine MatrixElemenTranDipoleMoment(ml, vechLk, vechLl, Pk, Pl, TranDipolLength_kl,TranDipolVelocity_kl)
 
 !This subroutine computes symmetry adapted matrix element with
 !a real L=0 and a real L=1 correlated Gaussians:
@@ -426,20 +426,47 @@ subroutine MatrixElemenTranDipoleMoment(ml, vechLk, vechLl, Pk, Pl, TDkl)
 !Pk fk = exp[-r' {Pk'*(Lk*Lk')*Pk} r]  
 !Pl fl = (Pl z_{m_l}) exp[-r' {Pl'*(Ll*Ll')*Pl} r] 
 
-! this subroutine computes the dollowing expression
+! this subroutine computes the following expressions
 ! which is a part of transition dipole momentum calculation.
-!                                 m_i         < Pk*fk0 | z_i | Pl*fl1 >
-! TDkl{i} = SUM{i}(q_i - Q_tot * -----)*-------------------------------------------
-!                                 m0    Sqrt( <fk0|fk0> ) * Sqrt( <fl1|fl1> )
 !
 !
-!        < Pk*fk0 | z_i | Pl*fl1 >                 2^(3*n/2)  
-! --------------------------------------------- = ----------- * 
-!     Sqrt( <fk0|fk0> ) * Sqrt( <fl1|fl1> )         sqrt(2)
 !
-!  (abs(det_Lk))^1.5 * (abs(det_Ll))^1.5         vi'*inv_tAkl*vl
-! ---------------------------------------- * -----------------------
-!            (det_tAkl)^1.5                   Sqrt(vl'*inv_All*vl)              
+!====================================================================
+!				Transition dipole integral in Lenght form
+!====================================================================
+!
+!
+!                                            m_i         < Pk*fk0 | z_i | Pl*fl1 >
+! TranDipolLength_kl = SUM{i}(q_i - Q_tot * -----)*-------------------------------------------
+!                                            m0      Sqrt( <fk0|fk0> ) * Sqrt( <fl1|fl1> )
+!
+!
+!      < Pk*fk0 | z_i | Pl*fl1 >               2^(3*n/2)     (abs(det_Lk))^1.5 * (abs(det_Ll))^1.5        vi'*inv_tAkl*vl
+! ----------------------------------------- = ----------- * ---------------------------------------- * ----------------------- 
+!   Sqrt( <fk0|fk0> ) * Sqrt( <fl1|fl1> )       sqrt(2)                (det_tAkl)^1.5                   Sqrt(vl'*inv_All*vl)   
+!           
+!
+!
+!
+!
+!====================================================================
+!				Transition dipole integral in Lenght form
+!====================================================================
+!
+!
+!                                    < Pk*fk0 | P(z_i) | Pl*fl1 >
+! TranDipolLength_kl = SUM{i}*-------------------------------------------
+!                                   Sqrt( <fk0|fk0> ) * Sqrt( <fl1|fl1> )
+!
+!
+!     < Pk*fk0 | P(z_i) | Pl*fl1 >             2^(3*n/2)     (abs(det_Lk))^1.5 * (abs(det_Ll))^1.5       vi'*tAk*inv_tAkl*vl
+! ----------------------------------------- = ----------- * ---------------------------------------- * ----------------------- 
+!   Sqrt( <fk0|fk0> ) * Sqrt( <fl1|fl1> )       sqrt(2)                (det_tAkl)^1.5                    Sqrt(vl'*inv_All*vl)   
+!           
+!
+
+
+
 
 !Input:     
 !	m_l				::	integer that determine which z-component is in the
@@ -455,7 +482,8 @@ subroutine MatrixElemenTranDipoleMoment(ml, vechLk, vechLl, Pk, Pl, TDkl)
 integer, intent(in)          :: ml
 real(dprec), intent(in)      :: vechLk(Glob_np), vechLl(Glob_np)
 real(dprec), intent(in)      :: Pk(Glob_n,Glob_n), Pl(Glob_n,Glob_n)
-real(dprec), intent(out)     :: TDkl
+real(dprec), intent(out)     :: TranDipolLength_kl, TranDipolVelocity_kl
+
 
 !Parameters (These are needed to declare static arrays. Using static 
 !arrays makes the function call a little faster in comparison with 
@@ -469,12 +497,12 @@ real(dprec)       :: Lk(nn,nn),Ll(nn,nn)
 real(dprec)       :: inv_Lk(nn,nn),inv_Ll(nn,nn)
 real(dprec)       :: det_Lk,det_Ll
 real(dprec)       :: tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn)
-real(dprec)       :: inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn)
+real(dprec)       :: inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn),tAk_inv_tAkl(nn,nn)
 real(dprec)       :: det_tAkl
-real(dprec)       :: tvl(nn)
+real(dprec)       :: tvl(nn),vi(nn),vi_tAk(nn),vi_tAk_inv_tAkl(nn)
 
-integer           :: i,j,k,indx
-real(dprec)       :: temp0, temp1, temp2
+integer           :: i,j,k,indx,ii
+real(dprec)       :: temp0, temp1, temp2, temp3, charge_mass0
 real(dprec)       :: W1(nn,nn),W2(nn,nn)
 
 n=Glob_n
@@ -635,43 +663,122 @@ Do i=1,n
 	tvl(i)=Pl(ml,i)
 EndDo
 
-!Evaluating Matrix Elements
+
+!====================================================
+!			Evaluating Matrix Elements				
+!====================================================
+
 
 !         (abs(det_Lk))^1.5 * (abs(det_Ll))^1.5       
 ! temp1= ----------------------------------------
 !                    (det_tAkl)^1.5
-                             
-temp1=abs(det_Ll*det_Lk)/det_tAkl
-temp1=temp1*sqrt(abs(temp1))
-
-!        2^(3*n/2)            temp1
-! TDkl = ----------- * -----------------------
-!         sqrt(2)      Sqrt(vl'*inv_All*vl) 
  
-TDkl=Glob_2raised3n2*temp1/sqrt(TWO*inv_All(ml,ml))
+ 
+temp1 = abs(det_Ll*det_Lk) / det_tAkl
+temp1 = temp1 * sqrt(abs(temp1))
 
 
-!                                        m_i
-! TDkl{ij} = TDkl *SUM{i}(q_i - Q_tot * -----)* vi'*inv_tAkl*vl
-!                                         m0
 
-Qtotal=Glob_PseudoCharge0
+!                       2^(3*n/2)            temp1
+! TranDipolLength_kl = ----------- * -----------------------
+!                        sqrt(2)      Sqrt(vl'*inv_All*vl) 
+
+
+TranDipolLength_kl = Glob_2raised3n2 * temp1 / sqrt(TWO*inv_All(ml,ml))
+TranDipolVelocity_kl = TranDipolLength_kl * TWO
+
+
+
+!
+!                                                                m_i
+! TranDipolLength_kl = TranDipolLength_kl *SUM{i}(q_i - Q_tot * -----)* vi'*inv_tAkl*vl
+!                                                                m0
+!
+Qtotal = Glob_PseudoCharge0
+
 Do i=1,n
-	Qtotal=Qtotal+Glob_PseudoCharge(i)
+	Qtotal = Qtotal + Glob_PseudoCharge(i)
 EndDo
 
-temp1=ZERO
-Do i=1,n 						!pseudo-particles
-	temp2=ZERO
-	Do j=1,n 					!trace elements
-		temp2=temp2+inv_tAkl(j,i)*tvl(j)
+
+
+temp1 = ZERO
+
+Do i=1,n 							!pseudo-particles
+
+	temp2 = ZERO
+	Do j=1,n 						!trace elements
+		temp2 = temp2 + inv_tAkl(i,j)* tvl(j)
 	EndDo
-	! temp1=temp1+Glob_PseudoCharge(i)*temp2
-	temp0=Glob_PseudoCharge(i)-Qtotal*Glob_Mass(i+1)/Glob_Mass(1)
-	temp1=temp1+temp0*temp2
+
+
+	temp0 = Glob_PseudoCharge(i) - Qtotal*Glob_Mass(i+1)/Glob_MassTotal
+	temp1 = temp1 + temp0 * temp2
+
 EndDo
 
-TDkl=TDkl*temp1
+TranDipolLength_kl = TranDipolLength_kl * temp1
+
+!
+!                                                      
+! TranDipolLength_kl = TranDipolLength_kl * SUM{i} vi' * tAk inv_tAkl * vl
+!                                                      
+!
+
+temp0 = ZERO
+temp1 = ZERO
+temp2 = ZERO
+temp3 = ZERO
+
+charge_mass0 = Glob_PseudoCharge0 / Glob_Mass(1)
+
+vi_tAk = ZERO
+vi_tAk_inv_tAkl = ZERO
+
+Do i=1,n
+
+	vi = ZERO
+	vi(i) = ONE
+	
+	temp0 = charge_mass0 - Glob_PseudoCharge(i)/Glob_Mass(i+1)
+	
+	Do k=1,n
+
+		temp1 = ZERO
+		Do j=1,n
+			temp1 = temp1 + vi(j) * tAk(j,k) 
+		EndDo
+		vi_tAk(k) = temp1
+		
+	EndDo
+
+
+	Do k=1,n
+
+		temp2 = ZERO
+		Do j=1,n
+			temp2 = temp2 + vi_tAk(j) * inv_tAkl(j,k) 
+		EndDo
+		vi_tAk_inv_tAkl(k) = temp2
+		
+	EndDo
+	
+
+	Do k=1,n
+
+		temp3 = temp3 + vi_tAk_inv_tAkl(k) * tvl(k) * temp0
+		
+	EndDo
+
+
+	
+EndDo
+
+TranDipolVelocity_kl = TranDipolVelocity_kl * temp3
+
+
+
+
 
 end subroutine MatrixElemenTranDipoleMoment
 

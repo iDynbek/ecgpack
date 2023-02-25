@@ -36,38 +36,36 @@ if (Glob_ProcID==0) then
 
 
 DeltaE = Glob_CurrEnergy0-Glob_CurrEnergy1
-DeltaE_cm = DeltaE * 219474.6				! hartree to cm-1
+
 call ComputeTranDipoL0L1()
-LineStrength=Glob_ExpVals**TWO
 
-!OscillatorStrength=TWO/THREE*Glob_ExpVals**TWO*abs(Glob_CurrEnergy0-Glob_CurrEnergy1)
-OscillatorStrength = TWO/THREE*LineStrength*abs(DeltaE)
-
-
-	
 	
 if (Glob_ProcID==0) then
-        write(*,*) ' '
+        write(*,*) '  '
+        write(*,*) '  '
+		
         write(*,'(a30)',advance='no') ' E{initial} - E{final}  =     '
         call writereal(6,abs(DeltaE))
         write(*,'(a10)') '   Hartree'
-        write(*,'(a30)',advance='no') '                              '
-        call writereal(6,abs(DeltaE_cm))
-        write(*,'(a10)') 'cm-1'
-        write(*,'(a35)') ' <L=0|Dipole{x}|L=1>    =       0.0'
-        write(*,'(a35)') ' <L=0|Dipole{y}|L=1>    =       0.0'
-        write(*,'(a30)',advance='no') ' <L=0|Dipole{z}|L=1>    =     '
-        call writerealadv(6,Glob_ExpVals)
-        write(*,'(a30)',advance='no') ' <L=0|Dipole{z}|L=1>**2 =     '
-        call writerealadv(6,Glob_ExpVals**2)
+		
         write(*,*) '  '
-        write(*,*) ' To compute  Oscillator Strength :'
-        write(*,*) '                           2'
-        write(*,*) '    OscillatorStrength= -------- * S(multiple)* Delta_E'
-        write(*,*) '                         3*g{i}'
-        write(*,*) '    g{i} = 2J{i}+1'
-        write(*,*) '    S(multiple) = Sum(Ji,Jk) S(line)'
-        write(*,*) '    S(line)= <L=0|Dipole{z}|L=1>**2'
+		write(*,*) '  '
+		write(*,*) 'Transition Dipole Moment Integral in Length Form:  '
+		write(*,*) '  '
+        write(*,'(a35)') ' <L=0|x|L=1>    =       0.0'
+        write(*,'(a35)') ' <L=0|y|L=1>    =       0.0'
+        write(*,'(a30)',advance='no') ' <L=0|z|L=1>    =     '
+        call writerealadv(6,Glob_ExpVals1)
+
+        write(*,*) '  '
+		write(*,*) '  '
+		write(*,*) 'Transition Dipole Moment Integral in Velocity Form:  '
+		write(*,*) '  '
+        write(*,'(a30)') ' <L=0|P(x)|L=1>    =     '
+        write(*,'(a30)') ' <L=0|P(y)|L=1>    =     '		
+        write(*,'(a30)',advance='no') ' <L=0|P(z)|L=1>    = -i *'
+        call writerealadv(6,Glob_ExpVals2)
+
         write(*,*) '  '
         write(*,*) '  '
         write(*,*) 'Data Reader and Matrix Calculator Program is completed'

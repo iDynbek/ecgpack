@@ -213,7 +213,7 @@ integer													:: Glob_CurrBasisSize0
 integer													:: Glob_CurrBasisSize1
 !!!integer,allocatable,dimension(:),save				:: Glob_CurrBasisSizeInDRMCSteps
 
-real(dprec)                                             :: Glob_ExpVals
+real(dprec)                                             :: Glob_ExpVals1, Glob_ExpVals2
 
 ! CURRENT_ENERGYs from wave function files
 real(dprec)                                             :: Glob_CurrEnergy0,Glob_CurrEnergy1
