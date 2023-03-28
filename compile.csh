@@ -60,7 +60,7 @@ else if (${MACHINE} == wsl_ubuntu20) then
 endif
 
 #Load moduli corresponding to each specific compiler and machine
-if (${MACHINE} == shabyt || ${MACHINE} == wsl_ubuntu20)) then
+if (${MACHINE} == shabyt || ${MACHINE} == wsl_ubuntu20) then
   if (${TOOLCHAIN} == gcc9) then
     module load gcc/9.5.0
     module load openmpi/gcc9/4.1.5
@@ -85,7 +85,7 @@ if (! -e bin/${BINSUBDIR}/${CONFIG}) mkdir bin/${BINSUBDIR}/${CONFIG}
 foreach PREC ($PRECVALS)
 
   #Set parameters COMPILER, REALX_NAME depending on the machine/compiler used
-  if (${TOOLCHAIN} == gcc || ${TOOLCHAIN} == gcc9 || ${TOOLCHAIN} == gcc) then
+  if (${TOOLCHAIN} == gcc || ${TOOLCHAIN} == gcc9 || ${TOOLCHAIN} == gcc12) then
     set COMPILER=gnu
     if (${MACHINE} == shabyt || ${MACHINE} == wsl_ubuntu20) then
       if (${PREC} == 8) then
@@ -111,11 +111,11 @@ foreach PREC ($PRECVALS)
   foreach L (0 1 2P 2D)
     cd RGL${L}
     foreach NPARTICLES (3 4 5 6 7 8)
-
+      echo " "
       echo " ==========================================================="
       echo " Compiling code with the following options: "
-      echo " L=${L} PREC=${PREC} NPARTICLES=${NPARTICLES}"
-      echo " CONFIG=${CONFIG} COMPILER=${COMPILER} MACHINE=${MACHINE}"
+      echo " L=${L} PREC=${PREC} NPARTICLES=${NPARTICLES} CONFIG=${CONFIG}"
+      echo " COMPILER=${COMPILER} TOOLCHAIN=${TOOLCHAIN} MACHINE=${MACHINE}"
       echo " -----------------------------------------------------------"
       echo " mpif90 wrapper check:"
       mpif90 --version | head -1
@@ -130,7 +130,7 @@ foreach PREC ($PRECVALS)
 
       make clean
       make ${CONFIG} COMPILER_TYPE=${COMPILER} MACHINE=${MACHINE} PREC=${PREC} OPTLPKBLS=${OPTLPKBLS} EXEFILE=ecg
-      mv ${CONFIG}/ecg ../bin/${BINSUBDIR}/${CONFIG}/RGL${L}_${NPARTICLES}_${PREC}
+      mv ${CONFIG}/ecg ../bin/${BINSUBDIR}/${CONFIG}/RGL${L}_N${NPARTICLES}_${PREC}
 
       #Replace back the above two values to default
       sed -e "s/Glob_MaxAllowedNumOfParticles=[0-9][0-9]*/Glob_MaxAllowedNumOfParticles=5/" < src/wp_def_${PREC}.f90 > src/temp.f90
