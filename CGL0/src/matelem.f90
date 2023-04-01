@@ -180,7 +180,7 @@ enddo
 !factorization)
 !Matrix tCkl will be destroyed. Instead we will have
 !its pseudo-Cholesky factor stored in the lower triangle 
-det_tCkl=(ONE,ZERO)
+det_tCkl=COMPLEXONE
 do i=1,n
   do j=i,n
     csum=tCkl(i,j)
@@ -201,7 +201,7 @@ enddo
 do i=1,n
   tCkl(i,i)=ONE/tCkl(i,i)
   do j=i+1,n
-    csum=ZERO
+    csum=COMPLEXZERO
     do k=i,j-1
       csum=csum-tCkl(j,k)*tCkl(k,i)
     enddo
@@ -211,7 +211,7 @@ enddo
 
 do i=1,n
   do j=i,n
-     ctemp=ZERO
+     ctemp=COMPLEXZERO
      do k=j,n
        ctemp=ctemp+tCkl(k,i)*tCkl(k,j)
      enddo
@@ -227,7 +227,7 @@ Skl=Glob_2raised3n2*cnumb*sqrt(cnumb)
 !Doing multiplication Cl*invCkl*Ck^*
 do i=1,n
   do j=1,n
-    ctemp=ZERO
+    ctemp=COMPLEXZERO
     do k=1,n
       ctemp=ctemp+inv_tCkl(i,k)*Ck(k,j)
     enddo
@@ -236,7 +236,7 @@ do i=1,n
 enddo
 do i=1,n
   do j=1,n
-    ctemp=ZERO
+    ctemp=COMPLEXZERO
     do k=1,n
       ctemp=ctemp+tCl(i,k)*Wc1(k,j)
     enddo
@@ -245,7 +245,7 @@ do i=1,n
 enddo
 
 !Evaluating kinetic energy, Tkl
-ctemp=ZERO
+ctemp=COMPLEXZERO
 do i=1,n
   do k=1,n
      ctemp=ctemp+Glob_MassMatrix(i,k)*Wc2(k,i)
@@ -257,7 +257,7 @@ Tkl=6*Skl*ctemp
 !The lower triangle of array trinvCklJij32
 !will contain the corresponding quantities.
 cnumb=(TWO/SQRTPI)*Skl
-Vkl=ZERO
+Vkl=COMPLEXZERO
 do i=1,n
   cmpnum=inv_tCkl(i,i)
   csum=sqrt(cmpnum)
@@ -284,7 +284,7 @@ if (grad_k) then
   !Multiplying inv_tCkl and Lk and storing it in Wc1
   do i=1,n
     do j=1,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=j,n
         csum=csum+inv_tCkl(i,k)*Lk(k,j)
       enddo
@@ -311,7 +311,7 @@ if (grad_k) then
     enddo
   enddo 
   !storing dSkldvechLk
-  ctemp=Skl*THREE/TWO
+  ctemp=Skl*THREEHALF
   indx=0
   do i=1,n
     do j=i,n
@@ -320,7 +320,7 @@ if (grad_k) then
     enddo
   enddo
   !storing dSkldvechBk
-  ctemp=Skl*cmplx(ZERO,THREE/TWO,dprec) 
+  ctemp=Skl*cmplx(ZERO,THREEHALF,dprec) 
   cnumb=TWO*ctemp 
   indx=0
   do i=1,n
@@ -337,7 +337,7 @@ if (grad_l) then
   !calculating inv_ttCkl: inv_ttCkl=P*inv_tCkl*P'
   do i=1,n
     do j=1,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=1,n
         csum=csum+P(i,k)*inv_tCkl(k,j) 
       enddo
@@ -346,7 +346,7 @@ if (grad_l) then
   enddo
   do i=1,n
     do j=i,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=1,n
         csum=csum+Wc1(i,k)*P(j,k)
       enddo
@@ -357,7 +357,7 @@ if (grad_l) then
   !Multiplying inv_ttCkl and Ll and storing it Wc1
   do i=1,n
     do j=1,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=1,n
         csum=csum+inv_ttCkl(i,k)*Ll(k,j)
       enddo
@@ -385,7 +385,7 @@ if (grad_l) then
     enddo
   enddo  
   !storing dSkldvechLl
-  ctemp=Skl*THREE/TWO
+  ctemp=Skl*THREEHALF
   indx=0
   do i=1,n
     do j=i,n
@@ -394,7 +394,7 @@ if (grad_l) then
     enddo
   enddo
   !storing dSkldvechBl
-  ctemp=Skl*cmplx(ZERO,-THREE/TWO,dprec)
+  ctemp=Skl*cmplx(ZERO,-THREEHALF,dprec)
   cnumb=TWO*ctemp 
   indx=0
   do i=1,n
@@ -413,7 +413,7 @@ if (grad_l) then
   !Compute matrix G=P*inv_tCkl*Ck*M*Ck*inv_tCkl*P' 
   do i=1,n
     do j=1,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=1,n
         csum=csum+Ck(i,k)*Glob_MassMatrix(k,j)
       enddo
@@ -422,7 +422,7 @@ if (grad_l) then
   enddo
   do i=1,n
     do j=1,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=1,n
         csum=csum+Wc1(i,k)*Ck(k,j)
       enddo
@@ -431,7 +431,7 @@ if (grad_l) then
   enddo
   do i=1,n
     do j=1,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=1,n
         csum=csum+inv_tCkl(i,k)*Wc2(k,j)
       enddo
@@ -440,7 +440,7 @@ if (grad_l) then
   enddo
   do i=1,n
     do j=i,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=1,n
         csum=csum+Wc1(i,k)*inv_tCkl(k,j)
       enddo
@@ -450,7 +450,7 @@ if (grad_l) then
   enddo
   do i=1,n
     do j=1,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=1,n
         csum=csum+P(i,k)*Wc2(k,j) 
       enddo
@@ -459,7 +459,7 @@ if (grad_l) then
   enddo
   do i=1,n
     do j=i,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=1,n
         csum=csum+Wc1(i,k)*P(j,k)
       enddo
@@ -471,7 +471,7 @@ if (grad_l) then
   !putting it in array Wc1.
   do i=1,n
     do j=1,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=j,n
         csum=csum+G(i,k)*Ll(k,j)
       enddo
@@ -505,7 +505,7 @@ if (grad_k) then
   !Compute matrix F=inv_tCkl*Cl*M*Cl*inv_tCkl 
   do i=1,n
     do j=1,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=1,n
         csum=csum+tCl(i,k)*Glob_MassMatrix(k,j)
       enddo
@@ -514,7 +514,7 @@ if (grad_k) then
   enddo
   do i=1,n
     do j=1,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=1,n
         csum=csum+Wc1(i,k)*tCl(k,j)
       enddo
@@ -523,7 +523,7 @@ if (grad_k) then
   enddo
   do i=1,n
     do j=1,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=1,n
         csum=csum+inv_tCkl(i,k)*Wc2(k,j)
       enddo
@@ -532,7 +532,7 @@ if (grad_k) then
   enddo
   do i=1,n
     do j=i,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=1,n
         csum=csum+Wc1(i,k)*inv_tCkl(k,j)
       enddo
@@ -544,7 +544,7 @@ if (grad_k) then
   !putting it in array Wc1.
   do i=1,n
     do j=1,n
-      csum=ZERO
+      csum=COMPLEXZERO
       do k=j,n
         csum=csum+F(i,k)*Lk(k,j)
       enddo
@@ -580,12 +580,12 @@ endif !end if (grad_k)
 if (grad_l.OR.grad_k) then
   !First we set to zero some work arrays
   if (grad_k) then
-    WVcLk(1:np)=ZERO
-    WVcBk(1:np)=ZERO
+    WVcLk(1:np)=COMPLEXZERO
+    WVcBk(1:np)=COMPLEXZERO
   endif
   if (grad_l) then
-    WVcLl(1:np)=ZERO
-    WVcBl(1:np)=ZERO
+    WVcLl(1:np)=COMPLEXZERO
+    WVcBl(1:np)=COMPLEXZERO
   endif
   !Now we can proceed
   do i=1,n
@@ -618,7 +618,7 @@ if (grad_l.OR.grad_k) then
 	!triangle of Wc1. 	 
 	do k=1,n
           do kk=1,k
-            csum=ZERO
+            csum=COMPLEXZERO
             do kkk=kk,n
               csum=csum+tQ(k,kkk)*Lk(kkk,kk)
             enddo
@@ -630,7 +630,7 @@ if (grad_l.OR.grad_k) then
 	!Evaluating ttQ=P*tQ*P'
         do k=1,n
           do kk=1,n
-            csum=ZERO
+            csum=COMPLEXZERO
 	    do kkk=1,n
               csum=csum+P(k,kkk)*tQ(kkk,kk) 
 	    enddo
@@ -639,7 +639,7 @@ if (grad_l.OR.grad_k) then
         enddo
         do k=1,n
           do kk=k,n
-            csum=ZERO
+            csum=COMPLEXZERO
 	    do kkk=1,n
               csum=csum+Wc2(k,kkk)*P(kk,kkk)
 	    enddo
@@ -652,7 +652,7 @@ if (grad_l.OR.grad_k) then
 	!triangle of Wc2. 	 
 	do k=1,n
           do kk=1,k
-            csum=ZERO
+            csum=COMPLEXZERO
             do kkk=kk,n
               csum=csum+ttQ(k,kkk)*Ll(kkk,kk)
             enddo
@@ -699,7 +699,7 @@ if (grad_l.OR.grad_k) then
   !Multiplying by common numbers and getting the final 
   !result for the gradient of Vkl
   cnumb=(TWO/SQRTPI)*Skl
-  ctemp=(cmplx(ZERO,ONE,dprec)/SQRTPI)*Skl
+  ctemp=(IMAGINARYUNIT/SQRTPI)*Skl
   if (grad_k) then
      dHkldvechLk(1:np)=dHkldvechLk(1:np)+(Vkl/Skl)*dSkldvechLk(1:np)+cnumb*WVcLk(1:np)
      dHkldvechBk(1:np)=dHkldvechBk(1:np)+(Vkl/Skl)*dSkldvechBk(1:np)-ctemp*WVcBk(1:np)
@@ -944,7 +944,7 @@ enddo
 !Matrix tCkl_copy will be destroyed. Instead we will have
 !its pseudo-Cholesky factor stored in the lower triangle 
 tCkl_copy(1:n,1:n)=tCkl(1:n,1:n)
-det_tCkl=(ONE,ZERO)
+det_tCkl=COMPLEXONE
 do i=1,n
   do j=i,n
     csum=tCkl_copy(i,j)
@@ -965,7 +965,7 @@ enddo
 do i=1,n
   tCkl_copy(i,i)=ONE/tCkl_copy(i,i)
   do j=i+1,n
-    csum=ZERO
+    csum=COMPLEXZERO
     do k=i,j-1
       csum=csum-tCkl_copy(j,k)*tCkl_copy(k,i)
     enddo
@@ -975,7 +975,7 @@ enddo
 
 do i=1,n
   do j=i,n
-     ctemp=ZERO
+     ctemp=COMPLEXZERO
      do k=j,n
        ctemp=ctemp+tCkl_copy(k,i)*tCkl_copy(k,j)
      enddo
@@ -991,7 +991,7 @@ Skl=Glob_2raised3n2*cnumb*sqrt(cnumb)
 !Doing multiplication tCl*invtCkl*tCk^*
 do i=1,n
   do j=1,n
-    ctemp=ZERO
+    ctemp=COMPLEXZERO
     do k=1,n
       ctemp=ctemp+inv_tCkl(i,k)*tCk(k,j)
 	enddo
@@ -1000,7 +1000,7 @@ do i=1,n
 enddo
 do i=1,n
   do j=1,n
-    ctemp=ZERO
+    ctemp=COMPLEXZERO
     do k=1,n
       ctemp=ctemp+tCl(i,k)*Wc1(k,j)
 	enddo
@@ -1009,7 +1009,7 @@ do i=1,n
 enddo
 
 !Evaluating kinetic energy, Tkl
-ctemp=ZERO
+ctemp=COMPLEXZERO
 do i=1,n
   do k=1,n
      ctemp=ctemp+Glob_MassMatrix(i,k)*Wc2(k,i)
@@ -1022,7 +1022,7 @@ Tkl=6*Skl*ctemp
 !and delta(r_{ij})_kl
 cnumb=(TWO/SQRTPI)*Skl
 caux=THREEHALF*Skl
-Vkl=ZERO
+Vkl=COMPLEXZERO
 caux1=Skl/(PI*SQRTPI)
 do i=1,n
   TrCJ(i,i)=inv_tCkl(i,i)
@@ -1101,9 +1101,9 @@ do i=1,n
           rmrmkl(q,p,j,i)=ctemp
         else
           caux=sqrt(TrCJCJ(i,j,p,q))
-          if (caux/=ZERO) then
+          if (caux/=COMPLEXZERO) then
             caux1=caux/sqrt(TrCJ(i,j)*TrCJ(p,q))
-            csum=cmplx(ZERO,-ONE,dprec)*log(cmplx(ZERO,ONE,dprec)*caux1+sqrt(ONE-caux1*caux1))
+            csum=-IMAGINARYUNIT*log(IMAGINARYUNIT*caux1+sqrt(ONE-caux1*caux1))
             ctemp=cnumb*csum/caux
           else
             ctemp=cnumb/sqrt(TrCJ(i,j)*TrCJ(p,q))
@@ -1134,7 +1134,7 @@ enddo
 !Computing tCk^{\dagger}*M*tCl and placing it in Wc2
 do i=1,n
   do j=1,n
-    ctemp=ZERO
+    ctemp=COMPLEXZERO
     do k=1,n
       ctemp=ctemp+Glob_MassMatrix(i,k)*tCl(k,j)
 	enddo
@@ -1143,7 +1143,7 @@ do i=1,n
 enddo
 do i=1,n
   do j=1,n
-    ctemp=ZERO
+    ctemp=COMPLEXZERO
     do k=1,n
       ctemp=ctemp+tCk(i,k)*Wc1(k,j)
 	enddo
@@ -1153,7 +1153,7 @@ enddo
 !Loop that computes all drachmanized delta(r_{ij})_kl
 do p=1,n
   do q=p,n
-    ctemp=ZERO
+    ctemp=COMPLEXZERO
     do i=1,n
       ctemp=ctemp+ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*rmrmkl(p,q,i,i)
       do j=i+1,n
@@ -1173,7 +1173,7 @@ do p=1,n
 enddo
 
 !Evaluating Orbit-Orbit (OO) matrix element (without the factor of alpha**2)
-OOkl=ZERO
+OOkl=COMPLEXZERO
 !First double loop for OO
 do i=1,n
   do j=1,n    
@@ -1201,7 +1201,7 @@ do i=1,n
       enddo
     enddo
     !Wc3 = Eji Cl
-    Wc3(1:n,1:n)=ZERO
+    Wc3(1:n,1:n)=COMPLEXZERO
     do p=1,n
       Wc3(j,p)=tCl(p,i)
     enddo
@@ -1244,7 +1244,7 @@ do i=1,n
       enddo
     enddo
     !Wc3 = (Eji - Eii) Cl
-    Wc3(1:n,1:n)=ZERO
+    Wc3(1:n,1:n)=COMPLEXZERO
     do p=1,n
       Wc3(j,p)=tCl(p,i)
       Wc3(i,p)=-tCl(p,i)
@@ -1261,7 +1261,7 @@ OOkl=OOkl/2
 !Evaluating mass-velocity matrix element
 !Wc3=J*tCk
 do p=1,n
-  ctemp=ZERO
+  ctemp=COMPLEXZERO
   do q=1,n
     ctemp=ctemp+tCk(q,p)
   enddo
@@ -1270,19 +1270,19 @@ do p=1,n
   enddo
 enddo
 !tr1=tr[J*tCk]
-tr1=ZERO
+tr1=COMPLEXZERO
 do p=1,n
   tr1=tr1+Wc3(p,p)
 enddo
 !Wc1=tCk*J*tCk
 do p=1,n
-  ctemp=ZERO
+  ctemp=COMPLEXZERO
   do i=1,n
     ctemp=ctemp+tCk(p,i)*Wc3(i,p)
   enddo
   Wc1(p,p)=ctemp
   do q=p+1,n
-    ctemp=ZERO
+    ctemp=COMPLEXZERO
     do j=1,n
       ctemp=ctemp+tCk(q,j)*Wc3(j,p)
     enddo
@@ -1292,7 +1292,7 @@ do p=1,n
 enddo
 !Wc3=J*tCl
 do p=1,n
-  ctemp=ZERO
+  ctemp=COMPLEXZERO
   do q=1,n
     ctemp=ctemp+tCl(q,p)
   enddo
@@ -1301,19 +1301,19 @@ do p=1,n
   enddo
 enddo
 !tr2=tr[J*tCk]
-tr2=ZERO
+tr2=COMPLEXZERO
 do p=1,n
   tr2=tr2+Wc3(p,p)
 enddo
 !Wc2=tCl*J*tCl
 do p=1,n
-  ctemp=ZERO
+  ctemp=COMPLEXZERO
   do i=1,n
     ctemp=ctemp+tCl(p,i)*Wc3(i,p)
   enddo
   Wc2(p,p)=ctemp
   do q=p+1,n
-    ctemp=ZERO
+    ctemp=COMPLEXZERO
     do j=1,n
       ctemp=ctemp+tCl(q,j)*Wc3(j,p)
     enddo
@@ -1332,7 +1332,7 @@ enddo
 !Wc4=inv_tCkl*Wc1
 do p=1,n
   do q=1,n
-    ctemp=ZERO
+    ctemp=COMPLEXZERO
     do j=1,n
       ctemp=ctemp+inv_tCkl(q,j)*Wc1(j,p)
     enddo  
@@ -1340,14 +1340,14 @@ do p=1,n
   enddo
 enddo
 !tr4=tr[Wc4]
-tr4=ZERO
+tr4=COMPLEXZERO
 do p=1,n
   tr4=tr4+Wc4(p,p)
 enddo
 !Wc5=inv_tCkl*Wc2
 do p=1,n
   do q=1,n
-    ctemp=ZERO
+    ctemp=COMPLEXZERO
     do j=1,n
       ctemp=ctemp+inv_tCkl(q,j)*Wc2(j,p)
     enddo  
@@ -1355,19 +1355,19 @@ do p=1,n
   enddo
 enddo
 !tr5=tr[Wc5]
-tr5=ZERO
+tr5=COMPLEXZERO
 do p=1,n
   tr5=tr5+Wc5(p,p)
 enddo
 !cnumb=tr[Wc4*Wc5]
-cnumb=ZERO
+cnumb=COMPLEXZERO
 do p=1,n
   do q=1,n
     cnumb=cnumb+Wc4(p,q)*Wc5(q,p)
   enddo
 enddo
 !caux=tr[inv_tCkl*Wc3]
-caux=ZERO
+caux=COMPLEXZERO
 do p=1,n
   do q=1,n
     caux=caux+inv_tCkl(p,q)*Wc3(q,p)
@@ -1400,7 +1400,7 @@ do i=1,n
   !tr2=tr[tCl*Jii]
   tr2=tCl(i,i)  
   !caux=tr[inv_tCkl*(tr1*Wc2+tr2*Wc1)]
-  caux=ZERO
+  caux=COMPLEXZERO
   do p=1,n
     do q=1,n
       caux=caux+inv_tCkl(p,q)*(tr1*Wc2(q,p)+tr2*Wc1(q,p))
@@ -1409,7 +1409,7 @@ do i=1,n
   !Wc4=inv_tCkl*Wc1
   do p=1,n
     do q=1,n
-      ctemp=ZERO
+      ctemp=COMPLEXZERO
       do j=1,n
         ctemp=ctemp+inv_tCkl(q,j)*Wc1(j,p)
       enddo  
@@ -1417,14 +1417,14 @@ do i=1,n
     enddo
   enddo
   !tr4=tr[Wc4]
-  tr4=ZERO
+  tr4=COMPLEXZERO
   do p=1,n
     tr4=tr4+Wc4(p,p)
   enddo
   !Wc5=inv_tCkl*Wc2
   do p=1,n
     do q=1,n
-      ctemp=ZERO
+      ctemp=COMPLEXZERO
       do j=1,n
         ctemp=ctemp+inv_tCkl(q,j)*Wc2(j,p)
       enddo  
@@ -1432,12 +1432,12 @@ do i=1,n
     enddo
   enddo
   !tr5=tr[Wc5]
-  tr5=ZERO
+  tr5=COMPLEXZERO
   do p=1,n
     tr5=tr5+Wc5(p,p)
   enddo
   !cnumb=tr[Wc4*Wc5]
-  cnumb=ZERO
+  cnumb=COMPLEXZERO
   do p=1,n
     do q=1,n
       cnumb=cnumb+Wc4(p,q)*Wc5(q,p)
@@ -1462,10 +1462,10 @@ do p=1,n
   enddo
 enddo
 !Wc2=tCl*Wc1'; tr1=tr[tCl*Wc1']; 
-tr1=ZERO
+tr1=COMPLEXZERO
 do p=1,n
   do q=1,n
-    cnumb=ZERO
+    cnumb=COMPLEXZERO
     do j=1,n
       cnumb=cnumb+tCl(j,q)*Wc1(j,p)
     enddo 
@@ -1476,7 +1476,7 @@ enddo
 !Wc3=Wc2*tCl; remember that Wc3 is symmetric
 do p=1,n
   do q=p,n
-    cnumb=ZERO
+    cnumb=COMPLEXZERO
     do j=1,n
       cnumb=cnumb+Wc2(q,j)*tCl(j,p)
     enddo
@@ -1485,7 +1485,7 @@ do p=1,n
   enddo
 enddo
 !tr2=tr[inv_tCkl*Wc3]
-tr2=ZERO
+tr2=COMPLEXZERO
 do p=1,n
   do j=1,n
     tr2=tr2+inv_tCkl(j,p)*Wc3(j,p)
@@ -1494,7 +1494,7 @@ enddo
 drach_MVkl=Skl*Glob_CurrEnergy*SIX*(tr2-tr1)/4
 caux=drach_MVkl   ! <-- delete ======================================================
 !Second term of drach_MVkl; Here we will reuse Wc3 and tr1 obtained previously
-cnumb=ZERO
+cnumb=COMPLEXZERO
 do i=1,n
   cnumb=cnumb+ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*  &
     (4*ME_rXr_over_rij(Wc3,i,i,inv_tCkl,rmkl(i,i),TrCJ(i,i))-6*tr1*rmkl(i,i))
@@ -1509,9 +1509,9 @@ drach_MVkl=drach_MVkl-cnumb/4
 caux1=drach_MVkl   ! <-- delete ======================================================
 !Third term of drach_MVkl;
 !Wc1=J*tCk; tr1=tr[Wc1]
-tr1=ZERO
+tr1=COMPLEXZERO
 do p=1,n
-  cnumb=ZERO
+  cnumb=COMPLEXZERO
   do q=1,n
     cnumb=cnumb+tCk(q,p)
   enddo
@@ -1521,7 +1521,7 @@ do p=1,n
   tr1=tr1+cnumb
 enddo
 !Wc2= tCl * \sum J_{jj} (m_0+m_j)/(m_0^2*m_j^2); tr2=tr[Wc2]
-tr2=ZERO
+tr2=COMPLEXZERO
 do p=1,n
   cnumb=(Glob_Mass(1)+Glob_Mass(p+1))/(Glob_Mass(1)*Glob_Mass(1)*Glob_Mass(p+1)*Glob_Mass(p+1))
   do q=1,n
@@ -1532,17 +1532,17 @@ enddo
 !Wc3=inv_tCkl*tCk*Wc1; tr3=tr[Wc3]
 do p=1,n
   do q=1,n
-    cnumb=ZERO
+    cnumb=COMPLEXZERO
     do j=1,n
       cnumb=cnumb+inv_tCkl(q,j)*tCk(j,p)
     enddo
     Wc5(q,p)=cnumb
   enddo
 enddo
-tr3=ZERO
+tr3=COMPLEXZERO
 do p=1,n
   do q=1,n
-    cnumb=ZERO
+    cnumb=COMPLEXZERO
     do j=1,n
       cnumb=cnumb+Wc5(q,j)*Wc1(j,p)
     enddo
@@ -1553,17 +1553,17 @@ enddo
 !Wc4=inv_tCkl*Wc2*tCl; tr4=tr[Wc4]
 do p=1,n
   do q=1,n
-    cnumb=ZERO
+    cnumb=COMPLEXZERO
     do j=1,n
       cnumb=cnumb+inv_tCkl(q,j)*Wc2(j,p)
     enddo
     Wc5(q,p)=cnumb
   enddo
 enddo
-tr4=ZERO
+tr4=COMPLEXZERO
 do p=1,n
   do q=1,n
-    cnumb=ZERO
+    cnumb=COMPLEXZERO
     do j=1,n
       cnumb=cnumb+Wc5(q,j)*tCl(j,p)
     enddo
@@ -1572,7 +1572,7 @@ do p=1,n
   tr4=tr4+Wc4(p,p)
 enddo
 !tr5=tr[Wc3*Wc4]
-tr5=ZERO
+tr5=COMPLEXZERO
 do p=1,n
   do j=1,n
     tr5=tr5+Wc3(p,j)*Wc4(j,p)
@@ -1587,10 +1587,10 @@ do k=1,n-1
   !Wc2= tCl * \sum_{j>i} J_{jj} (m_i+m_j)/(m_i^2*m_j^2); tr2=tr[Wc2]
   do p=1,k
     do q=1,n
-      Wc2(q,p)=ZERO
+      Wc2(q,p)=COMPLEXZERO
     enddo    
   enddo
-  tr2=ZERO
+  tr2=COMPLEXZERO
   do p=k+1,n
     cnumb=(Glob_Mass(k+1)+Glob_Mass(p+1)) &
            /(Glob_Mass(k+1)*Glob_Mass(k+1)*Glob_Mass(p+1)*Glob_Mass(p+1))
@@ -1605,10 +1605,10 @@ do k=1,n-1
       Wc5(q,p)=tCk(q,k)*tCk(p,k)
     enddo
   enddo
-  tr3=ZERO
+  tr3=COMPLEXZERO
   do p=1,n
     do q=1,n
-      cnumb=ZERO
+      cnumb=COMPLEXZERO
       do j=1,n
         cnumb=cnumb+inv_tCkl(q,j)*Wc5(j,p)
       enddo
@@ -1619,17 +1619,17 @@ do k=1,n-1
   !Wc4=inv_tCkl*Wc2*tCl; tr4=tr[Wc4]
   do p=1,n
     do q=1,n
-      cnumb=ZERO
+      cnumb=COMPLEXZERO
       do j=1,n
         cnumb=cnumb+inv_tCkl(q,j)*Wc2(j,p)
       enddo
       Wc5(q,p)=cnumb
     enddo
   enddo
-  tr4=ZERO
+  tr4=COMPLEXZERO
   do p=1,n
     do q=1,n
-      cnumb=ZERO
+      cnumb=COMPLEXZERO
       do j=1,n
         cnumb=cnumb+Wc5(q,j)*tCl(j,p)
       enddo
@@ -1638,7 +1638,7 @@ do k=1,n-1
     tr4=tr4+Wc4(p,p)
   enddo
   !tr5=tr[Wc3*Wc4]
-  tr5=ZERO
+  tr5=COMPLEXZERO
   do p=1,n
     do j=1,n
       tr5=tr5+Wc3(p,j)*Wc4(j,p)
@@ -1653,7 +1653,7 @@ Mass_For_Darwin(1:n)=Glob_Mass(2:n+1)
 !Mass_For_Darwin(0)=10.0D20
 !Mass_For_Darwin(1)=10.0D20
 !Mass_For_Darwin(2)=10.0D20
-Darwinkl=ZERO
+Darwinkl=COMPLEXZERO
 do i=1,n
   Darwinkl=Darwinkl+(   &
      ONE/(Mass_For_Darwin(0)*Mass_For_Darwin(0)) &
@@ -1696,8 +1696,8 @@ do i=1,n
   enddo
 enddo
 !Third term
-Wc1(1:n,1:n)=ONE
-Wc2(1:n,1:n)=ZERO
+Wc1(1:n,1:n)=COMPLEXONE
+Wc2(1:n,1:n)=COMPLEXZERO
 do j=1,n
   Wc2(j,j)=Wc2(j,j)+(Glob_Mass(1)+Glob_Mass(j+1)) &
             /(Glob_Mass(1)*Glob_Mass(1)*Glob_Mass(j+1)*Glob_Mass(j+1))
@@ -1706,10 +1706,10 @@ drach_Darwinkl=drach_Darwinkl+ME_dXd_dYd(Wc1,Wc2,inv_tCkl,tCk,tCl,Skl)/8
 !Fourth term
 do i=1,n
   do j=i+1,n
-    Wc1(1:n,1:n)=ZERO
-    Wc1(i,i)=ONE
-    Wc2(1:n,1:n)=ZERO
-    Wc2(j,j)=ONE
+    Wc1(1:n,1:n)=COMPLEXZERO
+    Wc1(i,i)=COMPLEXONE
+    Wc2(1:n,1:n)=COMPLEXZERO
+    Wc2(j,j)=COMPLEXONE
     cnumb=(Glob_Mass(i+1)+Glob_Mass(j+1)) &
             /(Glob_Mass(i+1)*Glob_Mass(i+1)*Glob_Mass(j+1)*Glob_Mass(j+1))
     drach_Darwinkl=drach_Darwinkl+cnumb*ME_dXd_dYd(Wc1,Wc2,inv_tCkl,tCk,tCl,Skl)/8
@@ -1736,7 +1736,7 @@ if (ArePartDensNeeded) then
   do k=1,NumDensGridPoints
     rnumb=-DensGrid(k)*DensGrid(k)
     do i=1,n+1
-      caux=ZERO
+      caux=COMPLEXZERO
       do p=1,n
         caux=caux+Glob_bvc(p,i)*Glob_bvc(p,i)*inv_tCkl(p,p)
         do q=p+1,n
@@ -1751,7 +1751,7 @@ endif
 !if (ArePartDensNeeded) then
 !  ctemp=Skl/(PI*SQRTPI)
 !    do i=1,n+1
-!      caux=ZERO
+!      caux=COMPLEXZERO
 !      do p=1,n
 !        caux=caux+Glob_bvc(p,i)*Glob_bvc(p,i)*inv_tCkl(p,p)
 !        do q=p+1,n
@@ -1774,7 +1774,7 @@ complex(dprec) trace
 integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
 complex(dprec) M(nn,nn)
 integer i
-trace=ZERO
+trace=COMPLEXZERO
 do i=1,k
   trace=trace+M(i,i)
 enddo
@@ -1823,7 +1823,7 @@ integer        n,m,p,q
 
 n=Glob_n
 
-TrCX=ZERO
+TrCX=COMPLEXZERO
 do m=1,n
   do p=1,n
     TrCX=TrCX+invCkl(m,p)*X(p,m)
@@ -1831,14 +1831,14 @@ do m=1,n
 enddo
 
 do m=1,n
-  CXi(m)=ZERO
+  CXi(m)=COMPLEXZERO
   do p=1,n
     CXi(m)=CXi(m)+invCkl(i,p)*X(p,m)
   enddo
 enddo
 if (j/=i) then
   do m=1,n
-    CXj(m)=ZERO
+    CXj(m)=COMPLEXZERO
     do p=1,n
       CXj(m)=CXj(m)+invCkl(j,p)*X(p,m)
     enddo
@@ -1846,12 +1846,12 @@ if (j/=i) then
 endif
 
 if (i==j) then
-  TrCXCJ=ZERO
+  TrCXCJ=COMPLEXZERO
   do m=1,n
     TrCXCJ=TrCXCJ+CXi(m)*invCkl(m,i)
   enddo
 else
-  TrCXCJ=ZERO
+  TrCXCJ=COMPLEXZERO
   do m=1,n
     TrCXCJ=TrCXCJ+(CXi(m)-CXj(m))*(invCkl(m,i)-invCkl(m,j))
   enddo  
@@ -1869,7 +1869,7 @@ subroutine ME_rXr_over_rij_all(X,invCkl,rmkl,TrCJ,ME)
 !Index i can be equal to j. In the latter case
 !<phi_k| r'Xr/r_{i} |phi_l> is computed
 !Input:
-!            X  :: n x n real matrix
+!            X  :: n x n complex matrix
 !        invCkl :: n x n complex matrix where the inverse of Ck+tCl is stored
 !          rmkl :: the values of <phi_k| 1/r_{ij} |phi_l> matrix element 
 !          TrCJ :: the value of Tr[invCkl Jij]
@@ -1881,52 +1881,52 @@ subroutine ME_rXr_over_rij_all(X,invCkl,rmkl,TrCJ,ME)
 integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
 
 !Arguments:
-complex(dprec)  X(nn,nn),invCkl(nn,nn),rmkl(Glob_n,Glob_n),TrAJ(nn,nn),ME(nn,nn)
+complex(dprec)  X(nn,nn),invCkl(nn,nn),rmkl(Glob_n,Glob_n),TrCJ(nn,nn),ME(nn,nn)
 !Local variables
 integer      i,j
-real(dprec)  AXi(nn),AXj(nn)
-real(dprec)  TrAX,TrAXAJ
+complex(dprec)  CXi(nn),CXj(nn)
+complex(dprec)  TrCX,TrCXCJ
 integer      n,m,p,q
 
 n=Glob_n
 
-TrAX=ZERO
+TrCX=COMPLEXZERO
 do m=1,n
   do p=1,n
-    TrAX=TrAX+inv_tAkl(m,p)*X(p,m)
+    TrCX=TrCX+invCkl(m,p)*X(p,m)
   enddo
 enddo
 
 do i=1,n
   do j=i,n    
     do m=1,n
-      AXi(m)=ZERO
+      CXi(m)=COMPLEXZERO
       do p=1,n
-        AXi(m)=AXi(m)+inv_tAkl(i,p)*X(p,m)
+        CXi(m)=CXi(m)+invCkl(i,p)*X(p,m)
       enddo
     enddo
     if (j/=i) then
       do m=1,n
-        AXj(m)=ZERO
+        CXj(m)=COMPLEXZERO
         do p=1,n
-          AXj(m)=AXj(m)+inv_tAkl(j,p)*X(p,m)
+          CXj(m)=CXj(m)+invCkl(j,p)*X(p,m)
         enddo
       enddo
     endif
 
     if (i==j) then
-      TrAXAJ=ZERO
+      TrCXCJ=COMPLEXZERO
       do m=1,n
-        TrAXAJ=TrAXAJ+AXi(m)*inv_tAkl(m,i)
+        TrCXCJ=TrCXCJ+CXi(m)*invCkl(m,i)
       enddo
     else
-      TrAXAJ=ZERO
+      TrCXCJ=COMPLEXZERO
       do m=1,n
-        TrAXAJ=TrAXAJ+(AXi(m)-AXj(m))*(inv_tAkl(m,i)-inv_tAkl(m,j))
+        TrCXCJ=TrCXCJ+(CXi(m)-CXj(m))*(invCkl(m,i)-invCkl(m,j))
       enddo  
     endif
 
-    ME(i,j)=rmkl(i,j)*(3*TrAX-TrAXAJ/TrAJ(i,j))/2
+    ME(i,j)=ONEHALF*rmkl(i,j)*(3*TrCX-TrCXCJ/TrCJ(i,j))
     ME(j,i)=ME(i,j)
     
   enddo
@@ -1982,7 +1982,7 @@ enddo
 
 do p=1,n
   do q=1,n
-    CY(p,q)=ZERO
+    CY(p,q)=COMPLEXZERO
     do m=1,n
       CY(p,q)=CY(p,q)+invCkl(p,m)*Ys(m,q)
     enddo
@@ -1990,7 +1990,7 @@ do p=1,n
 enddo
 do p=1,n
   do q=1,n
-    CX(p,q)=ZERO
+    CX(p,q)=COMPLEXZERO
     do m=1,n
       CX(p,q)=CX(p,q)+invCkl(p,m)*Xs(m,q)
     enddo
@@ -1998,27 +1998,27 @@ do p=1,n
 enddo
 
 do m=1,n
-  CXCYi(m)=ZERO
+  CXCYi(m)=COMPLEXZERO
   do p=1,n
     CXCYi(m)=CXCYi(m)+CX(i,p)*CY(p,m)
   enddo
 enddo
 if (j/=i) then
   do m=1,n
-    CXCYj(m)=ZERO
+    CXCYj(m)=COMPLEXZERO
     do p=1,n
       CXCYj(m)=CXCYj(m)+CX(j,p)*CY(p,m)
     enddo
   enddo
 endif
 
-TrCY=ZERO
-TrCX=ZERO
+TrCY=COMPLEXZERO
+TrCX=COMPLEXZERO
 do m=1,n
   TrCY=TrCY+CY(m,m)
   TrCX=TrCX+CX(m,m)  
 enddo
-TrCXCY=ZERO
+TrCXCY=COMPLEXZERO
 do m=1,n
   do p=1,n
     TrCXCY=TrCXCY+CX(m,p)*CY(p,m)
@@ -2026,28 +2026,28 @@ do m=1,n
 enddo
 
 if (i==j) then
-  TrCXCJ=ZERO
+  TrCXCJ=COMPLEXZERO
   do m=1,n
     TrCXCJ=TrCXCJ+CX(i,m)*invCkl(m,i)
   enddo
-  TrCYCJ=ZERO
+  TrCYCJ=COMPLEXZERO
   do m=1,n
     TrCYCJ=TrCYCJ+CY(i,m)*invCkl(m,i)
   enddo
-  TrCXCYCJ=ZERO
+  TrCXCYCJ=COMPLEXZERO
   do m=1,n
     TrCXCYCJ=TrCXCYCJ+CXCYi(m)*invCkl(m,i)
   enddo  
 else
-  TrCXCJ=ZERO
+  TrCXCJ=COMPLEXZERO
   do m=1,n
     TrCXCJ=TrCXCJ+(CX(i,m)-CX(j,m))*(invCkl(m,i)-invCkl(m,j))
   enddo  
-  TrCYCJ=ZERO
+  TrCYCJ=COMPLEXZERO
   do m=1,n
     TrCYCJ=TrCYCJ+(CY(i,m)-CY(j,m))*(invCkl(m,i)-invCkl(m,j))
   enddo   
-  TrCXCYCJ=ZERO
+  TrCXCYCJ=COMPLEXZERO
   do m=1,n
     TrCXCYCJ=TrCXCYCJ+(CXCYi(m)-CXCYj(m))*(invCkl(m,i)-invCkl(m,j))
   enddo  
@@ -2123,7 +2123,7 @@ complex(dprec) TrCX
 integer        n,i,k
 
 n=Glob_n
-TrCX=ZERO
+TrCX=COMPLEXZERO
 
 do i=1,n
   do k=1,n
@@ -2147,13 +2147,13 @@ complex(dprec) TrCX,TrCY,TrCXCY,ctemp1,ctemp2
 integer        n,i,j,k
 
 n=Glob_n
-TrCX=ZERO
-TrCY=ZERO
+TrCX=COMPLEXZERO
+TrCY=COMPLEXZERO
 
 do i=1,n
   do j=1,n
-    ctemp1=ZERO
-    ctemp2=ZERO
+    ctemp1=COMPLEXZERO
+    ctemp2=COMPLEXZERO
     do k=1,n
       ctemp1=ctemp1+inv_tCkl(j,k)*X(k,i)
       ctemp2=ctemp2+inv_tCkl(j,k)*Y(k,i)
@@ -2165,7 +2165,7 @@ do i=1,n
   TrCY=TrCY+CY(i,i)
 enddo
 
-TrCXCY=ZERO
+TrCXCY=COMPLEXZERO
 do i=1,n
   do k=1,n
     TrCXCY=TrCXCY+CX(i,k)*CY(k,i)
@@ -2190,15 +2190,15 @@ complex(dprec) ctemp1,ctemp2,ctemp3
 integer        n,i,j,k
 
 n=Glob_n
-TrCX=ZERO
-TrCY=ZERO
-TrCZ=ZERO
+TrCX=COMPLEXZERO
+TrCY=COMPLEXZERO
+TrCZ=COMPLEXZERO
 
 do i=1,n
   do j=1,n
-    ctemp1=ZERO
-    ctemp2=ZERO
-    ctemp3=ZERO
+    ctemp1=COMPLEXZERO
+    ctemp2=COMPLEXZERO
+    ctemp3=COMPLEXZERO
     do k=1,n
       ctemp1=ctemp1+inv_tCkl(j,k)*X(k,i)
       ctemp2=ctemp2+inv_tCkl(j,k)*Y(k,i)
@@ -2213,13 +2213,13 @@ do i=1,n
   TrCZ=TrCZ+CZ(i,i)
 enddo
 
-TrCXCY=ZERO
-TrCXCZ=ZERO
+TrCXCY=COMPLEXZERO
+TrCXCZ=COMPLEXZERO
 
 do i=1,n
   do j=1,n
-    ctemp1=ZERO
-    ctemp2=ZERO
+    ctemp1=COMPLEXZERO
+    ctemp2=COMPLEXZERO
     do k=1,n
       ctemp1=ctemp1+CX(j,k)*CY(k,i)
       ctemp2=ctemp2+CX(j,k)*CZ(k,i)
@@ -2231,9 +2231,9 @@ do i=1,n
   TrCXCZ=TrCXCZ+CXCZ(i,i)
 enddo
 
-TrCYCZ=ZERO
-TrCXCYCZ=ZERO
-TrCXCZCY=ZERO
+TrCYCZ=COMPLEXZERO
+TrCXCYCZ=COMPLEXZERO
+TrCXCZCY=COMPLEXZERO
 
 do i=1,n
   do k=1,n
