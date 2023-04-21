@@ -2,6 +2,7 @@
 # Compilation script to compile ECG codes. Typical usages:
 #   ./compile_XXXXX shabyt gcc9 8 10   <--  gcc9 toolchain, precision 8 and 10
 #   ./compile_XXXXX wsl_ubuntu20 gcc 8 10 16   <-- system default gcc, precisions 8, 10, 16
+#   ./compile_XXXXX worker26 gcc12 8 10 16   <-- system default gcc, precisions 8, 10, 16
 # This script must be executed in the directory one level above
 # directories RGL0, RGL1, RGL2P, RGL2D
 
@@ -16,7 +17,7 @@ endif
 #Set the default compiler toolchain (if the script is executed with no more than 1 argument)
 #Possible choices: gcc (system default), gcc9
 if ($#argv < 2) then
-  set TOOLCHAIN=gcc12
+  set TOOLCHAIN=gcc9
 else
   set TOOLCHAIN = $argv[2]
 endif
@@ -57,6 +58,8 @@ else if (${MACHINE} == shabyt) then
 else if (${MACHINE} == wsl_ubuntu20) then
   source /usr/share/lmod/lmod/init/csh
   module use /shared/modulefiles
+else if (${MACHINE} == worker26) then
+  source /usr/share/modules/init/csh
 endif
 
 #Load moduli corresponding to each specific compiler and machine
@@ -75,7 +78,25 @@ if (${MACHINE} == shabyt || ${MACHINE} == wsl_ubuntu20) then
     echo "Error: Toolchain " ${TOOLCHAIN} " is not supported on machine " ${MACHINE}
     exit 1
   endif
+else if (${MACHINE} == worker26 || ${MACHINE} == mylinuxbox) then
+  if (${TOOLCHAIN} == gcc9) then
+    module load gcc/9.5.0
+    module load openmpi-gcc9/4.1.5
+  else if (${TOOLCHAIN} == gcc12) then
+    module load gcc/12.2.0
+    module load openmpi-gcc12/4.1.5
+  else if (${TOOLCHAIN} == gcc) then
+    #Nothing to load for worker26 or mylinuxbox
+    #System default gcc/openmpi should be accessible without loading any moduli
+  else
+    echo "Error: Toolchain " ${TOOLCHAIN} " is not supported on machine " ${MACHINE}
+    exit 1
+  endif
+else
+    echo "Machine " ${MACHINE} " is not supported"
+    exit 1
 endif
+
 
 # Create directory called "bin" (and subdirectories) in current directory if it does not yet exist
 if (! -e bin/) mkdir bin
@@ -87,7 +108,7 @@ foreach PREC ($PRECVALS)
   #Set parameters COMPILER, REALX_NAME depending on the machine/compiler used
   if (${TOOLCHAIN} == gcc || ${TOOLCHAIN} == gcc9 || ${TOOLCHAIN} == gcc12) then
     set COMPILER=gnu
-    if (${MACHINE} == shabyt || ${MACHINE} == wsl_ubuntu20) then
+    if (${MACHINE} == shabyt || ${MACHINE} == wsl_ubuntu20 || ${MACHINE} == worker26 || ${MACHINE} == mylinuxbox) then
       if (${PREC} == 8) then
         set REALX_NAME=MPI_DOUBLE_PRECISION
       else if (${PREC} == 10) then
