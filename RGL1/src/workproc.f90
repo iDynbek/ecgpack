@@ -12,9 +12,9 @@ contains
 
 subroutine ReadIOFile()
 !Subroutine ReadIOFile reads data (nonlinear variational
-!parameters and other information) from the input/output
-!file whose name is specified by global variable
-!Glob_DataFileName. If there is no such a file in the
+!parameters and other information) from the input/output 
+!file whose name is specified by global variable 
+!Glob_DataFileName. If there is no such a file in the 
 !current directory then the program stops.
 
 !Local variables:
@@ -51,10 +51,10 @@ if (Glob_ProcID==0) then
   Line=Line+1
   Glob_n=ReadInt-1 !Glob_n is the number of pseudoparticles
   if ((Glob_n<1).or.(ReadChar(1:9)/='PARTICLES')) then
-    write(*,*) 'Error in data file, line ',Line
+    write(*,*) 'Error in data file, line ',Line   
     ErrorInDataFile=.true.
   endif
-endif
+endif 
 if (Glob_n>Glob_MaxAllowedNumOfPseudoParticles) then
   if (Glob_ProcID==0) then
     write (*,*) 'The version of the code you are running was compiled for the case'
@@ -96,11 +96,11 @@ if (Glob_ProcID==0) then
   Glob_RepulsionScalingParam=1.0_dprec
   Glob_RepScalParamSupplied=.false.
   Glob_RepulsionScalingParamPlus=1.0_dprec
-  Glob_RepScalParamPlusSupplied=.false.
+  Glob_RepScalParamPlusSupplied=.false.  
   Glob_RepulsionScalingParamMinus=1.0_dprec
-  Glob_RepScalParamMinusSupplied=.false.
+  Glob_RepScalParamMinusSupplied=.false.  
   do i=1,3
-    read(1,*,iostat=ReadErr) ReadChar(1:29),ReadRealA
+    read(1,*,iostat=ReadErr) ReadChar(1:29),ReadRealA  
     if ((ReadErr/=0).or.(ReadChar(1:23)/='REPULSION_SCALING_PARAM')) then
       backspace 1
     else
@@ -108,21 +108,21 @@ if (Glob_ProcID==0) then
         Glob_RepulsionScalingParamPlus=ReadRealA
         Glob_RepScalParamPlusSupplied=.true.
         write(*,'(1x,a28)',advance='no') ReadChar(1:28)
-        call writerealadv(6,Glob_RepulsionScalingParamPlus)
+        call writerealadv(6,Glob_RepulsionScalingParamPlus)      
       elseif (ReadChar(1:29)=='REPULSION_SCALING_PARAM_MINUS') then
         Glob_RepulsionScalingParamMinus=ReadRealA
         Glob_RepScalParamMinusSupplied=.true.
         write(*,'(1x,a28)',advance='no') ReadChar(1:29)
-        call writerealadv(6,Glob_RepulsionScalingParamMinus)
+        call writerealadv(6,Glob_RepulsionScalingParamMinus)        
       else
         Glob_RepulsionScalingParam=ReadRealA
         Glob_RepScalParamSupplied=.true.
         write(*,'(1x,a23)',advance='no') ReadChar(1:23)
-        call writerealadv(6,Glob_RepulsionScalingParam)
-      endif
+        call writerealadv(6,Glob_RepulsionScalingParam)      
+      endif 
       Line=Line+1
-    endif
-  enddo
+    endif 
+  enddo 
 endif
 call MPI_BCAST(Glob_RepScalParamSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 call MPI_BCAST(Glob_RepulsionScalingParam,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -265,17 +265,16 @@ if (Glob_ProcID==0) then
       IsBBOPStep=.false.
 	endif
   enddo
-  do i=1,Glob_NumOfBBOPSteps+1
+  do i=1,Glob_NumOfBBOPSteps+1 
     backspace 1
   enddo
 endif
 call MPI_BCAST(Glob_NumOfBBOPSteps,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 allocate(Glob_BBOP(Glob_NumOfBBOPSteps))
 
-
 if (Glob_ProcID==0) then
   do i=1,Glob_NumOfBBOPSteps
-    read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod
+    read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod    
   enddo
   do i=1,Glob_NumOfBBOPSteps
     backspace 1
@@ -292,12 +291,10 @@ if (Glob_ProcID==0) then
 	  !call writereal(6,Glob_BBOP(i)%Q)
 	  !call writerealadv(6,Glob_BBOP(i)%R)
     case('OPT_CYCLE')
-
       read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &
-             Glob_BBOP(i)%A,Glob_BBOP(i)%B,Glob_BBOP(i)%C, &
-       			Glob_BBOP(i)%D,Glob_BBOP(i)%E,Glob_BBOP(i)%F,Glob_BBOP(i)%G, &
-       			Glob_BBOP(i)%Q,Glob_BBOP(i)%R,Glob_BBOP(i)%H
-
+            Glob_BBOP(i)%A,Glob_BBOP(i)%B,Glob_BBOP(i)%C, &
+			Glob_BBOP(i)%D,Glob_BBOP(i)%E,Glob_BBOP(i)%F,Glob_BBOP(i)%G, &
+			Glob_BBOP(i)%Q,Glob_BBOP(i)%R,Glob_BBOP(i)%H
       !write(*,'(1x,a9,1x,a1,7(1x,i6))',advance='no') Glob_BBOP(i)%Action(1:9), &
 	  !      Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A,Glob_BBOP(i)%B, &
 	  !		 Glob_BBOP(i)%C,Glob_BBOP(i)%D,Glob_BBOP(i)%E, &
@@ -306,7 +303,6 @@ if (Glob_ProcID==0) then
 	  !call writereal(6,Glob_BBOP(i)%R)
 	  !write(*,'(1x,i6)') Glob_BBOP(i)%H
 	  Glob_IsOptCycleScripted=.true.
-
     case('FULL_OPT1')
       read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &
             Glob_BBOP(i)%A,Glob_BBOP(i)%B,Glob_BBOP(i)%C,Glob_BBOP(i)%D, &
@@ -323,7 +319,7 @@ if (Glob_ProcID==0) then
     case('EXPC_VALS')
       read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
       !write(*,'(1x,a9,1x,a1,1x,i6)') Glob_BBOP(i)%Action(1:9),  &
-	  !        Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
+	  !        Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A	  
     case('DENSITIES')
       read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &
             Glob_BBOP(i)%A,Glob_BBOP(i)%FileName1(1:Glob_FileNameLength), &
@@ -333,12 +329,12 @@ if (Glob_ProcID==0) then
       j1=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
       j2=len_trim(Glob_BBOP(i)%FileName2(1:Glob_FileNameLength))
       j3=len_trim(Glob_BBOP(i)%FileName3(1:Glob_FileNameLength))
-      j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength))
+      j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength))                              	
       !write(*,'(1x,a9,1x,a1,1x,i6)',advance='no')              &
       !      Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
-      !call writestring(6,Glob_BBOP(i)%FileName1,j1)
-      !call writestring(6,Glob_BBOP(i)%FileName2,j2)
-      !call writestring(6,Glob_BBOP(i)%FileName3,j3)
+      !call writestring(6,Glob_BBOP(i)%FileName1,j1) 
+      !call writestring(6,Glob_BBOP(i)%FileName2,j2)  
+      !call writestring(6,Glob_BBOP(i)%FileName3,j3)  
       !call writestringadv(6,Glob_BBOP(i)%FileName4,j4)
     case('MOMT_DENS')
       read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &
@@ -349,25 +345,25 @@ if (Glob_ProcID==0) then
       j1=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
       j2=len_trim(Glob_BBOP(i)%FileName2(1:Glob_FileNameLength))
       j3=len_trim(Glob_BBOP(i)%FileName3(1:Glob_FileNameLength))
-      j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength))
-	case('ELIM_LCFN')
-	  read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &
+      j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength))       	              
+	case('ELIM_LCFN') 
+	  read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &		
             Glob_BBOP(i)%A,Glob_BBOP(i)%Q,Glob_BBOP(i)%FileName1(1:Glob_FileNameLength)
       j=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
       !write(*,'(1x,a9,1x,a1,1x,i6)',advance='no') Glob_BBOP(i)%Action(1:9),  &
 	  !      Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
 	  !call writereal(6,Glob_BBOP(i)%Q)
       !call writestringadv(6,Glob_BBOP(i)%FileName1,j)
-	case('ELIM_LND1')
-	  read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &
+	case('ELIM_LND1') 
+	  read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &		
             Glob_BBOP(i)%A,Glob_BBOP(i)%Q,Glob_BBOP(i)%FileName1(1:Glob_FileNameLength)
       j=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
       !write(*,'(1x,a9,1x,a1,1x,i6)',advance='no') Glob_BBOP(i)%Action(1:9),  &
 	  !      Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
 	  !call writereal(6,Glob_BBOP(i)%Q)
       !call writestringadv(6,Glob_BBOP(i)%FileName1,j)
-	case('SEPR_LND1')
-	  read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &
+	case('SEPR_LND1') 
+	  read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &		
             Glob_BBOP(i)%A,Glob_BBOP(i)%Q,Glob_BBOP(i)%R, &
             Glob_BBOP(i)%FileName1(1:Glob_FileNameLength)
       j=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
@@ -377,7 +373,7 @@ if (Glob_ProcID==0) then
       !call writereal(6,Glob_BBOP(i)%R)
       !call writestringadv(6,Glob_BBOP(i)%FileName1,j)
     case('SEPR_FLCF')
-	  read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &
+	  read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &		
             Glob_BBOP(i)%A,Glob_BBOP(i)%Q,Glob_BBOP(i)%R, &
             Glob_BBOP(i)%FileName1(1:Glob_FileNameLength)
       j=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
@@ -388,10 +384,10 @@ if (Glob_ProcID==0) then
       !call writestringadv(6,Glob_BBOP(i)%FileName1,j)
     case('SAVE_FILE')
       read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%A, &
-                Glob_BBOP(i)%FileName1(1:Glob_FileNameLength)
+                Glob_BBOP(i)%FileName1(1:Glob_FileNameLength)   
       j=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
       !write(*,'(1x,a9,1x,i6,1x)',advance='no') Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%A
-      !call writestringadv(6,Glob_BBOP(i)%FileName1,j)
+      !call writestringadv(6,Glob_BBOP(i)%FileName1,j)   
     case('SAVE_HSWF')
       read(1,*) Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod, &
             Glob_BBOP(i)%A,Glob_BBOP(i)%FileName1(1:Glob_FileNameLength), &
@@ -400,9 +396,9 @@ if (Glob_ProcID==0) then
             Glob_BBOP(i)%FileName4(1:Glob_FileNameLength)
       j1=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
       j2=len_trim(Glob_BBOP(i)%FileName2(1:Glob_FileNameLength))
-      j3=len_trim(Glob_BBOP(i)%FileName3(1:Glob_FileNameLength))
-      j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength))
-	endselect
+      j3=len_trim(Glob_BBOP(i)%FileName3(1:Glob_FileNameLength)) 
+      j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength))       
+	endselect			     
   enddo
   read(1,'(a70)')   ReadChar(1:70)
   !write(*,'(a70)')  ReadChar(1:70)
@@ -416,18 +412,18 @@ do i=1,Glob_NumOfBBOPSteps
      Glob_BBOP(i)%Action(j:j)=char(WorkInt(j))
   enddo
   j=ichar(Glob_BBOP(i)%GSEPSolutionMethod)
-  call MPI_BCAST(j,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  call MPI_BCAST(j,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
   Glob_BBOP(i)%GSEPSolutionMethod=char(j)
-  call MPI_BCAST(Glob_BBOP(i)%A,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  call MPI_BCAST(Glob_BBOP(i)%B,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  call MPI_BCAST(Glob_BBOP(i)%C,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  call MPI_BCAST(Glob_BBOP(i)%D,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  call MPI_BCAST(Glob_BBOP(i)%E,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  call MPI_BCAST(Glob_BBOP(i)%F,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  call MPI_BCAST(Glob_BBOP(i)%G,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  call MPI_BCAST(Glob_BBOP(i)%H,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  call MPI_BCAST(Glob_BBOP(i)%Q,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  call MPI_BCAST(Glob_BBOP(i)%R,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  call MPI_BCAST(Glob_BBOP(i)%A,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
+  call MPI_BCAST(Glob_BBOP(i)%B,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
+  call MPI_BCAST(Glob_BBOP(i)%C,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
+  call MPI_BCAST(Glob_BBOP(i)%D,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
+  call MPI_BCAST(Glob_BBOP(i)%E,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
+  call MPI_BCAST(Glob_BBOP(i)%F,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
+  call MPI_BCAST(Glob_BBOP(i)%G,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
+  call MPI_BCAST(Glob_BBOP(i)%H,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)   
+  call MPI_BCAST(Glob_BBOP(i)%Q,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
+  call MPI_BCAST(Glob_BBOP(i)%R,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
   do j=1,Glob_FileNameLength
     WorkInt(j)=ichar(Glob_BBOP(i)%FileName1(j:j))
   enddo
@@ -441,21 +437,21 @@ do i=1,Glob_NumOfBBOPSteps
   call MPI_BCAST(WorkInt,Glob_FileNameLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   do j=1,Glob_FileNameLength
      Glob_BBOP(i)%FileName2(j:j)=char(WorkInt(j))
-  enddo
+  enddo  
   do j=1,Glob_FileNameLength
     WorkInt(j)=ichar(Glob_BBOP(i)%FileName3(j:j))
   enddo
   call MPI_BCAST(WorkInt,Glob_FileNameLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   do j=1,Glob_FileNameLength
      Glob_BBOP(i)%FileName3(j:j)=char(WorkInt(j))
-  enddo
+  enddo  
   do j=1,Glob_FileNameLength
     WorkInt(j)=ichar(Glob_BBOP(i)%FileName4(j:j))
   enddo
   call MPI_BCAST(WorkInt,Glob_FileNameLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   do j=1,Glob_FileNameLength
      Glob_BBOP(i)%FileName4(j:j)=char(WorkInt(j))
-  enddo
+  enddo  
 enddo
 call MPI_BCAST(Glob_IsOptCycleScripted,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
@@ -486,28 +482,28 @@ endif
 do i=1,Glob_CurrBasisSize
   WorkBuffReal(i)=Glob_History(i)%Energy
 enddo
-call MPI_BCAST(WorkBuffReal,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(WorkBuffReal,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
 do i=1,Glob_CurrBasisSize
   Glob_History(i)%Energy=WorkBuffReal(i)
 enddo
 do i=1,Glob_CurrBasisSize
   WorkBuffInt(i)=Glob_History(i)%CyclesDone
 enddo
-call MPI_BCAST(WorkBuffInt,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(WorkBuffInt,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
 do i=1,Glob_CurrBasisSize
   Glob_History(i)%CyclesDone=WorkBuffInt(i)
 enddo
 do i=1,Glob_CurrBasisSize
   WorkBuffInt(i)=Glob_History(i)%InitFuncAtLastStep
 enddo
-call MPI_BCAST(WorkBuffInt,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(WorkBuffInt,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
 do i=1,Glob_CurrBasisSize
   Glob_History(i)%InitFuncAtLastStep=WorkBuffInt(i)
 enddo
 do i=1,Glob_CurrBasisSize
   WorkBuffInt(i)=Glob_History(i)%NumOfEnergyEvalDuringFullOpt
 enddo
-call MPI_BCAST(WorkBuffInt,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(WorkBuffInt,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
 do i=1,Glob_CurrBasisSize
   Glob_History(i)%NumOfEnergyEvalDuringFullOpt=WorkBuffInt(i)
 enddo
@@ -522,8 +518,8 @@ if (Glob_ProcID==0) then
   enddo
 endif
 call MPI_BCAST(Glob_NonlinParam,Glob_npt*Glob_CurrBasisSize, &
-               MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_ZIndex,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+               MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
+call MPI_BCAST(Glob_ZIndex,Glob_CurrBasisSize,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)                 
 
 !Setting function numbers as they were read
 do i=1,Glob_CurrBasisSize
@@ -540,14 +536,14 @@ subroutine SaveResults(FileName,Sort)
 !calculations.
 !  Input parameters :
 !  Filename - Optional file name, where the results need to be saved. If it is
-!         not passed then the result are saved in the file whose name is defined
+!         not passed then the result are saved in the file whose name is defined 
 !         by global variable Glob_DataFileName
-!  Sort - Optional string variable. If its value is equal to 'yes'
-!         or 'YES' then the basis functions are sorted out according to
-!         their numbers. In this case a work array is needed. The
+!  Sort - Optional string variable. If its value is equal to 'yes' 
+!         or 'YES' then the basis functions are sorted out according to 
+!         their numbers. In this case a work array is needed. The 
 !         subroutine uses array Glob_IntWorkArrForSaveResults. Thus,
-!         in order to do calls with Sort='yes' or without passing one first
-!         needs to allocate that global array. The length of this integer
+!         in order to do calls with Sort='yes' or without passing one first 
+!         needs to allocate that global array. The length of this integer 
 !         array should be at least Glob_CurrBasisSize. If the value of
 !         Sort is not equal to 'yes' or 'YES', or it is simply not passed, then
 !         the basis functions will not be sorted out. In this case the allocation
@@ -555,7 +551,7 @@ subroutine SaveResults(FileName,Sort)
 !Arguments:
 character(*)   FileName,Sort
 optional   ::  FileName,Sort
-!Local variables:
+!Local variables: 
 integer i,j,j1,j2,j3,j4
 logical SortNeeded
 
@@ -564,26 +560,26 @@ if (Glob_ProcID==0) then
     open(1,file=FileName,status='replace')
   else
     open(1,file=Glob_DataFileName,status='replace')
-  endif
+  endif  
   write(1,'(1x,a9,1x,i6)') 'PARTICLES',Glob_n+1
   write(1,'(1x,a6)',advance='no') 'MASSES'
   call writerealarradv(1,Glob_Mass,Glob_n+1)
   write(1,'(1x,a7)',advance='no') 'CHARGES'
   call writereal(1,Glob_PseudoCharge0)
   call writerealarradv(1,Glob_PseudoCharge,Glob_n)
-  if (Glob_RepScalParamSupplied) then
+  if (Glob_RepScalParamSupplied) then 
     write(1,'(1x,a23)',advance='no') 'REPULSION_SCALING_PARAM'
     call writerealadv(1,Glob_RepulsionScalingParam)
   endif
-  if (Glob_RepScalParamPlusSupplied) then
+  if (Glob_RepScalParamPlusSupplied) then 
     write(1,'(1x,a28)',advance='no') 'REPULSION_SCALING_PARAM_PLUS'
     call writerealadv(1,Glob_RepulsionScalingParamPlus)
-  endif
-  if (Glob_RepScalParamMinusSupplied) then
+  endif  
+  if (Glob_RepScalParamMinusSupplied) then 
     write(1,'(1x,a29)',advance='no') 'REPULSION_SCALING_PARAM_MINUS'
     call writerealadv(1,Glob_RepulsionScalingParamMinus)
-  endif
-  if (Glob_AttrScalParamSupplied) then
+  endif    
+  if (Glob_AttrScalParamSupplied) then 
     write(1,'(1x,a24)',advance='no') 'ATTRACTION_SCALING_PARAM'
     call writerealadv(1,Glob_AttractionScalingParam)
   endif
@@ -629,8 +625,8 @@ if (Glob_ProcID==0) then
 			Glob_BBOP(i)%C,Glob_BBOP(i)%D,Glob_BBOP(i)%E, &
 			Glob_BBOP(i)%F,Glob_BBOP(i)%G
 	  call writereal(1,Glob_BBOP(i)%Q)
-	  call writereal(1,Glob_BBOP(i)%R)
-	  write(1,'(1x,i6)') Glob_BBOP(i)%H
+	  call writereal(1,Glob_BBOP(i)%R)  
+	  write(1,'(1x,i6)') Glob_BBOP(i)%H	         
     case('FULL_OPT1')
 	  j=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
       write(1,'(1x,a9,1x,a1,4(1x,i6))',advance='no') Glob_BBOP(i)%Action(1:9), &
@@ -639,45 +635,45 @@ if (Glob_ProcID==0) then
 	  call writereal(1,Glob_BBOP(i)%Q)
 	  call writereal(1,Glob_BBOP(i)%R)
 	  write(1,'(2(1x,i6),1x)',advance='no') Glob_BBOP(i)%E,Glob_BBOP(i)%F
-	  call writestringadv(1,Glob_BBOP(i)%FileName1,j)
+	  call writestringadv(1,Glob_BBOP(i)%FileName1,j)           
     case('EXPC_VALS')
       write(1,'(1x,a9,1x,a1,1x,i6)') Glob_BBOP(i)%Action(1:9),  &
 	          Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
     case('DENSITIES')
-	  j1=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
-	  j2=len_trim(Glob_BBOP(i)%FileName2(1:Glob_FileNameLength))
-	  j3=len_trim(Glob_BBOP(i)%FileName3(1:Glob_FileNameLength))
-	  j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength))
+	  j1=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))  
+	  j2=len_trim(Glob_BBOP(i)%FileName2(1:Glob_FileNameLength)) 
+	  j3=len_trim(Glob_BBOP(i)%FileName3(1:Glob_FileNameLength)) 
+	  j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength)) 	  	  	    
       write(1,'(1x,a9,1x,a1,1x,i6)',advance='no')              &
             Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
-      call writestring(1,Glob_BBOP(i)%FileName1,j1)
-      call writestring(1,Glob_BBOP(i)%FileName2,j2)
-      call writestring(1,Glob_BBOP(i)%FileName3,j3)
+      call writestring(1,Glob_BBOP(i)%FileName1,j1) 
+      call writestring(1,Glob_BBOP(i)%FileName2,j2)  
+      call writestring(1,Glob_BBOP(i)%FileName3,j3)  
       call writestringadv(1,Glob_BBOP(i)%FileName4,j4)
     case('MOMT_DENS')
-      j1=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
-      j2=len_trim(Glob_BBOP(i)%FileName2(1:Glob_FileNameLength))
-      j3=len_trim(Glob_BBOP(i)%FileName3(1:Glob_FileNameLength))
-      j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength))
+      j1=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))  
+      j2=len_trim(Glob_BBOP(i)%FileName2(1:Glob_FileNameLength)) 
+      j3=len_trim(Glob_BBOP(i)%FileName3(1:Glob_FileNameLength)) 
+      j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength)) 	  	  	    
         write(1,'(1x,a9,1x,a1,1x,i6)',advance='no')              &
               Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
-        call writestring(1,Glob_BBOP(i)%FileName1,j1)
-        call writestring(1,Glob_BBOP(i)%FileName2,j2)
-        call writestring(1,Glob_BBOP(i)%FileName3,j3)
-        call writestringadv(1,Glob_BBOP(i)%FileName4,j4)
-	case('ELIM_LCFN')
+        call writestring(1,Glob_BBOP(i)%FileName1,j1) 
+        call writestring(1,Glob_BBOP(i)%FileName2,j2)  
+        call writestring(1,Glob_BBOP(i)%FileName3,j3)  
+        call writestringadv(1,Glob_BBOP(i)%FileName4,j4) 
+	case('ELIM_LCFN') 
 	  j=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
       write(1,'(1x,a9,1x,a1,1x,i6)',advance='no') Glob_BBOP(i)%Action(1:9),  &
 	        Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
 	  call writereal(1,Glob_BBOP(i)%Q)
       call writestringadv(1,Glob_BBOP(i)%FileName1,j)
-	case('ELIM_LND1')
+	case('ELIM_LND1') 
 	  j=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
       write(1,'(1x,a9,1x,a1,1x,i6)',advance='no') Glob_BBOP(i)%Action(1:9),  &
 	        Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
 	  call writereal(1,Glob_BBOP(i)%Q)
       call writestringadv(1,Glob_BBOP(i)%FileName1,j)
-	case('SEPR_LND1')
+	case('SEPR_LND1') 
 	  j=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
       write(1,'(1x,a9,1x,a1,i6)',advance='no') Glob_BBOP(i)%Action(1:9),  &
 	        Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
@@ -696,31 +692,31 @@ if (Glob_ProcID==0) then
       write(1,'(1x,a9,1x,i6,1x)',advance='no') Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%A
       call writestringadv(1,Glob_BBOP(i)%FileName1,j)
     case('SAVE_HSWF')
-	  j1=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))
-	  j2=len_trim(Glob_BBOP(i)%FileName2(1:Glob_FileNameLength))
-	  j3=len_trim(Glob_BBOP(i)%FileName3(1:Glob_FileNameLength))
-	  j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength))
+	  j1=len_trim(Glob_BBOP(i)%FileName1(1:Glob_FileNameLength))  
+	  j2=len_trim(Glob_BBOP(i)%FileName2(1:Glob_FileNameLength)) 
+	  j3=len_trim(Glob_BBOP(i)%FileName3(1:Glob_FileNameLength)) 
+	  j4=len_trim(Glob_BBOP(i)%FileName4(1:Glob_FileNameLength))           
       write(1,'(1x,a9,1x,a1,1x,i6)',advance='no')              &
             Glob_BBOP(i)%Action(1:9),Glob_BBOP(i)%GSEPSolutionMethod,Glob_BBOP(i)%A
-      call writestring(1,Glob_BBOP(i)%FileName1,j1)
-      call writestring(1,Glob_BBOP(i)%FileName2,j2)
-      call writestring(1,Glob_BBOP(i)%FileName3,j3)
-      call writestringadv(1,Glob_BBOP(i)%FileName4,j4)
-	endselect
+      call writestring(1,Glob_BBOP(i)%FileName1,j1) 
+      call writestring(1,Glob_BBOP(i)%FileName2,j2)   
+      call writestring(1,Glob_BBOP(i)%FileName3,j3)  
+      call writestringadv(1,Glob_BBOP(i)%FileName4,j4)     
+	endselect			     
   enddo
   write(1,*) '=============================='
   do i=1,Glob_CurrBasisSize
     write(1,'(1x,i6)',advance='no')  i
     call writereal(1,Glob_History(i)%Energy)
     write(1,'(3(1x,i6))') Glob_History(i)%CyclesDone,  &
-	   Glob_History(i)%InitFuncAtLastStep,Glob_History(i)%NumOfEnergyEvalDuringFullOpt
+	   Glob_History(i)%InitFuncAtLastStep,Glob_History(i)%NumOfEnergyEvalDuringFullOpt		
   enddo
   write(1,*) '=============================='
   SortNeeded=.false.
   if (present(Sort)) then
     if ((Sort=='yes').or.(Sort=='YES')) SortNeeded=.true.
   endif
-  if (SortNeeded) then
+  if (SortNeeded) then 
     do i=1,Glob_CurrBasisSize
       Glob_IntWorkArrForSaveResults(Glob_FuncNum(i))=i
     enddo
@@ -745,9 +741,9 @@ subroutine ReadBlackList()
 !Subroutine ReadBlackList reads the file containing the list of
 !basis functions that must not be optimized in cyclic optimization
 !routines (the name of the file is specified by Glob_BlackListFileName)
-!The file should contain function numbers (not necessarily ordered), one per
-!line, no blank lines, repetitions are ok.
-!If the file does not exist or does not contain anything then it is assumed
+!The file should contain function numbers (not necessarily ordered), one per 
+!line, no blank lines, repetitions are ok. 
+!If the file does not exist or does not contain anything then it is assumed 
 !that no functions are blacklisted.
 !Local variables:
 integer        OpenFileErr,i,ReadErr
@@ -780,7 +776,7 @@ if (Glob_ProcID==0) then
       if ((i<=Glob_CurrBasisSize).and.(i>0)) then
         Glob_lbf=max(i,Glob_lbf)
       else
-        ErrorInFile=.true.
+        ErrorInFile=.true. 
       endif
     endif
   enddo
@@ -795,14 +791,14 @@ if (ErrorInFile) then
 endif
 call MPI_BCAST(Glob_lbf,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 if (Glob_lbf==0) then
-  if (Glob_ProcID==0) then
+  if (Glob_ProcID==0) then 
     write(*,*)
     write(*,*) 'Black list file is empty - ',trim(Glob_BlackListFileName)
     write(*,*) 'no basis functions will be blacklisted during cyclic optimization'
     write(*,*)
-  endif
+  endif  
   return
-endif
+endif  
 allocate(Glob_Blacklisted(Glob_lbf))
 if (Glob_ProcID==0) then
   Glob_Blacklisted(1:Glob_lbf)=.false.
@@ -811,7 +807,7 @@ if (Glob_ProcID==0) then
   do while (ReadErr==0)
     read(1,*,iostat=ReadErr) i
     if (ReadErr==0) Glob_Blacklisted(i)=.true.
-  enddo
+  enddo  
   close(1)
   write(*,*)
   write(*,*) 'Black list file has been read - ',trim(Glob_BlackListFileName)
@@ -876,8 +872,8 @@ do i=2,npart
   Glob_bvc(i-1,i)=Glob_bvc(i-1,i)+ONE
 enddo
 
-!Determine the mass and the index of the the lightest particle
-!(reference particle excluded).
+!Determine the mass and the index of the the lightest particle 
+!(reference particle excluded). 
 !and its index
 k=0
 mk=2*Glob_MassTotal
@@ -885,23 +881,23 @@ do i=1,n
   if (Glob_Mass(i+1)<mk) then
     k=i
     mk=Glob_Mass(i+1)
-  endif
-enddo
-
+  endif    
+enddo  
+  
 m0=Glob_Mass(1)
 !alpha = sqrt( 0.5 * (m_0^3 + m_k^3)/(m_0*m_k*(m_0 + m_k)^2) )
-Glob_dmva2 = (m0**3 + mk**3)/(TWO*m0*mk*(m0+mk)**2)
+Glob_dmva2 = (m0**3 + mk**3)/(TWO*m0*mk*(m0+mk)**2) 
 !Glob_dmvB(i,i) = (beta^2 + gamma_i^2)/(alpha^2 * M_ii) - M_ii
 Glob_dmvB(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
 do i=1,n
   mi=Glob_Mass(i+1)
   Glob_dmvB(i,i)=( (m0**3+mi**3)*mk*(m0+mk)**2 - (m0**3+mk**3)*mi*(m0+mi)**2 ) / ( TWO*(m0+mi)*(m0**3+mk**3)*m0*mi**2 )
-enddo
+enddo  
 Glob_dmvM(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
 Glob_dmvM(1:n,1:n)=Glob_MassMatrix(1:n,1:n)
 Glob_dmvMB=Glob_dmvM+Glob_dmvB
 
-!Constructing all Pij transposition matrices
+!Constructing all Pij transposition matrices 
 !
 !  P1i  (i/=1) has the following view:
 !
@@ -911,9 +907,9 @@ Glob_dmvMB=Glob_dmvM+Glob_dmvB
 !      |                             |
 !      |  0   1   0  -1   0   0   0  |
 !      |                             |
-!      |  0   0   1  -1   0   0   0  |
+!      |  0   0   1  -1   0   0   0  |            
 !      |                             |          This particular
-!P1i = |  0   0   0  -1   0   0   0  |  i-1     matrix is P15 for the
+!P1i = |  0   0   0  -1   0   0   0  |  i-1     matrix is P15 for the 
 !      |                             |          case of 8 particles
 !      |  0   0   0  -1   1   0   0  |
 !      |                             |
@@ -932,7 +928,7 @@ Glob_dmvMB=Glob_dmvM+Glob_dmvB
 !      |                             |
 !      |  0   0   0   0   0   1   0  |  i-1
 !      |                             |
-!Pij = |  0   0   0   1   0   0   0  |          This particular
+!Pij = |  0   0   0   1   0   0   0  |          This particular  
 !      |                             |          matrix is P47 for the
 !      |  0   0   0   0   1   0   0  |          case of 8 particles
 !      |                             |
@@ -946,7 +942,7 @@ Glob_Transposit(1:n,1:n,1:npart,1:npart)=0
 do i=1,npart
   do j=1,npart
     do k=1,n
-      Glob_Transposit(k,k,i,j)=1
+      Glob_Transposit(k,k,i,j)=1	  
 	enddo
   enddo
 enddo
@@ -1027,7 +1023,7 @@ if (R/=0) then
 	  if (c1/='*') k=1
 	  i=i+1
 	  c1=Glob_YOperatorString(i:i)
-	enddo
+	enddo 
 	if (k==1) NumFactY=NumFactY+1
 	do while (c1/=')')
 	  i=i+1
@@ -1036,25 +1032,25 @@ if (R/=0) then
   enddo
   if (Glob_YOperatorString(StrLen:StrLen)/=')') NumFactY=NumFactY+1
 else
-  NumFactY=1
+  NumFactY=1 
 endif
 
 !Splitting Glob_YOperatorString into an array of smaller
 !strings, YOpStr. Each column of this array will contain just
-!one factor, with no brackets. A '+' or a '-' sign is added in
+!one factor, with no brackets. A '+' or a '-' sign is added in 
 !front of the first term in a factor if needed. Multiplication
 !signs are dropped .
 allocate(YOpStr(NumFactY))
 do i=1,NumFactY
   YOpStr(i)=' '
-enddo
+enddo 
 if (R==0) then
   c1=Glob_YOperatorString(1:1)
   if ((c1/='+').or.(c1/='-')) then
     YOpStr(1)(1:1)='+'
 	YOpStr(1)(2:StrLen+1)=Glob_YOperatorString(1:StrLen)
   else
-	YOpStr(1)(1:StrLen)=Glob_YOperatorString(1:StrLen)
+	YOpStr(1)(1:StrLen)=Glob_YOperatorString(1:StrLen) 
   endif
 else
   i=1
@@ -1096,7 +1092,7 @@ else
 	endif
 	if ((c1/='(').and.(c1/=' '))  then
 	  p=i
-      YOpStr(k)(1:1)='+'
+      YOpStr(k)(1:1)='+'	
 	  do while ((c1/='(').and.(c1/=' '))
 	    i=i+1
         c1=Glob_YOperatorString(i:i)
@@ -1113,15 +1109,15 @@ endif
 !  write (*,'(1x,i3,1x,a3,a<j>)') i,':  ',YOpStr(i)(1:j)
 !enddo
 
-!Creating an array that contains all the factors of the
+!Creating an array that contains all the factors of the 
 !Y^{\dagger} operator. Basically, Y^{\dagger} is the reversed Y (i.e.
-!the order of all factors is reversed as well as
+!the order of all factors is reversed as well as 
 !permutation products (if there are any) in each factor come
 !in reverse order.
 allocate(YHOpStr(NumFactY))
 do i=1,NumFactY
   YHOpStr(i)=' '
-enddo
+enddo 
 do i=NumFactY,1,-1
   s=NumFactY-i+1
   j=1
@@ -1177,10 +1173,10 @@ allocate(Matr4(1:n,1:n))
 !of actual pair permutation operators corresponds to the reversed
 !product of matrices that act on the matrix of nonlinear parameters.
 !Thus, when doing multiplication we will simultaneously be changing
-!the order of permutation matrices.
+!the order of permutation matrices.  
 CurrNumOfTerms=NumTermsInYOpFact(NumFactY)
-allocate(TempSymCoeff(CurrNumOfTerms))
-allocate(TempSymMatr(n,n,CurrNumOfTerms))
+allocate(TempSymCoeff(CurrNumOfTerms)) 
+allocate(TempSymMatr(n,n,CurrNumOfTerms))  
 do j=NumFactY,1,-1
   !reading the current factor
   k=0
@@ -1202,7 +1198,7 @@ do j=NumFactY,1,-1
 	  else
         Coeff=-1
 	  endif
-    endif
+    endif 
     Matr1=Glob_Transposit(1:n,1:n,1,1)
     do while (c1=='P')
       read(YOpStr(j)(i+1:i+1),*) p
@@ -1259,7 +1255,7 @@ do j=NumFactY,1,-1
 	        enddo
 	        TempSymMatr(ii,jj,s)=w
 	     enddo
-	  enddo
+	  enddo      
 	  TempSymCoeff(s)=Cf3*TempSymCoeff(s)
     enddo
   endif
@@ -1269,7 +1265,7 @@ do j=NumFactY,1,-1
   do i=1,CurrNumOfTerms
     if (TempSymCoeff(i)==0) cycle
     do s=i+1,CurrNumOfTerms
-      if (TempSymCoeff(s)==0) cycle
+      if (TempSymCoeff(s)==0) cycle    
       if (all(TempSymMatr(1:n,1:n,i)==TempSymMatr(1:n,1:n,s))) then
         TempSymCoeff(i)=TempSymCoeff(i)+TempSymCoeff(s)
         if (TempSymCoeff(i)==0) t=t-1
@@ -1277,12 +1273,12 @@ do j=NumFactY,1,-1
 	    t=t-1
 	  endif
     enddo
-  enddo
+  enddo     
   !reallocate arrays containing symmetry terms
-  !to allow for multiplication by the next factor
-  if (j/=1) then
-    allocate(TempSymCoeff1(t))
-    allocate(TempSymMatr1(n,n,t))
+  !to allow for multiplication by the next factor  
+  if (j/=1) then   
+    allocate(TempSymCoeff1(t)) 
+    allocate(TempSymMatr1(n,n,t)) 
     s=0
     do i=1,CurrNumOfTerms
       if (TempSymCoeff(i)/=0) then
@@ -1294,17 +1290,17 @@ do j=NumFactY,1,-1
     CurrNumOfTerms=t*NumTermsInYOpFact(j-1)
     deallocate(TempSymCoeff)
     deallocate(TempSymMatr)
-    allocate(TempSymCoeff(CurrNumOfTerms))
-    allocate(TempSymMatr(n,n,CurrNumOfTerms))
+    allocate(TempSymCoeff(CurrNumOfTerms)) 
+    allocate(TempSymMatr(n,n,CurrNumOfTerms))     
     TempSymCoeff(1:t)=TempSymCoeff1(1:t)
     TempSymMatr(1:n,1:n,1:t)=TempSymMatr1(1:n,1:n,1:t)
     deallocate(TempSymCoeff1)
-    deallocate(TempSymMatr1)
-  endif
+    deallocate(TempSymMatr1)     
+  endif    
 enddo
 
 Glob_NumYTerms=t
-allocate(Glob_YCoeff(Glob_NumYTerms))
+allocate(Glob_YCoeff(Glob_NumYTerms)) 
 allocate(Glob_YMatr(n,n,Glob_NumYTerms))
 s=0
 do i=1,CurrNumOfTerms
@@ -1330,10 +1326,10 @@ endif
 !of actual pair permutation operators corresponds to the reversed
 !product of matrices that act on the matrix of nonlinear parameters.
 !Thus, when doing multiplication we will simultaneously be changing
-!the order of permutation matrices.
+!the order of permutation matrices.  
 CurrNumOfTerms=NumTermsInYOpFact(1)*Glob_NumYTerms
-allocate(TempSymCoeff(CurrNumOfTerms))
-allocate(TempSymMatr(n,n,CurrNumOfTerms))
+allocate(TempSymCoeff(CurrNumOfTerms)) 
+allocate(TempSymMatr(n,n,CurrNumOfTerms))  
 !TempSymCoeff(1:Glob_NumYTerms)=Glob_YCoeff(1:Glob_NumYTerms)
 !TempSymMatr(1:n,1:n,1:Glob_NumYTerms)=Glob_YMatr(1:n,1:n,1:Glob_NumYTerms)
 TempSymCoeff(1:Glob_NumYTerms)=Glob_YCoeff(1:Glob_NumYTerms)
@@ -1360,7 +1356,7 @@ do j=NumFactY,1,-1
 	  else
         Coeff=-1
 	  endif
-    endif
+    endif 
     Matr1=Glob_Transposit(1:n,1:n,1,1)
     do while (c1=='P')
       read(YHOpStr(j)(i+1:i+1),*) p
@@ -1411,7 +1407,7 @@ do j=NumFactY,1,-1
 	      enddo
 	      TempSymMatr(ii,jj,s)=w
 	   enddo
-	enddo
+	enddo        
 	TempSymCoeff(s)=Cf3*TempSymCoeff(s)
   enddo
   !mark the identical terms (adding their coefficients
@@ -1420,7 +1416,7 @@ do j=NumFactY,1,-1
   do i=1,CurrNumOfTerms
     if (TempSymCoeff(i)==0) cycle
     do s=i+1,CurrNumOfTerms
-      if (TempSymCoeff(s)==0) cycle
+      if (TempSymCoeff(s)==0) cycle    
       if (all(TempSymMatr(1:n,1:n,i)==TempSymMatr(1:n,1:n,s))) then
         TempSymCoeff(i)=TempSymCoeff(i)+TempSymCoeff(s)
         if (TempSymCoeff(i)==0) t=t-1
@@ -1428,12 +1424,12 @@ do j=NumFactY,1,-1
 	    t=t-1
 	  endif
     enddo
-  enddo
+  enddo     
   !reallocate arrays containing symmetry terms
   !to allow for multiplication by the next factor
-  if (j/=1) then
-    allocate(TempSymCoeff1(t))
-    allocate(TempSymMatr1(n,n,t))
+  if (j/=1) then   
+    allocate(TempSymCoeff1(t)) 
+    allocate(TempSymMatr1(n,n,t)) 
     s=0
     do i=1,CurrNumOfTerms
       if (TempSymCoeff(i)/=0) then
@@ -1445,17 +1441,17 @@ do j=NumFactY,1,-1
     CurrNumOfTerms=t*NumTermsInYOpFact(NumFactY-j+2)
     deallocate(TempSymCoeff)
     deallocate(TempSymMatr)
-    allocate(TempSymCoeff(CurrNumOfTerms))
-    allocate(TempSymMatr(n,n,CurrNumOfTerms))
+    allocate(TempSymCoeff(CurrNumOfTerms)) 
+    allocate(TempSymMatr(n,n,CurrNumOfTerms))     
     TempSymCoeff(1:t)=TempSymCoeff1(1:t)
     TempSymMatr(1:n,1:n,1:t)=TempSymMatr1(1:n,1:n,1:t)
     deallocate(TempSymCoeff1)
-    deallocate(TempSymMatr1)
-  endif
+    deallocate(TempSymMatr1)     
+  endif  
 enddo
 
 Glob_NumYHYTerms=t
-allocate(Glob_YHYCoeff(Glob_NumYHYTerms))
+allocate(Glob_YHYCoeff(Glob_NumYHYTerms)) 
 allocate(Glob_YHYMatr(n,n,Glob_NumYHYTerms))
 s=0
 do i=1,CurrNumOfTerms
@@ -1479,7 +1475,7 @@ endif
 !    write(1,'(10x,a2,i3,a4,i3)') 'i=',i,'  C=',Glob_YCoeff(i)
 !    do j=1,n
 !      write(1,'(<n>(1x,i2))') Glob_YMatr(j,1:n,i)
-!    enddo
+!    enddo 
 !    write(1,*)
 !  enddo
 !endif
@@ -1492,7 +1488,7 @@ endif
 !    write(1,'(10x,a2,i3,a4,i3)') 'i=',i,'  C=',Glob_YHYCoeff(i)
 !    do j=1,n
 !      write(1,'(<n>(1x,i2))') Glob_YHYMatr(j,1:n,i)
-!    enddo
+!    enddo 
 !    write(1,*)
 !  enddo
 !endif
@@ -1533,7 +1529,7 @@ deallocate(YOpStr)
 !The set of particles to which particle i belongs is labelled by IdentParticleSet(i)
 !If IdentParticleSet(i)=IdentParticleSet(j) then it means that
 !particles i and j are identical. The largest value in IdentParticleSet
-!gives the total number of identical particle sets
+!gives the total number of identical particle sets 
 allocate(IdentParticleSet(npart))
 IdentParticleSet(1)=1
 k=1
@@ -1547,14 +1543,14 @@ do i=2,npart
         IdentParticleSet(i)=IdentParticleSet(j)
 		s=1
 	  endif
-    else
+    else 
 	  !j=1 case
       if ((Glob_Mass(j)==Glob_Mass(i)).and.(Glob_PseudoCharge0==Glob_PseudoCharge(i-1))) then
         IdentParticleSet(i)=IdentParticleSet(j)
 		s=1
 	  endif
 	endif
-  enddo
+  enddo	
   if (s==0) then
     k=k+1
     IdentParticleSet(i)=k
@@ -1565,7 +1561,7 @@ Glob_NumOfIdentPartSets=maxval(IdentParticleSet(1:npart))
 !Below we determine which pairs of pseudoparticles are identical.
 !The information about this is stored in array IdentPseudoPartPairSet(1:n,1:n)
 !Diagonal elements do not actually designate pairs of pseudoparticles but
-!rather a single pseudoparticle, which corresponds to a certain pair of particles.
+!rather a single pseudoparticle, which corresponds to a certain pair of particles. 
 !If IdentPseudoPartPairSet(i,j)=IdentPseudoPartPairSet(k,l) then
 !it means these pairs ij and kl should be equivalent.
 !The largest value of array IdentPseudoPartPairSet gives the number
@@ -1574,7 +1570,7 @@ allocate(IdentPseudoPartPairSet(1:n,1:n))
 IdentPseudoPartPairSet(1:n,1:n)=0
 k=0
 do i=1,n
-  do j=i,n
+  do j=i,n   
     if (i==j) then
       pi=1; pj=j+1
 	else
@@ -1644,37 +1640,37 @@ end subroutine ProgramDataInit
 
 
 subroutine GenerateTrialParam(nfun,x,m,k,method_used)
-!Subroutine GenerateTrialParam generates nonlinear
+!Subroutine GenerateTrialParam generates nonlinear 
 !parameters for trial functions. It uses three global variables
-!to do that: Glob_RG_p1, Glob_RG_s1, Glob_RG_s2.
-!Glob_RG_p1 is the probability of using the first generation method,
-!so 1-Glob_RG_p1 is the probability of using the second one. Both
-!methods select a random function from the existing basis (or several
-!functions if nfun>1). Then, the first method generates nonlinear
-!parameters that are independently normally distributed around the
-!corresponding parameters of the selected function with standard
-!deviation Glob_RG_s1*x(i), where x(i) is the i-th nonlinear parameter
-!of the selected function. The second method generates nonlinear
-!parameters in the following way: it generates a random number, r, from
-!a normal (0,Glob_RG_s2) distribution and then multiplies all x(i) by (1+r).
+!to do that: Glob_RG_p1, Glob_RG_s1, Glob_RG_s2. 
+!Glob_RG_p1 is the probability of using the first generation method, 
+!so 1-Glob_RG_p1 is the probability of using the second one. Both 
+!methods select a random function from the existing basis (or several 
+!functions if nfun>1). Then, the first method generates nonlinear 
+!parameters that are independently normally distributed around the 
+!corresponding parameters of the selected function with standard 
+!deviation Glob_RG_s1*x(i), where x(i) is the i-th nonlinear parameter 
+!of the selected function. The second method generates nonlinear 
+!parameters in the following way: it generates a random number, r, from 
+!a normal (0,Glob_RG_s2) distribution and then multiplies all x(i) by (1+r). 
 !It also makes sure that 0.8<|1+r|>1.2 as we do not want almost linearly
-!dependent functions in the basis. The generation of Z-indicies is done in the
-!following manner. If the first generation method is used then ZIndexChangeProb*100%
-!probability is that a Z-index will be the same as in the prototype function,
-!the rest 100%-ZIndexChangeProb*100% of the probability is uniformly distributed
-!among all other possible values of Z-index. If the second generation method is used
+!dependent functions in the basis. The generation of Z-indicies is done in the 
+!following manner. If the first generation method is used then ZIndexChangeProb*100% 
+!probability is that a Z-index will be the same as in the prototype function, 
+!the rest 100%-ZIndexChangeProb*100% of the probability is uniformly distributed 
+!among all other possible values of Z-index. If the second generation method is used 
 !then all Z-indicies are always the same as in the prototype functions.
 !  Input parameter:
 !   nfun - number of trial functions whose parameters
-!          are to be generated;
+!          are to be generated; 
 !  Output parameters :
 !    x(1:Glob_npt,1:nfun) - a 2D-array containing generated
 !          nonlinear parameters of the trial functions;
 !    m(1:nfun) - an 1D-array containing generated
 !          Z-indicies of the trial functions;
-!      k - specifies which function in the existing
+!      k - specifies which function in the existing 
 !          basis was selected to generate a candidate. In case when
-!          nfun>1 k specifies which was the first function (out of
+!          nfun>1 k specifies which was the first function (out of 
 !          a set) selected. In case Glob_CurrBasisSize==0 k is set to 0.
 !    method_used - specifies which generation method was used (1 or 2).
 !          In case Glob_CurrBasisSize==0 method_used is set to 0.
@@ -1683,13 +1679,13 @@ subroutine GenerateTrialParam(nfun,x,m,k,method_used)
 integer        nfun
 real(dprec)    x(Glob_npt,nfun)
 integer        m(nfun)
-integer        k, method_used
+integer        k, method_used       
 
 !Local variables :
 integer        i,j,p
 real(8)    r,sumf
 !Constants that define the uniform distribution
-!in the case of Glob_CurrBasisSize==0
+!in the case of Glob_CurrBasisSize==0 
 real(8)  :: Lmin=-0.5_8
 real(8)  :: Lmax= 0.5_8
 real(8)  :: ZIndexChangeProb=0.5_8
@@ -1698,7 +1694,7 @@ if (Glob_CurrBasisSize==0) then !making uniform distribution
   do i=1,nfun
     do j=1,Glob_np
       call random_number(r)
-	  x(j,i)=r*(Lmax-Lmin)+Lmin
+	  x(j,i)=r*(Lmax-Lmin)+Lmin 
     enddo
     call random_number(r)
     r=r*Glob_n
@@ -1723,7 +1719,7 @@ else
 		  m(i)=Glob_ZIndex(k)
 		else
 		  j=Glob_ZIndex(k)
-		  m(i)=j
+		  m(i)=j	  
 		  do while (m(i)==j)
 		    call random_number(r)
 		    r=r*Glob_n
@@ -1732,7 +1728,7 @@ else
 		endif
       enddo
       method_used=1
-    else
+    else           
       !method 2
       do i=1,nfun
 	    call random_number(r)
@@ -1740,7 +1736,7 @@ else
 	    r=Glob_RG_s2*drnor()+ONE
 	    do while ((abs(r)>0.8E0_dprec).and.(abs(r)<1.2E0_dprec))
           r=Glob_RG_s2*drnor()+ONE
-	    enddo
+	    enddo	    
 		do j=1,Glob_npt
            x(j,i)=r*Glob_NonlinParam(j,k)
 		enddo
@@ -1763,13 +1759,13 @@ else
 		  m(i)=Glob_ZIndex(k+i-1)
 		else
 		  j=Glob_ZIndex(k+i-1)
-		  m(i)=j
+		  m(i)=j	  
 		  do while (m(i)==j)
 		    call random_number(r)
 		    r=r*Glob_n
             m(i)=1+int(r)
 		  enddo
-		endif
+		endif		
       enddo
 	  method_used=1
 	else
@@ -1795,12 +1791,12 @@ end subroutine GenerateTrialParam
 
 subroutine ComputeOverlapPenalty(MaxPairOverlapPenalty,OverlapThreshold2,TotalPenalty)
 !Subroutine ComputeOverlapPenalty computes overlap penalty. Overlap
-!penalty may be used during full optimization of all nonlinear parameters
-!in order to prevent severe pair linear dependencies of basis functions.
-!The penalty function is P = sum_{i=1,K; j=Glob_nfru+1,K; i<j} Pij, where
+!penalty may be used during full optimization of all nonlinear parameters 
+!in order to prevent severe pair linear dependencies of basis functions. 
+!The penalty function is P = sum_{i=1,K; j=Glob_nfru+1,K; i<j} Pij, where 
 !  Pij=(abs(Sij)^2-t^2)*b/(1-t^2),  Sij^2>t^2
 !  Pij=0, Sij<=t^2
-!Here
+!Here 
 !  b=MaxPairOverlapPenalty
 !  t^2=OverlapThreshold2
 !  Sij is the pair overlap value
@@ -1821,13 +1817,13 @@ if (Glob_NumOfProcs==1) then
       if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) &
           tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
     enddo
-  enddo
+  enddo  
   do i=Glob_nfru+1,Glob_nfa
     do j=i+1,Glob_nfa
       if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) &
           tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
     enddo
-  enddo
+  enddo      
 else
   !In case of more than one MPI process we split the work
   !more or less evenly between processes
@@ -1847,7 +1843,7 @@ else
     else
       i=Glob_nfru+1+(k-1)*Glob_NumOfProcs+Glob_ProcID
       oddband=.true.
-    endif
+    endif 
     do j=i+1,Glob_nfa
       if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) &
           tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
@@ -1864,9 +1860,9 @@ else
         if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) &
             tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
       enddo
-    endif
+    endif        
   endif
-endif
+endif    
 call MPI_ALLREDUCE(tp,TotalPenalty,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 end subroutine ComputeOverlapPenalty
@@ -1875,23 +1871,23 @@ end subroutine ComputeOverlapPenalty
 
 subroutine ComputeOverlapPenaltyAndAddGradient(MaxPairOverlapPenalty,OverlapThreshold2, &
                                                TotalPenalty,WkGR)
-!Subroutine ComputeOverlapPenalty computes overlap penalty as well as the
+!Subroutine ComputeOverlapPenalty computes overlap penalty as well as the 
 !addition to the energy gradient due to the penalty. Overlap
-!penalty may be used during full optimization of all nonlinear parameters
-!in order to prevent severe pair linear dependencies of basis functions.
-!The penalty function is P = sum_{i=1,K; j=Glob_nfru+1,K; i<j} Pij, where
+!penalty may be used during full optimization of all nonlinear parameters 
+!in order to prevent severe pair linear dependencies of basis functions. 
+!The penalty function is P = sum_{i=1,K; j=Glob_nfru+1,K; i<j} Pij, where 
 !  Pij=(abs(Sij)^2-t^2)*b/(1-t^2),  Sij^2>t^2
 !  Pij=0, Sij<=t^2
-!Here
+!Here 
 !  b=MaxPairOverlapPenalty
 !  t^2=OverlapThreshold2
 !  Sij is the pair overlap value
 !The overlap penalty is returned in TotalPenalty. The gradient is added to WkGR.
-!Note that even though the subroutine divides the work between MPI processes, it does
+!Note that even though the subroutine divides the work between MPI processes, it does 
 !not combine the results for the gradient. It is assumed that such an operation will be done
 !manually right after ComputeOverlapPenaltyAndAddGradient is called. This is done to avoid
 !combining the gradient components twice (once after the gradient is computed and once
-!after the gradient addition due to the overalp penalties is computed).
+!after the gradient addition due to the overalp penalties is computed). 
 !Arguments:
 real(dprec)  MaxPairOverlapPenalty,OverlapThreshold2,TotalPenalty,WkGR(:)
 !Local variables
@@ -1914,9 +1910,9 @@ if (Glob_NumOfProcs==1) then
               +temp1*(Glob_D(Glob_npt+m,j-Glob_nfru,i) &
               -ONEHALF*Glob_D(Glob_npt+m,j-Glob_nfru,j)*Glob_S(j,i)*temp2)
         enddo
-      endif
+      endif  
     enddo
-  enddo
+  enddo  
   do i=Glob_nfru+1,Glob_nfa
     do j=i+1,Glob_nfa
       if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) then
@@ -1932,10 +1928,10 @@ if (Glob_NumOfProcs==1) then
           WkGR((j-Glob_nfru-1)*Glob_npt+m)=WkGR((j-Glob_nfru-1)*Glob_npt+m) &
               +temp1*(Glob_D(Glob_npt+m,j-Glob_nfru,i) &
               -ONEHALF*Glob_D(Glob_npt+m,j-Glob_nfru,j)*Glob_S(j,i)*temp2)
-        enddo
-      endif
+        enddo  
+      endif 
     enddo
-  enddo
+  enddo 
 else
   !In case of more than one MPI process we split the work
   !more or less evenly between processes
@@ -1944,13 +1940,13 @@ else
       if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) then
         tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
         temp1=2*pen_coeff*Glob_S(j,i)
-        temp2=sqrt(Glob_diagS(i)/Glob_diagS(j))
+        temp2=sqrt(Glob_diagS(i)/Glob_diagS(j))        
         do m=1,Glob_npt
           WkGR((j-Glob_nfru-1)*Glob_npt+m)=WkGR((j-Glob_nfru-1)*Glob_npt+m) &
               +temp1*(Glob_D(Glob_npt+m,j-Glob_nfru,i) &
               -ONEHALF*Glob_D(Glob_npt+m,j-Glob_nfru,j)*Glob_S(j,i)*temp2)
         enddo
-      endif
+      endif 
     enddo
   enddo
   nbands=Glob_nfo/Glob_NumOfProcs
@@ -1963,12 +1959,12 @@ else
     else
       i=Glob_nfru+1+(k-1)*Glob_NumOfProcs+Glob_ProcID
       oddband=.true.
-    endif
+    endif 
     do j=i+1,Glob_nfa
       if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) then
         tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
         temp1=2*pen_coeff*Glob_S(j,i)
-        temp2=sqrt(Glob_diagS(i)/Glob_diagS(j))
+        temp2=sqrt(Glob_diagS(i)/Glob_diagS(j))        
         do m=1,Glob_npt
           WkGR((i-Glob_nfru-1)*Glob_npt+m)=WkGR((i-Glob_nfru-1)*Glob_npt+m) &
               +temp1*(Glob_D(Glob_npt+m,i-Glob_nfru,j) &
@@ -1978,8 +1974,8 @@ else
           WkGR((j-Glob_nfru-1)*Glob_npt+m)=WkGR((j-Glob_nfru-1)*Glob_npt+m) &
               +temp1*(Glob_D(Glob_npt+m,j-Glob_nfru,i) &
               -ONEHALF*Glob_D(Glob_npt+m,j-Glob_nfru,j)*Glob_S(j,i)*temp2)
-        enddo
-      endif
+        enddo 
+      endif 
     enddo
   enddo !k
   if (leftover>1) then
@@ -1993,7 +1989,7 @@ else
       if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) then
         tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
         temp1=2*pen_coeff*Glob_S(j,i)
-        temp2=sqrt(Glob_diagS(i)/Glob_diagS(j))
+        temp2=sqrt(Glob_diagS(i)/Glob_diagS(j))        
         do m=1,Glob_npt
           WkGR((i-Glob_nfru-1)*Glob_npt+m)=WkGR((i-Glob_nfru-1)*Glob_npt+m) &
               +temp1*(Glob_D(Glob_npt+m,i-Glob_nfru,j) &
@@ -2003,12 +1999,12 @@ else
           WkGR((j-Glob_nfru-1)*Glob_npt+m)=WkGR((j-Glob_nfru-1)*Glob_npt+m) &
               +temp1*(Glob_D(Glob_npt+m,j-Glob_nfru,i) &
               -ONEHALF*Glob_D(Glob_npt+m,j-Glob_nfru,j)*Glob_S(j,i)*temp2)
-        enddo
-      endif
+        enddo 
+      endif 
       enddo
-    endif
+    endif        
   endif
-endif
+endif    
 call MPI_ALLREDUCE(tp,TotalPenalty,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 end subroutine ComputeOverlapPenaltyAndAddGradient
@@ -2016,20 +2012,20 @@ end subroutine ComputeOverlapPenaltyAndAddGradient
 
 
 function EnergyGA(Nmin,Nmax,AreMatElemNeeded,ErrorCode)
-!Function EnergyGA computes the energy of the system under
-!consideration. Routine DSYGVX from LAPACK is used to solve
-!GSEP. The function finds the energy level defined by the
+!Function EnergyGA computes the energy of the system under 
+!consideration. Routine DSYGVX from LAPACK is used to solve 
+!GSEP. The function finds the energy level defined by the 
 !global variable Glob_WhichEigenvalue. The calculations are
-!done with a basis of Nmax functions. It is assumed that
-!nonlinear parameters of the basis functions are stored in
+!done with a basis of Nmax functions. It is assumed that 
+!nonlinear parameters of the basis functions are stored in 
 !global array Glob_NonlinParam and all the matrix elements of the
-!first Nmin-1 functions have already been calculated and stored in
+!first Nmin-1 functions have already been calculated and stored in 
 !proper global arrays. If no matrix elements have been calculated,
 !one should set Nmin=0. In the case when all matrix elements have been
-!computed and it is only necessary to solve GSEP one
+!computed and it is only necessary to solve GSEP one 
 !needs to set AreMatElemNeeded=.false.
 !Upon successfull exit ErrorCode should be equal to 0. If
-!ErrorCode = Nmax + i then the leading minor of S of size i is
+!ErrorCode = Nmax + i then the leading minor of S of size i is 
 !not positive definite.
 
 real(dprec)    EnergyGA
@@ -2046,11 +2042,11 @@ integer        NumOfEigvalsFound
 integer        IFAIL(1)
 
 if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
-if (Nmax==1) then
+if (Nmax==1) then 
   EnergyGA=Glob_diagH(1)
   ErrorCode=0
 else
-  !Copying H and S matrix elements from the lower triangles
+  !Copying H and S matrix elements from the lower triangles 
   !to the upper ones. The diagonals are copied from the global
   !arrays where they are stored
   do i=1,Nmax
@@ -2072,18 +2068,18 @@ else
                   Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
     ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
     !$                   VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
-    !$                   LWORK, IWORK, IFAIL, INFO )
-    Evalue=EVs(1)
+    !$                   LWORK, IWORK, IFAIL, INFO )  
+    Evalue=EVs(1)  
   endif
   if (Glob_OverlapPenaltyAllowed) call ComputeOverlapPenalty(Glob_MaxOverlapPenalty, &
                                     Glob_OverlapPenaltyThreshold2,Glob_TotalOverlapPenalty)
   call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   if (Glob_OverlapPenaltyAllowed) then
-    EnergyGA=Evalue+Glob_TotalOverlapPenalty
-  else
+    EnergyGA=Evalue+Glob_TotalOverlapPenalty   
+  else  
     EnergyGA=Evalue
-  endif
+  endif  
 endif
 
 Glob_EnergyGACounter=Glob_EnergyGACounter+1
@@ -2110,12 +2106,12 @@ integer        NumOfEigvalsFound
 integer        IFAIL(1)
 
 if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
-if (Nmax==1) then
+if (Nmax==1) then 
   EnergyGAM=Glob_diagH(1)
   Glob_c(1)=ONE
   ErrorCode=0
 else
-  !Copying H and S matrix elements from the lower triangles
+  !Copying H and S matrix elements from the lower triangles 
   !to the upper ones. The diagonals are copied from the global
   !arrays where they are stored
   do i=1,Nmax
@@ -2138,18 +2134,18 @@ else
     ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
     !$                   VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
     !$                   LWORK, IWORK, IFAIL, INFO )
-    Evalue=EVs(1)
+    Evalue=EVs(1) 
   endif
   if (Glob_OverlapPenaltyAllowed) call ComputeOverlapPenalty(Glob_MaxOverlapPenalty, &
                                     Glob_OverlapPenaltyThreshold2,Glob_TotalOverlapPenalty)
   call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  call MPI_BCAST(Glob_c,Nmax,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  call MPI_BCAST(Glob_c,Nmax,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
   if (Glob_OverlapPenaltyAllowed) then
-    EnergyGAM=Evalue+Glob_TotalOverlapPenalty
-  else
+    EnergyGAM=Evalue+Glob_TotalOverlapPenalty   
+  else  
     EnergyGAM=Evalue
-  endif
+  endif 
 endif
 
 Glob_EnergyGACounter=Glob_EnergyGACounter+1
@@ -2160,10 +2156,10 @@ end function EnergyGAM
 
 subroutine EnergyGB(Evalue,Gradient,AreMatElemNeeded,ErrorCode)
 !subroutine EnergyGB computes the energy value and the
-!gradient with respect to the nonlinear parameters of the last
+!gradient with respect to the nonlinear parameters of the last 
 !Glob_nfo functions of the system under consideration. Routine
 !DSYGVX from LAPACK is used to solve GSEP. The subroutine finds
-!the energy level defined by the  global variable
+!the energy level defined by the  global variable 
 !Glob_WhichEigenvalue, as well as the corresponding gradient. It
 !is assumed that nonlinear parameters of the basis functions are
 !stored in global array Glob_NonlinParam and all the matrix
@@ -2176,7 +2172,7 @@ subroutine EnergyGB(Evalue,Gradient,AreMatElemNeeded,ErrorCode)
 !needs to set AreMatElemNeeded=.false.
 !Upon successfull exit ErrorCode should be equal to 0. If
 !ErrorCode <= Glob_nfa then the eigenvector failed to
-!converge. If ErrorCode = Glob_nfa + i then the
+!converge. If ErrorCode = Glob_nfa + i then the 
 !leading minor of S od size i is not positive definite.
 !The data in Gradient is ordered in the following manner:
 !Gradient=(dEdvechLi,dEdvechL{i+1},...,dEdvechLj),
@@ -2209,7 +2205,7 @@ if (nfa==1) then
   Glob_c(1)=ONE
   ErrorCode=0
 else
-  !Copyinng H and S matrix elements from the lower triangles
+  !Copyinng H and S matrix elements from the lower triangles 
   !to the upper ones. The diagonals are copied from the global
   !arrays where they are stored
   do i=1,nfa
@@ -2223,17 +2219,17 @@ else
 	  Glob_S(j,i)=Glob_S(i,j)
 	enddo
 	Glob_S(i,i)=ONE
-  enddo
+  enddo 
 
-  if (Glob_ProcID==0) then
+  if (Glob_ProcID==0) then 
     call   DSYGVX(1,'V','I','U',nfa,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,   &
                   ZERO,ZERO,Glob_WhichEigenvalue,Glob_WhichEigenvalue,Glob_AbsTolForDSYGVX, &
                   NumOfEigvalsFound,EVs,Glob_c,nfa,Glob_WorkForDSYGVX,  &
                   Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
     ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
     !$                   VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
-    !$                   LWORK, IWORK, IFAIL, INFO )
-    Evalue=EVs(1)
+    !$                   LWORK, IWORK, IFAIL, INFO )     
+    Evalue=EVs(1)    
   endif
   call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -2273,18 +2269,18 @@ end subroutine EnergyGB
 
 
 function EnergyIA(Nmin,Nmax,AreMatElemNeeded,ErrorCode)
-!Function EnergyIA computes the energy of the system under
-!consideration. Routine GSEPIIS from module linalg is used to
+!Function EnergyIA computes the energy of the system under 
+!consideration. Routine GSEPIIS from module linalg is used to 
 !solve GSEP. The function computes the energy level which is
-!the closest one to the value of the global variable
-!Glob_ApproxEnergy. The calculations are done with a basis
+!the closest one to the value of the global variable 
+!Glob_ApproxEnergy. The calculations are done with a basis 
 !of Nmax functions. It is assumed that nonlinear parameters
-!of the basis functions are stored in global array
+!of the basis functions are stored in global array 
 !Glob_NonlinParam and all matrix elements of the
-!first Nmin-1 functions have already been calculated and stored in
+!first Nmin-1 functions have already been calculated and stored in 
 !proper global arrays. If no matrix elements have been calculated,
-!one should set Nmin=0. In the case when all matrix elements have
-!been computed and only the solution of GSEP is needed, one
+!one should set Nmin=0. In the case when all matrix elements have 
+!been computed and only the solution of GSEP is needed, one 
 !should set AreMatElemNeeded=.false.
 !Upon successfull exit ErrorCode should be equal to 0. In the
 !case of nonzero ErrorCode please see the description of GSEPIIS
@@ -2301,7 +2297,7 @@ real(dprec)    Evalue
 integer        NumOfIterations
 
 if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
-if (Nmax==1) then
+if (Nmax==1) then 
   EnergyIA=Glob_diagH(1)
   NumOfIterations=1
   ErrorCode=0
@@ -2312,18 +2308,18 @@ else
                Evalue,Glob_LastEigvector,Glob_LastEigvalTol,Glob_MaxIterForGSEPIIS, &
                -1,NumOfIterations,ErrorCode)
     !GSEPIIS(k,n,M,nM,invD,B,nB,apprlambda,v,w,Tol, &
-    !lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode)
-  if (Glob_LastEigvalTol>Glob_WorstEigvalTol) Glob_WorstEigvalTol=Glob_LastEigvalTol
+    !lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode)       
+  if (Glob_LastEigvalTol>Glob_WorstEigvalTol) Glob_WorstEigvalTol=Glob_LastEigvalTol       
   if (Glob_LastEigvalTol>Glob_BestEigvalTol) Glob_BestEigvalTol=Glob_LastEigvalTol
   if (Glob_OverlapPenaltyAllowed) call ComputeOverlapPenalty(Glob_MaxOverlapPenalty, &
                                     Glob_OverlapPenaltyThreshold2,Glob_TotalOverlapPenalty)
   call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   if (Glob_OverlapPenaltyAllowed) then
-    EnergyIA=Evalue+Glob_TotalOverlapPenalty
-  else
+    EnergyIA=Evalue+Glob_TotalOverlapPenalty   
+  else  
     EnergyIA=Evalue
-  endif
+  endif 
 endif
 
 Glob_InvItTempCounter1=Glob_InvItTempCounter1+1
@@ -2334,9 +2330,9 @@ end function EnergyIA
 
 
 function EnergyIAM(Nmin,Nmax,AreMatElemNeeded,ErrorCode)
-!Function EnergyIAM is pretty much the same function as
+!Function EnergyIAM is pretty much the same function as 
 !EnergyIAM. The only exception is that it also generates
-!a properly normalized eigenvector, which gives correct
+!a properly normalized eigenvector, which gives correct 
 !linear coefficients (stored in Glob_c).
 
 real(dprec)    EnergyIAM
@@ -2350,7 +2346,7 @@ real(dprec)    Evalue
 integer        NumOfIterations
 
 if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
-if (Nmax==1) then
+if (Nmax==1) then 
   EnergyIAM=Glob_H(1,1)+Glob_ApproxEnergy
   Glob_c(1)=ONE
   NumOfIterations=1
@@ -2362,19 +2358,19 @@ else
                Evalue,Glob_LastEigvector,Glob_LastEigvalTol,Glob_MaxIterForGSEPIIS, &
                0,NumOfIterations,ErrorCode)
   !GSEPIIS(k,n,M,nM,invD,B,nB,apprlambda,v,w,Tol, &
-  !lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode)
-  Glob_c(1:Nmax)=Glob_LastEigvector(1:Nmax)
-  if (Glob_LastEigvalTol>Glob_WorstEigvalTol) Glob_WorstEigvalTol=Glob_LastEigvalTol
+  !lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode) 
+  Glob_c(1:Nmax)=Glob_LastEigvector(1:Nmax) 
+  if (Glob_LastEigvalTol>Glob_WorstEigvalTol) Glob_WorstEigvalTol=Glob_LastEigvalTol       
   if (Glob_LastEigvalTol>Glob_BestEigvalTol) Glob_BestEigvalTol=Glob_LastEigvalTol
   if (Glob_OverlapPenaltyAllowed) call ComputeOverlapPenalty(Glob_MaxOverlapPenalty, &
                                     Glob_OverlapPenaltyThreshold2,Glob_TotalOverlapPenalty)
   call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   if (Glob_OverlapPenaltyAllowed) then
-    EnergyIAM=Evalue+Glob_TotalOverlapPenalty
-  else
+    EnergyIAM=Evalue+Glob_TotalOverlapPenalty   
+  else  
     EnergyIAM=Evalue
-  endif
+  endif 
 endif
 
 Glob_InvItTempCounter1=Glob_InvItTempCounter1+1
@@ -2386,12 +2382,12 @@ end function EnergyIAM
 
 subroutine EnergyIB(Evalue,Gradient,AreMatElemNeeded,ErrorCode)
 !subroutine EnergyIB computes the energy value and the
-!gradient with respect to the nonlinear parameters of the last
+!gradient with respect to the nonlinear parameters of the last 
 !Glob_nfo functions of the system under consideration.
-!Routine GSEPIIS from module linalg is used to
+!Routine GSEPIIS from module linalg is used to 
 !solve GSEP. The subroutine computes the energy level which is
-!the closest one to the value of the global variable
-!Glob_ApproxEnergy, as well as the corresponding gradient.
+!the closest one to the value of the global variable 
+!Glob_ApproxEnergy, as well as the corresponding gradient. 
 !It is assumed that nonlinear parameters of the basis functions are
 !stored in global array Glob_NonlinParam and all the matrix
 !elements of the first Glob_nfru functions have been computed
@@ -2429,7 +2425,7 @@ nfru=Glob_nfru
 
 if (AreMatElemNeeded) call ComputeMatElemAndDeriv(nfru+1,nfa)
 
-if (nfa==1) then
+if (nfa==1) then 
   Evalue=Glob_H(1,1)+Glob_ApproxEnergy
   Glob_c(1)=ONE
   NumOfIterations=1
@@ -2441,9 +2437,9 @@ else
                Evalue,Glob_LastEigvector,Glob_LastEigvalTol,Glob_MaxIterForGSEPIIS, &
                0,NumOfIterations,ErrorCode)
     !GSEPIIS(k,n,M,nM,invD,B,nB,apprlambda,v,w,Tol, &
-    !lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode)
-  Glob_c(1:nfa)=Glob_LastEigvector(1:nfa)
-  if (Glob_LastEigvalTol>Glob_WorstEigvalTol) Glob_WorstEigvalTol=Glob_LastEigvalTol
+    !lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode) 
+  Glob_c(1:nfa)=Glob_LastEigvector(1:nfa)   
+  if (Glob_LastEigvalTol>Glob_WorstEigvalTol) Glob_WorstEigvalTol=Glob_LastEigvalTol       
   if (Glob_LastEigvalTol>Glob_BestEigvalTol) Glob_BestEigvalTol=Glob_LastEigvalTol
   call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -2485,7 +2481,7 @@ end subroutine EnergyIB
 
 
 subroutine ReadSwapFileAndDistributeData(IsSwapFileOK)
-!This subroutine reads data from a swap file (if it is
+!This subroutine reads data from a swap file (if it is 
 !available, and if global variable Glob_UseSwapFile=.true.)
 !and sends the read data to all processes. If the result is
 !success then the value of a logical variable IsSwapFileOK
@@ -2493,7 +2489,7 @@ subroutine ReadSwapFileAndDistributeData(IsSwapFileOK)
 !size is equal to Glob_CurrBasisSize.
 
 !Arguments:
-logical IsSwapFileOK
+logical IsSwapFileOK   
 !Local variables:
 integer i,j,OpenFileErr
 
@@ -2512,9 +2508,9 @@ if (Glob_UseSwapFile) then
           if (OpenFileErr==0) then
              read(1,iostat=OpenFileErr) Glob_H(1:Glob_CurrBasisSize,j)
 		  endif
-		enddo
+		enddo  
         !reading diagS
-        if (OpenFileErr==0) read(1,iostat=OpenFileErr) Glob_diagS(1:Glob_CurrBasisSize)
+        if (OpenFileErr==0) read(1,iostat=OpenFileErr) Glob_diagS(1:Glob_CurrBasisSize) 
 		if (OpenFileErr==0) then
 		  IsSwapFileOK=.true.
 	      write(*,*) 'completed'
@@ -2529,18 +2525,18 @@ if (Glob_UseSwapFile) then
       endif
 	endif
   endif
-endif
+endif 
 call MPI_BCAST(IsSwapFileOK,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 !If swap file is OK then send the data to all processes
 if (IsSwapFileOK) then
-  if (Glob_ProcID==0) write(*,'(1x,a35)',advance='no') 'Sending H and S to all processes...'
+  if (Glob_ProcID==0) write(*,'(1x,a35)',advance='no') 'Sending H and S to all processes...' 
   call MPI_BCAST(Glob_H,Glob_HSLeadDim*Glob_HSLeadDim,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   call MPI_BCAST(Glob_diagS,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   !Remember that the lower part (including the diagonal)
   !contains elements of H, while the upper part contains S
-
-  !Restoring proper storage of data for Glob_GSEPSolutionMethod='G'
+  
+  !Restoring proper storage of data for Glob_GSEPSolutionMethod='G' 
   if (Glob_GSEPSolutionMethod=='G') then
     do i=1,Glob_CurrBasisSize
       do j=1,i-1
@@ -2564,11 +2560,11 @@ if (IsSwapFileOK) then
         Glob_H(j,i)=Glob_H(j,i)-Glob_ApproxEnergy*Glob_S(j,i)
       enddo
     enddo
-  endif
+  endif  
 
-  if (Glob_ProcID==0) write(*,*) 'completed'
+  if (Glob_ProcID==0) write(*,*) 'completed' 
 else
-  if (Glob_ProcID==0) then
+  if (Glob_ProcID==0) then 
     write(*,*) 'Matrices H and S were not read from swap file'
     write(*,*) 'All H and S matrix elements need be (re)computed'
   endif
@@ -2596,7 +2592,7 @@ if (Glob_UseSwapFile) then
         !We store a matrix whose lower part (including the diagonal)
 	    !contains elements of H, while the upper part contains S.
 	    !Also, we store the diagonal of S.
-
+        
         if (Glob_GSEPSolutionMethod=='G') then
           do i=1,Glob_CurrBasisSize
             do j=1,i-1
@@ -2614,17 +2610,17 @@ if (Glob_UseSwapFile) then
 	        do j=i+1,Glob_CurrBasisSize
 	          Glob_H(j,i)=Glob_H(j,i)+Glob_ApproxEnergy*Glob_S(j,i)
 	        enddo
-          enddo
-        endif
-
+          enddo       
+        endif      
+               
         write(*,'(1x,a33)',advance='no') 'Writing H and S into swap file... '
 		do i=1,Glob_CurrBasisSize
           if (OpenFileErr==0) then
             write(1,iostat=OpenFileErr) Glob_H(1:Glob_CurrBasisSize,i)
 		  endif
-		enddo
+		enddo         
         if (OpenFileErr==0) then
-	      write(1,iostat=OpenFileErr) Glob_diagS(1:Glob_CurrBasisSize)
+	      write(1,iostat=OpenFileErr) Glob_diagS(1:Glob_CurrBasisSize) 
         endif
         if (OpenFileErr==0) then
 	      write(*,*) 'completed'
@@ -2635,7 +2631,7 @@ if (Glob_UseSwapFile) then
 	  close(1)
     endif
   endif
-endif
+endif  
 
 end subroutine StoreMatricesInSwapFile
 
@@ -2643,14 +2639,14 @@ end subroutine StoreMatricesInSwapFile
 
 subroutine ReadHessianFile(V,IVLMAT,D,nvar,FileName,IsHessFileOK)
 !This subroutine reads Hessian from file FileName (if it exists
-!and contains appropriate amount of data). nvar stands for the
-!total number of variables in the problem. The Hessian is
+!and contains appropriate amount of data). nvar stands for the 
+!total number of variables in the problem. The Hessian is 
 !placed in array V, starting from element V(IVLMAT).
-!In the case when the global parameter Glob_FullOptSaveD=.true.
-!the subroutine also reads scaling vector D from the same
-!file. It is assumed that this scaling vector is placed after
+!In the case when the global parameter Glob_FullOptSaveD=.true. 
+!the subroutine also reads scaling vector D from the same 
+!file. It is assumed that this scaling vector is placed after 
 !Hessian data in the file.
-!If the reading is successful then the value of logical variable
+!If the reading is successful then the value of logical variable 
 !IsHessFileOK is .true. on exit.
 
 !Arguments:
@@ -2680,9 +2676,9 @@ if (Glob_ProcID==0) then
 	  endif
 	else
       write(*,*) 'Warning: Hessian file ',FileName
-	  write(*,*) 'is inconsistent with the dimension of the current optimization problem'
+	  write(*,*) 'is inconsistent with the dimension of the current optimization problem' 
 	  write(*,*) 'and will not be read'
-	  write(*,*) 'Default Hessian initialization must be used'
+	  write(*,*) 'Default Hessian initialization must be used'      
 	endif
   else
     write(*,*) 'Warning: Cannot open Hessian file ',FileName
@@ -2695,16 +2691,16 @@ end subroutine ReadHessianFile
 
 
 subroutine SaveHessianFile(V,IVLMAT,D,nvar,FileName,IsSuccess)
-!This subroutine saves Hessian to file FileName. nvar stands for the
+!This subroutine saves Hessian to file FileName. nvar stands for the 
 !total number of variables in the problem. The Hessian is taken from
 !V, starting from element V(IVLMAT).
-!In case when the global parameter Glob_FullOptSaveD=.true. the
-!subroutine also saves the scaling vector D (used by the optimization
+!In case when the global parameter Glob_FullOptSaveD=.true. the 
+!subroutine also saves the scaling vector D (used by the optimization 
 !routine). Vector D is placed after V, i.e. in the end of the file, so
-!that even if user happens to continue the same optimization problem with
+!that even if user happens to continue the same optimization problem with 
 !Glob_FullOptSaveD changed from .true. to .false., the routine
 !will be able to run.
-!If the file is successfully saved then the value of logical variable
+!If the file is successfully saved then the value of logical variable 
 !IsSuccess is .true. on exit.
 
 !Arguments:
@@ -2730,7 +2726,7 @@ if (Glob_ProcID==0) then
 	    write(*,*) 'done'
       else
         write(*,*) 'failed'
-	  endif
+	  endif     
 	endif
   endif
   if (.not.IsSuccess) write(*,*) 'Warning: Hessian was not saved'
@@ -2741,10 +2737,10 @@ end subroutine SaveHessianFile
 
 
 subroutine PermuteFunctions(fb,fe,FuncNumTemp,NonlinParamTemp)
-!Subroutine PermuteFunctions permutes basis functions in such
+!Subroutine PermuteFunctions permutes basis functions in such 
 !a way that functions fb through fe go to the very end of the
-!basis (which makes their optimization more time efficient).
-!The subroutine permutes the nonlinear parameters (Glob_NonlinParam)
+!basis (which makes their optimization more time efficient). 
+!The subroutine permutes the nonlinear parameters (Glob_NonlinParam) 
 !Z-indicies (Glob_ZIndex), and function numbers (Glob_FuncNum).
 !This subroutine requires workspace, which must be provided by
 !arrays FuncNumTemp and NonlinParamTemp. The length of FuncNumTemp
@@ -2772,7 +2768,7 @@ do i=fb,fbn-1
   Glob_ZIndex(i)=Glob_ZIndex(nfco+i)
 enddo
 Glob_ZIndex(fbn:Glob_CurrBasisSize)=FuncNumTemp(1:nfco)
-
+  
 FuncNumTemp(1:nfco)=Glob_FuncNum(fb:fe)
 do i=fb,fbn-1
   Glob_FuncNum(i)=Glob_FuncNum(nfco+i)
@@ -2784,10 +2780,10 @@ end subroutine PermuteFunctions
 
 
 subroutine PermuteFunctions2(fb1,fe1,fe2,FuncNumTemp,NonlinParamTemp)
-!Subroutine PermuteFunctions2 permutes basis functions in such
+!Subroutine PermuteFunctions2 permutes basis functions in such 
 !a way that the set of functions fb1 through fe1 exchanges its positions
-!with the set of function fb2 through fe2, where fb2=fe1+1.
-!The subroutine permutes the nonlinear parameters (Glob_NonlinParam),
+!with the set of function fb2 through fe2, where fb2=fe1+1. 
+!The subroutine permutes the nonlinear parameters (Glob_NonlinParam), 
 !Z-indicies (Glob_ZIndex), and function numbers (Glob_FuncNum).
 !This subroutine requires workspace, which must be provided by
 !arrays FuncNumTemp and NonlinParamTemp. The length of FuncNumTemp
@@ -2815,7 +2811,7 @@ do i=fb1,fbn-1
   Glob_ZIndex(i)=Glob_ZIndex(k+i)
 enddo
 Glob_ZIndex(fbn:fe2)=FuncNumTemp(1:k)
-
+  
 FuncNumTemp(1:k)=Glob_FuncNum(fb1:fe1)
 do i=fb1,fbn-1
   Glob_FuncNum(i)=Glob_FuncNum(k+i)
@@ -2827,16 +2823,16 @@ end subroutine PermuteFunctions2
 
 
 subroutine PermuteMatrixElements(fb,fe,TempR)
-!This subroutine permutes matrix elements of H and S in such a
-!way that functions fb and fe go to the very end of the basis
-!(which makes their optimization more time efficient). The subroutine
+!This subroutine permutes matrix elements of H and S in such a 
+!way that functions fb and fe go to the very end of the basis 
+!(which makes their optimization more time efficient). The subroutine 
 !permutes elements of arrays Glob_H, Glob_S, Glob_diagH, Glob_diagS
 !This subroutine requires workspace, which must be provided by
-!by array TempR. The length of this array should be at
-!least fe-fb+1.
+!by array TempR. The length of this array should be at 
+!least fe-fb+1. 
 !Note that the subroutine uses only the lower triangles of matrices
-!Glob_H and Glob_S (excluding the diagonals). Parts of the upper
-!triangles (excluding the diagonal) are used as workspace.
+!Glob_H and Glob_S (excluding the diagonals). Parts of the upper 
+!triangles (excluding the diagonal) are used as workspace.   
 
 !Arguments:
 integer        fb,fe
@@ -2864,7 +2860,7 @@ else
   do i=fbn,Glob_CurrBasisSize
     Glob_H(i,i)=TempR(i-fbn+1)
   enddo
-endif
+endif    
 TempR(1:nfco)=Glob_diagS(fb:fe)
 do i=fb,fbn-1
   Glob_diagS(i)=Glob_diagS(nfco+i)
@@ -2894,7 +2890,7 @@ do i=fe+1,Glob_CurrBasisSize
   enddo
 enddo
 do i=fb,fe-1
-  Glob_H(i+k+1:Glob_CurrBasisSize,i+k)=Glob_H(i+1:fe,i)
+  Glob_H(i+k+1:Glob_CurrBasisSize,i+k)=Glob_H(i+1:fe,i) 
 enddo
 Glob_H(fbn:Glob_CurrBasisSize,fb:fb+k-1)=Glob_H(fb:fe,fe+1:Glob_CurrBasisSize)
 do i=fb,p-1
@@ -2916,7 +2912,7 @@ do i=fe+1,Glob_CurrBasisSize
   enddo
 enddo
 do i=fb,fe-1
-  Glob_S(i+k+1:Glob_CurrBasisSize,i+k)=Glob_S(i+1:fe,i)
+  Glob_S(i+k+1:Glob_CurrBasisSize,i+k)=Glob_S(i+1:fe,i) 
 enddo
 Glob_S(fbn:Glob_CurrBasisSize,fb:fb+k-1)=Glob_S(fb:fe,fe+1:Glob_CurrBasisSize)
 do i=fb,p-1
@@ -2937,17 +2933,17 @@ end subroutine PermuteMatrixElements
 
 
 subroutine PermuteMatrixElements2(fb1,fe1,fe2,TempR)
-!This subroutine permutes matrix elements of H and S in such a
-!way that the set of functions fb1 through fe1 exchanges its
-!positions with the set of function fb2 through fe2, where
-!fb2=fe1+1.
-!The subroutine permutes elements of arrays Glob_H, Glob_S,
-!Glob_diagH, Glob_diagS. This subroutine requires workspace,
-!which must be provided by array TempR. The length of
-!this araays should be at least fe1-fb1+1.
+!This subroutine permutes matrix elements of H and S in such a 
+!way that the set of functions fb1 through fe1 exchanges its 
+!positions with the set of function fb2 through fe2, where 
+!fb2=fe1+1.  
+!The subroutine permutes elements of arrays Glob_H, Glob_S, 
+!Glob_diagH, Glob_diagS. This subroutine requires workspace, 
+!which must be provided by array TempR. The length of 
+!this araays should be at least fe1-fb1+1. 
 !Note that the subroutine uses only the lower triangles of matrices
-!Glob_H and Glob_S (excluding the diagonals). Parts of the upper
-!triangles (excluding the diagonal) are used as workspace.
+!Glob_H and Glob_S (excluding the diagonals). Parts of the upper 
+!triangles (excluding the diagonal) are used as workspace. 
 !Arguments:
 integer      fb1,fe1,fe2
 real(dprec)  TempR(*)
@@ -3005,7 +3001,7 @@ do i=fe1+1,fe2
   enddo
 enddo
 do i=fb1,fe1-1
-  Glob_H(i+k+1:fe2,i+k)=Glob_H(i+1:fe1,i)
+  Glob_H(i+k+1:fe2,i+k)=Glob_H(i+1:fe1,i) 
 enddo
 Glob_H(fn:fe2,fb1:fb1+k-1)=Glob_H(fb1:fe1,fe1+1:fe2)
 do i=fb1,p-1
@@ -3034,7 +3030,7 @@ do i=fe1+1,fe2
   enddo
 enddo
 do i=fb1,fe1-1
-  Glob_S(i+k+1:fe2,i+k)=Glob_S(i+1:fe1,i)
+  Glob_S(i+k+1:fe2,i+k)=Glob_S(i+1:fe1,i) 
 enddo
 Glob_S(fn:fe2,fb1:fb1+k-1)=Glob_S(fb1:fe1,fe1+1:fe2)
 do i=fb1,p-1
@@ -3062,9 +3058,9 @@ end subroutine PermuteMatrixElements2
 
 
 subroutine ReverseFuncOrder(fb,fe)
-!Subroutine ReverseFuncOrder changes the order of basis functions
-!fb through fe to reverse.
-!The subroutine permutes nonlinear parameters (Glob_NonlinParam),
+!Subroutine ReverseFuncOrder changes the order of basis functions 
+!fb through fe to reverse. 
+!The subroutine permutes nonlinear parameters (Glob_NonlinParam), 
 !Z-indicies (Glob_ZIndex), and function numbers (Glob_FuncNum).
 
 !Arguments:
@@ -3098,10 +3094,10 @@ end subroutine ReverseFuncOrder
 
 subroutine ReverseMatElemOrder(fb,fe)
 !Subroutine ReverseMatElemOrder changes the order of matrix elements
-!corresponding to basis functions fb through fe to reverse.
-!The subroutine permutes elements of arrays Glob_H, Glob_S, Glob_diagH,
+!corresponding to basis functions fb through fe to reverse. 
+!The subroutine permutes elements of arrays Glob_H, Glob_S, Glob_diagH, 
 !Glob_diagS. Note that it uses only the lower triangles of matrices
-!Glob_H and Glob_S (excluding the diagonal). Upper triangles are not
+!Glob_H and Glob_S (excluding the diagonal). Upper triangles are not 
 !referenced.
 
 !Arguments:
@@ -3203,16 +3199,16 @@ subroutine MakeFuncAndMEPermForCyclicOpt(fb,fe,blacklisted,blsize,FuncNumTemp,No
 !untouched. The blacklist (logical array blacklisted) has only blsize elements,
 !which can be smaller than the current basis size. Workspace must be supplied
 !in arrays FuncNumTemp and NonlinParamTemp. The length of FuncNumTemp
-!should be at least Glob_CurrBasisSize-fb+1, while the lenght of NonlinParamTemp
-!must be at least (Glob_CurrBasisSize-fb+1)*Glob_npt. If some functions from fb
-!to fe happen to be blacklisted then the new number of functions that need to be
+!should be at least Glob_CurrBasisSize-fb+1, while the lenght of NonlinParamTemp 
+!must be at least (Glob_CurrBasisSize-fb+1)*Glob_npt. If some functions from fb 
+!to fe happen to be blacklisted then the new number of functions that need to be 
 !optimized is smaller than fe-fb+1. Upon exit the subroutine provides a new start
 !function for cyclic optimization, fbnew. The new end function is, of course,
 !the last function in the basis, Glob_CurrBasisSize.
-!When Permute_ME=.true. this subroutine alse changes the order of matrix elements
+!When Permute_ME=.true. this subroutine alse changes the order of matrix elements 
 !accordingly. Otherwise nothing is done with matrix elements. When Permute_ME=.true.
 !the user needs to supply additional workspace in array TempR. The length of this aray
-!should be at least Glob_CurrBasisSize-fb+1. If Permute_ME=.false. this array is not
+!should be at least Glob_CurrBasisSize-fb+1. If Permute_ME=.false. this array is not 
 !referenced.
 !Arguments:
 integer        fb,fe
@@ -3239,7 +3235,7 @@ do i=1,q
 enddo
 do i=q+1,p
   cbs1mi=cbs1-i
-  if (cbs1mi<=blsize) then
+  if (cbs1mi<=blsize) then 
     if (blacklisted(cbs1mi)) then
       j=j+1
       FuncNumTemp(j)=Glob_FuncNum(cbs1mi)
@@ -3249,56 +3245,56 @@ enddo
 fbnew=fb+j
 do i=q+1,p
   cbs1mi=cbs1-i
-  if (cbs1mi<=blsize) then
+  if (cbs1mi<=blsize) then 
     if (.not.blacklisted(cbs1mi)) then
       j=j+1
       FuncNumTemp(j)=Glob_FuncNum(cbs1mi)
-    endif
+    endif  
   else
     j=j+1
-    FuncNumTemp(j)=Glob_FuncNum(cbs1mi)
+    FuncNumTemp(j)=Glob_FuncNum(cbs1mi)  
   endif
 enddo
 Glob_FuncNum(fb:cbs)=FuncNumTemp(1:p)
 !Then we permute nonlinear parameters
 do i=fb,cbs
-  NonlinParamTemp(1:Glob_npt,i-fbm1)=Glob_NonlinParam(1:Glob_npt,Glob_FuncNum(i))
-enddo
+  NonlinParamTemp(1:Glob_npt,i-fbm1)=Glob_NonlinParam(1:Glob_npt,Glob_FuncNum(i))    
+enddo 
 do i=fb,cbs
-  Glob_NonlinParam(1:Glob_npt,i)=NonlinParamTemp(1:Glob_npt,i-fbm1)
+  Glob_NonlinParam(1:Glob_npt,i)=NonlinParamTemp(1:Glob_npt,i-fbm1) 
 enddo
 !We also permute z-indicies of functions
 do i=fb,cbs
-  FuncNumTemp(i-fbm1)=Glob_ZIndex(Glob_FuncNum(i))
-enddo
+  FuncNumTemp(i-fbm1)=Glob_ZIndex(Glob_FuncNum(i))    
+enddo 
 do i=fb,cbs
-  Glob_ZIndex(i)=FuncNumTemp(i-fbm1)
+  Glob_ZIndex(i)=FuncNumTemp(i-fbm1) 
 enddo
 
-!Exit if matrix elements are not needed to be permuted
+!Exit if matrix elements are not needed to be permuted 
 if (.not.Permute_ME) return
 
 !Permute diagonal matrix elements
 if (Glob_GSEPSolutionMethod=='G') then
   do i=fb,cbs
-    TempR(i-fbm1)=Glob_diagH(Glob_FuncNum(i))
-  enddo
+    TempR(i-fbm1)=Glob_diagH(Glob_FuncNum(i))    
+  enddo 
   do i=fb,cbs
-    Glob_diagH(i)=TempR(i-fbm1)
+    Glob_diagH(i)=TempR(i-fbm1) 
   enddo
 else
   do i=fb,cbs
-    TempR(i-fbm1)=Glob_H(Glob_FuncNum(i),Glob_FuncNum(i))
-  enddo
+    TempR(i-fbm1)=Glob_H(Glob_FuncNum(i),Glob_FuncNum(i))    
+  enddo 
   do i=fb,cbs
-    Glob_H(i,i)=TempR(i-fbm1)
+    Glob_H(i,i)=TempR(i-fbm1) 
   enddo
 endif
 do i=fb,cbs
-  TempR(i-fbm1)=Glob_diagS(Glob_FuncNum(i))
-enddo
+  TempR(i-fbm1)=Glob_diagS(Glob_FuncNum(i))    
+enddo 
 do i=fb,cbs
-  Glob_diagS(i)=TempR(i-fbm1)
+  Glob_diagS(i)=TempR(i-fbm1) 
 enddo
 !Permute off-diagonal matrix elements
 do i=fb,cbs
@@ -3307,10 +3303,10 @@ do i=fb,cbs
     gfnj=Glob_FuncNum(j)
     if (gfni>gfnj) then
       Glob_H(j,i)=Glob_H(gfni,gfnj)
-      Glob_S(j,i)=Glob_S(gfni,gfnj)
+      Glob_S(j,i)=Glob_S(gfni,gfnj)      
     else
       Glob_H(j,i)=Glob_H(gfnj,gfni)
-      Glob_S(j,i)=Glob_S(gfnj,gfni)
+      Glob_S(j,i)=Glob_S(gfnj,gfni)     
     endif
   enddo
 enddo
@@ -3329,8 +3325,8 @@ subroutine SortBasisFuncAndMatElem(fb,fe,FuncNumTemp,NonlinParamTemp,TempR)
 !Subroutine SortBasisFuncAndMatElem permutes basis functions
 !fb through fe so that they are sorted in decreasing order
 !(that is the values of Glob_FuncNum(i) decrease). It also permutes
-!the corresponding matrix elements. The subroutine permutes the
-!nonlinear parameters (Glob_NonlinParam), Z-indicies (GLob_ZIndex),
+!the corresponding matrix elements. The subroutine permutes the 
+!nonlinear parameters (Glob_NonlinParam), Z-indicies (GLob_ZIndex), 
 !function numbers (Glob_FuncNum), the elements of arrays Glob_H, Glob_S,
 !Glob_diagH, and glob_diagS. It is assumed that the set of
 !values Glob_FuncNum(fb:fe) ranges from some minimal value
@@ -3338,12 +3334,12 @@ subroutine SortBasisFuncAndMatElem(fb,fe,FuncNumTemp,NonlinParamTemp,TempR)
 !this condition is not satisfied the subroutine will fail without
 !warning.
 !This subroutine requires workspace, which must be provided by
-!arrays FuncNumTemp, NonlinParamTemp, and TempR. The length of
-!FuncNumTemp, TempR, TempC should be at least fe-fb+1, while the
+!arrays FuncNumTemp, NonlinParamTemp, and TempR. The length of 
+!FuncNumTemp, TempR, TempC should be at least fe-fb+1, while the 
 !lenght of NonlinParamTemp must be at least (fe-fb+1)*Glob_npt.
 !Note that the subroutine uses only the lower triangles of matrices
-!Glob_H and Glob_S (excluding the diagonals). Parts of the upper
-!triangles (excluding the diagonal) are used as workspace.
+!Glob_H and Glob_S (excluding the diagonals). Parts of the upper 
+!triangles (excluding the diagonal) are used as workspace.  
 
 !Arguments:
 integer       fb,fe
@@ -3379,8 +3375,8 @@ else
     TempR(nfco+mf-Glob_FuncNum(i))=Glob_H(i,i)
   enddo
   do i=fb,fe
-    Glob_H(i,i)=TempR(i-fb+1)
-  enddo
+    Glob_H(i,i)=TempR(i-fb+1) 
+  enddo   
 endif
 do i=fb,fe
   TempR(nfco+mf-Glob_FuncNum(i))=Glob_diagS(i)
@@ -3459,8 +3455,8 @@ end subroutine SortBasisFuncAndMatElem
 
 subroutine GetOverlapStatistics(Nmin,Nmax,MaxAbsOverlap,MinAbsOverlap,AverageAbsOverlap)
 !Subroutine GetOverlapStatistics determines the largest by magnitude overlap, the smallest
-!by magnitude overalap, and the average overlap magnitude for basis functions
-!ranging from Nmin to Nmax.
+!by magnitude overalap, and the average overlap magnitude for basis functions 
+!ranging from Nmin to Nmax. 
 !Arguments:
 integer      Nmin,Nmax
 real(dprec)  MaxAbsOverlap,MinAbsOverlap,AverageAbsOverlap
@@ -3481,37 +3477,37 @@ do i=1,Nmin-1
     if (absSji>absMaxAbsOverlap) then
        absMaxAbsOverlap=absSji
        MaxAbsOverlap=Glob_S(j,i)
-    endif
+    endif   
     if (absSji<absMinAbsOverlap) then
        absMinAbsOverlap=absSji
        MinAbsOverlap=Glob_S(j,i)
-    endif
+    endif        
     t=t+absSji
   enddo
-enddo
+enddo  
 do i=Nmin,Nmax
   do j=i+1,Nmax
     absSji=abs(Glob_S(j,i))
     if (absSji>absMaxAbsOverlap) then
        absMaxAbsOverlap=absSji
        MaxAbsOverlap=Glob_S(j,i)
-    endif
+    endif   
     if (absSji<absMinAbsOverlap) then
        absMinAbsOverlap=absSji
        MinAbsOverlap=Glob_S(j,i)
-    endif
+    endif        
     t=t+absSji
   enddo
-enddo
-AverageAbsOverlap=2*t/(Nmax*(Nmax-1)-(Nmin-1)*(Nmin-2))
-
+enddo    
+AverageAbsOverlap=2*t/(Nmax*(Nmax-1)-(Nmin-1)*(Nmin-2)) 
+  
 end subroutine GetOverlapStatistics
 
 
 
 function NumOfRowsToPermForUnitShift(j)
-!Function NumOfRowsToPerm is used in cyclic optimization
-!procedure to find the number of function that must be
+!Function NumOfRowsToPerm is used in cyclic optimization 
+!procedure to find the number of function that must be 
 !permuted. What it does, it returns the following values:
 !
 !      j  NumOfRowsToPermForUnitShift(j)
@@ -3532,16 +3528,16 @@ function NumOfRowsToPermForUnitShift(j)
 !     14           2
 !     15           1
 !     16          16
-!     17           1
-!      .           .
-!      .           .
+!     17           1    
+!      .           .   
+!      .           . 
 !      .           .       .
 
 integer NumOfRowsToPermForUnitShift,j,k
 k=1
 do while (mod(j,k)==0)
   k=k*2
-enddo
+enddo  
 NumOfRowsToPermForUnitShift=k/2
 
 end function NumOfRowsToPermForUnitShift
@@ -3550,7 +3546,7 @@ end function NumOfRowsToPermForUnitShift
 
 subroutine GenerateRndIntSeq(n,s)
 !Routine GenerateRndIntSeq generates a random sequence (permutation)
-!of integers from 1 to n. The result is returned in array s(1:n)
+!of integers from 1 to n. The result is returned in array s(1:n) 
 !Arguments:
 integer      n,s(n)
 !Local variables:
@@ -3585,7 +3581,7 @@ subroutine ReallocateBasisFuncData(FinalSize,NumOfFuncToKeep)
 !   FinalSize - the final size of the arrays
 !   NumOfFuncToKeep - the number of functions in the initial array
 !       whose data will be copied to the reallocated arrays. More
-!       specifically, the data of first NumOfFuncToKeep functions
+!       specifically, the data of first NumOfFuncToKeep functions 
 !       is copied. Notice that NumOfFuncToKeep<=FinalSize.
 !Parameters:
 integer       FinalSize,NumOfFuncToKeep
@@ -3600,10 +3596,10 @@ integer,allocatable,dimension(:)                :: TempZInd
 
 if (NumOfFuncToKeep>FinalSize) then
   if (Glob_ProcID==0) then
-    write(*,*) 'Error in ReallocateBasisFuncData:'
+    write(*,*) 'Error in ReallocateBasisFuncData:' 
     write(*,*) 'NumOfFuncToKeep must be smaller or equal than FinalSize'
   endif
-  stop
+  stop  
 endif
 if (Glob_UseReallocFile) then
   !Temporarily store the information in a file
@@ -3635,7 +3631,7 @@ if (Glob_UseReallocFile) then
         read(1) Glob_ZIndex(1:NumOfFuncToKeep)
         read(1,iostat=OpenFileErr) Glob_NonlinParam(1:Glob_npt,1:NumOfFuncToKeep)
       endif
-      close(1)
+      close(1) 
       call MPI_BCAST(OpenFileErr,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
   endif
@@ -3657,35 +3653,35 @@ if (Glob_UseReallocFile) then
   do i=1,NumOfFuncToKeep
     WorkBuffReal(i)=Glob_History(i)%Energy
   enddo
-  call MPI_BCAST(WorkBuffReal,NumOfFuncToKeep,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  call MPI_BCAST(WorkBuffReal,NumOfFuncToKeep,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
   do i=1,NumOfFuncToKeep
     Glob_History(i)%Energy=WorkBuffReal(i)
   enddo
   do i=1,NumOfFuncToKeep
     WorkBuffInt(i)=Glob_History(i)%CyclesDone
   enddo
-  call MPI_BCAST(WorkBuffInt,NumOfFuncToKeep,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  call MPI_BCAST(WorkBuffInt,NumOfFuncToKeep,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
   do i=1,NumOfFuncToKeep
     Glob_History(i)%CyclesDone=WorkBuffInt(i)
   enddo
   do i=1,NumOfFuncToKeep
     WorkBuffInt(i)=Glob_History(i)%InitFuncAtLastStep
   enddo
-  call MPI_BCAST(WorkBuffInt,NumOfFuncToKeep,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  call MPI_BCAST(WorkBuffInt,NumOfFuncToKeep,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
   do i=1,NumOfFuncToKeep
     Glob_History(i)%InitFuncAtLastStep=WorkBuffInt(i)
   enddo
   do i=1,NumOfFuncToKeep
     WorkBuffInt(i)=Glob_History(i)%NumOfEnergyEvalDuringFullOpt
   enddo
-  call MPI_BCAST(WorkBuffInt,NumOfFuncToKeep,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  call MPI_BCAST(WorkBuffInt,NumOfFuncToKeep,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode) 
   do i=1,NumOfFuncToKeep
     Glob_History(i)%NumOfEnergyEvalDuringFullOpt=WorkBuffInt(i)
   enddo
   deallocate(WorkBuffReal)
   deallocate(WorkBuffInt)
-  call MPI_BCAST(Glob_FuncNum,NumOfFuncToKeep,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-  call MPI_BCAST(Glob_ZIndex,NumOfFuncToKeep,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  call MPI_BCAST(Glob_FuncNum,NumOfFuncToKeep,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
+  call MPI_BCAST(Glob_ZIndex,NumOfFuncToKeep,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
   call MPI_BCAST(Glob_NonlinParam,Glob_npt*NumOfFuncToKeep, &
                  MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
   if (Glob_ProcID==0) then
@@ -3694,7 +3690,7 @@ if (Glob_UseReallocFile) then
 else !if (Glob_UseReallocFile)
   allocate(TempHistory(NumOfFuncToKeep))
   allocate(TempFunc(NumOfFuncToKeep))
-  allocate(TempZInd(NumOfFuncToKeep))
+  allocate(TempZInd(NumOfFuncToKeep))  
   allocate(TempParam(Glob_npt,NumOfFuncToKeep))
   TempHistory(1:NumOfFuncToKeep)=Glob_History(1:NumOfFuncToKeep)
   TempFunc(1:NumOfFuncToKeep)=Glob_FuncNum(1:NumOfFuncToKeep)
@@ -3710,7 +3706,7 @@ else !if (Glob_UseReallocFile)
   allocate(Glob_NonlinParam(Glob_npt,FinalSize))
   Glob_History(1:NumOfFuncToKeep)=TempHistory(1:NumOfFuncToKeep)
   Glob_FuncNum(1:NumOfFuncToKeep)=TempFunc(1:NumOfFuncToKeep)
-  Glob_ZIndex(1:NumOfFuncToKeep)=TempZInd(1:NumOfFuncToKeep)
+  Glob_ZIndex(1:NumOfFuncToKeep)=TempZInd(1:NumOfFuncToKeep)  
   Glob_NonlinParam(1:Glob_npt,1:NumOfFuncToKeep)=TempParam(1:Glob_npt,1:NumOfFuncToKeep)
   deallocate(TempParam)
   deallocate(TempZInd)
@@ -3733,38 +3729,38 @@ end subroutine ReallocateBasisFuncData
 
 
 subroutine BasisEnlG(Kstart,Kstop,Kstep,NTrials,OptimizationType,MaxEnergyEval, &
-                     OverlapThreshold,LinCoeffThreshold)
+                     OverlapThreshold,LinCoeffThreshold) 
 !Subroutine BasisEnlG enlarges the basis set from initial
-!Kstart-1 functions to Kstop functions by means of trials of
-!randomly selected candidates and then optimizing them. At each
+!Kstart-1 functions to Kstop functions by means of trials of 
+!randomly selected candidates and then optimizing them. At each 
 !trial it generates a set of Kstep functions for NTrials times
-!based on the existing distribution of nonlinear papameters.
-!Only the set that lowers the energy the most is left. Then
+!based on the existing distribution of nonlinear papameters. 
+!Only the set that lowers the energy the most is left. Then 
 !the Z-index of the best candidate is optimized by trying to
 !consequently change Z-indicies. After that the nonlinear parameters
 !are optimized according to the value of OptimizationType.
 !MaxEnergyEval is the maximal number of the energy evaluations allowed
-!for this optimization.
+!for this optimization. 
 !Each newly accepted basis function is checked for pair linear
 !dependency with other functions in the basis. If the absolute
 !value of the overlap is greater than OverlapThreshold then
-!such function is rejected and random trials and optimization
-!take place again until either a good function/functions are
-!generated or a certain limit of such repetitions is reached
-!(the limit is given by the value of global constant
-!Glob_BadOverlapOrLinCoeffLim). If the value of parameter OverlapThreshold
-!is set to negative or zero then no such check is performed.
+!such function is rejected and random trials and optimization 
+!take place again until either a good function/functions are 
+!generated or a certain limit of such repetitions is reached 
+!(the limit is given by the value of global constant 
+!Glob_BadOverlapOrLinCoeffLim). If the value of parameter OverlapThreshold 
+!is set to negative or zero then no such check is performed. 
 !A Similar check is performed for all linear parameters. If
 !adding new function/functions makes any linear parameter
 !of any function (not only those being added but any) is greater
-!by magnitude than LinCoeffThreshold then such new function/functions
+!by magnitude than LinCoeffThreshold then such new function/functions 
 !are rejected and the procedure is repeated until a good set is generated
 !or a certain number of failures happens (Glob_BadOverlapOrLinCoeffLim).
-!To avaid this check it is enough to set LinCoeffThreshold to a value
+!To avaid this check it is enough to set LinCoeffThreshold to a value 
 !equal or smaller than zero.
 !It is assumed that the basis of Kstart-1 functions has already
 !been selected and the corresponding nonlinear parameters are
-!stored in proper global arrays. Subroutines EnergyGA, EnergyGAM, and EnergyGB
+!stored in proper global arrays. Subroutines EnergyGA, EnergyGAM, and EnergyGB 
 !are called to evaluate the energy and its gradient.
 
 !Arguments:
@@ -3782,7 +3778,7 @@ real(dprec)  Evalue,E_init,E_best
 real(dprec)  t
 real(dprec),allocatable,dimension(:,:)   :: ParSet,ParSetBest
 integer,allocatable,dimension(:)         :: ZIndSet,ZIndSetBest
-real(dprec),allocatable,dimension(:)     :: x,x_best,grad
+real(dprec),allocatable,dimension(:)     :: x,x_best,grad 
 integer,allocatable,dimension(:)         :: ZIndOptSequence
 !Arrays used by DRMNG
 real(dprec),allocatable,dimension(:)     :: D,V,V_init
@@ -3797,8 +3793,8 @@ type(Glob_HistoryStep),allocatable,dimension(:) :: TempHistory
 real(dprec),allocatable,dimension(:,:)          :: TempParam
 integer,allocatable,dimension(:)                :: TempZInd
 integer,allocatable,dimension(:)                :: TempFunc
-!====================================================
-!These variables are used when a finite difference gradient is computed
+!==================================================== 
+!These variables are used when a finite difference gradient is computed               
 !real(dprec),allocatable,dimension(:)     ::    fx,fgrad
 !real(dprec)                                    deltax,Evalue1
 !====================================================
@@ -3848,7 +3844,7 @@ allocate(Glob_DlBuff2(2*npt,Glob_HSBuffLen))
 
 !Allocate workspace for DSYGVX
 BlockSizeForDSYGVX=ILAENV(1,'DSYTRD','VIU',Kstop,Kstop,Kstop,Kstop)
-Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*Kstop,8*Kstop)
+Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*Kstop,8*Kstop) 
 allocate(Glob_WorkForDSYGVX(Glob_LWorkForDSYGVX))
 allocate(Glob_IWorkForDSYGVX(5*Kstop))
 
@@ -3881,7 +3877,7 @@ allocate(V_init(LV))
 !ALG = 2 MEANS GENERAL UNCONSTRAINED OPTIMIZATION CONSTANTS
 ALG=2
 call DIVSET(ALG,IV_init,LIV,LV,V_init)
-IV_init(17)=1000000
+IV_init(17)=1000000 
 IV_init(18)=1000000
 IV_init(19)=0 !set summary print format
 IV_init(20)=0; IV_init(22)=0; IV_init(23)=-1; IV_init(24)=0
@@ -3928,7 +3924,7 @@ K=Kstart-1
 do while (K<Kstop)
   if (K+Kstep<=Kstop) then
 	nfo=Kstep
-	nfru=K
+	nfru=K    
 	K=K+Kstep
   else
     nfo=Kstop-K
@@ -3950,19 +3946,19 @@ do while (K<Kstop)
 	  write(*,*) 'Selecting function',K
 	endif
   endif
-
+  
   IsOverlapBad=.true.
   IsAnyLinCoeffBad=.true.
   AttemptToGetGoodFunc=1
   do while ((IsOverlapBad.or.IsAnyLinCoeffBad).and. &
             (AttemptToGetGoodFunc<=Glob_BadOverlapOrLinCoeffLim))
-    !Random selection
+    !Random selection 
     NumOfFailures=0
     IsEnergyImproved=.false.
 	wbfu=0
 	wmu=0
     do i=1,NTrials
-      if (Glob_ProcID==0) call GenerateTrialParam(nfo,ParSet,ZIndSet,wbfu_t,wmu_t)
+      if (Glob_ProcID==0) call GenerateTrialParam(nfo,ParSet,ZIndSet,wbfu_t,wmu_t) 
 	  call MPI_BCAST(ParSet,npt*nfo,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 	  call MPI_BCAST(ZIndSet,nfo,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       Glob_NonlinParam(1:npt,nfrup1:K)=ParSet(1:npt,1:nfo)
@@ -4004,26 +4000,26 @@ do while (K<Kstop)
 	  write (*,*) 'E=',Glob_CurrEnergy,'  prototype function is',wbfu
       do i=1,nfo
         write(*,'(1x,i6,a1,i6)',advance='no') nfru+i,':',ZIndSetBest(i)
-        call writerealarradv(6,ParSetBest(1:npt,i),npt)
+        call writerealarradv(6,ParSetBest(1:npt,i),npt)        
       enddo
-	  write (*,*) 'Optimizing nonlinear parameters'
+	  write (*,*) 'Optimizing nonlinear parameters'		    
     endif
 
     !Optimization of the nonlinear parameters
     select case (OptimizationType)
-    case(0) !No optimization
+    case(0) !No optimization 
 	  do i=1,nfo
 	    x((i-1)*npt+1:i*npt)=Glob_NonlinParam(1:npt,nfru+i)
-	  enddo
+	  enddo    
     case(1)
-
+    
       !We first optimize Z-indicies
       NumOfFailures=0
-      !Generate a random sequence which will define the order in which
+      !Generate a random sequence which will define the order in which 
       !Z-indicies should be optimized (one index at a time)
       call GenerateRndIntSeq(nfo,ZIndOptSequence)
-      !Loop where Z-indicies are optimized. Note: there is some romm fr improvement
-      !here as I programmed it in a simple way when all matrix element of functions
+      !Loop where Z-indicies are optimized. Note: there is some romm fr improvement 
+      !here as I programmed it in a simple way when all matrix element of functions 
       !nfrup1 thriugh K are computed each time while it is not always necessary.
       do i=1,nfo
         ii=ZIndOptSequence(i)
@@ -4031,7 +4027,7 @@ do while (K<Kstop)
         jbest=j
         do jj=1,Glob_n
           if (jj/=j) then
-            Glob_ZIndex(nfru+ii)=jj
+            Glob_ZIndex(nfru+ii)=jj  
             Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
 		    if (ErrCode/=0) then
               NumOfFailures=NumOfFailures+1
@@ -4039,27 +4035,27 @@ do while (K<Kstop)
               if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 	            if (Glob_ProcID==0) then
                   write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
-		          write(*,*) 'during the optimization of Z-indicies exceeded limit'
+		          write(*,*) 'during the optimization of Z-indicies exceeded limit' 
 		        endif
-	            stop
+	            stop      
               endif
 		    else
 		      if (Evalue<Glob_CurrEnergy) then
                 Glob_CurrEnergy=Evalue
-                jbest=jj
+                jbest=jj    
               endif
-		    endif
-          endif
-        enddo
+		    endif                    
+          endif  
+        enddo 
         Glob_ZIndex(nfru+ii)=jbest
       enddo
-
+      
       !Now we optimize nonlinear parameters
-
+    
 	  !Setting IV and V values as was in their initial copies
 	  IV(1:LIV)=IV_init(1:LIV)
 	  V(1:LV)=V_init(1:LV)
-
+ 
 	  nv=nfo*npt
 	  do i=1,nfo
 	    x((i-1)*npt+1:i*npt)=Glob_NonlinParam(1:npt,nfru+i)
@@ -4069,7 +4065,7 @@ do while (K<Kstop)
 	        10000*epsilon(Glob_CurrEnergy))
 	  else
 	    t=ONE
-	  endif
+	  endif  
 	  !if (Glob_ProcID==0) write(*,*) 'scaling coeff=',t !remove later
       do i=1,nfo
         !t=maxval(abs(x(npt*(i-1)+1:npt*i-np)))/Glob_OptScalingThreshold
@@ -4080,7 +4076,7 @@ do while (K<Kstop)
           !write(*,*) 'i=',int(i,1),' j=',int(j,1),' D=',D(npt*(i-1)+j)
         enddo
       enddo
-
+      
 	  ExitNeeded=.false.
 	  NumOfFailures=0
       NumOfEnergyEval=0
@@ -4088,10 +4084,10 @@ do while (K<Kstop)
       if (NumOfEnergyEval>=MaxEnergyEval) ExitNeeded=.true.
       E_best=Glob_CurrEnergy
       x_best(1:nfo*npt)=x(1:nfo*npt)
-
-      do while (.not.(ExitNeeded))
+      
+      do while (.not.(ExitNeeded))  
 	    if (Glob_ProcID==0) call DRMNG(D, Glob_CurrEnergy, grad, IV, LIV, LV, nv, V, x)
-        call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+        call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
 	    select case (IV(1))
         case (1) !Only energy is needed
           call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -4105,10 +4101,10 @@ do while (K<Kstop)
 		    IV(2)=0
 		  else
             Glob_CurrEnergy=Evalue
-            if (Evalue<E_best) then
+            if (Evalue<E_best) then 
               E_best=Evalue
               x_best(1:nfo*npt)=x(1:nfo*npt)
-            endif
+            endif              
 		  endif
 	    case (2) !Only gradient is needed
           call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -4121,16 +4117,16 @@ do while (K<Kstop)
             NumOfFailures=NumOfFailures+1
 		    IV(2)=0
 		  else
-            if (Evalue<E_best) then
+            if (Evalue<E_best) then 
               E_best=Evalue
               x_best(1:nfo*npt)=x(1:nfo*npt)
-            endif
+            endif 		    
 		  endif
 		  !===================================
 		  !The lines below need be uncommented when finite
-		  !difference gradient is shown
+		  !difference gradient is shown 
 		  !allocate(fx(nvmax))
-          !allocate(fgrad(nvmax))
+          !allocate(fgrad(nvmax))	
 		  !do j=1,nv
           !  fx(1:nv)=x(1:nv)
 		  !  deltax=x(j)*1.0Q-02
@@ -4155,26 +4151,26 @@ do while (K<Kstop)
 	      !enddo
 		  !deallocate(fgrad)
           !deallocate(fx)
-		  !===================================
+		  !===================================	     
 	    case (3:8) !Some kind of convergence has been reached
           ExitNeeded=.true.
         case (9:10)   !Function evaluation limit has been reached.
 	                !This never suppose to happen because we
 				    !count the number of function evaluations ourselves.
           ExitNeeded=.true.
-	    endselect
+	    endselect  
 	    if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 	      if (Glob_ProcID==0) then
             write(*,*) 'Error in BasisEnlG: number of failures in energy or gradient'
 		    write(*,*) 'calculations during the optimization of nonlinear parameters'
-		    write(*,*) 'exceeded limit'
+		    write(*,*) 'exceeded limit' 
 		  endif
 	      stop
 	    endif
 	    if (NumOfEnergyEval>=MaxEnergyEval) ExitNeeded=.true.
       enddo
     endselect !(OptimizationType)
-
+    
     !Calculate the energy and the linear coefficients at the best point found
     do i=1,nfo
 	  Glob_NonlinParam(1:npt,nfru+i)=x_best((i-1)*npt+1:i*npt)
@@ -4187,10 +4183,10 @@ do while (K<Kstop)
       if (Glob_ProcID==0) then
 	    write(*,*) 'Error in BasisEnlG: failed to evaluate energy after the optimization'
 	    write(*,*) 'of nonlinear parameters'
-	  endif
-	  stop
-    endif
-
+	  endif 
+	  stop     
+    endif    
+	
 	!Checking if overlaps are OK (only in case OverlapThreshold>ZERO)
     IsOverlapBad=.false.
     if (OverlapThreshold>ZERO) then
@@ -4240,19 +4236,19 @@ do while (K<Kstop)
 
   enddo !(IsOverlapBad.or.IsAnyLinCoeffBad).and. &
         !(AttemptToGetGoodOverlap<=Glob_BasisEnlBadOverlapLim)
-
+  
   if (Glob_ProcID==0) then
     write (*,*) 'Number of energy/gradient evaluations',NumOfEnergyEval,NumOfGradEval
     write (*,*) 'E=',Glob_CurrEnergy
     do i=1,nfo
       write(*,'(1x,i6,a1,i6)',advance='no') nfru+i,':',Glob_ZIndex(nfru+i)
-      call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt)
-    enddo
+      call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt)       
+    enddo		    
   endif
 
-  !getting statistics about the distribution of generated parameters
-  if (Glob_ProcID==0) then
-    if (wmu==1) then
+  !getting statistics about the distribution of generated parameters 
+  if (Glob_ProcID==0) then 
+    if (wmu==1) then 
 	  rgm1_counter=rgm1_counter+1
 	  if (nfru>nfo) then
 	    do i=1,nfo
@@ -4264,14 +4260,14 @@ do while (K<Kstop)
 	    enddo
 	  endif
     endif
-    if (wmu==2) then
+    if (wmu==2) then 
 	  rgm2_counter=rgm2_counter+1
 	  if (nfru>nfo) then
 	    do i=1,nfo
           do j=1,npt
 		    t=(Glob_NonlinParam(j,wbfu+i-1)-Glob_NonlinParam(j,nfru+i)) &
 		      /Glob_NonlinParam(j,wbfu+i-1)
-	        ms2=ms2+abs(t)
+	        ms2=ms2+abs(t)        
 		  enddo
 	    enddo
 	  endif
@@ -4292,7 +4288,7 @@ do while (K<Kstop)
 enddo
 !Main loop ends here
 
-call StoreMatricesInSwapFile()
+call StoreMatricesInSwapFile()   
 
 !Dellocate arrays used by DRMNG
 deallocate(V_init)
@@ -4309,14 +4305,14 @@ deallocate(ZIndSet)
 deallocate(ParSetBest)
 deallocate(ParSet)
 
-!Deallocate workspace for EnergyGB
+!Deallocate workspace for EnergyGB 
 deallocate(Glob_WkGR)
 
 !Deallocate workspace for DSYGVX
 deallocate(Glob_IWorkForDSYGVX)
 deallocate(Glob_WorkForDSYGVX)
 
-!Deallocate global arrays
+!Deallocate global arrays 
 deallocate(Glob_DlBuff2)
 deallocate(Glob_DlBuff1)
 deallocate(Glob_DkBuff2)
@@ -4339,7 +4335,7 @@ if (Glob_ProcID==0) then
     'Average shift factor from prototype function is ',ms1/(npt*rgm1_counter)
   write(*,*) 'Method 2 of generating basis functions was used ',rgm2_counter,' times'
   if (rgm2_counter/=0) write(*,'(1x,a48,e13.6)') &
-    'Average shift factor from prototype function is ',ms2/(npt*rgm2_counter)
+    'Average shift factor from prototype function is ',ms2/(npt*rgm2_counter)   
   write(*,*)
   write(*,*) 'Routine BasisEnlG has finished'
 endif
@@ -4349,38 +4345,38 @@ end subroutine BasisEnlG
 
 
 subroutine BasisEnlI(Kstart,Kstop,Kstep,NTrials,OptimizationType,MaxEnergyEval, &
-                     OverlapThreshold,LinCoeffThreshold)
+                     OverlapThreshold,LinCoeffThreshold) 
 !Subroutine BasisEnlI enlarges the basis set from initial
-!Kstart-1 functions to Kstop functions by means of trials of
-!randomly selected candidates and then optimizing them. At each
+!Kstart-1 functions to Kstop functions by means of trials of 
+!randomly selected candidates and then optimizing them. At each 
 !trial it generates a set of Kstep functions for NTrials times
-!based on the existing distribution of nonlinear papameters.
-!Only the set that lowers the energy the most is left. Then
+!based on the existing distribution of nonlinear papameters. 
+!Only the set that lowers the energy the most is left. Then 
 !the Z-index of the best candidate is optimized by trying to
 !consequently change Z-indicies. After that the nonlinear parameters
 !are optimized according to the value of OptimizationType.
 !MaxEnergyEval is the maximal number of the energy evaluations allowed
-!for this optimization.
+!for this optimization. 
 !Each newly accepted basis function is checked for pair linear
 !dependency with other functions in the basis. If the absolute
 !value of the overlap is greater than OverlapThreshold then
-!such function is rejected and random trials and optimization
-!take place again until either a good function/functions are
-!generated or a certain limit of such repetitions is reached
-!(the limit is given by the value of global constant
-!Glob_BadOverlapOrLinCoeffLim). If the value of parameter OverlapThreshold
-!is set to negative or zero then no such check is performed.
+!such function is rejected and random trials and optimization 
+!take place again until either a good function/functions are 
+!generated or a certain limit of such repetitions is reached 
+!(the limit is given by the value of global constant 
+!Glob_BadOverlapOrLinCoeffLim). If the value of parameter OverlapThreshold 
+!is set to negative or zero then no such check is performed. 
 !A similar check is performed for all linear parameters. If
 !adding new function/functions makes any linear parameter
 !of any function (not only those being added but any) is greater
-!by magnitude than LinCoeffThreshold then such new function/functions
+!by magnitude than LinCoeffThreshold then such new function/functions 
 !are rejected and the procedure is repeated until a good set is generated
 !or a certain number of failures happens (Glob_BadOverlapOrLinCoeffLim).
-!To avaid this check it is enough to set LinCoeffThreshold to a value
+!To avaid this check it is enough to set LinCoeffThreshold to a value 
 !equal or smaller than zero.
 !It is assumed that the basis of Kstart-1 functions has already
 !been selected and the corresponding nonlinear parameters are
-!stored in proper global arrays. Subroutines EnergyIA, EnergyIAM, and EnergyIB
+!stored in proper global arrays. Subroutines EnergyIA, EnergyIAM, and EnergyIB 
 !are called to evaluate the energy and its gradient.
 
 !Arguments:
@@ -4398,7 +4394,7 @@ real(dprec)  Evalue,E_init,E_best
 real(dprec)  t
 real(dprec),allocatable,dimension(:,:)   :: ParSet,ParSetBest
 integer,allocatable,dimension(:)         :: ZIndSet,ZIndSetBest
-real(dprec),allocatable,dimension(:)     :: x,x_best,grad
+real(dprec),allocatable,dimension(:)     :: x,x_best,grad 
 integer,allocatable,dimension(:)         :: ZIndOptSequence
 !Arrays used by DRMNG
 real(dprec),allocatable,dimension(:)     :: D,V,V_init
@@ -4413,8 +4409,8 @@ type(Glob_HistoryStep),allocatable,dimension(:) :: TempHistory
 real(dprec),allocatable,dimension(:,:)          :: TempParam
 integer,allocatable,dimension(:)                :: TempZInd
 integer,allocatable,dimension(:)                :: TempFunc
-!====================================================
-!These variables are used when a finite difference gradient is computed
+!==================================================== 
+!These variables are used when a finite difference gradient is computed               
 !real(dprec),allocatable,dimension(:)     ::    fx,fgrad
 !real(dprec)                                    deltax,Evalue1
 !====================================================
@@ -4498,7 +4494,7 @@ allocate(V_init(LV))
 !ALG = 2 MEANS GENERAL UNCONSTRAINED OPTIMIZATION CONSTANTS
 ALG=2
 call DIVSET(ALG,IV_init,LIV,LV,V_init)
-IV_init(17)=1000000
+IV_init(17)=1000000 
 IV_init(18)=1000000
 IV_init(19)=0 !set summary print format
 IV_init(20)=0; IV_init(22)=0; IV_init(23)=-1; IV_init(24)=0
@@ -4545,7 +4541,7 @@ K=Kstart-1
 do while (K<Kstop)
   if (K+Kstep<=Kstop) then
 	nfo=Kstep
-	nfru=K
+	nfru=K    
 	K=K+Kstep
   else
     nfo=Kstop-K
@@ -4575,13 +4571,13 @@ do while (K<Kstop)
   AttemptToGetGoodFunc=1
   do while ((IsOverlapBad.or.IsAnyLinCoeffBad).and. &
             (AttemptToGetGoodFunc<=Glob_BadOverlapOrLinCoeffLim))
-    !Random selection
+    !Random selection 
     NumOfFailures=0
     IsEnergyImproved=.false.
 	wbfu=0
 	wmu=0
     do i=1,NTrials
-      if (Glob_ProcID==0) call GenerateTrialParam(nfo,ParSet,ZIndSet,wbfu_t,wmu_t)
+      if (Glob_ProcID==0) call GenerateTrialParam(nfo,ParSet,ZIndSet,wbfu_t,wmu_t) 
 	  call MPI_BCAST(ParSet,npt*nfo,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 	  call MPI_BCAST(ZIndSet,nfo,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       Glob_NonlinParam(1:npt,nfrup1:K)=ParSet(1:npt,1:nfo)
@@ -4599,7 +4595,7 @@ do while (K<Kstop)
 	  else
         NumOfFailures=NumOfFailures+1
 	  endif
-    enddo
+    enddo 
     if (NumOfFailures*ONE/NTrials>Glob_MaxFracOfTrialFailsAllowed) then
       if (Glob_ProcID==0) then
 	    write(*,*) 'Error in BasisEnlI: the number of eigenvalue problem solution failures'
@@ -4623,26 +4619,26 @@ do while (K<Kstop)
 	  write (*,*) 'E=',Glob_CurrEnergy,'  prototype function is',wbfu
       do i=1,nfo
         write(*,'(1x,i6,a1,i6)',advance='no') nfru+i,':',ZIndSetBest(i)
-        call writerealarradv(6,ParSetBest(1:npt,i),npt)
+        call writerealarradv(6,ParSetBest(1:npt,i),npt)  
       enddo
-	  write (*,*) 'Optimizing nonlinear parameters'
+	  write (*,*) 'Optimizing nonlinear parameters'		    
     endif
 
     !Optimization of the nonlinear parameters
     select case (OptimizationType)
-    case(0) !No optimization
+    case(0) !No optimization 
 	  do i=1,nfo
 	    x((i-1)*npt+1:i*npt)=Glob_NonlinParam(1:npt,nfru+i)
-	  enddo
+	  enddo    
     case(1)
-
+    
       !We first optimize Z-indicies
       NumOfFailures=0
-      !Generate a random sequence which will define the order in which
+      !Generate a random sequence which will define the order in which 
       !Z-indicies should be optimized (one index at a time)
       call GenerateRndIntSeq(nfo,ZIndOptSequence)
-      !Loop where Z-indicies are optimized. Note: there is some room for improvement
-      !here as I programmed it in a simple way when all matrix element of functions
+      !Loop where Z-indicies are optimized. Note: there is some room for improvement 
+      !here as I programmed it in a simple way when all matrix element of functions 
       !nfrup1 thriugh K are computed each time while it is not always necessary.
       do i=1,nfo
         ii=ZIndOptSequence(i)
@@ -4650,7 +4646,7 @@ do while (K<Kstop)
         jbest=j
         do jj=1,Glob_n
           if (jj/=j) then
-            Glob_ZIndex(nfru+ii)=jj
+            Glob_ZIndex(nfru+ii)=jj  
             Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
 		    if (ErrCode/=0) then
               NumOfFailures=NumOfFailures+1
@@ -4658,27 +4654,27 @@ do while (K<Kstop)
               if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 	            if (Glob_ProcID==0) then
                   write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
-		          write(*,*) 'during the optimization of Z-indicies exceeded limit'
+		          write(*,*) 'during the optimization of Z-indicies exceeded limit' 
 		        endif
-	            stop
+	            stop      
               endif
 		    else
 		      if (Evalue<Glob_CurrEnergy) then
                 Glob_CurrEnergy=Evalue
-                jbest=jj
+                jbest=jj    
               endif
-		    endif
-          endif
-        enddo
+		    endif                    
+          endif  
+        enddo 
         Glob_ZIndex(nfru+ii)=jbest
       enddo
-
+      
       !Now we optimize nonlinear parameters
-
+    
 	  !Setting IV and V values as was in their initial copies
 	  IV(1:LIV)=IV_init(1:LIV)
 	  V(1:LV)=V_init(1:LV)
-
+ 
 	  nv=nfo*npt
 	  do i=1,nfo
 	    x((i-1)*npt+1:i*npt)=Glob_NonlinParam(1:npt,nfru+i)
@@ -4688,7 +4684,7 @@ do while (K<Kstop)
 	          10000*epsilon(Glob_CurrEnergy))
 	  else
 	    t=ONE
-	  endif
+	  endif  
 	  !if (Glob_ProcID==0) write(*,*) 'scaling coeff=',t !remove later
       do i=1,nfo
         !t=maxval(abs(x(npt*(i-1)+1:npt*i-np)))/Glob_OptScalingThreshold
@@ -4699,7 +4695,7 @@ do while (K<Kstop)
           !write(*,*) 'i=',int(i,1),' j=',int(j,1),' D=',D(npt*(i-1)+j)
         enddo
       enddo
-
+      
 	  ExitNeeded=.false.
 	  NumOfFailures=0
       NumOfEnergyEval=0
@@ -4707,10 +4703,10 @@ do while (K<Kstop)
       if (NumOfEnergyEval>=MaxEnergyEval) ExitNeeded=.true.
       E_best=Glob_CurrEnergy
       x_best(1:nfo*npt)=x(1:nfo*npt)
-
-      do while (.not.(ExitNeeded))
+      
+      do while (.not.(ExitNeeded))  
 	    if (Glob_ProcID==0) call DRMNG(D, Glob_CurrEnergy, grad, IV, LIV, LV, nv, V, x)
-        call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+        call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
 	    select case (IV(1))
         case (1) !Only energy is needed
           call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -4724,10 +4720,10 @@ do while (K<Kstop)
 		    IV(2)=0
 		  else
             Glob_CurrEnergy=Evalue
-            if (Evalue<E_best) then
+            if (Evalue<E_best) then 
               E_best=Evalue
               x_best(1:nfo*npt)=x(1:nfo*npt)
-            endif
+            endif              
 		  endif
 	    case (2) !Only gradient is needed
           call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -4740,16 +4736,16 @@ do while (K<Kstop)
             NumOfFailures=NumOfFailures+1
 		    IV(2)=0
 		  else
-            if (Evalue<E_best) then
+            if (Evalue<E_best) then 
               E_best=Evalue
               x_best(1:nfo*npt)=x(1:nfo*npt)
-            endif
+            endif 		    
 		  endif
 		  !===================================
 		  !The lines below need be uncommented when finite
-		  !difference gradient is shown
+		  !difference gradient is shown 
 		  !allocate(fx(nvmax))
-          !allocate(fgrad(nvmax))
+          !allocate(fgrad(nvmax))	
 		  !do j=1,nv
           !  fx(1:nv)=x(1:nv)
 		  !  deltax=x(j)*1.0Q-02
@@ -4774,26 +4770,26 @@ do while (K<Kstop)
 	      !enddo
 		  !deallocate(fgrad)
           !deallocate(fx)
-		  !===================================
+		  !===================================	     
 	    case (3:8) !Some kind of convergence has been reached
           ExitNeeded=.true.
         case (9:10) !Function evaluation limit has been reached.
 	                !This never suppose to happen because we
 				    !count the number of function evaluations ourselves.
           ExitNeeded=.true.
-	    endselect
+	    endselect  
 	    if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 	      if (Glob_ProcID==0) then
             write(*,*) 'Error in BasisEnlI: number of failures in energy or gradient'
 		    write(*,*) 'calculations during the optimization of nonlinear parameters'
-		    write(*,*) 'exceeded limit'
+		    write(*,*) 'exceeded limit' 
 		  endif
 	      stop
 	    endif
 	    if (NumOfEnergyEval>=MaxEnergyEval) ExitNeeded=.true.
       enddo
     endselect !(OptimizationType)
-
+    
     !Calculate the energy and the linear coefficients at the best point found
     do i=1,nfo
 	  Glob_NonlinParam(1:npt,nfru+i)=x_best((i-1)*npt+1:i*npt)
@@ -4803,10 +4799,10 @@ do while (K<Kstop)
       if (Glob_ProcID==0) then
 	    write(*,*) 'Error in BasisEnlI: failed to evaluate energy after the optimization'
 	    write(*,*) 'of nonlinear parameters'
-	  endif
-	  stop
-    endif
-
+	  endif 
+	  stop     
+    endif    
+	
 	!Checking if overlaps are OK (only in case OverlapThreshold>ZERO)
     IsOverlapBad=.false.
     if (OverlapThreshold>ZERO) then
@@ -4856,21 +4852,21 @@ do while (K<Kstop)
 
   enddo !(IsOverlapBad.or.IsAnyLinCoeffBad).and. &
         !(AttemptToGetGoodOverlap<=Glob_BasisEnlBadOverlapLim)
-
+  
   if (Glob_ProcID==0) then
     write (*,*) 'Number of energy/gradient evaluations',NumOfEnergyEval,NumOfGradEval
     write (*,*) 'E=',Glob_CurrEnergy
     do i=1,nfo
       write(*,'(1x,i6,a1,i6)',advance='no') nfru+i,':',Glob_ZIndex(nfru+i)
-      call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt)
-    enddo
+      call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt) 
+    enddo	
     write (*,*) 'Average number of iterations in GSEPIIS: ', &
-                (Glob_InvItTempCounter2*ONE)/Glob_InvItTempCounter1
+                (Glob_InvItTempCounter2*ONE)/Glob_InvItTempCounter1	    
   endif
 
-  !getting statistics about the distribution of generated parameters
-  if (Glob_ProcID==0) then
-    if (wmu==1) then
+  !getting statistics about the distribution of generated parameters 
+  if (Glob_ProcID==0) then 
+    if (wmu==1) then 
 	  rgm1_counter=rgm1_counter+1
 	  if (nfru>nfo) then
 	    do i=1,nfo
@@ -4882,14 +4878,14 @@ do while (K<Kstop)
 	    enddo
 	  endif
     endif
-    if (wmu==2) then
+    if (wmu==2) then 
 	  rgm2_counter=rgm2_counter+1
 	  if (nfru>nfo) then
 	    do i=1,nfo
           do j=1,npt
 		    t=(Glob_NonlinParam(j,wbfu+i-1)-Glob_NonlinParam(j,nfru+i)) &
 		       /Glob_NonlinParam(j,wbfu+i-1)
-	        ms2=ms2+abs(t)
+	        ms2=ms2+abs(t)        
 		  enddo
 	    enddo
 	  endif
@@ -4910,7 +4906,7 @@ do while (K<Kstop)
 enddo
 !Main loop ends here
 
-call StoreMatricesInSwapFile()
+call StoreMatricesInSwapFile()   
 
 !Dellocate arrays used by DRMNG
 deallocate(V_init)
@@ -4935,7 +4931,7 @@ deallocate(Glob_WkGR)
 deallocate(Glob_LastEigvector)
 deallocate(Glob_WorkForGSEPIIS)
 
-!Deallocate global arrays
+!Deallocate global arrays 
 deallocate(Glob_DlBuff2)
 deallocate(Glob_DlBuff1)
 deallocate(Glob_DkBuff2)
@@ -4958,7 +4954,7 @@ if (Glob_ProcID==0) then
     'Average shift factor from prototype function is ',ms1/(npt*rgm1_counter)
   write(*,*) 'Method 2 of generating basis functions was used ',rgm2_counter,' times'
   if (rgm2_counter/=0) write(*,'(1x,a48,e13.6)') &
-    'Average shift factor from prototype function is ',ms2/(npt*rgm2_counter)
+    'Average shift factor from prototype function is ',ms2/(npt*rgm2_counter)   
   write(*,*)
   write(*,*) 'Routine BasisEnlI has finished'
 endif
@@ -4968,31 +4964,31 @@ end subroutine BasisEnlI
 
 
 subroutine OptCycleG(K, FuncBegin, FuncEnd, NumOfFuncToOpt, NumOfFuncToShift, &
-     NumCycles, MaxEnergyEval, OverlapThreshold, LinCoeffThreshold, SavingFreq)
-!Subroutine OptCycleG performs an optimization of the basis set of K functions
+     NumCycles, MaxEnergyEval, OverlapThreshold, LinCoeffThreshold, SavingFreq) 
+!Subroutine OptCycleG performs an optimization of the basis set of K functions 
 !by means of cyclic optimization of a set of NumOfFuncToOpt functions at a time.
-!After a step is made, the subroutine takes another set of NumOfFuncToOpt
+!After a step is made, the subroutine takes another set of NumOfFuncToOpt 
 !functions, whose numbers are shifted by NumFuncToShift (normally, one
 !would probably want to use NumFuncToShift=NumOfFuncToOpt). This strategy
-!is applied NumCycles times in a row to functions whose numbers range from
-!FuncBegin to FuncEnd. MaxEnergyEval is the limit of the energy evaluations
+!is applied NumCycles times in a row to functions whose numbers range from 
+!FuncBegin to FuncEnd. MaxEnergyEval is the limit of the energy evaluations 
 !for each step. If it happens that at some step the basis functions being
 !optimized become linerly dependent with other basis functions in the basis
-!then such a change is rejected and this step is omitted. The pair linear
+!then such a change is rejected and this step is omitted. The pair linear 
 !dependency is checked by comparing the absolute value of the overlap
 !with OverlapThreshold. If OverlapThreshold<=0 then no linear dependency
-!check is performed. A Similar check is performed for all linear parameters.
+!check is performed. A Similar check is performed for all linear parameters. 
 !If adding new function/functions makes any linear parameter
 !of any function (not only those being added but any) is greater
-!in magnitude than LinCoeffThreshold then such new function/functions
+!in magnitude than LinCoeffThreshold then such new function/functions 
 !are rejected and the procedure is repeted until a good set is generated
 !or certain number of failures is reached (Glob_BadOverlapOrLinCoeffLim).
-!To avaid this check it is enough to set LinCoeffThreshold to a value
-!equal or smaller than zero. Subroutines EnergyGA, EnergyGAM, and EnergyGB
+!To avaid this check it is enough to set LinCoeffThreshold to a value 
+!equal or smaller than zero. Subroutines EnergyGA, EnergyGAM, and EnergyGB 
 !are called to evaluate the energy and its gradient.
 !Parameter SavingFreq defines how often the results should be saved. If the
 !value is equal to 1 than the results are saved after each cycle step. If the
-!value is equal to 2, 3, ... k then the results are saved after every second,
+!value is equal to 2, 3, ... k then the results are saved after every second, 
 !third, ... k-th cycle step.
 
 !Arguments:
@@ -5075,7 +5071,7 @@ allocate(Glob_DlBuff2(2*npt,Glob_HSBuffLen))
 
 !Allocate workspace for DSYGVX
 BlockSizeForDSYGVX=ILAENV(1,'DSYTRD','VIU',cbs,cbs,cbs,cbs)
-Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*cbs,8*cbs)
+Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*cbs,8*cbs) 
 allocate(Glob_WorkForDSYGVX(Glob_LWorkForDSYGVX))
 allocate(Glob_IWorkForDSYGVX(5*cbs))
 
@@ -5105,12 +5101,12 @@ allocate(TempR(cbs-FuncBegin+1))
 !We do it outside of the main loop so that no time
 !is wasted for doing exactly the same operation over
 !and over again
-
+	
 !Call DIVSET to get default values in IV and V arrays
 !ALG = 2 MEANS GENERAL UNCONSTRAINED OPTIMIZATION CONSTANTS
 ALG=2
 call DIVSET(ALG,IV_init,LIV,LV,V_init)
-IV_init(17)=1000000
+IV_init(17)=1000000 
 IV_init(18)=1000000
 IV_init(19)=0 !set summary print format
 IV_init(20)=0; IV_init(22)=0; IV_init(23)=-1; IV_init(24)=0
@@ -5127,7 +5123,7 @@ IV_init(1)=12 !DIVSET has been called and some default values were changed
 !Read swap file (if necessary) and distribute the data
 call ReadSwapFileAndDistributeData(IsSwapFileOK)
 
-!Changing the order of the functions to be optimized and, if necessary,
+!Changing the order of the functions to be optimized and, if necessary, 
 !the corresponding matrix elements to reverse
 call ReverseFuncOrder(FuncBegin,FuncEnd)
 if (IsSwapFileOK) call ReverseMatElemOrder(FuncBegin,FuncEnd)
@@ -5147,12 +5143,12 @@ if (Glob_History(cbs)%InitFuncAtLastStep>=FuncEnd) then
   Glob_History(cbs)%CyclesDone=Glob_History(cbs)%CyclesDone+1
 endif
 
-!We need to make an initial permutation to shift the functions that were
+!We need to make an initial permutation to shift the functions that were 
 !already optimized (if any) in the current optimization cycle
 ip=Glob_History(cbs)%InitFuncAtLastStep-FuncBegin+NumOfFuncToShift
 if (ip>0) then
   call PermuteFunctions(fbn,cbs-ip,FuncNumTemp,NonlinParamTemp)
-  if (IsSwapFileOK) call PermuteMatrixElements(fbn,cbs-ip,TempR)
+  if (IsSwapFileOK) call PermuteMatrixElements(fbn,cbs-ip,TempR)   
 endif
 
 !Calculating the initial energy
@@ -5178,7 +5174,7 @@ totsteps=0
 do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
   !Doing cycle number CurrCycle
   if (Glob_ProcID==0) then
-    write(*,*)
+    write(*,*)  
     write(*,*) 'Cycle',CurrCycle,' has begun'
   endif
   CurrFuncBegin=Glob_History(cbs)%InitFuncAtLastStep+NumOfFuncToShift
@@ -5190,7 +5186,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
 	!initial input file.
 	totsteps=totsteps+1
     nfo=min(FuncEnd-CurrFunc+1,NumOfFuncToOpt)
-	Glob_nfo=nfo
+	Glob_nfo=nfo	
     nv=nfo*npt
 	nfru=cbs-nfo
 	Glob_nfru=nfru
@@ -5203,10 +5199,10 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
       else
 	    write(*,*) 'Optimizing function',CurrFunc
 	  endif
-    endif
-
+    endif   
+	
     !Permute basis functions so that the last nfo functions, which have just
-	!been optimized are replaced with those that will be optimized at next step
+	!been optimized are replaced with those that will be optimized at next step	 
 	nfs=min(NumOfFuncToShift,nfo)
     if (OptIterCounter/=1) then
       i=cbs-nfo-nfs+1
@@ -5218,7 +5214,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
         !normal permutation, there is sufficient number of functions left
 		m=cbs-nfo
 		j=m-nr
-		i=j-nr+1
+		i=j-nr+1       
       else
         !abnormal permutation, not sufficient number of functions left
 		m=cbs-nfo
@@ -5226,7 +5222,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
 		i=cbs-q+1
 	  endif
       call PermuteFunctions2(i,j,m,FuncNumTemp,NonlinParamTemp)
-	  call PermuteMatrixElements2(i,j,m,TempR)
+	  call PermuteMatrixElements2(i,j,m,TempR) 
     endif
 
     if (Glob_ProcID==0) then
@@ -5234,9 +5230,9 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
         write (*,*) 'Nonlinear parameters before optimization:'
         do i=1,nfo
           write(*,'(1x,i6,a1,i6)',advance='no') Glob_FuncNum(nfru+i),':',Glob_ZIndex(nfru+i)
-          call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt)
-        enddo
-	  endif
+          call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt)            
+        enddo	
+	  endif		    
     endif
 
     !Setting IV and V values as was in their initial copies
@@ -5246,7 +5242,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
 	  x((i-1)*npt+1:i*npt)=Glob_NonlinParam(1:npt,nfru+i)
 	  x_init((i-1)*npt+1:i*npt)=Glob_NonlinParam(1:npt,nfru+i)
 	enddo
-
+    
     t=max(ONE/(cbs*cbs*sqrt(ONE*cbs)),10000*epsilon(Glob_CurrEnergy))
     do i=1,nfo
       !t=maxval(abs(x(npt*(i-1)+1:npt*i-np)))/Glob_OptScalingThreshold
@@ -5256,7 +5252,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
         D(npt*(i-1)+j)=t
         !write(*,*) 'i=',int(i,1),' j=',int(j,1),' D=',D(npt*(i-1)+j)
       enddo
-    enddo
+    enddo   
 
 	ExitNeeded=.false.
 	NumOfFailures=0
@@ -5264,11 +5260,11 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
     NumOfGradEval=0
     if (NumOfEnergyEval>=MaxEnergyEval) ExitNeeded=.true.
     E_best=Glob_CurrEnergy
-    x_best(1:nfo*npt)=x(1:nfo*npt)
-
-    do while (.not.(ExitNeeded))
+    x_best(1:nfo*npt)=x(1:nfo*npt)    
+    
+    do while (.not.(ExitNeeded))  
 	  if (Glob_ProcID==0) call DRMNG(D, Glob_CurrEnergy, grad, IV, LIV, LV, nv, V, x)
-      call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
 	  select case (IV(1))
       case (1) !Only energy is needed
         call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -5282,10 +5278,10 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
 		  IV(2)=0
 		else
           Glob_CurrEnergy=Evalue
-          if (Evalue<E_best) then
+          if (Evalue<E_best) then 
             E_best=Evalue
             x_best(1:nfo*npt)=x(1:nfo*npt)
-          endif
+          endif            
 		endif
 	  case (2) !Only gradient is needed
         call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -5298,23 +5294,23 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
           NumOfFailures=NumOfFailures+1
 		  IV(2)=0
 		else
-          if (Evalue<E_best) then
+          if (Evalue<E_best) then 
             E_best=Evalue
             x_best(1:nfo*npt)=x(1:nfo*npt)
-          endif
-		endif
+          endif 
+		endif	     
 	  case (3:8) !Some kind of convergence has been reached
         ExitNeeded=.true.
       case (9:10) !Function evaluation limit has been reached.
 	              !This is never supposed to happen because we
 				  !count the number of function evaluations ourselves.
         ExitNeeded=.true.
-	  endselect
+	  endselect  
 	  if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 	    if (Glob_ProcID==0) then
           write(*,*) 'Error in OptCycleG: number of failures in energy or gradient'
 		  write(*,*) 'calculations during the optimization of nonlinear parameters'
-		  write(*,*) 'exceeded limit'
+		  write(*,*) 'exceeded limit' 
 		endif
 	    stop
 	  endif
@@ -5334,9 +5330,9 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
 	    write(*,*) 'Warning in OptCycleG: failed to evaluate energy after optimization'
 	    write(*,*) 'of nonlinear parameters. The values of the nonlinear parameters'
 		write(*,*) 'will be left unchanged.'
-	  endif
+	  endif 
     endif
-
+ 
  	!Checking if overlap is OK (only in case OverlapThreshold>ZERO)
     IsOverlapBad=.false.
     if (OverlapThreshold>ZERO) then
@@ -5387,8 +5383,8 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
         write (*,*) 'Nonlinear parameters after optimization:'
         do i=1,nfo
           write(*,'(1x,i6,a1,i6)',advance='no') Glob_FuncNum(nfru+i),':',Glob_ZIndex(nfru+i)
-          call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt)
-        enddo
+          call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt) 
+        enddo		    
       endif
     endif
 
@@ -5439,7 +5435,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
     if (Glob_ProcID==0) write(*,*) 'done'
   endif
 
-enddo !End of main optimization cycle
+enddo !End of main optimization cycle 
 
 if (Glob_ProcID==0) write(*,'(1x,a53)',advance='no') &
   'Final ordering basis functions and matrix elements...'
@@ -5454,7 +5450,7 @@ call StoreMatricesInSwapFile()
 deallocate(TempR)
 deallocate(FuncNumTemp)
 deallocate(NonlinParamTemp)
-deallocate(grad)
+deallocate(grad) 
 deallocate(x_best)
 deallocate(x_init)
 deallocate(x)
@@ -5497,31 +5493,31 @@ end subroutine OptCycleG
 
 
 subroutine OptCycleI(K, FuncBegin, FuncEnd, NumOfFuncToOpt, NumOfFuncToShift, &
-     NumCycles, MaxEnergyEval, OverlapThreshold, LinCoeffThreshold, SavingFreq)
-!Subroutine OptCycleI performs an optimization of the basis set of K functions
+     NumCycles, MaxEnergyEval, OverlapThreshold, LinCoeffThreshold, SavingFreq) 
+!Subroutine OptCycleI performs an optimization of the basis set of K functions 
 !by means of cyclic optimization of a set of NumOfFuncToOpt functions at a time.
-!After a step is made, the subroutine takes another set of NumOfFuncToOpt
+!After a step is made, the subroutine takes another set of NumOfFuncToOpt 
 !functions, whose numbers are shifted by NumFuncToShift (normally, one
 !would probably want to use NumFuncToShift=NumOfFuncToOpt). This strategy
-!is applied NumCycles times in a row to functions whose numbers range from
-!FuncBegin to FuncEnd. MaxEnergyEval is the limit of the energy evaluations
+!is applied NumCycles times in a row to functions whose numbers range from 
+!FuncBegin to FuncEnd. MaxEnergyEval is the limit of the energy evaluations 
 !for each step. If it happens that at some step the basis functions being
 !optimized become linerly dependent with other basis functions in the basis
-!then such a change is rejected and this step is omitted. The pair linear
+!then such a change is rejected and this step is omitted. The pair linear 
 !dependency is checked by comparing the absolute value of the overlap
 !with OverlapThreshold. If OverlapThreshold<=0 then no linear dependency
-!check is performed. A similar check is performed for all linear parameters.
+!check is performed. A similar check is performed for all linear parameters. 
 !If adding new function/functions makes any linear parameter
 !of any function (not only those being added but any) is greater
-!in magnitude than LinCoeffThreshold then such new function/functions
+!in magnitude than LinCoeffThreshold then such new function/functions 
 !are rejected and the procedure is repeted until a good set is generated
 !or certain number of failures is reached (Glob_BadOverlapOrLinCoeffLim).
-!To avaid this check it is enough to set LinCoeffThreshold to a value
-!equal or smaller than zero. Subroutines EnergyIA, EnergyIAM, and EnergyIB
+!To avaid this check it is enough to set LinCoeffThreshold to a value 
+!equal or smaller than zero. Subroutines EnergyIA, EnergyIAM, and EnergyIB 
 !are called to evaluate the energy and its gradient.
 !Parameter SavingFreq defines how often the results should be saved. If the
 !value is equal to 1 than the results are saved after each cycle step. If the
-!value is equal to 2, 3, ... k then the results are saved after every second,
+!value is equal to 2, 3, ... k then the results are saved after every second, 
 !third, ... k-th cycle step.
 
 !Arguments:
@@ -5633,12 +5629,12 @@ allocate(TempR(cbs-FuncBegin+1))
 !We do it outside of the main loop so that no time
 !is wasted for doing exactly the same operation over
 !and over again
-
+	
 !Call DIVSET to get default values in IV and V arrays
 !ALG = 2 MEANS GENERAL UNCONSTRAINED OPTIMIZATION CONSTANTS
 ALG=2
 call DIVSET(ALG,IV_init,LIV,LV,V_init)
-IV_init(17)=1000000
+IV_init(17)=1000000 
 IV_init(18)=1000000
 IV_init(19)=0 !set summary print format
 IV_init(20)=0; IV_init(22)=0; IV_init(23)=-1; IV_init(24)=0
@@ -5655,7 +5651,7 @@ IV_init(1)=12 !DIVSET has been called and some default values were changed
 !Read swap file (if necessary) and distribute the data
 call ReadSwapFileAndDistributeData(IsSwapFileOK)
 
-!Changing the order of the functions to be optimized and, if necessary,
+!Changing the order of the functions to be optimized and, if necessary, 
 !the corresponding matrix elements to reverse
 call ReverseFuncOrder(FuncBegin,FuncEnd)
 if (IsSwapFileOK) call ReverseMatElemOrder(FuncBegin,FuncEnd)
@@ -5675,12 +5671,12 @@ if (Glob_History(cbs)%InitFuncAtLastStep>=FuncEnd) then
   Glob_History(cbs)%CyclesDone=Glob_History(cbs)%CyclesDone+1
 endif
 
-!We need to make an initial permutation to shift the functions that were
+!We need to make an initial permutation to shift the functions that were 
 !already optimized (if any) in the current optimization cycle
 ip=Glob_History(cbs)%InitFuncAtLastStep-FuncBegin+NumOfFuncToShift
 if (ip>0) then
   call PermuteFunctions(fbn,cbs-ip,FuncNumTemp,NonlinParamTemp)
-  if (IsSwapFileOK) call PermuteMatrixElements(fbn,cbs-ip,TempR)
+  if (IsSwapFileOK) call PermuteMatrixElements(fbn,cbs-ip,TempR)   
 endif
 
 !Calculating the initial energy
@@ -5707,7 +5703,7 @@ totsteps=0
 do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
   !Doing cycle number CurrCycle
   if (Glob_ProcID==0) then
-    write(*,*)
+    write(*,*)  
     write(*,'(1x,a5,i4,a10)') 'Cycle',CurrCycle,' has begun'
   endif
   CurrFuncBegin=Glob_History(cbs)%InitFuncAtLastStep+NumOfFuncToShift
@@ -5719,7 +5715,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
 	!initial input file.
 	totsteps=totsteps+1
     nfo=min(FuncEnd-CurrFunc+1,NumOfFuncToOpt)
-	Glob_nfo=nfo
+	Glob_nfo=nfo	
     nv=nfo*npt
 	nfru=cbs-nfo
 	Glob_nfru=nfru
@@ -5734,10 +5730,10 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
       else
 	    write(*,*) 'Optimizing function',CurrFunc
 	  endif
-    endif
-
+    endif   
+	
     !Permute basis functions so that the last nfo functions, which have just
-	!been optimized are replaced with those that will be optimized at next step
+	!been optimized are replaced with those that will be optimized at next step	 
 	nfs=min(NumOfFuncToShift,nfo)
     if (OptIterCounter/=1) then
       i=cbs-nfo-nfs+1
@@ -5749,7 +5745,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
         !normal permutation, there is sufficient number of functions left
 		m=cbs-nfo
 		j=m-nr
-		i=j-nr+1
+		i=j-nr+1       
       else
         !abnormal permutation, not sufficient number of functions left
 		m=cbs-nfo
@@ -5757,7 +5753,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
 		i=cbs-q+1
 	  endif
       call PermuteFunctions2(i,j,m,FuncNumTemp,NonlinParamTemp)
-	  call PermuteMatrixElements2(i,j,m,TempR)
+	  call PermuteMatrixElements2(i,j,m,TempR) 
 	  !call EnergyIA because we need to refactorize Glob_H-Glob_ApproxEnergy*Glob_S
 	  Glob_CurrEnergy=EnergyIA(i,cbs,.false.,ErrCode)
       if (ErrCode/=0) then
@@ -5772,9 +5768,9 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
         write (*,*) 'Nonlinear parameters before optimization:'
         do i=1,nfo
           write(*,'(1x,i6,a1,i6)',advance='no') Glob_FuncNum(nfru+i),':',Glob_ZIndex(nfru+i)
-          call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt)
-        enddo
-	  endif
+          call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt) 
+        enddo	
+	  endif		    
     endif
 
     !Setting IV and V values as was in their initial copies
@@ -5784,7 +5780,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
 	  x((i-1)*npt+1:i*npt)=Glob_NonlinParam(1:npt,nfru+i)
 	  x_init((i-1)*npt+1:i*npt)=Glob_NonlinParam(1:npt,nfru+i)
 	enddo
-
+    
     t=max(ONE/(cbs*cbs*sqrt(ONE*cbs)),10000*epsilon(Glob_CurrEnergy))
     do i=1,nfo
       !t=maxval(abs(x(npt*(i-1)+1:npt*i-np)))/Glob_OptScalingThreshold
@@ -5794,7 +5790,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
         D(npt*(i-1)+j)=t
         !write(*,*) 'i=',int(i,1),' j=',int(j,1),' D=',D(npt*(i-1)+j)
       enddo
-    enddo
+    enddo   
 
 	ExitNeeded=.false.
 	NumOfFailures=0
@@ -5802,11 +5798,11 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
     NumOfGradEval=0
     if (NumOfEnergyEval>=MaxEnergyEval) ExitNeeded=.true.
     E_best=Glob_CurrEnergy
-    x_best(1:nfo*npt)=x(1:nfo*npt)
-
-    do while (.not.(ExitNeeded))
+    x_best(1:nfo*npt)=x(1:nfo*npt)    
+    
+    do while (.not.(ExitNeeded))  
 	  if (Glob_ProcID==0) call DRMNG(D, Glob_CurrEnergy, grad, IV, LIV, LV, nv, V, x)
-      call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
 	  select case (IV(1))
       case (1) !Only energy is needed
         call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -5820,10 +5816,10 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
 		  IV(2)=0
 		else
           Glob_CurrEnergy=Evalue
-          if (Evalue<E_best) then
+          if (Evalue<E_best) then 
             E_best=Evalue
             x_best(1:nfo*npt)=x(1:nfo*npt)
-          endif
+          endif            
 		endif
 	  case (2) !Only gradient is needed
         call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -5836,23 +5832,23 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
           NumOfFailures=NumOfFailures+1
 		  IV(2)=0
 		else
-          if (Evalue<E_best) then
+          if (Evalue<E_best) then 
             E_best=Evalue
             x_best(1:nfo*npt)=x(1:nfo*npt)
-          endif
-		endif
+          endif 
+		endif	     
 	  case (3:8) !Some kind of convergence has been reached
         ExitNeeded=.true.
       case (9:10) !Function evaluation limit has been reached.
 	              !This is never supposed to happen because we
 				  !count the number of function evaluations ourselves.
         ExitNeeded=.true.
-	  endselect
+	  endselect  
 	  if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 	    if (Glob_ProcID==0) then
           write(*,*) 'Error in OptCycleI: number of failures in energy or gradient'
 		  write(*,*) 'calculations during the optimization of nonlinear parameters'
-		  write(*,*) 'exceeded limit'
+		  write(*,*) 'exceeded limit' 
 		endif
 	    stop
 	  endif
@@ -5869,9 +5865,9 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
 	    write(*,*) 'Warning in OptCycleI: failed to evaluate energy after optimization'
 	    write(*,*) 'of nonlinear parameters. The values of the nonlinear parameters'
 		write(*,*) 'will be left unchanged.'
-	  endif
+	  endif 
     endif
-
+ 
  	!Checking if overlap is OK (only in case OverlapThreshold>ZERO)
     IsOverlapBad=.false.
     if (OverlapThreshold>ZERO) then
@@ -5922,10 +5918,10 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
         write (*,*) 'Nonlinear parameters after optimization:'
         do i=1,nfo
           write(*,'(1x,i6,a1,i6)',advance='no') Glob_FuncNum(nfru+i),':',Glob_ZIndex(nfru+i)
-          call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt)
-        enddo
+          call writerealarradv(6,Glob_NonlinParam(1:npt,nfru+i),npt) 
+        enddo	
         write (*,'(1x,a41,f8.4)') 'Average number of iterations in GSEPIIS: ', &
-          (Glob_InvItTempCounter2*ONE)/Glob_InvItTempCounter1
+          (Glob_InvItTempCounter2*ONE)/Glob_InvItTempCounter1	  	    
       endif
     endif
 
@@ -5983,7 +5979,7 @@ do CurrCycle=Glob_History(cbs)%CyclesDone+1,NumCycles
     if (Glob_ProcID==0) write(*,*) 'done'
   endif
 
-enddo !End of main optimization cycle
+enddo !End of main optimization cycle 
 
 if (Glob_ProcID==0) write(*,'(1x,a53)',advance='no') &
   'Final ordering basis functions and matrix elements...'
@@ -5998,7 +5994,7 @@ call StoreMatricesInSwapFile()
 deallocate(TempR)
 deallocate(FuncNumTemp)
 deallocate(NonlinParamTemp)
-deallocate(grad)
+deallocate(grad) 
 deallocate(x_best)
 deallocate(x_init)
 deallocate(x)
@@ -6042,36 +6038,36 @@ end subroutine OptCycleI
 
 subroutine FullOpt1G(InitFunc,FinalFunc,MaxEnergyEval,OverlapThreshold,MaxOverlapPenalty,  &
                      DataSaveMinTimeInterv,HessianSaveMinTimeInterv,HessFileName)
-!Subroutine FullOpt1G performs simultaneous optimization of
+!Subroutine FullOpt1G performs simultaneous optimization of 
 !nonlinear parameters of basis functions whose number
 !ranges from InitFunct to FinalFunc. Optimization routine
-!used in FullOpt1G is DRMNG. Parameter MaxEnergyEval defines
+!used in FullOpt1G is DRMNG. Parameter MaxEnergyEval defines 
 !the limit of the energy evaluations (just the energies, not
 !the gradient) in the optimization process. The optimization uses penalty
-!functions for the overlaps. If an overlap, Sij, exceeds the threshold,
-!OverlapThreshold, then a penaly is applied for this (the penalty function is
-!quadrativ and smooth so that the actual objective function is differentiable,
-!although the second derivative is not smooth). If the value of OverlapThreshold
-!is set equal or higher than 1.0 then no penalty will be applied. Parameter
-!MaxOverlapPenalty defines the magnitude of penalty. When MaxOverlapPenalty=1.0
+!functions for the overlaps. If an overlap, Sij, exceeds the threshold, 
+!OverlapThreshold, then a penaly is applied for this (the penalty function is 
+!quadrativ and smooth so that the actual objective function is differentiable, 
+!although the second derivative is not smooth). If the value of OverlapThreshold 
+!is set equal or higher than 1.0 then no penalty will be applied. Parameter 
+!MaxOverlapPenalty defines the magnitude of penalty. When MaxOverlapPenalty=1.0 
 !and Sij=1.0 then the penalty due to this pair overlap will be 1.0. The routine
-!saves the hessian in the file whose name is defined by
+!saves the hessian in the file whose name is defined by 
 !variable HessFileName (may include the full path if necessary).
 !This save occurs periodically, with the interval approximately equal
-!to the value of parameter HessianSaveMinTimeInterv.
-!Similarly, the input/output file (which contains basis set) is
+!to the value of parameter HessianSaveMinTimeInterv. 
+!Similarly, the input/output file (which contains basis set) is 
 !updated periodically, with the interval approximately equal
-!to the value of parameter DataSaveMinTimeInterv.
-!If there is no need to save the hessian at all, one can set
+!to the value of parameter DataSaveMinTimeInterv. 
+!If there is no need to save the hessian at all, one can set 
 !HessFileName=' ' or HessFileName='none' or HessFileName='NONE'.
-!Any other name will be treated as a file name. It is important to
+!Any other name will be treated as a file name. It is important to 
 !mention that the hessian itself and the corresponding file
 !may require a lot of memory/storage (approximately k*k/2 real values, where
 !k is the dimensionality of the problem; k=CurrBasisSize*Glob_npt).
 !Once the routine starts, it actually tries
 !to locate file HessFileName and read the hessian from there. If this
 !operation is succesful, this hessian is used in the initialization of
-!routine DRMNG. Subroutines EnergyGA,  and EnergyGB
+!routine DRMNG. Subroutines EnergyGA,  and EnergyGB 
 !are called to evaluate the energy and its gradient.
 
 !Arguments:
@@ -6095,7 +6091,7 @@ real(dprec)  MaxAbsOverlap,MinAbsOverlap,AverageAbsOverlap
 real(dprec),allocatable,dimension(:,:)   :: NonlinParamTemp
 integer,allocatable,dimension(:)         :: FuncNumTemp
 real(dprec),allocatable,dimension(:)     :: TempR
-real(dprec),allocatable,dimension(:)     :: x,grad
+real(dprec),allocatable,dimension(:)     :: x,grad 
 !Arrays used by DRMNG
 real(dprec),allocatable,dimension(:)     :: D,V
 integer,parameter    :: LIV=60
@@ -6103,18 +6099,18 @@ integer                 IV(LIV)
 integer                 LV
 integer                 ALG
 integer                 IVLMAT
-!!====================================================
-!!These variables are used when a finite difference gradient is computed
+!!==================================================== 
+!!These variables are used when a finite difference gradient is computed               
 !real(dprec)                                    deltax,Evalue1
 !!====================================================
 
 if (OverlapThreshold>=ONE) then
-  Glob_OverlapPenaltyAllowed=.false.
+  Glob_OverlapPenaltyAllowed=.false. 
 else
-  Glob_OverlapPenaltyAllowed=.true.
+  Glob_OverlapPenaltyAllowed=.true. 
   Glob_OverlapPenaltyThreshold2=OverlapThreshold*OverlapThreshold
   Glob_MaxOverlapPenalty=MaxOverlapPenalty
-endif
+endif  
 if (Glob_ProcID==0) then
   write(*,*)
   write(*,*) 'Routine FullOpt1G has started'
@@ -6123,12 +6119,12 @@ if (Glob_ProcID==0) then
   if (Glob_OverlapPenaltyAllowed) then
     write(*,*) 'Overlap threshold is ',abs(OverlapThreshold)
     write(*,*) 'Max value of a pair overlap penalty is ',Glob_MaxOverlapPenalty
-    write(*,*) 'Warning! The energy value that will be shown during the optimization'
+    write(*,*) 'Warning! The energy value that will be shown during the optimization' 
     write(*,*) 'may differ from the actual energy'
   else
     write(*,*) 'No constraints on overlaps will be imposed'
-  endif
-endif
+  endif  
+endif 
 
 !Setting the values of some global variables
 Glob_GSEPSolutionMethod='G'
@@ -6163,7 +6159,7 @@ allocate(Glob_DlBuff2(2*npt,Glob_HSBuffLen))
 
 !Allocate workspace for DSYGVX
 BlockSizeForDSYGVX=ILAENV(1,'DSYTRD','VIU',nfa,nfa,nfa,nfa)
-Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*nfa,8*nfa)
+Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*nfa,8*nfa) 
 allocate(Glob_WorkForDSYGVX(Glob_LWorkForDSYGVX))
 allocate(Glob_IWorkForDSYGVX(5*nfa))
 
@@ -6179,7 +6175,7 @@ endif
 
 !Allocate workspace
 allocate(x(nv))
-allocate(grad(nv))
+allocate(grad(nv)) 
 
 !Setting up a logical variable that determines
 !whether the hessian should be saved from time to time
@@ -6193,7 +6189,7 @@ endif
 call ReadSwapFileAndDistributeData(IsSwapFileOK)
 
 !Shifting basis functions InitFunc through FinalFunc to
-!the very end and, if necessary, doing the permutation of
+!the very end and, if necessary, doing the permutation of 
 !matrix elements to reflect this change in function order.
 if (FinalFunc/=nfa) then
   !allocate space
@@ -6231,13 +6227,13 @@ if (Glob_ProcID==0) then
     write(*,*) 'Initial energy (without overlap penalty)  ', &
       Glob_CurrEnergy-Glob_TotalOverlapPenalty
     write(*,*) 'Overlap penalty                           ',Glob_TotalOverlapPenalty
-    write(*,*) 'Initial energy (including overlap penalty ',Glob_CurrEnergy
+    write(*,*) 'Initial energy (including overlap penalty ',Glob_CurrEnergy      
   else
     write(*,*) 'Initial energy                            ',Glob_CurrEnergy
   endif
-  write(*,*)   'Maximal overlap                           ',MaxAbsOverlap
-  write(*,*)   'Minimal overlap                           ',MinAbsOverlap
-  write(*,*)   'Average abs value of overlap              ',AverageAbsOverlap
+  write(*,*)   'Maximal overlap                           ',MaxAbsOverlap 
+  write(*,*)   'Minimal overlap                           ',MinAbsOverlap  
+  write(*,*)   'Average abs value of overlap              ',AverageAbsOverlap 
 endif
 
 call CPU_TIME(Glob_TimeSinceStart)
@@ -6245,7 +6241,7 @@ TimeOfLastSave=Glob_TimeSinceStart
 TimeOfLastHessSave=Glob_TimeSinceStart
 
 !Setting parameters for DRMNG
-
+	
 !Call DIVSET to get default values in IV and V arrays
 !ALG = 2 MEANS GENERAL UNCONSTRAINED OPTIMIZATION CONSTANTS
 ALG=2
@@ -6295,7 +6291,7 @@ if (Glob_ProcID==0) then
         D(npt*(i-1)+j)=t
         !write(*,*) 'i=',int(i,1),' j=',int(j,1),' D=',D(npt*(i-1)+j)
       enddo
-    enddo
+    enddo 
   endif
 endif
 
@@ -6305,9 +6301,9 @@ NumOfEnergyEval=0
 NumOfGradEval=0
 NumOfEnergyEvalDuringFullOpt_Init=Glob_History(Glob_CurrBasisSize)%NumOfEnergyEvalDuringFullOpt
 
-do while (.not.(ExitNeeded))
+do while (.not.(ExitNeeded))  
   if (Glob_ProcID==0) call DRMNG(D, CurrentEnergy, grad, IV, LIV, LV, nv, V, x)
-  call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
   select case (IV(1))
   case (1) !Only energy is needed
     call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -6322,7 +6318,7 @@ do while (.not.(ExitNeeded))
 	else
       CurrentEnergy=Evalue
 	endif
-    if (Glob_ProcID==0) then
+    if (Glob_ProcID==0) then 
 	  if (Evalue<Glob_CurrEnergy) then
         !Save data and Hessian if necessary
         call CPU_TIME(Glob_TimeSinceStart)
@@ -6333,7 +6329,7 @@ do while (.not.(ExitNeeded))
             Glob_CurrEnergy=Evalue-Glob_TotalOverlapPenalty
           else
             Glob_CurrEnergy=Evalue
-          endif
+          endif  
           !Changing history
           Glob_History(Glob_CurrBasisSize)%Energy=Glob_CurrEnergy
           Glob_History(Glob_CurrBasisSize)%NumOfEnergyEvalDuringFullOpt= &
@@ -6345,17 +6341,17 @@ do while (.not.(ExitNeeded))
 		  endif
 		  write(*,*) 'Data file has been updated'
           call GetOverlapStatistics(InitFuncNew,nfa,MaxAbsOverlap,MinAbsOverlap,AverageAbsOverlap)
-          write(*,*) 'Some current statistics:'
+          write(*,*) 'Some current statistics:'	
           if (Glob_OverlapPenaltyAllowed) then
             write(*,*) 'Energy (without overlap penalty)  ',Evalue-Glob_TotalOverlapPenalty
             write(*,*) 'Overlap penalty                   ',Glob_TotalOverlapPenalty
-            write(*,*) 'Energy (including overlap penalty)',Evalue
+            write(*,*) 'Energy (including overlap penalty)',Evalue        
           else
             write(*,*) 'Energy                            ',Evalue
           endif
-          write(*,*)   'Maximal overlap                   ',MaxAbsOverlap
-          write(*,*)   'Minimal overlap                   ',MinAbsOverlap
-          write(*,*)   'Average abs value of overlap      ',AverageAbsOverlap
+          write(*,*)   'Maximal overlap                   ',MaxAbsOverlap 
+          write(*,*)   'Minimal overlap                   ',MinAbsOverlap  
+          write(*,*)   'Average abs value of overlap      ',AverageAbsOverlap   		    
           TimeOfLastSave=Glob_TimeSinceStart
         endif
         if ((Glob_TimeSinceStart-TimeOfLastHessSave>HessianSaveMinTimeInterv) &
@@ -6380,7 +6376,7 @@ do while (.not.(ExitNeeded))
 	endif
 !	!===================================
 !	!The lines below need be uncommented when finite
-!    !difference gradient is shown
+!    !difference gradient is shown 
 !      if (Glob_ProcID==0) write(*,*) '     analytic gradient       finite diff gradient:'
 !      do i=1,nfo
 !        do j=1,npt
@@ -6395,19 +6391,19 @@ do while (.not.(ExitNeeded))
 !        enddo
 !      enddo
 !      if (Glob_ProcID==0) write(*,*)
-!    !===================================
+!    !===================================	
   case (3:8) !Some kind of convergence has been reached
     ExitNeeded=.true.
   case (9:10) !Function evaluation limit has been reached.
 	          !This never suppose to happen because we
 			  !count the number of function evaluations ourselves.
     ExitNeeded=.true.
-  endselect
+  endselect  
   if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 	if (Glob_ProcID==0) then
       write(*,*) 'Error in FullOpt1G: number of failures in energy or gradient'
 	  write(*,*) 'calculations during the optimization of nonlinear parameters'
-	  write(*,*) 'exceeded limit'
+	  write(*,*) 'exceeded limit' 
 	endif
 	stop
   endif
@@ -6416,7 +6412,7 @@ do while (.not.(ExitNeeded))
       write(*,*) 'Warning in FullOpt1G: number of energy evaluations reached limit'
 	  write(*,*) 'Optimization is terminated'
 	endif
-	ExitNeeded=.true.
+	ExitNeeded=.true.  
   endif
 enddo
 
@@ -6429,14 +6425,14 @@ if (ErrCode/=0) then
   if (Glob_ProcID==0) then
 	write(*,*) 'Error in FullOpt1G: failed to evaluate energy after the optimization'
 	write(*,*) 'of nonlinear parameters'
-  endif
+  endif      
   stop
 endif
 if (Glob_OverlapPenaltyAllowed) then
   Glob_CurrEnergy=Evalue-Glob_TotalOverlapPenalty
 else
   Glob_CurrEnergy=Evalue
-endif
+endif  
 
 !Printing the number of energy/gradient evaluations
 !and the energy after the optimization
@@ -6444,17 +6440,17 @@ if (Glob_ProcID==0) then
   write(*,*)
   write(*,*) 'Number of energy/gradient evaluations',NumOfEnergyEval,NumOfGradEval
   write(*,*) 'Final energy and overlap statistics:'
-  call GetOverlapStatistics(InitFuncNew,nfa,MaxAbsOverlap,MinAbsOverlap,AverageAbsOverlap)
+  call GetOverlapStatistics(InitFuncNew,nfa,MaxAbsOverlap,MinAbsOverlap,AverageAbsOverlap)  
   if (Glob_OverlapPenaltyAllowed) then
     write(*,*) 'Energy (without overlap penalty)  ',Evalue-Glob_TotalOverlapPenalty
     write(*,*) 'Overlap penalty                   ',Glob_TotalOverlapPenalty
-    write(*,*) 'Energy (including overlap penalty)',Evalue
+    write(*,*) 'Energy (including overlap penalty)',Evalue        
   else
     write(*,*) 'Energy                            ',Evalue
   endif
-  write(*,*)   'Maximal overlap                   ',MaxAbsOverlap
-  write(*,*)   'Minimal overlap                   ',MinAbsOverlap
-  write(*,*)   'Average abs value of overlap      ',AverageAbsOverlap
+  write(*,*)   'Maximal overlap                   ',MaxAbsOverlap 
+  write(*,*)   'Minimal overlap                   ',MinAbsOverlap  
+  write(*,*)   'Average abs value of overlap      ',AverageAbsOverlap    
 endif
 
 !Adding data to history
@@ -6462,9 +6458,9 @@ Glob_History(Glob_CurrBasisSize)%Energy=Glob_CurrEnergy
 Glob_History(Glob_CurrBasisSize)%NumOfEnergyEvalDuringFullOpt= &
    NumOfEnergyEvalDuringFullOpt_Init+NumOfEnergyEval
 
-!Shifting basis functions InitFunc through FinalFunc back from
-!the very end to the middle, where they initially were, and, if
-!necessary, doing the permutation of matrix elements to reflect
+!Shifting basis functions InitFunc through FinalFunc back from 
+!the very end to the middle, where they initially were, and, if 
+!necessary, doing the permutation of matrix elements to reflect 
 !this change in function order.
 if (FinalFunc/=nfa) then
   !allocate space
@@ -6489,7 +6485,7 @@ call StoreMatricesInSwapFile()
 if (Glob_OverlapPenaltyAllowed) Glob_OverlapPenaltyAllowed=.false.
 
 !deallocate workspace
-deallocate(grad)
+deallocate(grad) 
 deallocate(x)
 
 !deallocate arrays used by DRMNG
@@ -6528,36 +6524,36 @@ end subroutine FullOpt1G
 
 subroutine FullOpt1I(InitFunc,FinalFunc,MaxEnergyEval,OverlapThreshold,MaxOverlapPenalty, &
     DataSaveMinTimeInterv,HessianSaveMinTimeInterv,HessFileName)
-!Subroutine FullOpt1I performs simultaneous optimization of
+!Subroutine FullOpt1I performs simultaneous optimization of 
 !nonlinear parameters of basis functions whose number
 !ranges from InitFunct to FinalFunc. Optimization routine
-!used in FullOpt1I is DRMNG. Parameter MaxEnergyEval defines
+!used in FullOpt1I is DRMNG. Parameter MaxEnergyEval defines 
 !the limit of the energy evaluations (just the energies, not
 !the gradient) in the optimization process. The optimization uses penalty
-!functions for the overlaps. If an overlap, Sij, exceeds the threshold,
-!OverlapThreshold, then a penaly is applied for this (the penalty function is
-!quadrativ and smooth so that the actual objective function is differentiable,
-!although the second derivative is not smooth). If the value of OverlapThreshold
-!is set equal or higher than 1.0 then no penalty will be applied. Parameter
-!MaxOverlapPenalty defines the magnitude of penalty. When MaxOverlapPenalty=1.0
+!functions for the overlaps. If an overlap, Sij, exceeds the threshold, 
+!OverlapThreshold, then a penaly is applied for this (the penalty function is 
+!quadrativ and smooth so that the actual objective function is differentiable, 
+!although the second derivative is not smooth). If the value of OverlapThreshold 
+!is set equal or higher than 1.0 then no penalty will be applied. Parameter 
+!MaxOverlapPenalty defines the magnitude of penalty. When MaxOverlapPenalty=1.0 
 !and Sij=1.0 then the penalty due to this pair overlap will be 1.0. The routine
-!saves the hessian in the file whose name is defined by
+!saves the hessian in the file whose name is defined by 
 !variable HessFileName (may include the full path if necessary).
 !This save occurs periodically, with the interval approximately equal
-!to the value of parameter HessianSaveMinTimeInterv.
-!Similarly, the input/output file (which contains basis set) is
+!to the value of parameter HessianSaveMinTimeInterv. 
+!Similarly, the input/output file (which contains basis set) is 
 !updated periodically, with the interval approximately equal
-!to the value of parameter DataSaveMinTimeInterv.
-!If there is no need to save the hessian at all, one can set
+!to the value of parameter DataSaveMinTimeInterv. 
+!If there is no need to save the hessian at all, one can set 
 !HessFileName=' ' or HessFileName='none' or HessFileName='NONE'.
-!Any other name will be treated as a file name. It is important to
+!Any other name will be treated as a file name. It is important to 
 !mention that the hessian itself and the corresponding file
 !may require a lot of memory/storage (approximately k*k/2 real values, where
 !k is the dimensionality of the problem; k=CurrBasisSize*Glob_npt).
 !Once the routine starts, it actually tries
 !to locate file HessFileName and read the hessian from there. If this
 !operation is succesful, this hessian is used in the initialization of
-!routine DRMNG. Subroutines EnergyIA,  and EnergyIB
+!routine DRMNG. Subroutines EnergyIA,  and EnergyIB 
 !are called to evaluate the energy and its gradient.
 
 !Arguments:
@@ -6580,7 +6576,7 @@ real(dprec)  MaxAbsOverlap,MinAbsOverlap,AverageAbsOverlap
 real(dprec),allocatable,dimension(:,:)   :: NonlinParamTemp
 integer,allocatable,dimension(:)         :: FuncNumTemp
 real(dprec),allocatable,dimension(:)     :: TempR
-real(dprec),allocatable,dimension(:)     :: x,grad
+real(dprec),allocatable,dimension(:)     :: x,grad 
 !Arrays used by DRMNG
 real(dprec),allocatable,dimension(:)     :: D,V
 integer,parameter    :: LIV=60
@@ -6590,12 +6586,12 @@ integer                 ALG
 integer                 IVLMAT
 
 if (OverlapThreshold>=ONE) then
-  Glob_OverlapPenaltyAllowed=.false.
+  Glob_OverlapPenaltyAllowed=.false. 
 else
-  Glob_OverlapPenaltyAllowed=.true.
+  Glob_OverlapPenaltyAllowed=.true. 
   Glob_OverlapPenaltyThreshold2=OverlapThreshold*OverlapThreshold
   Glob_MaxOverlapPenalty=MaxOverlapPenalty
-endif
+endif  
 if (Glob_ProcID==0) then
   write(*,*)
   write(*,*) 'Routine FullOpt1I has started'
@@ -6604,12 +6600,12 @@ if (Glob_ProcID==0) then
   if (Glob_OverlapPenaltyAllowed) then
     write(*,*) 'Overlap threshold is ',abs(OverlapThreshold)
     write(*,*) 'Max value of a pair overlap penalty is ',Glob_MaxOverlapPenalty
-    write(*,*) 'Warning! The energy value that will be shown during the optimization'
+    write(*,*) 'Warning! The energy value that will be shown during the optimization' 
     write(*,*) 'may differ from the actual energy'
   else
     write(*,*) 'No constraints on overlaps will be imposed'
-  endif
-endif
+  endif  
+endif 
 
 !Setting the values of some global variables
 Glob_GSEPSolutionMethod='I'
@@ -6660,7 +6656,7 @@ endif
 
 !Allocate workspace
 allocate(x(nv))
-allocate(grad(nv))
+allocate(grad(nv)) 
 
 !Setting up a logical variable that determines
 !whether the hessian should be saved from time to time
@@ -6674,7 +6670,7 @@ endif
 call ReadSwapFileAndDistributeData(IsSwapFileOK)
 
 !Shifting basis functions InitFunc through FinalFunc to
-!the very end and, if necessary, doing the permutation of
+!the very end and, if necessary, doing the permutation of 
 !matrix elements to reflect this change in function order.
 if (FinalFunc/=nfa) then
   !allocate space
@@ -6713,13 +6709,13 @@ if (Glob_ProcID==0) then
     write(*,*) 'Initial energy (without overlap penalty)  ', &
       Glob_CurrEnergy-Glob_TotalOverlapPenalty
     write(*,*) 'Overlap penalty                           ',Glob_TotalOverlapPenalty
-    write(*,*) 'Initial energy (including overlap penalty)',Glob_CurrEnergy
+    write(*,*) 'Initial energy (including overlap penalty)',Glob_CurrEnergy      
   else
     write(*,*) 'Initial energy                            ',Glob_CurrEnergy
   endif
-  write(*,*)   'Maximal overlap                           ',MaxAbsOverlap
-  write(*,*)   'Minimal overlap                           ',MinAbsOverlap
-  write(*,*)   'Average abs value of overlap              ',AverageAbsOverlap
+  write(*,*)   'Maximal overlap                           ',MaxAbsOverlap 
+  write(*,*)   'Minimal overlap                           ',MinAbsOverlap  
+  write(*,*)   'Average abs value of overlap              ',AverageAbsOverlap 
 endif
 
 call CPU_TIME(Glob_TimeSinceStart)
@@ -6727,7 +6723,7 @@ TimeOfLastSave=Glob_TimeSinceStart
 TimeOfLastHessSave=Glob_TimeSinceStart
 
 !Setting parameters for DRMNG
-
+	
 !Call DIVSET to get default values in IV and V arrays
 !ALG = 2 MEANS GENERAL UNCONSTRAINED OPTIMIZATION CONSTANTS
 ALG=2
@@ -6777,7 +6773,7 @@ if (Glob_ProcID==0) then
         D(npt*(i-1)+j)=t
         !write(*,*) 'i=',int(i,1),' j=',int(j,1),' D=',D(npt*(i-1)+j)
       enddo
-    enddo
+    enddo 
   endif
 endif
 
@@ -6787,9 +6783,9 @@ NumOfEnergyEval=0
 NumOfGradEval=0
 NumOfEnergyEvalDuringFullOpt_Init=Glob_History(Glob_CurrBasisSize)%NumOfEnergyEvalDuringFullOpt
 
-do while (.not.(ExitNeeded))
+do while (.not.(ExitNeeded))  
   if (Glob_ProcID==0) call DRMNG(D, CurrentEnergy, grad, IV, LIV, LV, nv, V, x)
-  call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)  
   select case (IV(1))
   case (1) !Only energy is needed
     call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -6804,7 +6800,7 @@ do while (.not.(ExitNeeded))
 	else
       CurrentEnergy=Evalue
 	endif
-    if (Glob_ProcID==0) then
+    if (Glob_ProcID==0) then 
 	  if (Evalue<Glob_CurrEnergy) then
         !Save data and Hessian if necessary
         call CPU_TIME(Glob_TimeSinceStart)
@@ -6815,7 +6811,7 @@ do while (.not.(ExitNeeded))
             Glob_CurrEnergy=Evalue-Glob_TotalOverlapPenalty
           else
             Glob_CurrEnergy=Evalue
-          endif
+          endif 
           !Changing history
           Glob_History(Glob_CurrBasisSize)%Energy=Glob_CurrEnergy
           Glob_History(Glob_CurrBasisSize)%NumOfEnergyEvalDuringFullOpt= &
@@ -6827,18 +6823,18 @@ do while (.not.(ExitNeeded))
 		  endif
 		  write(*,*) 'Data file has been updated'
           call GetOverlapStatistics(InitFuncNew,nfa,MaxAbsOverlap,MinAbsOverlap,AverageAbsOverlap)
-          write(*,*) 'Some current statistics:'
+          write(*,*) 'Some current statistics:'	          
           if (Glob_OverlapPenaltyAllowed) then
             write(*,*) 'Energy (without overlap penalty)  ',Evalue-Glob_TotalOverlapPenalty
             write(*,*) 'Overlap penalty                   ',Glob_TotalOverlapPenalty
-            write(*,*) 'Energy (including overlap penalty)',Evalue
+            write(*,*) 'Energy (including overlap penalty)',Evalue        
           else
             write(*,*) 'Energy                            ',Evalue
           endif
-          write(*,*)   'Maximal overlap                   ',MaxAbsOverlap
-          write(*,*)   'Minimal overlap                   ',MinAbsOverlap
-          write(*,*)   'Average abs value of overlap      ',AverageAbsOverlap
-
+          write(*,*)   'Maximal overlap                   ',MaxAbsOverlap 
+          write(*,*)   'Minimal overlap                   ',MinAbsOverlap  
+          write(*,*)   'Average abs value of overlap      ',AverageAbsOverlap           
+          	  		  
           TimeOfLastSave=Glob_TimeSinceStart
         endif
         if ((Glob_TimeSinceStart-TimeOfLastHessSave>HessianSaveMinTimeInterv) &
@@ -6867,12 +6863,12 @@ do while (.not.(ExitNeeded))
 	          !This never suppose to happen because we
 			  !count the number of function evaluations ourselves.
     ExitNeeded=.true.
-  endselect
+  endselect  
   if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
 	if (Glob_ProcID==0) then
       write(*,*) 'Error in FullOpt1I: number of failures in energy or gradient'
 	  write(*,*) 'calculations during the optimization of nonlinear parameters'
-	  write(*,*) 'exceeded limit'
+	  write(*,*) 'exceeded limit' 
 	endif
 	stop
   endif
@@ -6881,7 +6877,7 @@ do while (.not.(ExitNeeded))
       write(*,*) 'Warning in FullOpt1I: number of energy evaluations reached limit'
 	  write(*,*) 'Optimization is terminated'
 	endif
-	ExitNeeded=.true.
+	ExitNeeded=.true.  
   endif
 enddo
 
@@ -6894,14 +6890,14 @@ if (ErrCode/=0) then
   if (Glob_ProcID==0) then
 	write(*,*) 'Error in FullOpt1I: failed to evaluate energy after the optimization'
 	write(*,*) 'of nonlinear parameters'
-  endif
+  endif      
   stop
 endif
 if (Glob_OverlapPenaltyAllowed) then
   Glob_CurrEnergy=Evalue-Glob_TotalOverlapPenalty
 else
   Glob_CurrEnergy=Evalue
-endif
+endif 
 
 !Printing the number of energy/gradient evaluations
 !and the energy after the optimization
@@ -6909,17 +6905,17 @@ if (Glob_ProcID==0) then
   write(*,*)
   write(*,*) 'Number of energy/gradient evaluations',NumOfEnergyEval,NumOfGradEval
   write(*,*) 'Final energy and overlap statistics:'
-  call GetOverlapStatistics(InitFuncNew,nfa,MaxAbsOverlap,MinAbsOverlap,AverageAbsOverlap)
+  call GetOverlapStatistics(InitFuncNew,nfa,MaxAbsOverlap,MinAbsOverlap,AverageAbsOverlap)  
   if (Glob_OverlapPenaltyAllowed) then
     write(*,*) 'Energy (without overlap penalty)  ',Evalue-Glob_TotalOverlapPenalty
     write(*,*) 'Overlap penalty                   ',Glob_TotalOverlapPenalty
-    write(*,*) 'Energy (including overlap penalty)',Evalue
+    write(*,*) 'Energy (including overlap penalty)',Evalue        
   else
     write(*,*) 'Energy                            ',Evalue
   endif
-  write(*,*)   'Maximal overlap                   ',MaxAbsOverlap
-  write(*,*)   'Minimal overlap                   ',MinAbsOverlap
-  write(*,*)   'Average abs value of overlap      ',AverageAbsOverlap
+  write(*,*)   'Maximal overlap                   ',MaxAbsOverlap 
+  write(*,*)   'Minimal overlap                   ',MinAbsOverlap  
+  write(*,*)   'Average abs value of overlap      ',AverageAbsOverlap   
 endif
 
 !Adding data to history
@@ -6927,9 +6923,9 @@ Glob_History(Glob_CurrBasisSize)%Energy=Glob_CurrEnergy
 Glob_History(Glob_CurrBasisSize)%NumOfEnergyEvalDuringFullOpt= &
    NumOfEnergyEvalDuringFullOpt_Init+NumOfEnergyEval
 
-!Shifting basis functions InitFunc through FinalFunc back from
-!the very end to the middle, where they initially were, and, if
-!necessary, doing the permutation of matrix elements to reflect
+!Shifting basis functions InitFunc through FinalFunc back from 
+!the very end to the middle, where they initially were, and, if 
+!necessary, doing the permutation of matrix elements to reflect 
 !this change in function order.
 if (FinalFunc/=nfa) then
   !allocate space
@@ -6954,7 +6950,7 @@ call StoreMatricesInSwapFile()
 if (Glob_OverlapPenaltyAllowed) Glob_OverlapPenaltyAllowed=.false.
 
 !deallocate workspace
-deallocate(grad)
+deallocate(grad) 
 deallocate(x)
 
 !deallocate arrays used by DRMNG
@@ -7033,7 +7029,7 @@ if (Glob_ProcID==0) then
   write(*,*)
   write(*,*) 'Routine EliminateLittleContribFunc has started'
   write(*,*) 'Linear coefficient threshold value is',LinCoeffThreshold
-endif
+endif 
 
 !Setting the values of some global variables
 Glob_GSEPSolutionMethod='G'
@@ -7057,7 +7053,7 @@ allocate(Glob_SklBuff2(Glob_HSBuffLen))
 
 !Allocate workspace for DSYGVX
 BlockSizeForDSYGVX=ILAENV(1,'DSYTRD','VIU',cbs,cbs,cbs,cbs)
-Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*cbs,8*cbs)
+Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*cbs,8*cbs) 
 allocate(Glob_WorkForDSYGVX(Glob_LWorkForDSYGVX))
 allocate(Glob_IWorkForDSYGVX(5*cbs))
 
@@ -7067,7 +7063,7 @@ call ReadSwapFileAndDistributeData(IsSwapFileOK)
 if (IsSwapFileOK) then
   if (Glob_ProcID==0) write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
 else
-  if (Glob_ProcID==0) write(*,'(1x,a28)',advance='no') 'Computing matrix elements...'
+  if (Glob_ProcID==0) write(*,'(1x,a28)',advance='no') 'Computing matrix elements...' 
   call ComputeMatElem(1,cbs)
   if (Glob_ProcID==0) write(*,*) ' done'
   if (Glob_ProcID==0) write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
@@ -7086,14 +7082,14 @@ do i=1,cbs
   Glob_S(i,i)=ONE
 enddo
 
-if (Glob_ProcID==0) then
+if (Glob_ProcID==0) then                	
   call   DSYGVX(1,'V','I','U',cbs,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,   &
                 ZERO,ZERO,Glob_WhichEigenvalue,Glob_WhichEigenvalue,Glob_AbsTolForDSYGVX, &
                 NumOfEigvalsFound,EVs,Glob_c,cbs,Glob_WorkForDSYGVX,  &
                 Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
   ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
   !$                   VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
-  !$                   LWORK, IWORK, IFAIL, INFO )
+  !$                   LWORK, IWORK, IFAIL, INFO )  
   Evalue=EVs(1)
 endif
 call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -7152,7 +7148,7 @@ endif
 
 if (j==0) then
   if (Glob_ProcID==0) then
-    write(*,*) 'There are no functions with the contribution'
+    write(*,*) 'There are no functions with the contribution' 
 	write(*,*) 'smaller than ',LinCoeffThreshold
     write(*,*) 'No output file have been written. Program will now stop'
   endif
@@ -7195,7 +7191,7 @@ if (Glob_ProcID==0) then
                 Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
   ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
   !$                   VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
-  !$                   LWORK, IWORK, IFAIL, INFO )
+  !$                   LWORK, IWORK, IFAIL, INFO ) 
   Evalue=EVs(1)
 endif
 call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -7262,10 +7258,10 @@ end subroutine EliminateLittleContribFunc
 
 subroutine EliminateLinDepFunc(LinDepThreshold,FileName,PrintInfoSpec)
 !Subroutine EliminateLinDepFunc eliminates linearly dependent
-!functions. It checks for pair linear dependency only. It
+!functions. It checks for pair linear dependency only. It 
 !removes those functions from the basis whose overlap (absolute value)
 !with any of other basis function with a smaller number is greater
-!than LinDepThreshold. It is important to note that this subroutine
+!than LinDepThreshold. It is important to note that this subroutine 
 !uses normalized functions (so that Glob_S is the overlap
 !matrix of normalized functions, with Glob_S(i,i)=1).
 !The result is stored in a file whose name is defined by parameter
@@ -7274,7 +7270,7 @@ subroutine EliminateLinDepFunc(LinDepThreshold,FileName,PrintInfoSpec)
 !printed during linear dependency check:
 ! PrintInfoSpec=0 : the subroutine does not print any info
 !                   regarding basis functions that are linearly dependent.
-! PrintInfoSpec=1 : the subroutine prints the overlap values of
+! PrintInfoSpec=1 : the subroutine prints the overlap values of 
 !                   linerly dependent functions.
 ! PrintInfoSpec=2 : same as the previous case, but in addition it also prints the
 !                   nonlinear parameters of linearly dependent functions.
@@ -7304,7 +7300,7 @@ if (Glob_ProcID==0) then
   write(*,*)
   write(*,*) 'Routine EliminateLinDepFunc has started'
   write(*,*) 'Overlap threshold value is',LinDepThreshold
-endif
+endif 
 
 !Setting the values of some global variables
 Glob_GSEPSolutionMethod='G'
@@ -7328,7 +7324,7 @@ allocate(Glob_SklBuff2(Glob_HSBuffLen))
 
 !Allocate workspace for DSYGVX
 BlockSizeForDSYGVX=ILAENV(1,'DSYTRD','VIU',cbs,cbs,cbs,cbs)
-Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*cbs,8*cbs)
+Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*cbs,8*cbs) 
 allocate(Glob_WorkForDSYGVX(Glob_LWorkForDSYGVX))
 allocate(Glob_IWorkForDSYGVX(5*cbs))
 
@@ -7368,7 +7364,7 @@ if (Glob_ProcID==0) then
                 Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
   ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
   !$                   VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
-  !$                   LWORK, IWORK, IFAIL, INFO )
+  !$                   LWORK, IWORK, IFAIL, INFO ) 
   Evalue=EVs(1)
 endif
 call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -7412,13 +7408,13 @@ do i=1,cbs
 	   k=k+1
 	   if (Glob_ProcID==0) then
 	     if (PrintInfoSpec>0) write(*,'(i6,a1,i6,i6,a5,f17.14)') k,':',i,j,'   S=',Glob_S(i,j)
-         if (PrintInfoSpec==2) then
+         if (PrintInfoSpec==2) then		   
            write(*,'(1x,i6,1x,i6)',advance='no') i,Glob_ZIndex(i)
            call writerealarradv(6,Glob_NonlinParam(1:Glob_npt,i),Glob_npt)
 		   write(*,*) '      c=',Glob_c(i)
            write(*,'(1x,i6,1x,i6)',advance='no') j,Glob_ZIndex(j)
            call writerealarradv(6,Glob_NonlinParam(1:Glob_npt,j),Glob_npt)
-		   write(*,*) '      c=',Glob_c(j)
+		   write(*,*) '      c=',Glob_c(j)		   
 		 endif
          write(*,*)
        endif
@@ -7458,7 +7454,7 @@ endif
 
 if (k==0) then
   if (Glob_ProcID==0) then
-    write(*,*) 'No linearly dependent functions have been found'
+    write(*,*) 'No linearly dependent functions have been found' 
     write(*,*) 'No file have been written. Program will now stop'
   endif
   stop
@@ -7506,7 +7502,7 @@ if (Glob_ProcID==0) then
                 Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
   ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
   !$                   VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
-  !$                   LWORK, IWORK, IFAIL, INFO )
+  !$                   LWORK, IWORK, IFAIL, INFO ) 
   Evalue=EVs(1)
 endif
 call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -7609,11 +7605,11 @@ end subroutine EliminateLinDepFunc
 
 
 subroutine SeparateLinDepFunc(LinDepThreshold,SeparationParam,FileName,PrintInfoSpec)
-!Subroutine SeparateLinDepFunc does exactly the same thing as
+!Subroutine SeparateLinDepFunc does exactly the same thing as 
 !subroutine EliminateLinDepFunc does, but without throwing away
 !linearly dependent functions. Instead, it changes the parameters
 !of such functions randomly (the random shift is controlled by
-!argument SeparationParam, so that a_new lies withing
+!argument SeparationParam, so that a_new lies withing 
 !interval [a_old*(1-SeparationParam),a_old*(1+SeparationParam)]).
 
 !Arguments:
@@ -7630,7 +7626,7 @@ logical        IsSwapFileOK
 integer        BlockSizeForDSYGVX
 integer        NumOfEigvalsFound
 real(dprec)    Evalue, EVs(1), r
-real(8)        r8
+real(8)        r8 
 real(dprec)    MaxOverlap,MinOverlap
 real(dprec)    AverOverlap
 real(dprec)    Min_c,Max_c
@@ -7643,8 +7639,8 @@ if (Glob_ProcID==0) then
   write(*,*)
   write(*,*) 'Routine SeparateLinDepFunc has started'
   write(*,*) 'Overlap threshold value is',LinDepThreshold
-  write(*,*) 'Separation paramameter is ',SeparationParam
-endif
+  write(*,*) 'Separation paramameter is ',SeparationParam 
+endif 
 
 !Setting the values of some global variables
 Glob_GSEPSolutionMethod='G'
@@ -7668,7 +7664,7 @@ allocate(Glob_SklBuff2(Glob_HSBuffLen))
 
 !Allocate workspace for DSYGVX
 BlockSizeForDSYGVX=ILAENV(1,'DSYTRD','VIU',cbs,cbs,cbs,cbs)
-Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*cbs,8*cbs)
+Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*cbs,8*cbs) 
 allocate(Glob_WorkForDSYGVX(Glob_LWorkForDSYGVX))
 allocate(Glob_IWorkForDSYGVX(5*cbs))
 
@@ -7708,7 +7704,7 @@ if (Glob_ProcID==0) then
                Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
   ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
   !$                   VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
-  !$                   LWORK, IWORK, IFAIL, INFO )
+  !$                   LWORK, IWORK, IFAIL, INFO ) 
   Evalue=EVs(1)
 endif
 call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -7758,7 +7754,7 @@ do i=1,cbs
 		   write(*,*) '      c=',Glob_c(i)
            write(*,'(1x,i6,1x,i6)',advance='no') j,Glob_ZIndex(j)
            call writerealarradv(6,Glob_NonlinParam(1:Glob_npt,j),Glob_npt)
-		   write(*,*) '      c=',Glob_c(j)
+		   write(*,*) '      c=',Glob_c(j)	
 		 endif
          write(*,*)
        endif
@@ -7798,7 +7794,7 @@ endif
 
 if (k==0) then
   if (Glob_ProcID==0) then
-    write(*,*) 'No linearly dependent functions have been found'
+    write(*,*) 'No linearly dependent functions have been found' 
     write(*,*) 'No file have been written. Program will now stop'
   endif
   stop
@@ -7844,7 +7840,7 @@ if (Glob_ProcID==0) then
                Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
   ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
   !$                   VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
-  !$                   LWORK, IWORK, IFAIL, INFO )
+  !$                   LWORK, IWORK, IFAIL, INFO ) 
   Evalue=EVs(1)
 endif
 call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -7949,7 +7945,7 @@ end subroutine SeparateLinDepFunc
 subroutine SeparateFuncLargeCoeff(LCThreshold,SeparationParam,FileName,PrintInfoSpec)
 !Subroutine SeparateFuncLargeCoeff changes linear parameters of
 !those basis functions whose linear coefficients (more precisely their
-!absulute values) exceed LCThreshold. It is important to note that this
+!absulute values) exceed LCThreshold. It is important to note that this 
 !subroutine uses normalized functions (so that Glob_S is the overlap
 !matrix of normalized functions, with Glob_S(i,i)=1). The change
 !in nonlinear parameters is controlled by argument SeparationParam.
@@ -7960,7 +7956,7 @@ subroutine SeparateFuncLargeCoeff(LCThreshold,SeparationParam,FileName,PrintInfo
 !shown:
 ! PrintInfoSpec=0 : the subroutine does not print any info
 !                   about basis functions.
-! PrintInfoSpec=1 : the subroutine prints the values of the linear and
+! PrintInfoSpec=1 : the subroutine prints the values of the linear and 
 !                   nonlinear parameters of bad functions.
 ! PrintInfoSpec=2 : same as the previous case, but in addition it also prints
 !                   the linear parameters of all basis functions.
@@ -7979,7 +7975,7 @@ logical        IsSwapFileOK
 integer        BlockSizeForDSYGVX
 integer        NumOfEigvalsFound
 real(dprec)    Evalue, EVs(1), r
-real(8)        r8
+real(8)        r8 
 real(dprec)    MaxOverlap,MinOverlap
 real(dprec)    AverOverlap
 real(dprec)    Min_c,Max_c
@@ -7991,8 +7987,8 @@ if (Glob_ProcID==0) then
   write(*,*)
   write(*,*) 'Routine SeparateFuncLargeCoeff has started'
   write(*,*) 'Linear coefficient threshold value is',LCThreshold
-  write(*,*) 'Separation parameter is              ',SeparationParam
-endif
+  write(*,*) 'Separation parameter is              ',SeparationParam 
+endif 
 
 !Setting the values of some global variables
 Glob_GSEPSolutionMethod='G'
@@ -8016,7 +8012,7 @@ allocate(Glob_SklBuff2(Glob_HSBuffLen))
 
 !Allocate workspace for DSYGVX
 BlockSizeForDSYGVX=ILAENV(1,'DSYTRD','VIU',cbs,cbs,cbs,cbs)
-Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*cbs,8*cbs)
+Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*cbs,8*cbs) 
 allocate(Glob_WorkForDSYGVX(Glob_LWorkForDSYGVX))
 allocate(Glob_IWorkForDSYGVX(5*cbs))
 
@@ -8051,7 +8047,7 @@ if (Glob_ProcID==0) then
                Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
   ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
   !$                   VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
-  !$                   LWORK, IWORK, IFAIL, INFO )
+  !$                   LWORK, IWORK, IFAIL, INFO ) 
   Evalue=EVs(1)
 endif
 call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -8067,7 +8063,7 @@ call MPI_BCAST(Glob_c,cbs,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 if (Glob_ProcID==0) then
   write(*,*) ' done'
   write(*,*)
-  if (PrintInfoSpec>=2) then
+  if (PrintInfoSpec>=2) then 
     write(*,*) 'Linear coefficients of all basis functions before separation:'
 	do i=1,cbs
       write(*,'(1x,i6,a4,f19.12)')  i,'  c=',Glob_c(i)
@@ -8103,8 +8099,8 @@ do i=1,cbs
   endif
 enddo
 
-if (k==0) then
-  if (Glob_ProcID==0) then
+if (k==0) then 
+  if (Glob_ProcID==0) then 
     write(*,*) 'There are no functions whose linear coefficients exceed threshold'
 	write(*,*) 'No file have been written. Program will now stop'
   endif
@@ -8141,7 +8137,7 @@ do i=1,cbs
   	  r=(r8-ONEHALF)*2*SeparationParam
       Glob_NonlinParam(j,i)=Glob_NonlinParam(j,i)*(1+r)
     enddo
-  endif
+  endif  
 enddo
 call MPI_BCAST(Glob_NonlinParam,cbs*Glob_npt,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
@@ -8271,7 +8267,7 @@ end subroutine SeparateFuncLargeCoeff
 subroutine SaveHSWF(FileName1,FileName2,FileName3,FileName4,GSEPSolMethod)
 !Subroutine SaveHSWF computes the Hamiltonian and overlap matrices, as well
 !as the eigenvector corresponding to the normalized wave function and save
-!them into files. Depending on the argument GSEPsolMethod, it can use
+!them into files. Depending on the argument GSEPsolMethod, it can use 
 !either LAPACK subroutine DSYGVX or the inverse iteration method to solve GSEP.
 !Input parameters:
 !  FileName1 - the name of the file where the Hamiltonian matrix will be saved.
@@ -8280,29 +8276,29 @@ subroutine SaveHSWF(FileName1,FileName2,FileName3,FileName4,GSEPSolMethod)
 !  FileName2 - the name of the file where the overlap matrix will be saved.
 !              If FileName2 is equal to 'none','NONE', or 'None' then nothing
 !              is saved.
-!  FileName3 - the name of the file where the eigenvector (linear variational
-!              parameters) will be saved. If FileName3 is equal to 'none','NONE',
+!  FileName3 - the name of the file where the eigenvector (linear variational 
+!              parameters) will be saved. If FileName3 is equal to 'none','NONE', 
 !              or 'None' then nothing is saved.
 !  FileName4 - the name of the file where the entire wave function (both
-!              linear and nonlinear variational parameters) will be saved. If
-!              FileName4 is equal to 'none','NONE',or 'None' then nothing is saved.
-!  GSEPsolMethod - can be either 'G' or 'I'. It defines the method used to solve GSEP
-!The format of the files that contains the Hamiltonian and overlap is such that each
+!              linear and nonlinear variational parameters) will be saved. If 
+!              FileName4 is equal to 'none','NONE',or 'None' then nothing is saved.    
+!  GSEPsolMethod - can be either 'G' or 'I'. It defines the method used to solve GSEP 
+!The format of the files that contains the Hamiltonian and overlap is such that each 
 !matrix element is placed in a separate line and is preceeded by two integer indicies, e.g.
 !    23  78   0.123456789E+02
-!The file that contains the eigenvector also contains one entry per line, preceded by its
+!The file that contains the eigenvector also contains one entry per line, preceded by its 
 !index, e.g.
-!    57  0.123456789E+02
-!The file that contains the wave function consists of a short header (containing the
-!number of particles, masses, charges, and Young operator) and then
+!    57  0.123456789E+02 
+!The file that contains the wave function consists of a short header (containing the 
+!number of particles, masses, charges, and Young operator) and then 
 !lines containing the index i, linear coefficient of basis function i, and, after a
 !colon, parameters of that function:
-!   57  0.123456789E+02  :  0.987654321E+02 .........
-
+!   57  0.123456789E+02  :  0.987654321E+02 ......... 
+    
 !Parameters:
 character(Glob_FileNameLength),intent(in) :: FileName1
 character(Glob_FileNameLength),intent(in) :: FileName2
-character(Glob_FileNameLength),intent(in) :: FileName3
+character(Glob_FileNameLength),intent(in) :: FileName3   
 character(Glob_FileNameLength),intent(in) :: FileName4
 character(1)        ::    GSEPSolMethod
 
@@ -8345,7 +8341,7 @@ cbs=Glob_CurrBasisSize
 if (GSEPsolMethod=='G') NumOfEigvecs=min(cbs,Glob_WhichEigenvalue+10)
 if (GSEPsolMethod=='I') NumOfEigvecs=1
 
-!Setting logical variables that determine if everything (H, S, eigenvector, wave function)
+!Setting logical variables that determine if everything (H, S, eigenvector, wave function) 
 !needs to be saved
 if ((FileName1==' ').or.(FileName1=='none').or. &
     (FileName1=='NONE').or.(FileName1=='None')) then
@@ -8428,33 +8424,33 @@ if (GSEPSolMethod=='G') then
     enddo
     Glob_S(i,i)=ONE
   enddo
-
+  
   !Saving matrices H and S:
   if (Glob_ProcID==0) then
     if (IsHNeeded) then
-      write(*,'(1x,a)',advance='no') 'Saving the Hamiltonian matrix...'
+      write(*,'(1x,a)',advance='no') 'Saving the Hamiltonian matrix...'          
       open(2,file=FileName1)
         do i=1,cbs
           do j=1,cbs
-            write(2,'(1x,i6,1x,i6,1x)',advance='no') i,j
-            call writerealadv(2,Glob_H(i,j))
+            write(2,'(1x,i6,1x,i6,1x)',advance='no') i,j 
+            call writerealadv(2,Glob_H(i,j)) 
           enddo
-        enddo
+        enddo      
       close(2)
       write(*,*) 'done'
-    endif
+    endif    
     if (IsSNeeded) then
-            write(*,'(1x,a)',advance='no') 'Saving the overlap matrix...'
+            write(*,'(1x,a)',advance='no') 'Saving the overlap matrix...'    
       open(2,file=FileName2)
         do i=1,cbs
           do j=1,cbs
-            write(2,'(1x,i6,1x,i6,1x)',advance='no') i,j
-            call writerealadv(2,Glob_S(i,j))
+            write(2,'(1x,i6,1x,i6,1x)',advance='no') i,j 
+            call writerealadv(2,Glob_S(i,j)) 
           enddo
-        enddo
-      close(2)
+        enddo      
+      close(2) 
       write(*,*) 'done'
-    endif
+    endif       
   endif
 
   if ((IsEVNeeded).or.(IsWFNeeded)) then
@@ -8478,7 +8474,7 @@ if (GSEPSolMethod=='G') then
       endif
       stop
     endif
-
+  
     !sending the eigenvalue and the eigenvector to all processes
     if (Glob_ProcID==0) then
       Evalue=Eigvals(Glob_WhichEigenvalue)
@@ -8491,48 +8487,48 @@ if (GSEPSolMethod=='G') then
     if (Glob_ProcID==0) then
       write(*,*) 'done'
       write(*,*) 'Energy: ',Evalue
-    endif
-
-  endif
-
-endif !if (GSEPSolMethod=='G')
+    endif    
+    
+  endif  
+    
+endif !if (GSEPSolMethod=='G')  
 
 if (GSEPSolMethod=='I') then
   !Saving matrices H and S:
   if (Glob_ProcID==0) then
     if (IsHNeeded) then
-      write(*,'(1x,a)',advance='no') 'Saving Hamiltonian matrix...'
+      write(*,'(1x,a)',advance='no') 'Saving Hamiltonian matrix...'          
       open(2,file=FileName1)
         do i=1,cbs
           do j=1,cbs
-            write(2,'(1x,i6,1x,i6,1x)',advance='no') i,j
+            write(2,'(1x,i6,1x,i6,1x)',advance='no') i,j 
             if (i==j) call writerealadv(2,Glob_H(i,j)+Glob_ApproxEnergy)
-            if (i>j) call writerealadv(2,Glob_H(i,j)+Glob_ApproxEnergy*Glob_S(i,j))
+            if (i>j) call writerealadv(2,Glob_H(i,j)+Glob_ApproxEnergy*Glob_S(i,j)) 
             if (i<j) call writerealadv(2,Glob_H(j,i)+Glob_ApproxEnergy*Glob_S(j,i))
           enddo
-        enddo
+        enddo      
       close(2)
       write(*,*) 'done'
-    endif
+    endif    
     if (IsSNeeded) then
-      write(*,'(1x,a)',advance='no') 'Saving overlap matrix...'
+      write(*,'(1x,a)',advance='no') 'Saving overlap matrix...'    
       open(2,file=FileName2)
         do i=1,cbs
           do j=1,cbs
-            write(2,'(1x,i6,1x,i6,1x)',advance='no') i,j
+            write(2,'(1x,i6,1x,i6,1x)',advance='no') i,j 
             if (i==j) then
               call writerealadv(2,ONE)
-            else
-              call writerealadv(2,Glob_S(i,j))
-            endif
+            else  
+              call writerealadv(2,Glob_S(i,j)) 
+            endif  
           enddo
-        enddo
-      close(2)
+        enddo      
+      close(2) 
       write(*,*) 'done'
-    endif
-  endif
-
-  if ((IsEVNeeded).or.(IsWFNeeded)) then
+    endif       
+  endif    
+  
+  if ((IsEVNeeded).or.(IsWFNeeded)) then  
     if (Glob_ProcID==0) write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
     if (cbs==1) then
       Glob_CurrEnergy=Glob_diagH(1)
@@ -8571,19 +8567,19 @@ if (GSEPSolMethod=='I') then
 endif
 
 !Saving the eigenvector
-if ((IsEVNeeded).and.(Glob_ProcID==0)) then
+if ((IsEVNeeded).and.(Glob_ProcID==0)) then  
   write(*,'(1x,a)',advance='no') 'Saving eigenvector...'
   open(2,file=FileName3)
   do i=1,cbs
-    write(2,'(1x,i6,1x)',advance='no') i
-    call writerealadv(2,Glob_c(i))
-  enddo
+    write(2,'(1x,i6,1x)',advance='no') i 
+    call writerealadv(2,Glob_c(i))         
+  enddo    
   close(2)
   write(*,*) 'done'
 endif
 
 !Saving the wave function
-if ((IsWFNeeded).and.(Glob_ProcID==0)) then
+if ((IsWFNeeded).and.(Glob_ProcID==0)) then  
   write(*,'(1x,a)',advance='no') 'Saving wave function...'
   open(2,file=FileName4)
   write(2,'(1x,a)') 'RGL1 WAVE FUNCTION FILE'
@@ -8592,21 +8588,21 @@ if ((IsWFNeeded).and.(Glob_ProcID==0)) then
   call writerealarradv(2,Glob_Mass,Glob_n+1)
   write(2,'(1x,a7)',advance='no') 'CHARGES'
   call writereal(2,Glob_PseudoCharge0)
-  call writerealarradv(2,Glob_PseudoCharge,Glob_n)
+  call writerealarradv(2,Glob_PseudoCharge,Glob_n)  
   j=len_trim(Glob_YOperatorString)
   write(2,'(1x,a8)',advance='no') 'SYMMETRY'
   call writestringadv(2,Glob_YOperatorString,j)
   write(2,'(1x,a10,1x,i6)') 'BASIS_SIZE',Glob_CurrBasisSize
   write(2,'(1x,a14)',advance='no') 'CURRENT_ENERGY'
-  call writerealadv(2,Glob_CurrEnergy)
+  call writerealadv(2,Glob_CurrEnergy)  
   write(2,*) '=============================='
   do i=1,cbs
-    write(2,'(1x,i6,1x)',advance='no') i
-    call writereal(2,Glob_c(i))
+    write(2,'(1x,i6,1x)',advance='no') i 
+    call writereal(2,Glob_c(i))  
     write(2,'(1x,a1,1x)',advance='no') ':'
     write(2,'(i6,1x)',advance='no') Glob_ZIndex(i)
     call writerealarradv(2,Glob_NonlinParam(1:Glob_npt,i),Glob_npt)
-  enddo
+  enddo    
   close(2)
   write(*,*) 'done'
 endif
@@ -8646,8 +8642,8 @@ end subroutine SaveHSWF
 
 
 subroutine ExpectationValues(Action,SymmAdaptMethod,FileName1,FileName2,FileName3,FileName4,GSEPSolMethod)
-!ExpectationValues computes expectation values in the basis of
-!Glob_CurrBasisSize functions. Depending on the argument GSEPsolMethod,
+!ExpectationValues computes expectation values in the basis of 
+!Glob_CurrBasisSize functions. Depending on the argument GSEPsolMethod, 
 !it can use either LAPACK subroutine DSYGVX or the inverse iteration method to
 !solve GSEP.
 !Input parameters:
@@ -8657,11 +8653,11 @@ subroutine ExpectationValues(Action,SymmAdaptMethod,FileName1,FileName2,FileName
 !calculated. If SymmAdaptMethod=1 then Y^{\dagger}Y operator is applied
 !to the ket. This option is faster but requires manual symmetrization
 !of the obtained expectation values of such operators as r_{ij} in the
-!case of some Hamiltonian symmetries (like charge reversal symmetry).
-!If SymmAdaptMethod=2 then Y operator is applied to both bra and ket.
-!Since the square of the number of terms in Y operator may be significantly
-!larger than the number of terms in Y^{\dagger}Y operator this option is slower.
-!But in this case all the expectation values are correct and ready to use
+!case of some Hamiltonian symmetries (like charge reversal symmetry). 
+!If SymmAdaptMethod=2 then Y operator is applied to both bra and ket. 
+!Since the square of the number of terms in Y operator may be significantly 
+!larger than the number of terms in Y^{\dagger}Y operator this option is slower. 
+!But in this case all the expectation values are correct and ready to use 
 !immediately.
 !  FileName1 - the name of the file that defines grid for correlation functions.
 !              If FileName1 is equal to 'none','NONE', or 'None' then correlation
@@ -8723,17 +8719,6 @@ real(dprec),allocatable,dimension(:,:)     :: rm2kl,rmkl,rkl,r2kl,deltarkl,drach
 real(dprec),allocatable,dimension(:,:)     :: rm2,rm,r,r2,deltar,drach_deltar,prval
 real(dprec),allocatable,dimension(:,:,:,:) :: rmrmkl
 
-! SO and AMM stuff
-integer :: nFactorial, SOValueNeeded
-real(dprec), allocatable, dimension(:, :) :: SziME
-real(dprec), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient
-real(dprec), allocatable, dimension(:, :, :) :: newKetYMatr
-real(dprec) :: SO1kl, SO2kl, SO1, SO2, Skk, AMM1, AMM2, AMM1kl, AMM2kl
-real(dprec), allocatable, dimension(:) :: parityFactor, spinFreeME, diagS
-
-
-
-
 if (Glob_ProcID==0) then
   write(*,*)
   write(*,*) 'Routine ExpectationValues has started'
@@ -8766,36 +8751,36 @@ if(Action=='DENSITIES') then
     (FileName1=='NONE').or.(FileName1=='None')) then
     AreCorrFuncNeeded=.false.
   else
-    AreCorrFuncNeeded=.true.
-    AreMCorrFuncNeeded=.false.
-  endif
+    AreCorrFuncNeeded=.true. 
+    AreMCorrFuncNeeded=.false. 
+  endif 
   if ((FileName3==' ').or.(FileName3=='none').or. &
     (FileName3=='NONE').or.(FileName3=='None')) then
     ArePartDensNeeded=.false.
   else
-    ArePartDensNeeded=.true.
+    ArePartDensNeeded=.true.  
     AreMPartDensNeeded=.false.
-  endif
+  endif 
 else if(Action=='MOMT_DENS') then
   if ((FileName1==' ').or.(FileName1=='none').or. &
     (FileName1=='NONE').or.(FileName1=='None')) then
     AreMCorrFuncNeeded=.false.
   else
-    AreMCorrFuncNeeded=.true.
-    AreCorrFuncNeeded=.false.
-  endif
+    AreMCorrFuncNeeded=.true. 
+    AreCorrFuncNeeded=.false. 
+  endif 
   if ((FileName3==' ').or.(FileName3=='none').or. &
     (FileName3=='NONE').or.(FileName3=='None')) then
     AreMPartDensNeeded=.false.
   else
     AreMPartDensNeeded=.true.
-    ArePartDensNeeded=.false.
-  endif
+    ArePartDensNeeded=.false.  
+  endif 
 else
   AreCorrFuncNeeded=.false.
   AreMCorrFuncNeeded=.false.
   AreMPartDensNeeded=.false.
-  ArePartDensNeeded=.false.
+  ArePartDensNeeded=.false.  
 endif
 
 !If corellation functions and/or particle densities are needed
@@ -8929,7 +8914,7 @@ if (ArePartDensNeeded.or.AreMPartDensNeeded) then
 endif
 
 !Allocate global arrays
-allocate(Glob_H(cbs,cbs))
+allocate(Glob_H(cbs,cbs)) 
 allocate(Glob_S(cbs,cbs))
 if (GSEPsolMethod=='G') allocate(Glob_diagH(cbs))
 allocate(Glob_diagS(cbs))
@@ -8975,15 +8960,15 @@ enddo
 !deltar       ME(4*n*(n+1)/2+1:5*n*(n+1)/2)
 !drach_deltar ME(5*n*(n+1)/2+1:6*n*(n+1)/2)
 !prval        ME(6*n*(n+1)/2+1:7*n*(n+1)/2)
-!H            ME(7*n*(n+1)/2+1)
-!S            ME(7*n*(n+1)/2+2)
-!T            ME(7*n*(n+1)/2+3)
-!V            ME(7*n*(n+1)/2+4)
+!H            ME(7*n*(n+1)/2+1)   
+!S            ME(7*n*(n+1)/2+2) 
+!T            ME(7*n*(n+1)/2+3) 
+!V            ME(7*n*(n+1)/2+4) 
 !MV           ME(7*n*(n+1)/2+5)
 !drach_MVkl   ME(7*n*(n+1)/2+6)
 !Darwin       ME(7*n*(n+1)/2+7)
 !drach_Darwin ME(7*n*(n+1)/2+8)
-!OO           ME(7*n*(n+1)/2+9)
+!OO           ME(7*n*(n+1)/2+9)   
 !rmrmkl       ME( 7*n*(n+1)/2+10 + (3*n**4+10*n**3+9*n**2+2*n)/24 : 6*n*(n+1)/2+9 + (3*n**4+10*n**3+9*n**2+2*n)/12 )
 NumOfExpcVals=7*n*(n+1)/2+9+(3*n**4+10*n**3+9*n**2+2*n)/12
 
@@ -9132,7 +9117,7 @@ do i=1,cbs
         factor=TWO*Glob_c(i)*Glob_c(j)/sqrt(Glob_diagS(i)*Glob_diagS(j))  !2
 	  endif
 	  if (SymmAdaptMethod==1) then
-	    do k=1,Glob_NumYHYTerms
+	    do k=1,Glob_NumYHYTerms		
 	      call MatrixElementsL1ForExpcVals(Glob_ZIndex(i),Glob_ZIndex(j),            &
 	        Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
 	        IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl,Skl,Tkl,Vkl,                    &
@@ -9145,7 +9130,7 @@ do i=1,cbs
 	        do b=a,n
 		  c=c+1; MEkl(c)=rm2kl(b,a)
                 enddo
-              enddo
+              enddo		  
               do a=1,n
 		do b=a,n
 		  c=c+1; MEkl(c)=rmkl(b,a)
@@ -9175,25 +9160,25 @@ do i=1,cbs
 		do b=a,n
 		  c=c+1; MEkl(c)=prvalkl(b,a)
                 enddo
-	      enddo
+	      enddo                  
               c=c+1; MEkl(c)=Hkl
-              c=c+1; MEkl(c)=Skl
+              c=c+1; MEkl(c)=Skl  
               c=c+1; MEkl(c)=Tkl
-              c=c+1; MEkl(c)=Vkl
-              c=c+1; MEkl(c)=MVkl
-              c=c+1; MEkl(c)=drach_MVkl
+              c=c+1; MEkl(c)=Vkl	
+              c=c+1; MEkl(c)=MVkl	
+              c=c+1; MEkl(c)=drach_MVkl          
               c=c+1; MEkl(c)=Darwinkl
-              c=c+1; MEkl(c)=drach_Darwinkl
-              c=c+1; MEkl(c)=OOkl
+              c=c+1; MEkl(c)=drach_Darwinkl          
+              c=c+1; MEkl(c)=OOkl	
               do a=1,n
                 do b=a,n
                   do a1=a,n
                     do b1=a1,n
-                      c=c+1; MEkl(c)=rmrmkl(a,b,a1,b1)
-                    enddo
+                      c=c+1; MEkl(c)=rmrmkl(a,b,a1,b1) 
+                    enddo 
                   enddo
                 enddo
-              enddo
+              enddo           
 
               do a=1,NumOfExpcVals
                 MEkl_s(a)=MEkl_s(a)+factor*Glob_YHYCoeff(k)*MEkl(a)
@@ -9236,7 +9221,7 @@ do i=1,cbs
 		  do b=a,n
 		    c=c+1; MEkl(c)=rm2kl(b,a)
                   enddo
-		enddo
+		enddo		    
                 do a=1,n
 		  do b=a,n
 		    c=c+1; MEkl(c)=rmkl(b,a)
@@ -9261,30 +9246,30 @@ do i=1,cbs
 		  do b=a,n
 		    c=c+1; MEkl(c)=drach_deltarkl(b,a)
                   enddo
-		enddo
+		enddo	
                 do a=1,n
 		  do b=a,n
 		    c=c+1; MEkl(c)=prvalkl(b,a)
                   enddo
-		enddo
+		enddo                               
                 c=c+1; MEkl(c)=Hkl
-                c=c+1; MEkl(c)=Skl
+                c=c+1; MEkl(c)=Skl  
                 c=c+1; MEkl(c)=Tkl
-                c=c+1; MEkl(c)=Vkl
-                c=c+1; MEkl(c)=MVkl
-                c=c+1; MEkl(c)=drach_MVkl
+                c=c+1; MEkl(c)=Vkl	
+                c=c+1; MEkl(c)=MVkl	
+                c=c+1; MEkl(c)=drach_MVkl            
                 c=c+1; MEkl(c)=Darwinkl
-                c=c+1; MEkl(c)=drach_Darwinkl
-                c=c+1; MEkl(c)=OOkl
+                c=c+1; MEkl(c)=drach_Darwinkl            
+                c=c+1; MEkl(c)=OOkl	  
                 do a=1,n
                   do b=a,n
                     do a1=a,n
                       do b1=a1,n
-                        c=c+1; MEkl(c)=rmrmkl(a,b,a1,b1)
-                      enddo
+                        c=c+1; MEkl(c)=rmrmkl(a,b,a1,b1) 
+                      enddo 
                     enddo
                   enddo
-                enddo
+                enddo              
 
                 do a=1,NumOfExpcVals
                   MEkl_s(a)=MEkl_s(a)+factor*Glob_YCoeff(k)*Glob_YCoeff(kk)*MEkl(a)
@@ -9398,125 +9383,20 @@ do a=1,n
         rmrmkl(a1,b1,a,b)=temp1
         rmrmkl(a1,b1,b,a)=temp1
         rmrmkl(b1,a1,a,b)=temp1
-        rmrmkl(b1,a1,b,a)=temp1
-      enddo
+        rmrmkl(b1,a1,b,a)=temp1 
+      enddo 
     enddo
   enddo
 enddo
-
-
-
-! SO expectation values calculation involves sum over other permutations
-SOValueNeeded = 1
-if (SOValueNeeded == 1) then
-
-  nFactorial = 1
-  do i = 2, n
-    nFactorial = nFactorial * i
-  enddo
-
-  allocate(SziME(n, nFactorial))
-  allocate(SOmassChargeCoefficient(n, n, 4))
-  allocate(AMMmassChargeCoefficient(n, n, 4))
-  allocate(parityFactor(nFactorial))
-
-  allocate(newKetYMatr(1 : n, 1 : n, nFactorial))
-  allocate(spinFreeME(nFactorial))
-
-  call SOpreCalc(n, nFactorial, SziME, parityFactor, &
-  SOmassChargeCoefficient, AMMmassChargeCoefficient, newKetYMatr, &
-  Glob_YOperatorString, spinFreeME)
-  ! we generate all the permutation matrices from S_n
-  ! then we obtain all the mean values
-  ! we also fill in the array with charges and masses scalar coefficients
-
-  allocate(diagS(cbs))
-  diagS = ZERO
-
-
-  ! we should recalculate mean value of a unity operator here
-  Skk = ZERO
-  counter = 0
-  do i = 1, cbs
-    counter = counter + 1
-
-    do a = 1, nFactorial ! Permutations from S_n introduced by SO operator
-
-      call overlapMatrixElementsL1(Glob_ZIndex(i), Glob_NonlinParam(1 : npt, i), &
-      newKetYMatr(1 : n, 1 : n, a), Skk)
-
-      diagS(i) = diagS(i) + parityFactor(a) * spinFreeME(a) * Skk
-
-    enddo ! Permutations from S_n
-  enddo
-
-  SO1 = ZERO
-  SO2 = ZERO
-
-  AMM1 = ZERO
-  AMM2 = ZERO
-
-  counter = 0
-  do i = 1, cbs
-    do j = 1, i
-      counter = counter + 1
-      if (mod(counter, Glob_NumOfProcs) == Glob_ProcID) then
-        if (i == j) then
-          factor = Glob_c(i) * Glob_c(j) / sqrt(diagS(i)*diagS(i))  !1
-        else
-          factor = TWO * Glob_c(i) * Glob_c(j) / sqrt(diagS(i)*diagS(j))  !2
-        endif
-
-        do a = 1, nFactorial ! Permutations from S_n introduced by A operator
-
-          call spinDependentMatrixElements(Glob_ZIndex(i),Glob_ZIndex(j),   &
-          Glob_NonlinParam(1 : npt, i), Glob_NonlinParam(1 : npt, j), &
-          newKetYMatr(1 : n, 1 : n, a), &
-          SziME(1 : n, a), SOmassChargeCoefficient, AMMmassChargeCoefficient, &
-          SO1kl, SO2kl, AMM1kl, AMM2kl)
-
-
-          SO1 = SO1 + parityFactor(a) * factor * SO1kl
-          SO2 = SO2 + parityFactor(a) * factor * SO2kl
-          ! final value of SO should be multiplied by the appropriate angular factors C_J
-          ! (they are tabulated in spin.f90)
-          AMM1 = AMM1 + parityFactor(a) * factor * AMM1kl
-          AMM2 = AMM2 + parityFactor(a) * factor * AMM2kl
-
-        enddo ! Permutations from S_n
-
-      endif ! ProcID check
-    enddo
-  enddo
-
-  !Combining the results of all processes
-
-  temp1 = SO1
-  call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
-  SO1 = temp2
-
-  temp1 = SO2
-  call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
-  SO2 = temp2
-
-  temp1 = AMM1
-  call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
-  AMM1 = temp2
-
-  temp1 = AMM2
-  call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
-  AMM2 = temp2
-
-endif ! whether SO expectation value should be evaluated or no
 
 !Printing results
 if (Glob_ProcID==0) then
 
   !Opening an additional file where selected expectation values will be saved
   open(2,file=Glob_ExpValFileName,status='replace')
-
+  
   write(*,*) 'done'
-  write(*,*)
+  write(*,*) 
   write(*,*) 'Expectation values:'
   write(*,*)
   write(*,*) '                      H=',H
@@ -9528,24 +9408,11 @@ if (Glob_ProcID==0) then
   write(*,*) '                 Darwin=',Darwin
   write(*,*) '           drach_Darwin=',drach_Darwin
   write(*,*) '                     OO=',OO
-  if (SOValueNeeded == 1) then
-    write(*,*) '                    SO1=',SO1
-    write(*,*) '                    SO2=',SO2
-    write(*,*) '                    AMM1=',AMM1
-    write(*,*) '                    AMM2=',AMM2
-  endif
   write(*,*) '           (alpha^2)*MV=',MV*(Glob_FineStructConst**2)
   write(*,*) '     (alpha^2)*drach_MV=',drach_MV*(Glob_FineStructConst**2)
   write(*,*) '       (alpha^2)*Darwin=',Darwin*(Glob_FineStructConst**2)
   write(*,*) ' (alpha^2)*drach_Darwin=',drach_Darwin*(Glob_FineStructConst**2)
   write(*,*) '           (alpha^2)*OO=',OO*(Glob_FineStructConst**2)
-  if (SOValueNeeded == 1) then
-    write(*,*) '          (alpha^2)*SO1=',SO1*(Glob_FineStructConst**2)
-    write(*,*) '          (alpha^2)*SO2=',SO2*(Glob_FineStructConst**2)
-    write(*,*) '          (alpha^2)*AMM1=',AMM1*(Glob_FineStructConst**2)
-    write(*,*) '          (alpha^2)*AMM2=',AMM2*(Glob_FineStructConst**2)
-  endif
-
   write(*,*)
 
   write(2,'(a)',advance='no') '                  basis '
@@ -9585,7 +9452,7 @@ if (Glob_ProcID==0) then
     write(*,*) '(Warning! These values do not account for indistinguishability of'
     write(*,*) 'identical particles and other possible symmetries of the system)'
     write(*,*)
-  endif
+  endif  
   do i=1,n
     write(*,'(1x,a22,i1)',advance='no') '                1/r^2_',i
     write(*,*) '=',rm2(i,i)
@@ -9593,7 +9460,7 @@ if (Glob_ProcID==0) then
       write(*,'(1x,a21,i1,i1)',advance='no') '               1/r^2_',i,j
       write(*,*) '=',rm2(i,j)
     enddo
-  enddo
+  enddo  
   do i=1,n
     write(*,'(1x,a22,i1)',advance='no') '                  1/r_',i
     write(*,*) '=',rm(i,i)
@@ -9629,7 +9496,7 @@ if (Glob_ProcID==0) then
       write(*,*) '=',deltar(i,j)
     enddo
   enddo
-  write(*,*)
+  write(*,*)  
   do i=1,n
     write(*,'(1x,a21,i1,a1)',advance='no') '       drach_delta(r_',i,')'
     write(*,*) '=',drach_deltar(i,i)
@@ -9637,7 +9504,7 @@ if (Glob_ProcID==0) then
       write(*,'(1x,a20,i1,i1,a1)',advance='no') '      drach_delta(r_',i,j,')'
       write(*,*) '=',drach_deltar(i,j)
     enddo
-  enddo
+  enddo  
   do i=1,n
     write(*,'(1x,a21,i1,a1)',advance='no') '             prval(r_',i,')'
     write(*,*) '=',prval(i,i)
@@ -9645,7 +9512,7 @@ if (Glob_ProcID==0) then
       write(*,'(1x,a20,i1,i1,a1)',advance='no') '            prval(r_',i,j,')'
       write(*,*) '=',prval(i,j)
     enddo
-  enddo
+  enddo   
   write(*,*)
   do i=1,n
     do j=i,n
@@ -9661,8 +9528,8 @@ if (Glob_ProcID==0) then
         enddo
       enddo
     enddo
-  enddo
-  write(*,*)
+  enddo  
+  write(*,*)    
   if (Glob_NumOfIdentPartSets/=Glob_n+1) then
     write(*,*) 'Based on the particle mass and charge values it was determined'
 	write(*,*) 'that the system has the following sets of identical particles:'
@@ -9671,12 +9538,12 @@ if (Glob_ProcID==0) then
       write(*,'(1x,a3,i2,a13)',advance='no') 'set',i,' :  particles'
       write(*,*) Glob_IdentPartList(1:j,i)
     enddo
-	write(*,*)
+	write(*,*) 
     write(*,*) 'Properly symmetrized expectation values of two-particle quantities'
-	write(*,*) 'that account for permutational symmetry of the above mentioned sets'
+	write(*,*) 'that account for permutational symmetry of the above mentioned sets' 
 	write(*,*) 'of identical particles are:'
 	write(*,*) '(Warning! An additional symmetrization might be necessary if the'
-	write(*,*) 'Young operator contains other types of symmetries)'
+	write(*,*) 'Young operator contains other types of symmetries)' 
 	write(*,*)
     do i=1,Glob_NumOfNoneqvPairSets
 	  beta=ZERO
@@ -9700,8 +9567,8 @@ if (Glob_ProcID==0) then
       if (a/=b) write(2,'(a,i1,i1,1x)',advance='no') '               1/r^2_',a,b
       if (a==b) write(2,'(a,i1,1x)',advance='no')    '                1/r^2_',a
       call writerealadv(2,beta/k)
-    enddo
-    write(*,*)
+    enddo	
+    write(*,*)    
     do i=1,Glob_NumOfNoneqvPairSets
 	  beta=ZERO
 	  mu=ZERO
@@ -9821,7 +9688,7 @@ if (Glob_ProcID==0) then
       if (a==b) write(2,'(a,i1,a1,1x)',advance='no')    '       drach_delta(r_',a,')'
       call writerealadv(2,beta/k)
     enddo
-    write(*,*)
+    write(*,*)	
     do i=1,Glob_NumOfNoneqvPairSets
 	  beta=ZERO
 	  mu=ZERO
@@ -9845,9 +9712,9 @@ if (Glob_ProcID==0) then
       if (a==b) write(2,'(a,i1,a1,1x)',advance='no')    '             prval(r_',a,')'
       call writerealadv(2,beta/k)
     enddo
-    write(*,*)
+    write(*,*)	    
   endif
-
+  
   close(2)
 
   !Saving correlation functions
