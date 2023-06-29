@@ -3216,31 +3216,38 @@ endif
 end function ftransaux
 
 
-subroutine SOpreCalc(n, nFactorial, SziME, parityFactor, &
-  SOmassChargeCoefficient, AMMmassChargeCoefficient, ketMatrix, spatialYoung, spinFreeME)
+subroutine spinPreCalc(n, nFactorial, SziME, parityFactor, SSFmassChargeCoefficient, &
+  SOmassChargeCoefficient, AMMmassChargeCoefficient, AnihMassChargeCoefficient, ketMatrix, spatialYoung, &
+  positronPosition, numberOfSpinFunctions, spinFreeME, SiSjME)
   use spinStuff
   implicit none
 
-  integer, parameter :: maxLen = 128
   character(len = maxLen), intent(in) :: spatialYoung
   integer, intent(in) :: n, nFactorial
-  real(dprec), dimension(n, nFactorial), intent(out) :: SziME
+
   real(dprec), dimension(nFactorial), intent(out) :: parityFactor
   real(dprec), dimension(n, n, 4), intent(out) :: SOmassChargeCoefficient, AMMmassChargeCoefficient
   real(dprec), dimension(n, n, nFactorial), intent(out) :: ketMatrix
+  real(dprec), dimension(n, n), intent(out) :: SSFmassChargeCoefficient, AnihMassChargeCoefficient
+  integer, intent(out) :: positronPosition, numberOfSpinFunctions
+
   real(dprec), dimension(nFactorial), intent(out) :: spinFreeME
+  real(dprec), dimension(n, 2, nFactorial), intent(out) :: SziME
+  real(kind = dprec), dimension(n, n, 2, nFactorial), intent(out) :: SiSjME
 
   ! local variables
-  integer :: i, j, ptr, indx, k, l, m, kFactorial, found, Cnk, tmp
-  integer, dimension(n, n, nFactorial) :: allPermutations
-  real(dprec) :: norm
-
-  integer, dimension(:), allocatable :: spinFunction, tmpSpinFunctionA, tmpSpinFunctionB, parities
-  integer, dimension(:, :), allocatable :: primitives
-  integer, dimension(:), allocatable :: primitiveA
+  integer :: i, j, k, l, m
   character(len = maxLen) :: mySpatialYoung
-  character (len = maxLen) :: myFmt, spinFunctionString
+  integer, dimension(nFactorial) :: parities
+  integer, dimension(n, n, nFactorial) :: allPermutations
 
+  SSFmassChargeCoefficient = ZERO
+  do i = 1, n
+    do j = 1, n
+      SSFmassChargeCoefficient(i, j) = -Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
+      (Glob_Mass(i + 1) * Glob_Mass(j + 1)) * EIGHT * PI / THREE
+    enddo
+  enddo
 
   SOmassChargeCoefficient = ZERO
   do i = 1, n
@@ -3286,12 +3293,30 @@ subroutine SOpreCalc(n, nFactorial, SziME, parityFactor, &
     enddo
   enddo
 
+  AnihMassChargeCoefficient = ZERO
+  do i = 1, n
+    do j = 1, n
+      AnihMassChargeCoefficient(i, j) = -Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
+      (Glob_Mass(i + 1) * Glob_Mass(j + 1)) * TWO * PI
+    enddo
+  enddo
+
 
   ! now we deal with the spin stuff
 
-  ! we generate all the possible permutations from S_n and store their pariries
-  allocate(parities(nFactorial))
-  call generatePermutationMatrices(allPermutations, n, nFactorial, parities)
+  ! rename the particles
+  mySpatialYoung = spatialYoung
+  do i = 1, maxLen
+    if (mySpatialYoung(i:i) == 'P') then
+      read(mySpatialYoung(i + 1:i + 1), *) k
+      read(mySpatialYoung(i + 2:i + 2), *) j
+      write(mySpatialYoung(i + 1:i + 1), '(i1)') k - 1
+      write(mySpatialYoung(i + 2:i + 2), '(i1)') j - 1
+    endif
+  enddo
+
+  call getSpinOperatorsMeanValues(n, nFactorial, mySpatialYoung, positronPosition, numberOfSpinFunctions, &
+  allPermutations, parities, spinFreeME, SziME, SiSjMe)
 
   ketMatrix = ZERO
   do i = 1, nFactorial
@@ -3311,165 +3336,12 @@ subroutine SOpreCalc(n, nFactorial, SziME, parityFactor, &
     parityFactor(i) = real(parities(i))
   enddo
 
-
-  ! now we should generate our spin function with k '1's (spin up)
-  ! we should get the value of k from the spatial Young operator
-  ! k = n - b, where b is the number of electrons in the 2nd column
-  ! it can be calculated as a number of '+' signs before the 'Pij)'
-  ! BUT NOT ALWAYS (smth can appear in A part of Young operator) TODO
-  ! note that we assume S = S_z
-
-
-  k = n
-  do i = 1, maxLen
-    if (spatialYoung(i:i) == 'P') then
-      if ((spatialYoung(i - 1:i - 1) == '+') .and. (spatialYoung(i  + 3:i + 3) == ')')) k = k - 1
-    endif
-  enddo
-
-  kFactorial = 1
-  do i = 1, k
-    kFactorial = kFactorial * i
-  enddo
-
-  ! we generate an array of all the possible permutations of a given string
-  ! of k '1's and n - k '0's (the dimension of the array is C(n, k))
-  Cnk = 1
-  do i = n - k + 1, n
-    Cnk = Cnk * i
-  enddo
-  Cnk = Cnk / kFactorial
-
-  allocate(primitives(n, Cnk))
-
-  primitives = 0
-
-  ! fill in the 1st primitive string
-  do i = 1, k
-    primitives(i, 1) = 1
-  enddo
-
-  allocate(primitiveA(n))
-  ! using the permutation matrices we generate all the unique sequences
-  ptr = 2
-  do i = 2, nFactorial
-
-    if (ptr > Cnk) then ! already found everything
-      exit
-    endif
-
-    call permute(allPermutations(:, :, i), primitives(:, 1), primitiveA, n)
-    !write(*, myFmt) (primitiveA(j), j = 1, n)
-
-    ! check whether we have the string already
-    found = 0
-    do k = 1, ptr - 1
-      if (primitivesScalarProduct(primitives(:, k), primitiveA, n) == 1) then
-        found = 1
-        exit
-      endif
-    enddo
-
-    if (found == 0) then
-      primitives(:, ptr) = primitiveA
-      ptr = ptr + 1
-    endif
-
-
-  enddo
-
-  ! write(myFmt, '("(", i0, "(i3))")') n
-  ! do i = 1, Cnk
-  !   write(*, myFmt) (primitives(j, i), j = 1, n)
-  ! enddo
-
-  ! at this point we have a library of any possible primitives
-  ! we store spin function as an array of coefficients for each
-  ! term from library
-  ! i.e. {a_i} -> sum_i a_i string_i
-  allocate(spinFunction(Cnk))
-  spinFunction = 1
-
-  ! we start with a sum of all primitives lying above x axes in branching diagram:
-  ! 1 is step up, 0 is step down
-  ! with such a choice we guarantee that the resulting function will never be zero
-
-  do i = 1, Cnk
-    tmp = 0
-    do j = 1, n
-      tmp = tmp + (-1)**(primitives(j, i) + 1)
-      if (tmp < 0) then
-        spinFunction(i) = 0
-        exit
-      endif
-    enddo
-
-  enddo
-
-  !call showSpinFunction(spinFunction, primitives, n, Cnk, spinFunctionString)
-  !write(*, '(a)') trim(adjustl(spinFunctionString))
-
-  ! now we should build spin Young operator
-  ! and act with it on our function
-
-  ! rename the particles
-  mySpatialYoung = spatialYoung
-  do i = 1, maxLen
-    if (mySpatialYoung(i:i) == 'P') then
-      read(mySpatialYoung(i + 1:i + 1), *) k
-      read(mySpatialYoung(i + 2:i + 2), *) j
-      write(mySpatialYoung(i + 1:i + 1), '(i1)') k - 1
-      write(mySpatialYoung(i + 2:i + 2), '(i1)') j - 1
-    endif
-  enddo
-
-  call actOnSpinFunctionWithYoung(mySpatialYoung, spinFunction, primitives, n, Cnk)
-
-
-  ! call showSpinFunction(spinFunction, primitives, n, Cnk, spinFunctionString)
-  ! write(*, '(a)') trim(adjustl(spinFunctionString))
-
-  ! here we finally have our spin function
-
-  ! calculate spin function squared norm
-  norm = dble(spinFunctionsScalarProduct(spinFunction, spinFunction, Cnk))
-
-  ! now calculate mean values of s_z(i) P_k
-  allocate(tmpSpinFunctionA(Cnk))
-  allocate(tmpSpinFunctionB(Cnk))
-
-  do ptr = 1, nFactorial
-
-    call permuteSpinFunction(primitives, spinFunction, tmpSpinFunctionB, allPermutations(:, :, ptr), n, Cnk)
-
-    !call showSpinFunction(spinFunction, primitives, n, Cnk, spinFunctionString)
-    !write(*, '(a)') trim(adjustl(spinFunctionString))
-
-    spinFreeME(ptr) = real(spinFunctionsScalarProduct(spinFunction, tmpSpinFunctionB, Cnk)) / norm
-    !print *, spinFreeME(ptr)
-
-    do k = 1, n
-      tmpSpinFunctionA = tmpSpinFunctionB
-
-      call actOnSpinFunctionWithSzi(primitives, tmpSpinFunctionA, k, n, Cnk)
-
-      !call showSpinFunction(spinFunction, primitives, n, Cnk, spinFunctionString)
-      !write(*, '(a)') trim(adjustl(spinFunctionString))
-
-      SziME(k, ptr) = ONEHALF * real(spinFunctionsScalarProduct(spinFunction, tmpSpinFunctionA, Cnk)) / norm
-      !call showSpinFunction(spinFunction, primitives, n, Cnk, spinFunctionString)
-      !write(*, '(a)') trim(adjustl(spinFunctionString))
-      !print *, SziME(k, ptr)
-
-    enddo
-
-  enddo
-
 end subroutine
 
 
 subroutine spinDependentMatrixElements(m_k, m_l, vechLk, vechLl, Pket, &
-  SziME, SOmassChargeCoefficient, AMMmassChargeCoefficient, SO1kl, SO2kl, AMM1kl, AMM2kl)
+  SziME, SOmassChargeCoefficient, AMMmassChargeCoefficient, &
+  SO1kl, SO2kl, AMM1kl, AMM2kl, numberOfSpinFunctions)
   !This subroutine computes symmetry adapted matrix element
   !with two real L=1 correlated Gaussians. These matrix element
   !is used in calculations of expectation values.
@@ -3487,18 +3359,18 @@ subroutine spinDependentMatrixElements(m_k, m_l, vechLk, vechLl, Pket, &
   !         1 and 2 stay for spin-same orbit and spin-another orbit contributions
 
   !Arguments
-  integer,intent(in)       :: m_k, m_l
+  integer,intent(in)       :: m_k, m_l, numberOfSpinFunctions
   real(dprec),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
   real(dprec),intent(in)   :: Pket(Glob_n,Glob_n)
 
-  real(dprec),intent(out)  :: SO1kl, SO2kl, AMM1kl, AMM2kl
+  real(dprec), dimension(numberOfSpinFunctions), intent(out)  :: SO1kl, SO2kl, AMM1kl, AMM2kl
 
   !Parameters (These are needed to declare static arrays. Using static
   !arrays makes the function call a little faster in comparison with
   !the case when arrays are dynamically allocated in stack)
   integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
   integer,parameter :: nnp=nn*(nn+1)/2
-  real(dprec),intent(in)   :: SziME(Glob_n), &
+  real(dprec),intent(in)   :: SziME(Glob_n, numberOfSpinFunctions), &
                               SOmassChargeCoefficient(Glob_n, Glob_n, 4), &
                               AMMmassChargeCoefficient(Glob_n, Glob_n, 4)
 
@@ -3658,7 +3530,12 @@ subroutine spinDependentMatrixElements(m_k, m_l, vechLk, vechLl, Pket, &
   AMM2kl = ZERO
 
   do indexI = 1, n
-    if (abs(SziME(indexI)) < localEps) cycle ! corresponding <Szi> = 0
+
+    i = 0
+    do k = 1, numberOfSpinFunctions
+      if (abs(SziME(indexI, k)) < localEps) i = i + 1
+    enddo
+    if (i == numberOfSpinFunctions) cycle ! corresponding <Szi> = 0
 
     ! gamma diagonal coefficient
     gamma_diag = ONE / sqrt(inv_tAkl(indexI, indexI))
@@ -3726,8 +3603,10 @@ subroutine spinDependentMatrixElements(m_k, m_l, vechLk, vechLl, Pket, &
     jiVk * jiVl * gamma &
     )
 
-    SO1kl = SO1kl + SziME(indexI) * SOmassChargeCoefficient(indexI, indexI, 1) * temp1
-    AMM1kl = AMM1kl + SziME(indexI) * AMMmassChargeCoefficient(indexI, indexI, 1) * temp1
+    do k = 1, numberOfSpinFunctions
+      SO1kl(k) = SO1kl(k) + SziME(indexI, k) * SOmassChargeCoefficient(indexI, indexI, 1) * temp1
+      AMM1kl(k) = AMM1kl(k) + SziME(indexI, k) * AMMmassChargeCoefficient(indexI, indexI, 1) * temp1
+    enddo
 
 
     ! these traces are needed for spin-other orbit contribution
@@ -3824,7 +3703,9 @@ subroutine spinDependentMatrixElements(m_k, m_l, vechLk, vechLl, Pket, &
       gamma_diag * jiVk * jjVl &
       )
 
-      SO2kl = SO2kl + SziME(indexI) * SOmassChargeCoefficient(indexI, indexI, 2) * temp1
+      do k = 1, numberOfSpinFunctions
+        SO2kl(k) = SO2kl(k) + SziME(indexI, k) * SOmassChargeCoefficient(indexI, indexI, 2) * temp1
+      enddo
 
       temp1 = ( &
       gamma * (jjAkAklinvVk * (jjAlAklinvVl - jjvl) - jjVk * jjAlAklinvVl - jjAlAklinvVk * jjAkAklinvVl) + &
@@ -3837,8 +3718,10 @@ subroutine spinDependentMatrixElements(m_k, m_l, vechLk, vechLl, Pket, &
       gamma * jjVk * jjVl &
       )
 
-      SO2kl = SO2kl + SziME(indexI) * SOmassChargeCoefficient(indexI, indexJ, 3) * temp1
-      AMM2kl = AMM2kl + SziME(indexI) * AMMmassChargeCoefficient(indexI, indexJ, 3) * temp1
+      do k = 1, numberOfSpinFunctions
+        SO2kl(k) = SO2kl(k) + SziME(indexI, k) * SOmassChargeCoefficient(indexI, indexJ, 3) * temp1
+        AMM2kl(k) = AMM2kl(k) + SziME(indexI, k) * AMMmassChargeCoefficient(indexI, indexJ, 3) * temp1
+      enddo
 
       temp1 = ( &
       gamma * (jiAkAklinvVk * (jiAlAklinvVl - jivl) - jiVk * jiAlAklinvVl - jiAlAklinvVk * jiAkAklinvVl) + &
@@ -3851,8 +3734,10 @@ subroutine spinDependentMatrixElements(m_k, m_l, vechLk, vechLl, Pket, &
       gamma * jiVk * jiVl &
       )
 
-      SO2kl = SO2kl + SziME(indexI) * SOmassChargeCoefficient(indexI, indexJ, 4) * temp1
-      AMM2kl = AMM2kl + SziME(indexI) * AMMmassChargeCoefficient(indexI, indexJ, 4) * temp1
+      do k = 1, numberOfSpinFunctions
+        SO2kl(k) = SO2kl(k) + SziME(indexI, k) * SOmassChargeCoefficient(indexI, indexJ, 4) * temp1
+        AMM2kl(k) = AMM2kl(k) + SziME(indexI, k) * AMMmassChargeCoefficient(indexI, indexJ, 4) * temp1
+      enddo
 
 
     enddo ! indexJ cycle

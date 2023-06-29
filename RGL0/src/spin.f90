@@ -25,7 +25,7 @@ module spinStuff
 contains
 
   subroutine getSpinOperatorsMeanValues(n, nFactorial, spatialYoung, positronPosition, numberOfSpinFunctions, &
-    permutationMatrices, parities, spinFreeME, SziME, SiSjMe)
+    permutationMatrices, parities, spinFreeME, SiSjMe)
     implicit none
 
     integer, intent(in) :: n, nFactorial
@@ -37,7 +37,6 @@ contains
 
     ! mean values of some spin operators
     real(kind = dprec), dimension(nFactorial), intent(out) :: spinFreeME
-    real(kind = dprec), dimension(n, 2, nFactorial), intent(out) :: SziME
     real(kind = dprec), dimension(n, n, 2, nFactorial), intent(out) :: SiSjME
 
     ! local variables
@@ -466,7 +465,6 @@ contains
     endif
 
     spinFreeME = ZERO
-    SziME = ZERO
     SiSjME = ZERO
 
 
@@ -505,18 +503,9 @@ contains
         write(io, '(a)') '==========================================='
         write(io, '(a, a)') "chi = ", trim(adjustl(spinFunctionString))      
         write(io, '("S calculated         =" , 1x, f6.3)') test
-        write(io, '(a)') "C_J_SO:"
-        do k = nint(TWO * abs(ONE - test)), nint(TWO * abs(ONE + test)), 2
-          if (mod(k, 2) == 0) then
-            write(io, '("C_", i1, " = ", f6.3)') k / 2, soAngularCoeff(nint(TWO * test), k)
-          else
-            write(io, '("C_", i1, "/2 = ", f6.3)') k, soAngularCoeff(nint(TWO * test), k)
-          endif
-        enddo
         close(io)
 
       endif
-
 
       do ptr = 1, nFactorial
 
@@ -528,21 +517,8 @@ contains
 
         spinFreeME(ptr) = spinFunctionsScalarProductReal(tmpSpinFunctionA, tmpSpinFunctionB, numberOfPrimitives)
 
-        do k = 1, n
-          tmpSpinFunctionC = tmpSpinFunctionB
-
-          call actOnSpinFunctionWithSzi(primitives, tmpSpinFunctionC, k, n, numberOfPrimitives)
-
-          !call showSpinFunction(spinFunction, primitives, n, Cnk, spinFunctionString)
-          !write(*, '(a)') trim(adjustl(spinFunctionString))
-
-          SziME(k, p, ptr) = ONEHALF * spinFunctionsScalarProductReal(tmpSpinFunctionA, tmpSpinFunctionC, numberOfPrimitives)
-          !call showSpinFunction(spinFunction, primitives, n, Cnk, spinFunctionString)
-          !write(*, '(a)') trim(adjustl(spinFunctionString))
-
-        enddo
-
       enddo ! all permutations
+
 
       ! <(- 1 / 4 + 1 / 2 P^s_{ij}) P_{a}>
       
@@ -591,11 +567,6 @@ contains
       !   !     if (permutationMatrices(positronPosition, positronPosition, ptr) /= 1) cycle
       !   !   endif
 
-      !   !   do k = 1, n
-      !   !     write(io, '(i3, 2x, i1, 2x, f6.3)') ptr, k, SziME(k, p, ptr)
-      !   !   enddo
-      !   ! enddo
-      
       !   ! ! s(i) s(j) for each pair
       !   ! write(io, '("<chi | s_i s_j | P^s_{a} chi>:")')
       !   ! do ptr = 1, nFactorial
@@ -1723,69 +1694,6 @@ contains
 
     ans = table(SeDoubled, SpDoubled, SDoubled, mpDoubled)
 
-
-  end function
-
-
-  function soAngularCoeff(sDoubled, jDoubled) result(ans)
-    implicit none
-
-    ! here we calculate C_J = (-1)^(S + L + J) *
-    ! sqrt((2S - 1)!(2S + 2)!(2L - 1)!(2L + 2)!) / ((2S)!(2L)!) *
-    ! sixJ(S, S, 1, L, L, J) with L = 1
-    ! we simply list some values of the coefficient here
-    ! S <= 5/2
-
-    integer, intent(in) :: sDoubled, jDoubled
-    real(kind = dprec) :: ans
-
-
-    select case(sDoubled)
-    case(1)
-      select case(jDoubled)
-      case(1)
-        ans = - TWO
-      case(3)
-        ans = ONE
-      end select
-    case(2)
-      select case(jDoubled)
-      case(0)
-        ans = -TWO
-      case(2)
-        ans = -ONE
-      case(4)
-        ans = ONE
-      end select
-    case(3)
-      select case(jDoubled)
-      case(1)
-        ans = -FIVE / THREE
-      case(3)
-        ans = -TWO / THREE
-      case(5)
-        ans = ONE
-      end select
-    case(4)
-      select case(jDoubled)
-      case(2)
-        ans = -THREE / TWO
-      case(4)
-        ans = -ONEHALF
-      case(6)
-        ans = ONE
-      end select
-    case(5)
-      select case(jDoubled)
-      case(3)
-        ans = -SEVEN / FIVE
-      case(5)
-        ans = -TWO / FIVE
-      case(7)
-        ans = ONE
-      end select
-
-    end select
 
   end function
 

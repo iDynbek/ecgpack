@@ -8509,6 +8509,19 @@ real(dprec),allocatable,dimension(:,:)     :: rm2kl,rmkl,rkl,r2kl,deltarkl,drach
 real(dprec),allocatable,dimension(:,:)     :: rm2,rm,r,r2,deltar,drach_deltar,prval
 real(dprec),allocatable,dimension(:,:,:,:) :: del2kl,rmrmkl
 
+! spin-dependent stuff
+integer :: nFactorial, spinDependentValuesNeeded
+real(dprec) :: Skk
+real(dprec), allocatable, dimension(:, :, :) :: ketYMatrix, SSFMatrix, AnihMatrix
+real(dprec), allocatable, dimension(:, :) :: SSFmassChargeCoefficient, AnihMassChargeCoefficient
+real(dprec), allocatable, dimension(:, :, :, :) :: SiSjME
+real(dprec), allocatable, dimension(:) :: SSF, SSFe, Anih
+real(dprec), allocatable, dimension(:) :: parityFactor, diagS
+real(dprec), allocatable, dimension(:) :: spinFreeME
+integer :: positronPosition, numberOfSpinFunctions
+
+! One can set this flag to zero to disable everything introduced by DT
+spinDependentValuesNeeded = 1
 
 if (Glob_ProcID==0) then
   write(*,*)
@@ -8901,6 +8914,100 @@ endif
 
 if (Glob_ProcID==0) write(*,'(1x,a31)',advance='no') 'Computing expectation values...'
 
+! in case we want to evaluate the spin-dependent operators mean values,
+! we switch from spin-free to a regular formalism here
+! note that we change global arrays Glob_YHYMatr and Glob_YHYCoeff here
+if (spinDependentValuesNeeded == 1) then
+
+  nFactorial = 1
+  do i = 2, n
+    nFactorial = nFactorial * i
+  enddo
+
+  allocate(SSFmassChargeCoefficient(n, n))
+  allocate(AnihMassChargeCoefficient(n, n))  
+  allocate(parityFactor(nFactorial))
+
+  allocate(ketYMatrix(1 : n, 1 : n, nFactorial))
+  allocate(spinFreeME(nFactorial))
+  allocate(SiSjME(n, n, 2, nFactorial))
+
+  call spinPreCalc(n, nFactorial, parityFactor, SSFmassChargeCoefficient, &
+  AnihMassChargeCoefficient, ketYMatrix, Glob_YOperatorString, &
+  positronPosition, numberOfSpinFunctions, spinFreeME, SiSjME)
+
+  ! changing global variables here, care
+  deallocate(Glob_YHYMatr, Glob_YHYCoeff)
+
+  Glob_NumYHYTerms = nFactorial
+
+  if (positronPosition > 0) then ! we do have a positron
+
+    do i = 1, nFactorial
+      if (nint(ketYMatrix(positronPosition, positronPosition, i)) == 0) then
+        Glob_NumYHYTerms = Glob_NumYHYTerms - 1 ! exclude positron permutations
+      endif
+    enddo
+
+  endif
+  
+  allocate(Glob_YHYMatr(n, n, Glob_NumYHYTerms))
+  allocate(Glob_YHYCoeff(Glob_NumYHYTerms))
+
+  k = 1
+  do i = 1, nFactorial
+    if (positronPosition > 0) then
+      if (nint(ketYMatrix(positronPosition, positronPosition, i)) == 0) cycle
+    endif
+    
+    Glob_YHYMatr(:, :, k) = ketYMatrix(:, :, i)
+    Glob_YHYCoeff(k) = parityFactor(i) * spinFreeME(i)
+
+    ! skipping positronic permutations
+    do kk = 1, numberOfSpinFunctions
+      do j = 1, n
+        do c = 1, n
+          SiSjME(j, c, kk, k) = parityFactor(i) * SiSjME(j, c, kk, i)
+        enddo
+      enddo
+    enddo
+
+    k = k + 1
+
+  enddo
+
+
+  allocate(diagS(cbs))
+  diagS = ZERO
+
+  ! we should recalculate mean values of a unity operator here (it should be proportional to the old values)
+  Skk = ZERO
+  do i = 1, cbs
+
+    do a = 1, Glob_NumYHYTerms 
+
+      call overlapMatrixElements(Glob_NonlinParam(1 : npt, i), &
+      Glob_YHYMatr(1 : n, 1 : n, a), Skk)
+
+      diagS(i) = diagS(i) + Glob_YHYCoeff(a) * Skk        
+
+    enddo ! Permutations from S_n
+
+
+    Glob_diagS(i) = diagS(i)
+    !print *, Glob_diagS(i)
+
+  enddo
+
+  allocate(SSFMatrix(n, n, numberOfSpinFunctions))
+  SSFMatrix = ZERO
+
+  allocate(AnihMatrix(n, n, numberOfSpinFunctions))
+  AnihMatrix = ZERO
+
+endif
+
+
 !main loop
 MEkl_s(1:NumOfExpcVals)=ZERO
 if (AreCorrFuncNeeded.or.AreMCorrFuncNeeded.or.ArePartDensNeeded.or.AreMPartDensNeeded) CFDMEkl_s(1:NumOfCFAndDensExpVals)=ZERO
@@ -8989,6 +9096,31 @@ do i=1,cbs
               do a=1,NumOfExpcVals
                 MEkl_s(a)=MEkl_s(a)+factor*Glob_YHYCoeff(k)*MEkl(a)
 	      enddo
+
+        if (spinDependentValuesNeeded == 1) then
+          ! SSF term is special: it needs SiSj mean value with it
+          ! not the spin-free value like the other terms here
+          ! we build it from drachmanized deltas for each pair b, a
+          do c = 1, numberOfSpinFunctions
+            do a = 1, n
+              do b = a + 1, n
+                SSFMatrix(a, b, c) = SSFMatrix(a, b, c) + factor * SiSjME(a, b, c, k) * drach_deltarkl(b, a)
+              enddo
+            enddo
+
+            if (positronPosition > 0) then
+              ! with positron we also need anihilation correction
+              do a = 1, n
+                do b = a + 1, n
+                  AnihMatrix(a, b, c) = AnihMatrix(a, b, c) + &
+                  factor * (SiSjME(a, b, c, k) + THREE / FOUR * Glob_YHYCoeff(k)) &
+                  * drach_deltarkl(b, a)
+                enddo
+              enddo
+            endif              
+
+          enddo
+        endif        
 		  
               c=0
               if (AreCorrFuncNeeded.or.AreMCorrFuncNeeded) then
@@ -9132,6 +9264,29 @@ if (ArePartDensNeeded.or.AreMPartDensNeeded) then
   call MPI_ALLREDUCE(CFDMEkl_s(k+1:k+kk),Dens,kk,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)  
 endif
 
+if (spinDependentValuesNeeded == 1) then
+  do c = 1, numberOfSpinFunctions
+    do a = 1, n
+      do b = a + 1, n
+        temp1 = SSFMatrix(a, b, c)
+        call MPI_ALLREDUCE(temp1,temp2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+        SSFMatrix(a, b, c) = temp2 
+      enddo
+    enddo
+
+    if (positronPosition > 0) then
+      do a = 1, n
+        do b = a + 1, n
+          temp1 = AnihMatrix(a, b, c)
+          call MPI_ALLREDUCE(temp1,temp2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+          AnihMatrix(a, b, c) = temp2 
+        enddo
+      enddo
+    endif
+
+  enddo
+endif      
+
 !Extracting expectation values from arrays MEkl_s and MEkl_e
 c=0
 do a=1,n
@@ -9228,6 +9383,49 @@ if (Glob_ProcID==0) then
 open(2,file=Glob_ExpValFileName,status='replace')
 endif
 
+if (spinDependentValuesNeeded == 1) then
+
+  
+  ! we already have everything needed for SSF term calculation
+  allocate(SSF(numberOfSpinFunctions))
+  SSF = ZERO
+  do k = 1, numberOfSpinFunctions
+    do i = 1, n
+      do j = i + 1, n
+        SSF(k) = SSF(k) + SSFMatrix(i, j, k) * SSFmassChargeCoefficient(i, j)
+      enddo
+    enddo
+  enddo
+
+  ! we also calculate "electronic" SSF term as a test
+  if (positronPosition > 0) then
+    allocate(SSFe(numberOfSpinFunctions))
+    SSFe = ZERO
+    do k = 1, numberOfSpinFunctions
+      do i = 1, n
+        if (i == positronPosition) cycle
+        do j = i + 1, n
+          if (j == positronPosition) cycle
+          SSFe(k) = SSFe(k) + SSFMatrix(i, j, k) * SSFmassChargeCoefficient(i, j)
+        enddo
+      enddo
+    enddo
+
+    allocate(Anih(numberOfSpinFunctions))
+    Anih = ZERO
+    do k = 1, numberOfSpinFunctions
+      do i = 1, n
+        do j = i + 1, n
+          if (i /= positronPosition .and. j /= positronPosition) cycle
+          Anih(k) = Anih(k) + AnihMatrix(i, j, k) * AnihMassChargeCoefficient(i, j)
+        enddo
+      enddo
+    enddo
+  
+  endif
+
+endif
+
 !Printing results
 if (Glob_ProcID==0) then
   write(*,*) 'done'
@@ -9243,11 +9441,45 @@ if (Glob_ProcID==0) then
   write(*,*) '                 Darwin=',Darwin
   write(*,*) '           drach_Darwin=',drach_Darwin
   write(*,*) '                     OO=',OO
+  if (spinDependentValuesNeeded == 1) then
+    if (numberOfSpinFunctions == 1) then
+      write(*,*) '                    SSF=',SSF(1)
+      if (positronPosition > 0) then
+        write(*,*) '                    SSFe=',SSFe(1)
+        write(*,*) '                    Anih=',Anih(1)
+      endif
+    elseif (numberOfSpinFunctions == 2) then
+      write(*,*) '                    SSF_h=',SSF(1)
+      write(*,*) '                    SSFe_h=',SSFe(1)
+      write(*,*) '                    Anih_h=',Anih(1)
+
+      write(*,*) '                    SSF_l=',SSF(2)
+      write(*,*) '                    SSFe_l=',SSFe(2)
+      write(*,*) '                    Anih_l=',Anih(2)
+    endif
+  endif
   write(*,*) '           (alpha^2)*MV=',MV*(Glob_FineStructConst**2)
   write(*,*) '     (alpha^2)*drach_MV=',drach_MV*(Glob_FineStructConst**2)
   write(*,*) '       (alpha^2)*Darwin=',Darwin*(Glob_FineStructConst**2)
   write(*,*) ' (alpha^2)*drach_Darwin=',drach_Darwin*(Glob_FineStructConst**2)
   write(*,*) '           (alpha^2)*OO=',OO*(Glob_FineStructConst**2)
+  if (spinDependentValuesNeeded == 1) then
+    if (numberOfSpinFunctions == 1) then
+      write(*,*) '          (alpha^2)*SSF=',SSF(1)*(Glob_FineStructConst**2)
+      if (positronPosition > 0) then
+        write(*,*) '          (alpha^2)*SSFe=',SSFe(1)*(Glob_FineStructConst**2)
+        write(*,*) '          (alpha^2)*Anih=',Anih(1)*(Glob_FineStructConst**2)
+      endif
+    elseif (numberOfSpinFunctions == 2) then
+      write(*,*) '          (alpha^2)*SSF_h=',SSF(1)*(Glob_FineStructConst**2)
+      write(*,*) '          (alpha^2)*SSFe_h=',SSFe(1)*(Glob_FineStructConst**2)
+      write(*,*) '          (alpha^2)*Anih_h=',Anih(1)*(Glob_FineStructConst**2)
+
+      write(*,*) '          (alpha^2)*SSF_l=',SSF(2)*(Glob_FineStructConst**2)
+      write(*,*) '          (alpha^2)*SSFe_l=',SSFe(2)*(Glob_FineStructConst**2)
+      write(*,*) '          (alpha^2)*Anih_l=',Anih(2)*(Glob_FineStructConst**2)
+    endif
+  endif
   write(*,*) '            wf^2_origin=',wf2origin
   write(*,*)
 

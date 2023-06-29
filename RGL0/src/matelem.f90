@@ -2152,4 +2152,207 @@ end subroutine ME_1_over_rij_dXd_all
 !ME_1_over_rij_dXd=4*ME_rXr_over_rij(M,i,j,inv_tAkl,ME_1_over_rij,TrCJ)-6*tr1*ME_1_over_rij
 !end function ME_1_over_rij_dXd
 
+
+subroutine spinPreCalc(n, nFactorial, parityFactor, SSFmassChargeCoefficient, &
+  AnihMassChargeCoefficient, ketMatrix, spatialYoung, &
+  positronPosition, numberOfSpinFunctions, spinFreeME, SiSjME)
+  use spinStuff
+  implicit none
+
+  character(len = maxLen), intent(in) :: spatialYoung
+  integer, intent(in) :: n, nFactorial
+
+  real(dprec), dimension(nFactorial), intent(out) :: parityFactor
+  real(dprec), dimension(n, n, nFactorial), intent(out) :: ketMatrix
+  real(dprec), dimension(n, n), intent(out) :: SSFmassChargeCoefficient, AnihMassChargeCoefficient
+  integer, intent(out) :: positronPosition, numberOfSpinFunctions
+
+  real(dprec), dimension(nFactorial), intent(out) :: spinFreeME
+  real(kind = dprec), dimension(n, n, 2, nFactorial), intent(out) :: SiSjME
+
+  ! local variables
+  integer :: i, j, k, l, m
+  character(len = maxLen) :: mySpatialYoung
+  integer, dimension(nFactorial) :: parities
+  integer, dimension(n, n, nFactorial) :: allPermutations
+
+  SSFmassChargeCoefficient = ZERO
+  do i = 1, n
+    do j = 1, n
+      SSFmassChargeCoefficient(i, j) = -Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
+      (Glob_Mass(i + 1) * Glob_Mass(j + 1)) * EIGHT * PI / THREE
+    enddo
+  enddo
+
+  AnihMassChargeCoefficient = ZERO
+  do i = 1, n
+    do j = 1, n
+      AnihMassChargeCoefficient(i, j) = -Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
+      (Glob_Mass(i + 1) * Glob_Mass(j + 1)) * TWO * PI
+    enddo
+  enddo
+
+
+  ! now we deal with the spin stuff
+
+  ! rename the particles
+  mySpatialYoung = spatialYoung
+  do i = 1, maxLen
+    if (mySpatialYoung(i:i) == 'P') then
+      read(mySpatialYoung(i + 1:i + 1), *) k
+      read(mySpatialYoung(i + 2:i + 2), *) j
+      write(mySpatialYoung(i + 1:i + 1), '(i1)') k - 1
+      write(mySpatialYoung(i + 2:i + 2), '(i1)') j - 1
+    endif
+  enddo
+
+  call getSpinOperatorsMeanValues(n, nFactorial, mySpatialYoung, positronPosition, numberOfSpinFunctions, &
+  allPermutations, parities, spinFreeME, SiSjMe)
+
+  ketMatrix = ZERO
+  do i = 1, nFactorial
+
+    do k = 1, n
+      do l = 1, n
+
+        ketMatrix(k, l, i) = real(allPermutations(l, k, i))
+        ! note the transposition here
+
+      enddo
+    enddo
+
+  enddo
+
+  do i = 1, nFactorial
+    parityFactor(i) = real(parities(i))
+  enddo
+
+end subroutine
+
+
+subroutine overlapMatrixElements(vechLk, P, Skk)
+!This subroutine computes symmetry adapted matrix element with 
+!two real L=0 correlated Gaussians:
+! 
+!fk =  exp[-r'(Lk*Lk')r] 
+!
+!Symmetry adaption is applied to the ket using 
+!permutation matrices Glob_YHYMatr(:,:,1:Glob_NumYHYTerms)
+!
+!Input:     
+!   vechLk :: Array of length (n(n+1)/2) of exponential parameters. 
+!   P   :: The symmetry permutation matrix of size n x n
+!Output:
+!   Skk	 ::	Overlap matrix element (normalized)
+
+
+!Arguments
+real(dprec),intent(in)      :: vechLk(Glob_np)
+real(dprec),intent(in)      :: P(Glob_n,Glob_n)
+real(dprec),intent(out)     :: Skk
+
+
+!Parameters (These are needed to declare static arrays. Using static 
+!arrays makes the function call a little faster in comparison with 
+!the case when arrays are dynamically allocated in stack)
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+integer,parameter :: nnp=nn*(nn+1)/2
+
+!Local variables
+integer           n, np
+real(dprec)       Lk(nn,nn), Ll(nn,nn)
+real(dprec)       Ak(nn,nn), tAl(nn,nn), tAkl(nn,nn)
+real(dprec)       inv_tAkl(nn,nn)
+real(dprec)       W1(nn,nn)
+real(dprec)       temp1
+real(dprec)       det_tAkl
+integer           i, j, k, indx
+
+n=Glob_n
+np=Glob_np
+!First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
+indx=0
+do i=1,n
+do j=i,n
+indx=indx+1
+Lk(i,j)=ZERO
+Lk(j,i)=vechLk(indx)
+Ll(i,j)=Lk(i,j)
+Ll(j,i)=Lk(j,i)
+enddo
+enddo
+
+do i=1,n
+do j=i,n
+temp1=ZERO
+do k=1,i
+temp1=temp1+Lk(i,k)*Lk(j,k)
+enddo 
+Ak(i,j)=temp1
+Ak(j,i)=temp1
+temp1=ZERO
+do k=1,i
+temp1=temp1+Ll(i,k)*Ll(j,k)
+enddo 
+tAl(i,j)=temp1
+tAl(j,i)=temp1
+enddo
+enddo
+
+!Then we permute elements of Al to account for 
+!the action of the permutation matrix
+!tAl=P'*Al*P
+!We also form matrix tAkl=Ak+tAl
+do i=1,n
+do j=1,n
+temp1=ZERO
+do k=1,n
+temp1=temp1+P(k,j)*tAl(k,i)
+enddo
+W1(j,i)=temp1
+enddo
+enddo
+do i=1,n  
+do j=i,n
+temp1=ZERO
+do k=1,n
+temp1=temp1+W1(i,k)*P(k,j)
+enddo
+tAl(i,j)=temp1
+tAl(j,i)=temp1
+tAkl(i,j)=Ak(i,j)+temp1
+tAkl(j,i)=tAkl(i,j)
+enddo
+enddo
+
+!After this we can do Cholesky factorization of tAkl.
+!The Cholesky factor will be temporarily stored in the 
+!lower triangle of W1
+det_tAkl=ONE
+do i=1,n
+do j=i,n
+temp1=tAkl(i,j)
+do k=i-1,1,-1
+temp1=temp1-W1(i,k)*W1(j,k)
+enddo
+if (i==j) then
+W1(i,i)=sqrt(temp1)
+det_tAkl=det_tAkl*temp1
+else
+W1(j,i)=temp1/W1(i,i)
+W1(i,j)=ZERO
+endif
+enddo
+enddo
+
+!Evaluating overlap
+
+!temp1=abs(det_Ll*det_Lk)/det_tAkl
+!Skl=Glob_2raised3n2*temp1*sqrt(temp1)
+Skk=Glob_Piraised3n2/(det_tAkl*sqrt(det_tAkl))  !new line
+
+
+end subroutine overlapMatrixElements
+
+
 end module matelem
