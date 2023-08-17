@@ -1,8 +1,8 @@
 #!/bin/csh
 # Compilation script to compile ECG codes. Typical usages:
-#   ./compile_XXXXX shabyt gcc9 8 10   <--  gcc9 toolchain, precision 8 and 10
-#   ./compile_XXXXX wsl_ubuntu20 gcc 8 10 16   <-- system default gcc, precisions 8, 10, 16
-#   ./compile_XXXXX worker26 gcc12 8 10 16   <-- system default gcc, precisions 8, 10, 16
+#   ./compile.csh shabyt gcc9 8 10   <--  gcc9 toolchain, precision 8 and 10
+#   ./compile.csh wsl_ubuntu20 gcc 8 10 16   <-- system default gcc, precisions 8, 10, 16
+#   ./compile.csh worker26 gcc12 8 10 16   <-- system default gcc, precisions 8, 10, 16
 # This script must be executed in the directory one level above
 # directories RGL0, RGL1, RGL2P, RGL2D
 
@@ -68,7 +68,7 @@ if (${MACHINE} == shabyt || ${MACHINE} == wsl_ubuntu20) then
     module load gcc/9.5.0
     module load openmpi/gcc9/4.1.5
   else if (${TOOLCHAIN} == gcc12) then
-    module load gcc/12.2.0
+    module load gcc/12.3.0
     module load openmpi/gcc12/4.1.5
   else if (${TOOLCHAIN} == gcc) then
     #Nothing to load for wsl_ubuntu20
@@ -83,7 +83,7 @@ else if (${MACHINE} == worker26 || ${MACHINE} == mylinuxbox) then
     module load gcc/9.5.0
     module load openmpi-gcc9/4.1.5
   else if (${TOOLCHAIN} == gcc12) then
-    module load gcc/12.2.0
+    module load gcc/12.3.0
     module load openmpi-gcc12/4.1.5
   else if (${TOOLCHAIN} == gcc) then
     #Nothing to load for worker26 or mylinuxbox
