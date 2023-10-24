@@ -3388,11 +3388,8 @@ subroutine spinDependentMatrixElements(m_k, m_l, vechLk, vechLl, Pket, &
 
 
   integer :: pm_k, pm_l ! new non-zero components of v_k and v_l
-  real(dprec) :: commonFactor, gamma, gamma_diag, jiVk, jiVl, jiAlAklinvVk, jiAlAklinvVl, jiAklinvVk, jiAklinvVl, &
-                 jiAkAklinvVk, jiAkAklinvVl, jiAkAklinvji, jiAlAklinvji, &
-                 jjAlAklinvVl, jjAlAklinvVk, jjAlVl, jjAklinvVk, jiAlVl, jjAlAklinvji, jiAklinvji, &
-                 jiAklinvjj, jiAlAklinvjj, jjAklinvVl, jiAkAklinvjj, jjAkAklinvVk, jjVk, jjVl, &
-                 jjAkAklinvVl, jjAkAklinvji, jjAlAklinvjj, jjAkAklinvjj, localEps
+  real(dprec) :: commonFactor, gamma, gamma_diag, jiVl, jiAlAklinvVk, jiAlAklinvVl, jiAklinvVk, jiAklinvVl, &
+                 jjAlAklinvVl, jjAlAklinvVk, jjAklinvVk, jjAklinvVl, jjVl, localEps
 
   integer :: indexI, indexJ ! indeces enumerating particles from H_SO and AMM operators
 
@@ -3543,11 +3540,7 @@ subroutine spinDependentMatrixElements(m_k, m_l, vechLk, vechLl, Pket, &
     gamma = gamma_diag ! for spin-same-orbit
 
     ! kronecker deltas
-    jiVk = ZERO
     jiVl = ZERO
-    if (pm_k == indexI) then
-      jiVk = ONE
-    endif
     if (pm_l == indexI) then
       jiVl = ONE
     endif
@@ -3562,46 +3555,20 @@ subroutine spinDependentMatrixElements(m_k, m_l, vechLk, vechLl, Pket, &
       jiAlAklinvVl = jiAlAklinvVl + tAl(indexI, i) * inv_tAkl(i, pm_l)
     enddo
 
-    jiAkAklinvVk = ZERO
-    do i = 1, n
-      jiAkAklinvVk = jiAkAklinvVk + tAk(indexI, i) * inv_tAkl(i, pm_k)
-    enddo
-
     jiAlAklinvVk = ZERO
     do i = 1, n
       jiAlAklinvVk = jiAlAklinvVk + tAl(indexI, i) * inv_tAkl(i, pm_k)
     enddo
 
-    jiAkAklinvVl = ZERO
-    do i = 1, n
-      jiAkAklinvVl = jiAkAklinvVl + tAk(indexI, i) * inv_tAkl(i, pm_l)
-    enddo
-
     jiAklinvVl = inv_tAkl(indexI, pm_l)
-
-    jiAkAklinvji = ZERO
-    do i = 1, n
-      jiAkAklinvji = jiAkAklinvji + tAk(indexI, i) * inv_tAkl(i, indexI)
-    enddo
-
-    jiAlAklinvji = ZERO
-    do i = 1, n
-      jiAlAklinvji = jiAlAklinvji + tAl(indexI, i) * inv_tAkl(i, indexI)
-    enddo
 
     jiAklinvVk = inv_tAkl(indexI, pm_k)
 
     ! diagonal (spin-same orbit) matrix element
-    temp1 = ( &
-    gamma * (jiAkAklinvVk * jiAlAklinvVl - jiVl * jiAkAklinvVk - jiVk * jiAlAklinvVl - jiAlAklinvVk * jiAkAklinvVl) + &
-    gamma**3 / 3.d0 * (-jiAkAklinvVk * jiAlAklinvji * jiAklinvVl + &
-    jiAlAklinvVk * jiAkAklinvji * jiAklinvVl - &
-    jiAklinvVk * jiAkAklinvji * jiAlAklinvVl + &
-    jiAklinvVk * jiAlAklinvji * jiAkAklinvVl + &
-    jiAklinvVk * jiVl * jiAkAklinvji + &
-    jiVk * jiAklinvVl * jiAlAklinvji) + &
-    jiVk * jiVl * gamma &
-    )
+    temp1 =  &
+    gamma**3 / 3.d0 * (jiVl * jiAklinvVk + &
+    jiAlAklinvVk * jiAklinvVl - &
+    jiAklinvVk * jiAlAklinvVl)
 
     do k = 1, numberOfSpinFunctions
       SO1kl(k) = SO1kl(k) + SziME(indexI, k) * SOmassChargeCoefficient(indexI, indexI, 1) * temp1
@@ -3610,9 +3577,6 @@ subroutine spinDependentMatrixElements(m_k, m_l, vechLk, vechLl, Pket, &
 
 
     ! these traces are needed for spin-other orbit contribution
-
-    jiAlVl = tAl(indexI, pm_l)
-    jiAklinvji = inv_tAkl(indexI, indexI)
 
     do indexJ = 1, n
       if (indexI == indexJ) cycle
@@ -3632,107 +3596,42 @@ subroutine spinDependentMatrixElements(m_k, m_l, vechLk, vechLl, Pket, &
         jjAlAklinvVk = jjAlAklinvVk + tAl(indexJ, i) * inv_tAkl(i, pm_k)
       enddo
 
-      jjAlVl = tAl(indexJ, pm_l)
       jjAklinvVk = inv_tAkl(indexJ, pm_k)
-
-      jjAlAklinvji = ZERO
-      do i = 1, n
-        jjAlAklinvji = jjAlAklinvji + tAl(indexJ, i) * inv_tAkl(i, indexI)
-      enddo
-
-      jiAklinvjj = inv_tAkl(indexI, indexJ)
-
-      jiAlAklinvjj = ZERO
-      do i = 1, n
-        jiAlAklinvjj = jiAlAklinvjj + tAl(indexI, i) * inv_tAkl(i, indexJ)
-      enddo
-
+      
       jjAklinvVl = inv_tAkl(indexJ, pm_l)
 
-      jiAkAklinvjj = ZERO
-      do i = 1, n
-        jiAkAklinvjj = jiAkAklinvjj + tAk(indexI, i) * inv_tAkl(i, indexJ)
-      enddo
-
-      jjAkAklinvVk = ZERO
-      do i = 1, n
-        jjAkAklinvVk = jjAkAklinvVk + tAk(indexJ, i) * inv_tAkl(i, pm_k)
-      enddo
-
       ! kronecker deltas
-      jjVk = ZERO
-      if (pm_k == indexJ) then
-        jjVk = ONE
-      endif
       jjVl = ZERO
       if (pm_l == indexJ) then
         jjVl = ONE
       endif
 
-      jjAkAklinvVl = ZERO
-      do i = 1, n
-        jjAkAklinvVl = jjAkAklinvVl + tAk(indexJ, i) * inv_tAkl(i, pm_l)
-      enddo
-
-      jjAkAklinvji = ZERO
-      do i = 1, n
-        jjAkAklinvji = jjAkAklinvji + tAk(indexJ, i) * inv_tAkl(i, indexI)
-      enddo
-
-      jjAkAklinvjj = ZERO
-      do i = 1, n
-        jjAkAklinvjj = jjAkAklinvjj + tAk(indexJ, i) * inv_tAkl(i, indexJ)
-      enddo
-
-      jjAlAklinvjj = ZERO
-      do i = 1, n
-        jjAlAklinvjj = jjAlAklinvjj + tAl(indexJ, i) * inv_tAkl(i, indexJ)
-      enddo
 
       ! NOTE for this term we need gamma_diag (tr[Cklinv J_ii]), not gamma (tr[Cklinv J_ij])
-      temp1 = ( &
-      gamma_diag * (jiAlAklinvVk * jjAlAklinvVl - jjAlAklinvVk * jiAlAklinvVl + jiAkAklinvVk * jjAlAklinvVl - &
-      jjAlAklinvVk * jiAkAklinvVl - jiAlAklinvVk * jjVl + jjAlAklinvVk * jiVl - &
-      jiAkAklinvVk * jjVl - jiVk * jjAlAklinvVl) + &
-      gamma_diag**3 / 3.d0 *  (-jiAlAklinvVk * jjAlAklinvji * jiAklinvVl + jjAlAklinvVk * jiAlAklinvji * jiAklinvVl - &
-      jiAklinvVk * jiAlAklinvji * jjAlAklinvVl + jiAklinvVk * jjAlAklinvji * jiAlAklinvVl - &
-      jiAkAklinvVk * jjAlAklinvji * jiAklinvVl + jjAlAklinvVk * jiAkAklinvji * jiAklinvVl - &
-      jiAklinvVk * jiAkAklinvji * jjAlAklinvVl + jiAklinvVk * jjAlAklinvji * jiAkAklinvVl + &
-      jiAklinvVk * jiAlAklinvji * jjVl - jiAklinvVk * jjAlAklinvji * jiVl + &
-      jiAklinvVk * jiAkAklinvji * jjVl + jiVk * jjAlAklinvji * jiAklinvVl) + &
-      gamma_diag * jiVk * jjVl &
-      )
-
+      temp1 = &
+      gamma_diag**3 / 3.d0 *  (jiAklinvVk * jjVl + &
+      jjAlAklinvVk * jiAklinvVl - &
+      jiAklinvVk * jjAlAklinvVl)
+      
       do k = 1, numberOfSpinFunctions
         SO2kl(k) = SO2kl(k) + SziME(indexI, k) * SOmassChargeCoefficient(indexI, indexI, 2) * temp1
       enddo
-
-      temp1 = ( &
-      gamma * (jjAkAklinvVk * (jjAlAklinvVl - jjvl) - jjVk * jjAlAklinvVl - jjAlAklinvVk * jjAkAklinvVl) + &
-      gamma**3 / 3.d0 * (-jjAkAklinvVk * (jjAlAklinvji - jjAlAklinvjj) * (jiAklinvVl - jjAklinvVl) + &
-      jjAlAklinvVk * (jjAkAklinvji - jjAkAklinvjj) * (jiAklinvVl - jjAklinvVl) - &
-      (jiAklinvVk - jjAklinvVk) * (jjAkAklinvji - jjAkAklinvjj) * jjAlAklinvVl + &
-      (jiAklinvVk - jjAklinvVk) * (jjAlAklinvji - jjAlAklinvjj) * jjAkAklinvVl + &
-      (jiAklinvVk - jjAklinvVk) * jjVl * (jjAkAklinvji - jjAkAklinvjj) + &
-      jjVk * (jiAklinvVl - jjAklinvVl) * (jjAlAklinvji - jjAlAklinvjj)) + &
-      gamma * jjVk * jjVl &
-      )
+      
+      temp1 = &
+      gamma**3 / 3.d0 * (jjVl * (jjAklinvVk - jiAklinvVk) + &
+      jjAlAklinvVk * (jjAklinvVl - jiAklinvVl) + &
+      jjAlAklinvVl * (jiAklinvVk - jjAklinvVk)) 
 
       do k = 1, numberOfSpinFunctions
         SO2kl(k) = SO2kl(k) + SziME(indexI, k) * SOmassChargeCoefficient(indexI, indexJ, 3) * temp1
         AMM2kl(k) = AMM2kl(k) + SziME(indexI, k) * AMMmassChargeCoefficient(indexI, indexJ, 3) * temp1
       enddo
 
-      temp1 = ( &
-      gamma * (jiAkAklinvVk * (jiAlAklinvVl - jivl) - jiVk * jiAlAklinvVl - jiAlAklinvVk * jiAkAklinvVl) + &
-      gamma**3 / 3.d0 * (-jiAkAklinvVk * (jiAlAklinvjj - jiAlAklinvji) * (jjAklinvVl - jiAklinvVl) + &
-      jiAlAklinvVk * (jiAkAklinvjj - jiAkAklinvji) * (jjAklinvVl - jiAklinvVl) - &
-      (jjAklinvVk - jiAklinvVk) * (jiAkAklinvjj - jiAkAklinvji) * jiAlAklinvVl + &
-      (jjAklinvVk - jiAklinvVk) * (jiAlAklinvjj - jiAlAklinvji) * jiAkAklinvVl + &
-      (jjAklinvVk - jiAklinvVk) * jiVl * (jiAkAklinvjj - jiAkAklinvji) + &
-      jiVk * (jjAklinvVl - jiAklinvVl) * (jiAlAklinvjj - jiAlAklinvji)) + &
-      gamma * jiVk * jiVl &
-      )
+      
+      temp1 = &
+      gamma**3 / 3.d0 * (jiVl * (jiAklinvVk - jjAklinvVk) + &
+      jiAlAklinvVk * (jiAklinvVl - jjAklinvVl) + &
+      jiAlAklinvVl * (jjAklinvVk - jiAklinvVk)) 
 
       do k = 1, numberOfSpinFunctions
         SO2kl(k) = SO2kl(k) + SziME(indexI, k) * SOmassChargeCoefficient(indexI, indexJ, 4) * temp1
