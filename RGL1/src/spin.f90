@@ -25,7 +25,7 @@ module spinStuff
 contains
 
   subroutine getSpinOperatorsMeanValues(n, nFactorial, spatialYoung, positronPosition, numberOfSpinFunctions, &
-    permutationMatrices, parities, spinFreeME, SziME, SiSjMe)
+    permutationMatrices, parities, spinFreeME, SziME, SiSjME, SSNCspinME)
     implicit none
 
     integer, intent(in) :: n, nFactorial
@@ -38,8 +38,8 @@ contains
     ! mean values of some spin operators
     real(kind = dprec), dimension(nFactorial), intent(out) :: spinFreeME
     real(kind = dprec), dimension(n, 2, nFactorial), intent(out) :: SziME
-    real(kind = dprec), dimension(n, n, 2, nFactorial), intent(out) :: SiSjME
-
+    real(kind = dprec), dimension(n, n, 2, nFactorial), intent(out) :: SiSjME, SSNCspinME
+    	
     ! local variables
     integer :: Cnk, ptr, NumYTerms
     integer :: i, j, youngLen, k, kFactorial, found, numberOfPrimitives
@@ -428,6 +428,9 @@ contains
 
     ! 5. <chi |s_z_i | P^s_{a} chi> for all P^s_{a} from the group S_{n electrons}
     ! (needed as coeffs for SO and AMM operators)
+	
+    ! 6. <chi | 3 s_z_i s_z_j - s_i s_j | P^s_{a} chi> for all P^s_{a} from the group S_{n electrons}
+    ! (coeffs for SSNC operator)
 
     ! define P^s_{ij} first
     allocate(pairPermutations(n, n, n, n))
@@ -468,9 +471,8 @@ contains
     spinFreeME = ZERO
     SziME = ZERO
     SiSjME = ZERO
-
-
-
+    SSNCspinME = ZERO
+    
     do p = 1, numberOfSpinFunctions
 
       tmpSpinFunctionA = finalSpinFunctions(:, p)
@@ -505,14 +507,26 @@ contains
         write(io, '(a)') '==========================================='
         write(io, '(a, a)') "chi = ", trim(adjustl(spinFunctionString))      
         write(io, '("S calculated         =" , 1x, f6.3)') test
-        write(io, '(a)') "C_J_SO:"
+        write(io, '(a)') "C_SO_J, C_SS_J:"
         do k = nint(TWO * abs(ONE - test)), nint(TWO * abs(ONE + test)), 2
           if (mod(k, 2) == 0) then
-            write(io, '("C_", i1, " = ", f6.3)') k / 2, soAngularCoeff(nint(TWO * test), k)
-          else
-            write(io, '("C_", i1, "/2 = ", f6.3)') k, soAngularCoeff(nint(TWO * test), k)
+            write(io, '("C_SO_", i1, " = ", f6.3)') k / 2, soAngularCoeff(nint(TWO * test), k)
+         else
+            write(io, '("C_SO_", i1, "/2 = ", f6.3)') k, soAngularCoeff(nint(TWO * test), k)
           endif
         enddo
+       
+        write(io,*) ''
+
+        do k = nint(TWO * abs(ONE - test)), nint(TWO * abs(ONE + test)), 2
+          if (mod(k, 2) == 0) then
+            write(io, '("C_SS_", i1, " = ", f6.3)') k / 2, ssAngularCoeff(nint(TWO * test), k)
+         else
+            write(io, '("C_SS_", i1, "/2 = ", f6.3)') k, ssAngularCoeff(nint(TWO * test), k)
+         endif
+        enddo
+      
+      
         close(io)
 
       endif
@@ -520,6 +534,7 @@ contains
 
       do ptr = 1, nFactorial
 
+        !spinB - permuted
         call permuteSpinFunctionReal(primitives, tmpSpinFunctionA, tmpSpinFunctionB, &
         permutationMatrices(:, :, ptr), n, numberOfPrimitives)
 
@@ -544,8 +559,9 @@ contains
 
       enddo ! all permutations
 
-      ! <(- 1 / 4 + 1 / 2 P^s_{ij}) P_{a}>
       
+      ! <(- 1 / 4 + 1 / 2 P^s_{ij}) P_{a}> = <s_i s_j P_{a}> 
+      ! <(3  s_z_i  s_z_j - s_i s_j) P_{a}>
 
       do ptr = 1, nFactorial
 
@@ -553,66 +569,92 @@ contains
         permutationMatrices(:, :, ptr), n, numberOfPrimitives)
 
         do i = 1, n
-          do j = i + 1, n
+           do j = i + 1, n
 
-            call permuteSpinFunctionReal(primitives, tmpSpinFunctionB, tmpSpinFunctionC, &
-            pairPermutations(:, :, i, j), n, numberOfPrimitives)
+              call permuteSpinFunctionReal(primitives, tmpSpinFunctionB, tmpSpinFunctionC, &
+              pairPermutations(:, :, i, j), n, numberOfPrimitives)
 
-            SiSjME(i, j, p, ptr) = -ONEFOURTH * &
-            spinFunctionsScalarProductReal(tmpSpinFunctionA, tmpSpinFunctionB, numberOfPrimitives) + &
-            ONEHALF * spinFunctionsScalarProductReal(tmpSpinFunctionA, tmpSpinFunctionC, numberOfPrimitives)
+              SiSjME(i, j, p, ptr) = -ONEFOURTH * &
+              spinFunctionsScalarProductReal(tmpSpinFunctionA, tmpSpinFunctionB, numberOfPrimitives) + &
+              ONEHALF * spinFunctionsScalarProductReal(tmpSpinFunctionA, tmpSpinFunctionC, numberOfPrimitives)
 
+              tmpSpinFunctionC = tmpSpinFunctionB
+              call actOnSpinFunctionWithSziSzj(primitives, tmpSpinFunctionC, i, j, n, numberOfPrimitives)
+              SSNCspinME(i, j, p, ptr) = &
+              THREE * ONEFOURTH * spinFunctionsScalarProductReal(tmpSpinFunctionA, tmpSpinFunctionC, numberOfPrimitives) - &
+              SiSjME(i, j, p, ptr)     
 
-          enddo
+           enddo
         enddo
 
-      enddo
+     enddo  !all permutations
 
 
       ! ! for test purposes one can store some mean values
-      ! if (Glob_ProcID == 0) then
+      !if (Glob_ProcID == 0) then
 
-      !   open(newunit=io, file="spinData.txt", status="old", action="write", position = "append")
-        
-      !   ! spin free
-      !   write(io, '("<chi | 1 | P^s_{a} chi>:")')
-      !   do ptr = 1, nFactorial
-      !     if (positronPosition > 0) then
-      !       if (permutationMatrices(positronPosition, positronPosition, ptr) /= 1) cycle
-      !     endif
+         !open(newunit=io, file="spinData.txt", status="old", action="write", position = "append")
+         !permutation matrices
 
-      !     write(io, '(i3, 2x, f6.3)') ptr, spinFreeME(ptr)
-      !   enddo
+         !write(io, *) "permutationMatrices"
+         !do ptr=1,nFactorial
+         !   write(io, *) 'ptr = ', ptr
+         !   do i=1,n
+         !      write(io, *) permutationMatrices(i, :, ptr)
+         !   enddo
+         !   write(io, *) ''
+         !enddo
+            
+         
+         ! spin free
+         !write(io, '("<chi | 1 | P^s_{a} chi>:")')
+         !write(io, *) 'ptr  ', 'spinFreeME  '
+         !do ptr = 1, nFactorial
+          ! if (positronPosition > 0) then
+          !   if (permutationMatrices(positronPosition, positronPosition, ptr) /= 1) cycle
+          ! endif
 
-      !   ! ! S_z(i)      
-      !   ! write(io, '("<chi |s_z_i | P^s_{a} chi>:")')
-      !   ! do ptr = 1, nFactorial
-      !   !   if (positronPosition > 0) then
-      !   !     if (permutationMatrices(positronPosition, positronPosition, ptr) /= 1) cycle
-      !   !   endif
+       
+         !  write(io, '(i3, 2x, f6.3)') ptr, spinFreeME(ptr)
+         !enddo
+         !write(io,*) ''
+          
+         
+         ! ! S_z(i)      
+         !write(io, '("<chi |s_z_i | P^s_{a} chi>:")')
+         !write(io, *) 'ptr   ', 'k   ', 'Sz   '
+         
+         ! do ptr = 1, nFactorial
+         !   if (positronPosition > 0) then
+         !     if (permutationMatrices(positronPosition, positronPosition, ptr) /= 1) cycle
+         !   endif
 
-      !   !   do k = 1, n
-      !   !     write(io, '(i3, 2x, i1, 2x, f6.3)') ptr, k, SziME(k, p, ptr)
-      !   !   enddo
-      !   ! enddo
-      
-      !   ! ! s(i) s(j) for each pair
-      !   ! write(io, '("<chi | s_i s_j | P^s_{a} chi>:")')
-      !   ! do ptr = 1, nFactorial
-      !   !   if (positronPosition > 0) then
-      !   !     if (permutationMatrices(positronPosition, positronPosition, ptr) /= 1) cycle
-      !   !   endif
+         !   do k = 1, n
+         !     write(io, '(i3, 2x, i1, 2x, f6.3)') ptr, k, SziME(k, p, ptr)
+         !   enddo
+         ! enddo
+         ! write(io,*) ''
+          
+          ! s(i) s(j) for each pair
+        !  write(io, '("<chi | s_i s_j | P^s_{a} chi>:")')
+        !  write(io, *) 'ptr  ', 'i  ', 'j  ', 'SiSj  '
+        !  do ptr = 1, nFactorial
+        !    if (positronPosition > 0) then
+        !      if (permutationMatrices(positronPosition, positronPosition, ptr) /= 1) cycle
+        !    endif
 
-      !   !   do i = 1, n
-      !   !     do j = i + 1, n
-      !   !       write(io, '(i3, 2x, i1, 2x, i1, 2x, f6.3)') ptr, i, j, SiSjME(i, j, p, ptr)
-      !   !     enddo
-      !   !   enddo
-      !   ! enddo
-        
-      !   close(io)
+            
+        !    do i = 1, n
+        !     do j = i + 1, n
+        !        write(io, '(i3, 2x, i1, 2x, i1, 2x, f6.3)') ptr, i, j, SiSjME(i, j, p, ptr)
+        !     enddo
+        !    enddo
+        !  enddo
 
-      ! endif
+       
+          !close(io)
+
+       !endif
 
     enddo ! number of spin functions
 
@@ -663,6 +705,32 @@ contains
     do j = 1, numberOfPrimitives
       if (abs(spinFunction(j)) < localEps) cycle
       if (primitives(i, j) == 0 ) spinFunction(j) = - spinFunction(j)
+    enddo
+
+  end subroutine
+
+
+    subroutine actOnSpinFunctionWithSziSzj(primitives, spinFunction, i1, i2, n, numberOfPrimitives)
+    implicit none
+
+    ! returns 4 s_z(i1) s_z(i2) \Chi from i1, i2 and \Chi
+    ! i1, i2 are the particle's number
+
+    ! 4 s_z(i) s_z(j) (.....a..b..) = -(.....a..b..)
+    ! 4 s_z(i) s_z(j) (.....a..a..) = (.....a..a..) (same with (.....b..b..) )
+
+    integer, intent(in) :: n, numberOfPrimitives, i1, i2
+    real(kind = dprec), dimension(numberOfPrimitives), intent(inout) :: spinFunction ! old coefficients
+    integer, dimension(n, numberOfPrimitives), intent(in) :: primitives ! all the strings possible
+
+    ! local variables
+    integer :: j
+
+    do j = 1, numberOfPrimitives
+       
+       if (abs(spinFunction(j)) < localEps) cycle   
+       if (primitives(i1, j) /= primitives(i2, j) ) spinFunction(j) = -spinFunction(j)
+    
     enddo
 
   end subroutine
@@ -1789,4 +1857,65 @@ contains
 
   end function
 
+  function ssAngularCoeff(sDoubled, jDoubled) result(ans)
+    implicit none
+
+    ! here we calculate C_J = (-1)^(S + L + J) *
+    ! sqrt((2S - 2)!(2S + 3)!(2L - 2)!(2L + 3)!) / ((2S)!(2L)!) *
+    ! sixJ(S, S, 2, L, L, J) with L = 1
+    ! we simply list some values of the coefficient here
+    ! 1 <= S <= 5/2
+
+    integer, intent(in) :: sDoubled, jDoubled
+    real(kind = dprec) :: ans
+
+    !if triangle rules are not satisfied return zero
+    if (sDoubled < 2 .or. sDoubled + 2 < jDoubled .or. sDoubled + jDoubled < 2 .or. jDoubled + 2 < sDoubled) then
+       ans = ZERO
+       return
+    endif
+
+    select case(sDoubled)
+    case(2)
+      select case(jDoubled)
+      case(0)
+        ans = TEN
+      case(2)
+        ans = -FIVE
+      case(4)
+        ans = ONE
+      end select
+    case(3)
+      select case(jDoubled)
+      case(1)
+        ans = FIVE
+      case(3)
+        ans = -FOUR
+      case(5)
+        ans = ONE
+      end select
+    case(4)
+      select case(jDoubled)
+      case(2)
+        ans = SEVEN / TWO
+      case(4)
+        ans = - SEVEN / TWO
+      case(6)
+        ans = ONE
+      end select
+    case(5)
+      select case(jDoubled)
+      case(3)
+        ans = SEVEN * TWO/FIVE
+      case(5)
+        ans = -EIGHT * TWO / FIVE
+      case(7)
+        ans = ONE
+      end select
+
+    end select
+
+  end function
+
+  
 end module

@@ -28,7 +28,7 @@ integer,allocatable,dimension(:)     :: WorkBuffInt
 integer        i,j,Line,j1,j2,j3,j4
 character(70)  ReadChar
 logical        ErrorInDataFile,IsBBOPStep
-
+  
 ErrorInDataFile=.false.
 
 if (Glob_ProcID==0) then
@@ -8725,9 +8725,9 @@ real(dprec) :: Skk
 real(dprec), allocatable, dimension(:, :, :) :: SziME, ketYMatrix, drach_SSFMatrix, &
 drach_AnihMatrix, SSFMatrix, AnihMatrix
 real(dprec), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient
-real(dprec), allocatable, dimension(:, :) :: SSFmassChargeCoefficient, AnihMassChargeCoefficient
-real(dprec), allocatable, dimension(:, :, :, :) :: SiSjME
-real(dprec), allocatable, dimension(:) :: SO1kl, SO2kl, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, &
+real(dprec), allocatable, dimension(:, :) :: SSFmassChargeCoefficient, SSNCmassChargeCoefficient, AnihMassChargeCoefficient
+real(dprec), allocatable, dimension(:, :, :, :) :: SiSjME, SSNCspinME
+real(dprec), allocatable, dimension(:) :: SO1kl, SO2kl, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, SSNC, SSNCkl, &
 drach_SSF, drach_SSFe, drach_Anih, SSF, SSFe, Anih
 real(dprec), allocatable, dimension(:) :: parityFactor, diagS
 real(dprec), allocatable, dimension(:) :: spinFreeME
@@ -9133,6 +9133,7 @@ if (spinDependentValuesNeeded == 1) then
 
   allocate(SOmassChargeCoefficient(n, n, 4))
   allocate(SSFmassChargeCoefficient(n, n))
+  allocate(SSNCmassChargeCoefficient(n, n))
   allocate(AnihMassChargeCoefficient(n, n))  
   allocate(AMMmassChargeCoefficient(n, n, 4))
   allocate(parityFactor(nFactorial))
@@ -9141,11 +9142,14 @@ if (spinDependentValuesNeeded == 1) then
   allocate(spinFreeME(nFactorial))
   allocate(SziME(n, 2, nFactorial))
   allocate(SiSjME(n, n, 2, nFactorial))
+  allocate(SSNCspinME(n, n, 2, nFactorial))
   !allocate(SiSjCoeff(n, n, 2, nFactorial))
 
-  call spinPreCalc(n, nFactorial, SziME, parityFactor, SSFmassChargeCoefficient, &
+  call spinPreCalc(n, nFactorial, SziME, parityFactor, SSFmassChargeCoefficient,SSNCmassChargeCoefficient, &
   SOmassChargeCoefficient, AMMmassChargeCoefficient, AnihMassChargeCoefficient, ketYMatrix, &
-  Glob_YOperatorString, positronPosition, numberOfSpinFunctions, spinFreeME, SiSjME)
+  Glob_YOperatorString, positronPosition, numberOfSpinFunctions, spinFreeME, SiSjME, SSNCspinME)
+
+  
 
   ! changing global variables here, care
   deallocate(Glob_YHYMatr, Glob_YHYCoeff)
@@ -9670,11 +9674,13 @@ if (spinDependentValuesNeeded == 1) then
   
   endif
 
-  allocate(SO1(numberOfSpinFunctions), SO2(numberOfSpinFunctions), &
+  allocate(SO1(numberOfSpinFunctions), SO2(numberOfSpinFunctions), SSNC(numberOfSpinFunctions), &
   AMM1(numberOfSpinFunctions), AMM2(numberOfSpinFunctions), &
-  SO1kl(numberOfSpinFunctions), SO2kl(numberOfSpinFunctions), &
+  SO1kl(numberOfSpinFunctions), SO2kl(numberOfSpinFunctions), SSNCkl(numberOfSpinFunctions), &
   AMM1kl(numberOfSpinFunctions), AMM2kl(numberOfSpinFunctions))
 
+  SSNC = ZERO
+  
   SO1 = ZERO
   SO2 = ZERO
 
@@ -9683,7 +9689,7 @@ if (spinDependentValuesNeeded == 1) then
 
   counter = 0
   do i = 1, cbs
-    do j = 1, i
+     do j = 1, i
       counter = counter + 1
       if (mod(counter, Glob_NumOfProcs) == Glob_ProcID) then
         if (i == j) then
@@ -9700,13 +9706,16 @@ if (spinDependentValuesNeeded == 1) then
           call spinDependentMatrixElements(Glob_ZIndex(i),Glob_ZIndex(j),   &
           Glob_NonlinParam(1 : npt, i), Glob_NonlinParam(1 : npt, j), &
           ketYMatrix(1 : n, 1 : n, a), &
-          SziME(1 : n, 1 : numberOfSpinFunctions, a), SOmassChargeCoefficient, AMMmassChargeCoefficient, &
-          SO1kl, SO2kl, AMM1kl, AMM2kl, numberOfSpinFunctions)
+          SziME(1 : n, 1 : numberOfSpinFunctions, a), SSNCspinME(1:n, 1:n, 1:numberOfSpinFunctions, a), &
+          SSNCmassChargeCoefficient, SOmassChargeCoefficient, AMMmassChargeCoefficient, &
+          SSNCkl, SO1kl, SO2kl, AMM1kl, AMM2kl, numberOfSpinFunctions)
 
-
+          
+          SSNC = SSNC + parityFactor(a) * factor * SSNCkl
+                    
           SO1 = SO1 + parityFactor(a) * factor * SO1kl
           SO2 = SO2 + parityFactor(a) * factor * SO2kl
-          ! final value of SO should be multiplied by the appropriate angular factors C_J
+          ! final value of SO and SSNC should be multiplied by the appropriate angular factors C_J
           ! (they are shown in spinData.txt)
           AMM1 = AMM1 + parityFactor(a) * factor * AMM1kl
           AMM2 = AMM2 + parityFactor(a) * factor * AMM2kl
@@ -9718,7 +9727,7 @@ if (spinDependentValuesNeeded == 1) then
   enddo
 
   !Combining the results of all processes
-
+  
   do k = 1, numberOfSpinFunctions
 
     temp1 = SO1(k)
@@ -9737,7 +9746,10 @@ if (spinDependentValuesNeeded == 1) then
     call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
     AMM2(k) = temp2
 
-
+    temp1 = SSNC(k)
+    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+    SSNC(k) = temp2
+    
   enddo
 
 
@@ -9750,7 +9762,6 @@ if (Glob_ProcID==0) then
 
   !Opening an additional file where selected expectation values will be saved
   open(2,file=Glob_ExpValFileName,status='replace')
-
   write(*,*) 'done'
   write(*,*)
   write(*,*) 'Expectation values:'
@@ -9772,6 +9783,7 @@ if (Glob_ProcID==0) then
       write(*,*) '                   AMM2=',AMM2(1)
       write(*,*) '              drach_SSF=',drach_SSF(1)
       write(*,*) '                    SSF=',SSF(1)
+      write(*,*) '                    SSNC=',SSNC(1)
       if (positronPosition > 0) then
         write(*,*) '             drach_SSFe=',drach_SSFe(1)
         write(*,*) '             drach_Anih=',drach_Anih(1)
@@ -9789,6 +9801,7 @@ if (Glob_ProcID==0) then
       write(*,*) '                  SSF_h=',SSF(1)
       write(*,*) '                 SSFe_h=',SSFe(1)
       write(*,*) '                 Anih_h=',Anih(1)
+      write(*,*) '                  SSNC_h=',SSNC(1)
 
       write(*,*) '                  SO1_l=',SO1(2)
       write(*,*) '                  SO2_l=',SO2(2)
@@ -9800,7 +9813,9 @@ if (Glob_ProcID==0) then
       write(*,*) '                  SSF_l=',SSF(2)
       write(*,*) '                 SSFe_l=',SSFe(2)
       write(*,*) '                 Anih_l=',Anih(2)
-    endif
+      write(*,*) '                  SSNC_l=',SSNC(2)
+
+   endif
   endif
   write(*,*) '           (alpha^2)*MV=',MV*(Glob_FineStructConst**2)
   write(*,*) '     (alpha^2)*drach_MV=',drach_MV*(Glob_FineStructConst**2)
@@ -9815,6 +9830,7 @@ if (Glob_ProcID==0) then
       write(*,*) '       (alpha^2)*AMM2=',AMM2(1)*(Glob_FineStructConst**2)
       write(*,*) '  (alpha^2)*drach_SSF=',drach_SSF(1)*(Glob_FineStructConst**2)
       write(*,*) '        (alpha^2)*SSF=',SSF(1)*(Glob_FineStructConst**2)
+      write(*,*) '(alpha^2)*SSNC = ', SSNC(1)*(Glob_FineStructConst**2)
       if (positronPosition > 0) then
         write(*,*) ' (alpha^2)*drach_SSFe=',drach_SSFe(1)*(Glob_FineStructConst**2)
         write(*,*) ' (alpha^2)*drach_Anih=',drach_Anih(1)*(Glob_FineStructConst**2)
@@ -9832,7 +9848,8 @@ if (Glob_ProcID==0) then
       write(*,*) '        (alpha^2)*SSF_h=',SSF(1)*(Glob_FineStructConst**2)
       write(*,*) '       (alpha^2)*SSFe_h=',SSFe(1)*(Glob_FineStructConst**2)
       write(*,*) '       (alpha^2)*Anih_h=',Anih(1)*(Glob_FineStructConst**2)
-
+      write(*,*) '        (alpha^2)*SSNC_h=',SSNC(1)*(Glob_FineStructConst**2)
+      
       write(*,*) '        (alpha^2)*SO1_l=',SO1(2)*(Glob_FineStructConst**2)
       write(*,*) '        (alpha^2)*SO2_l=',SO2(2)*(Glob_FineStructConst**2)
       write(*,*) '       (alpha^2)*AMM1_l=',AMM1(2)*(Glob_FineStructConst**2)
@@ -9843,7 +9860,9 @@ if (Glob_ProcID==0) then
       write(*,*) '        (alpha^2)*SSF_h=',SSF(2)*(Glob_FineStructConst**2)
       write(*,*) '       (alpha^2)*SSFe_h=',SSFe(2)*(Glob_FineStructConst**2)
       write(*,*) '       (alpha^2)*Anih_h=',Anih(2)*(Glob_FineStructConst**2)
-    endif
+      write(*,*) '        (alpha^2)*SSNC_l=',SSNC(2)*(Glob_FineStructConst**2)
+      
+   endif
   endif
   write(*,*)
 
