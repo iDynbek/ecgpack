@@ -42,7 +42,6 @@ integer,parameter :: Glob_MaxAllowedNumOfPseudoParticles= &
 !=============================================================
 
 integer       Glob_n          !Number of pseudoparticles
-
 !np=n(n+1)/2 - number of independent parameters in a 
 !symmetric matrix of size (n x n)   
 integer       Glob_np    
@@ -64,6 +63,7 @@ real(dprec)   Glob_Piraised3n2 !pi^(3n/2)
 !size of the basis
 integer       Glob_CurrBasisSize
 
+integer, dimension(:), allocatable :: Glob_spinTable
 !Glob_CurrBasisSize is a variable whose value equals the current 
 !energy
 real(dprec)       Glob_CurrEnergy
@@ -128,15 +128,18 @@ logical      ::  Glob_RepScalParamSupplied=.false.
 logical      ::  Glob_RepScalParamPlusSupplied=.false.
 logical      ::  Glob_RepScalParamMinusSupplied=.false.
 logical      ::  Glob_AttrScalParamSupplied=.false.
+logical      ::  Glob_spinTableSupplied=.false.
 
 !Glob_YOperatorStringLength definess the length of string
 !Glob_YOperatorString
 integer, parameter  ::  Glob_YOperatorStringLength=255
+integer, parameter  ::  Glob_spinStringLength=255
 
 !Glob_YOperatorString is a string that contains the symbolic 
 !expression or the Young operator that is read from an 
 !input/output file
 character(Glob_YOperatorStringLength)  Glob_YOperatorString
+character(Glob_spinStringLength)  Glob_spinString
 
 !Glob_LastEigvalTol is a variable that stores the accuracy
 !reached last time the eigenvalue problem solver was called.

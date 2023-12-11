@@ -1,0 +1,10 @@
+* Spin-dependent matrix elements can be evaluated for the following (maximum) case:
+one identical particle set of spin-(1/2) + one extra (non-identical) particle of spin-(1/2) + any number of spin-(0) particles.
+Spin-(0) particles may appear in the Young Operator.
+
+* Spins for each particle should be provided in the optional line in inout.txt file after the "SYMMETRY" line as follows
+SPINS 1/2 0 1/2 1/2 1/2 1/2
+The number of spaces between the word SPINS and spin values in the string does not matter.
+If spin string is not provided - the first particle is assumed to have spin-(0) and all the rest are assumed to have spin-(1/2)
+
+
