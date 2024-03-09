@@ -1395,7 +1395,7 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMM
   pm_k = m_k
   pmm_k = mm_k
   !common factor (sqrt(ONEHALF) - for consistent normalization with Skl)
-  commonFactor = TWO / (THREE * sqrt(THREE)) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
+  commonFactor = TWO / sqrt(THREE) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
   
   SO1kl = ZERO
   SO2kl = ZERO

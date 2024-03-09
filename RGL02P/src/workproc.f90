@@ -1283,8 +1283,6 @@ do i = 1, Glob_CurrBasisSize0
   do ptr = 1, nFactorial
 	call OverlapMatrixElementsLS(Glob_NonlinParam0(1:Glob_np, i), ketYMatrix(1 : n, 1 : n, ptr), Skk)
 	diagS_0(i) = diagS_0(i) + spinCoeff(ptr,1) * Skk
-	call OverLapElementS0(Glob_NonlinParam0(1:Glob_np, i), ketYMatrix(1 : n, 1 : n, ptr), Skk)
-	diagS_test_0(i) = diagS_test_0(i) + spinCoeff(ptr,1) * Skk
    enddo ! Permutations from S_n
 enddo
 
@@ -1303,8 +1301,8 @@ AMM1 = ZERO
 AMM2 = ZERO
 
 counter = 0
-do i = 1, 10!Glob_CurrBasisSize1
-    do j = 1, 10!Glob_CurrBasisSize0
+do i = 1, Glob_CurrBasisSize1
+    do j = 1, Glob_CurrBasisSize0
     	counter = counter + 1
     	if (mod(counter, Glob_NumOfProcs) == Glob_ProcID) then
     		factor = Glob_c1(i) * Glob_c0(j) / sqrt(diagS_1(i)*diagS_0(j))
