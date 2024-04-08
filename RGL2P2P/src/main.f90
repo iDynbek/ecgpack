@@ -24,21 +24,17 @@ if (Glob_ProcID==0) then
 endif
 
 
+
 call Readwf0wf1()
 call ProgramDataInit()
 if (Glob_ProcID==0) then
 	write(*,*) ' '
-	write(*,*)'Young string L=0: ',Glob_YOperatorString0
-	write(*,*)'Young string L=1: ',Glob_YOperatorString1
+	write(*,*)'Young string L=1: ',Glob_YOperatorString0
+	write(*,*)'Young string L=2: ',Glob_YOperatorString1
 endif
+
+
 call ComputeSpinDep()
-
-
-
-
-DeltaE = Glob_CurrEnergy0-Glob_CurrEnergy1
-
-
 
 call MPI_FINALIZE(Glob_MPIErrCode)
 

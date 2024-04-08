@@ -42,6 +42,7 @@ integer,parameter :: Glob_MaxAllowedNumOfPseudoParticles= &
 !=============================================================
 
 integer       Glob_n          !Number of pseudoparticles
+
 !np=n(n+1)/2 - number of independent parameters in a 
 !symmetric matrix of size (n x n)   
 integer       Glob_np    

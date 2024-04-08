@@ -1236,10 +1236,8 @@ deallocate(IdentParticleSet)
 end subroutine ProgramDataInit
 
 subroutine ComputeSpinDep()
-!Variables with index 0 refer to the L=1 State
-!Variables with index 1 refer to the L=2 State
-
-
+!Variables with index 0 refer to the n=1 State
+!Variables with index 1 refer to the n=2 State
 
 !local variables
 integer :: i, j, n, a, ptr, k, npt, counter
@@ -1247,16 +1245,16 @@ integer :: nFactorial
 integer :: selectTransition
 real(dprec) :: Skk, temp1, temp2
 real(dprec), allocatable, dimension(:, :, :) :: ketYMatrix
-real(dprec), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME, SOspinME
+real(dprec), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
 real(dprec), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient
 real(dprec), allocatable, dimension(:, :) :: SSNCmassChargeCoefficient
 real(dprec), allocatable, dimension(:) :: parityFactor, diagS_0, diagS_1
-real(dprec), allocatable, dimension(:, :) :: spinFreeME, spinCoeff 
+real(dprec), allocatable, dimension(:, :) :: spinFreeME, SOspinME, spinCoeff 
 real(dprec), allocatable, dimension(:, :, :) :: SSNCspinME
 real(dprec) :: SSNCkl, SO1kl, SO2kl, SSNC, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, factor
 
-!selectTransition = 1 -- calculate 3P -> 1D matelem
-!selectTransition = 2 -- calculate 3P -> 3D matelem
+!selectTransition = 1 -- calculate 3P -> 3P matelem
+!selectTransition = 2 -- calculate 3P -> 1P matelem
 selectTransition = 2
 
 n = Glob_n
@@ -1267,6 +1265,7 @@ do i = 2, n
 enddo
 
 allocate(SOmassChargeCoefficient(n, n, 4))
+allocate(SSNCmassChargeCoefficient(n, n))
 allocate(AMMmassChargeCoefficient(n, n, 4))
 allocate(parityFactor(nFactorial))
 
@@ -1275,32 +1274,32 @@ allocate(spinFreeME(nFactorial, 2))
 allocate(SziME(n, nFactorial))
 allocate(SiMinusME(n, nFactorial))
 allocate(SiPlusME(n, nFactorial))
-allocate(SSNCmassChargeCoefficient(n,n))
-allocate(SOspinME(n,nFactorial))
+allocate(SOspinME(n, nFactorial))
 allocate(SSNCspinME(n, n, nFactorial))
 allocate(spinCoeff(nFactorial, 2))
 
 call spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, SOmassChargeCoefficient, &
 AMMmassChargeCoefficient, ketYMatrix, Glob_YOperatorString0, Glob_YOperatorString1, &
 SSNCspinME, SiMinusME, SiPlusME, SziME, spinFreeME)
+SOspinME = ZERO
 if (selectTransition == 1) then
-	SOspinME = SiPlusME
-else if (selectTransition == 2) then
 	SOspinME = SziME
+else if (selectTransition == 2) then
+	SOspinME = SiPlusME
 else
 	stop "incorrect selectTransition value"
 endif
 
+
 do i = 1, nFactorial
   spinCoeff(i,:) = parityFactor(i) * spinFreeME(i,:)
 enddo
+
 ! we should recalculate mean values of a unity operator here (it should be proportional to the old values)
 allocate(diagS_1(Glob_CurrBasisSize1), diagS_0(Glob_CurrBasisSize0))
 diagS_1 = ZERO
 diagS_0 = ZERO
 Skk = ZERO
-!spinCoeff(:,1) - singlet
-!spinCoeff(:,2) - triplet
 do i = 1, Glob_CurrBasisSize0
 	do ptr = 1, nFactorial
 	  call OverlapMatrixElementsLP(Glob_Index0(i,1), Glob_Index0(i,2), Glob_NonlinParam0(1 : npt, i), &
@@ -1313,15 +1312,15 @@ enddo
 Skk = ZERO
 do i = 1, Glob_CurrBasisSize1
   do ptr = 1, nFactorial
-	call OverlapMatrixElementsLD(Glob_Index1(i,1), Glob_Index1(i,2), Glob_NonlinParam1(1 : npt, i), &
+	call OverlapMatrixElementsLP(Glob_Index1(i,1), Glob_Index1(i,2), Glob_NonlinParam1(1 : npt, i), &
 	ketYMatrix(1 : n, 1 : n, ptr), Skk)
 	diagS_1(i) = diagS_1(i) + spinCoeff(ptr,1) * Skk
-   enddo ! Permutations from S_n
+  enddo ! Permutations from S_n
 enddo
 
-SSNCkl = ZERO
 SO1 = ZERO
 SO2 = ZERO
+SSNC = ZERO
 AMM1 = ZERO
 AMM2 = ZERO
 
@@ -1331,14 +1330,14 @@ do i = 1, Glob_CurrBasisSize0
     	counter = counter + 1
     	if (mod(counter, Glob_NumOfProcs) == Glob_ProcID) then
     		factor = Glob_c0(i) * Glob_c1(j) / sqrt(diagS_0(i)*diagS_1(j))
-    		do a = 1, nFactorial ! Permutations from S_n introduced by A operator
+ 	  		do a = 1, nFactorial ! Permutations from S_n introduced by A operator
 
 				call spinDependentMatrixElements(selectTransition, Glob_Index0(i,1), Glob_Index1(j,1), &
 				Glob_Index0(i,2), Glob_Index1(j,2), Glob_NonlinParam0(1 : npt, i), &
 				Glob_NonlinParam1(1 : npt, j), ketYMatrix(1 : n, 1 : n, a), &
-				SOspinME(1 : n, a), SSNCspinME(:, :, a), SSNCmassChargeCoefficient, SOmassChargeCoefficient, AMMmassChargeCoefficient, &
+				SOspinME(:, a), SSNCspinME(:, :, a), SSNCmassChargeCoefficient, SOmassChargeCoefficient, AMMmassChargeCoefficient, &
         		SSNCkl, SO1kl, SO2kl, AMM1kl, AMM2kl)
-                    
+
         		SO1 = SO1 + parityFactor(a) * factor * SO1kl
         		SO2 = SO2 + parityFactor(a) * factor * SO2kl
 
@@ -1409,7 +1408,6 @@ if (Glob_ProcID==0) then
 
 		
 endif
-
 
 
 end subroutine ComputeSpinDep

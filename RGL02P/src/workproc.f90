@@ -1238,13 +1238,18 @@ subroutine ComputeSpinDep()
 !local variables
 integer :: i, j, n, a, ptr, k, npt, counter
 integer :: nFactorial
+integer :: selectTransition
 real(dprec) :: Skk, temp1, temp2
 real(dprec), allocatable, dimension(:, :, :) :: ketYMatrix
 real(dprec), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
 real(dprec), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient
 real(dprec), allocatable, dimension(:) :: parityFactor, diagS_0, diagS_1, diagS_test_0, diagS_test_1
-real(dprec), allocatable, dimension(:, :) :: spinFreeME, spinCoeff 
+real(dprec), allocatable, dimension(:, :) :: spinFreeME, SOspinME, spinCoeff 
 real(dprec) :: SO1kl, SO2kl, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, factor
+
+!selectTransition = 1 -- calculate 3P -> 1S matelem
+!selectTransition = 2 -- calculate 3P -> 3S matelem
+selectTransition = 2
 
 n = Glob_n
 npt = Glob_npt
@@ -1262,10 +1267,21 @@ allocate(spinFreeME(nFactorial, 2))
 allocate(SziME(n, nFactorial))
 allocate(SiMinusME(n, nFactorial))
 allocate(SiPlusME(n, nFactorial))
+allocate(SOspinME(n, nFactorial))
 allocate(spinCoeff(nFactorial, 2))
 
 call spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMMmassChargeCoefficient, &
 ketYMatrix, Glob_YOperatorString0, Glob_YOperatorString1, SiMinusME, SiPlusME, SziME, spinFreeME)
+
+SOspinME = ZERO
+if (selectTransition == 1) then
+	SOspinME = SiPlusME
+else if (selectTransition == 2) then
+	SOspinME = SziME
+else
+	stop "incorrect selectTransition value"
+endif
+
 
 do i = 1, nFactorial
   spinCoeff(i,:) = parityFactor(i) * spinFreeME(i,:)
@@ -1308,9 +1324,9 @@ do i = 1, Glob_CurrBasisSize1
     		factor = Glob_c1(i) * Glob_c0(j) / sqrt(diagS_1(i)*diagS_0(j))
     		do a = 1, nFactorial ! Permutations from S_n introduced by A operator
 
-        		call spinDependentMatrixElements(Glob_Index(i,1),Glob_Index(i,2), Glob_NonlinParam1(1 : npt, i), &
+        		call spinDependentMatrixElements(selectTransition, Glob_Index(i,1),Glob_Index(i,2), Glob_NonlinParam1(1 : npt, i), &
 				Glob_NonlinParam0(1 : npt, j), ketYMatrix(1 : n, 1 : n, a), &
-				SiPlusME(1 : n, a), SOmassChargeCoefficient, AMMmassChargeCoefficient, &
+				SOspinME(1 : n, a), SOmassChargeCoefficient, AMMmassChargeCoefficient, &
         		SO1kl, SO2kl, AMM1kl, AMM2kl)
                     
         		SO1 = SO1 + parityFactor(a) * factor * SO1kl
@@ -1379,151 +1395,6 @@ endif
 
 
 end subroutine ComputeSpinDep
-
-subroutine ComputeTranDipoL0L1()
-
-!Subroutine ComputeTranDipoL0L1 computes expectation value of < L=0 | D{z} | L=1 >
-!
-!                                            c0*_k * c1_l
-!  <psi0|D{z}|psi1> = SUM{k,l}---------------------------------------*
-!                                Sqrt( <psi0|psi0> * <psi1|psi1> )
-!
-!                        m_i         < Y0*f_k0 | z_i | Y1*f_l1 >
-!  SUM{i}(q_i - Q_tot * -----)*-----------------------------------------------
-!                        m0    Sqrt( <f_k0|f_k0> ) * Sqrt( <f_l1|f_l1> )
-!
-!
-!
-!				<psi{L0}|psi{L0}>   and   <psi{L1}|psi{L10}>
-!					computed by subroutine ElementS0
-!
-!									  m_i         < Y0*f_k0 | z_i | Y1*f_l1 >
-!				SUM{i}(q_i - Q_tot * -----)*-----------------------------------------------
-!									  m0    Sqrt( <f_k0|f_k0> ) * Sqrt( <f_l1|f_l1> )
-!					computed by subroutine MatrixElemenTranDipolMomen
-!
-!Expressions:
-!
-!	TDkll_1			=	output of the MatrixElemenTranDipolMomen subroutine
-!	TDkl				=	transition dipole momentum after applying Glob_YCoeff
-!							and normalization factor
-!	k,l				=	Glob_CurrBasisSize0,Glob_CurrBasisSize1
-!	Glob_ExpVals 	= (Sum_{k,l} c0_k * TDkl * Glob_c1(l))/sqrt(diagS0*diagS1)
-
-
-integer       ::  n,np
-real(dprec)   ::  ExpVal1, ExpVal2, ExpValLoc1, ExpValLoc2
-real(dprec)   ::  temp0
-real(dprec)   ::  Skk, Sll
-real(dprec)   ::  TranDipolLength_kl_element, TranDipolLength_kl_Loc, TranDipolLength_kl 
-real(dprec)   ::  TranDipolVelocity_kl_element, TranDipolVelocity_kl_Loc, TranDipolVelocity_kl 
-
-integer       ::  k,l,i,j,indx
-
-real(dprec),allocatable,dimension(:)     ::  diagS0, diagS1, temp1 
-
-
-n=Glob_n
-np=Glob_np
-
-IF(Glob_ProcID==0) write(*,'(1x,a)') 'Computing expectation values...'
-
-allocate(diagS0(Glob_CurrBasisSize0))
-allocate(temp1(Glob_CurrBasisSize0))
-diagS0=ZERO
-temp1=ZERO
-Do k=1+Glob_ProcID,Glob_CurrBasisSize0,Glob_NumOfProcs
-    ! computing digoal elements of overlap matrix L=0 
-	temp0=ZERO
-    Do i=1,Glob_NumYHYTerms0
-        call OverLapElementS0(Glob_NonlinParam0(1:np,k),Glob_YHYMatr0(1:n,1:n,i), Skk)
-        temp0=temp0+Glob_YHYCoeff0(i)*Skk
-    EndDo
-    temp1(k)=temp0
-EndDo
-call MPI_ALLREDUCE(temp1,diagS0,Glob_CurrBasisSize0,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-deallocate(temp1)
-
-
-allocate(diagS1(Glob_CurrBasisSize1))
-allocate(temp1(Glob_CurrBasisSize1))
-diagS1=ZERO
-temp1=ZERO
-Do l=1+Glob_ProcID,Glob_CurrBasisSize1,Glob_NumOfProcs
-    ! computing digoal elements of overlap matrix L=1 
-	temp0=ZERO
-    Do i=1,Glob_NumYHYTerms1
-        call OverLapElementS1(Glob_ZIndex(l), Glob_NonlinParam1(1:np,l),Glob_YHYMatr1(1:n,1:n,i), Sll)
-        temp0=temp0+Glob_YHYCoeff1(i)*Sll
-    EndDo
-    temp1(l)=temp0
-EndDo
-call MPI_ALLREDUCE(temp1,diagS1,Glob_CurrBasisSize1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-deallocate(temp1)
-
-
-
-indx = ZERO
-ExpValLoc1 = ZERO
-ExpValLoc2 = ZERO
-TranDipolLength_kl=ZERO	
-TranDipolVelocity_kl = ZERO
-		
-Do k=1,Glob_CurrBasisSize0
-	Do l=1,Glob_CurrBasisSize1
-		indx=indx+1
-
-		IF(mod(indx,Glob_NumOfProcs)==Glob_ProcID) then
-
-			TranDipolLength_kl_Loc   = ZERO
-			TranDipolVelocity_kl_Loc = ZERO 
-			TranDipolLength_kl   = ZERO
-			TranDipolVelocity_kl = ZERO
-			
-			Do i=1,Glob_NumYTerms0
-				Do j=1,Glob_NumYTerms1
-
-                    call MatrixElemenTranDipoleMoment(Glob_ZIndex(l),Glob_NonlinParam0(1:np,k), &
-                    Glob_NonlinParam1(1:np,l),Glob_YMatr0(1:n,1:n,i),Glob_YMatr1(1:n,1:n,j), &
-					TranDipolLength_kl_element,TranDipolVelocity_kl_element)
-					
-                    TranDipolLength_kl_Loc = TranDipolLength_kl_Loc + &
-					Glob_YCoeff0(i) * TranDipolLength_kl_element * Glob_YCoeff1(j)
-					
-                    TranDipolVelocity_kl_Loc = TranDipolVelocity_kl_Loc + &
-					Glob_YCoeff0(i) * TranDipolVelocity_kl_element * Glob_YCoeff1(j)
-
-				EndDo
-			EndDo
-
-			TranDipolLength_kl = TranDipolLength_kl_Loc / sqrt(diagS0(k)*diagS1(l))
-			ExpValLoc1 = ExpValLoc1 + Glob_c0(k) * TranDipolLength_kl * Glob_c1(l)
-
-
-			TranDipolVelocity_kl = TranDipolVelocity_kl_Loc / sqrt(diagS0(k)*diagS1(l))
-			ExpValLoc2 = ExpValLoc2 + Glob_c0(k) * TranDipolVelocity_kl * Glob_c1(l)
-			
-			
-		EndIF
-	EndDo
-EndDo
-
-
-call MPI_ALLREDUCE(ExpValLoc1,ExpVal1,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-Glob_ExpVals1 = ExpVal1
-
-call MPI_ALLREDUCE(ExpValLoc2,ExpVal2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-Glob_ExpVals2 = ExpVal2
-
-
-
-deallocate(diagS0)
-deallocate(diagS1)
-IF(Glob_ProcID==0) write(*,*) 'done'
-
-
-end subroutine ComputeTranDipoL0L1
-
 
 
 end module workproc
