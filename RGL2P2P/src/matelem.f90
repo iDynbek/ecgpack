@@ -507,7 +507,7 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, S
   
   !common factor (ONEHALF - for consistent normalization with Skl)
   if (selectTransition == 1) commonFactor = ONEHALF * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
-  if (selectTransition == 2) commonFactor = ONEFOURTH * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
+  if (selectTransition == 2) commonFactor = ONEFOURTH * sqrt(2.d0) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
   
   SO1kl = ZERO
   SO2kl = ZERO
