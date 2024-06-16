@@ -559,11 +559,11 @@ contains
 
 
          !  Sz
-         write(io, '("<chi1 | Si+ | P^s_{a} chi0>:")')
+         write(io, '("<chi1 | Sz | P^s_{a} chi0>:")')
          do ptr = 1, nFactorial
              write(io, *) 'ptr  '
             do k = 1, n
-              write(io, '(i3, 2x, f6.3)') ptr, SiPlusME(k, ptr)
+              write(io, '(i3, 2x, f6.3)') ptr, SziME(k, ptr)
             enddo
           enddo
          write(io,*) ''

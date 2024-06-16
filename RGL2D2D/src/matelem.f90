@@ -6,7 +6,7 @@ implicit none
 
 contains
 
-subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
+subroutine overlapMatrixElementsLD(m_k, mm_k, vechLk, P, Skk)
 	!This subroutine computes symmetry adapted matrix element with
 	!two real L=2 correlated Gaussians:
 	!
@@ -30,6 +30,7 @@ subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
 	real(dprec),intent(in)      :: P(Glob_n,Glob_n)
 	real(dprec),intent(out)     :: Skk
 	  
+  
 	!Parameters (These are needed to declare static arrays. Using static
 	!arrays makes the function call a little faster in comparison with
 	!the case when arrays are dynamically allocated in stack)
@@ -47,6 +48,7 @@ subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
 	real(dprec)       det_tAkl
 	real(dprec)       tau3, tau33, tau333, tau334, m, m1, m3
 	integer           i,j,k,q,t,indx
+  
 	n=Glob_n
 	np=Glob_np
 	!First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
@@ -69,7 +71,7 @@ subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
 	  enddo 
 	  Ak(i,j)=temp1
 	  Ak(j,i)=temp1
-			temp1=ZERO
+	  temp1=ZERO
 	  do k=1,i
 		temp1=temp1+Ll(i,k)*Ll(j,k)
 	  enddo 
@@ -103,7 +105,6 @@ subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
 	  tAkl(j,i)=tAkl(i,j)
 	  enddo
 	enddo
-	
 	
 	!After this we can do Cholesky factorization of tAkl.
 	!The Cholesky factor will be temporarily stored in the 
@@ -155,13 +156,12 @@ subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
 	  vl(i)=P(m_k,i)
 	  bl(i)=P(mm_k,i)
 	enddo
-	
 	!Compute vkinv_tAkl=vk'*inv_tAkl, bkinv_tAkl=bk'*inv_tAkl
 	do i=1,n
 	  vkinv_tAkl(i)=inv_tAkl(m_k,i)
 	  bkinv_tAkl(i)=inv_tAkl(mm_k,i)
 	enddo
-	
+  
 	!Compute tau3=vkinv_tAkl*vl, tau33=bkinv_tAkl*bl
 	tau3=ZERO
 	tau33=ZERO
@@ -175,14 +175,15 @@ subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
 	enddo
 	m1=tau3*tau33
 	m3=tau333*tau334
-	m=m1-m3  !look formula 40 in document
-	
+	m=m1+m3  !look formula 40 in document
+  
 	!Evaluating overlap
 	!temp1=ZERO
 	temp1=FOUR*det_tAkl*sqrt(det_tAkl)
 	Skk=Glob_Piraised3n2*m/temp1
 	
-	end subroutine overlapMatrixElementsLP
+end subroutine overlapMatrixElementsLD
+
 
 subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, SOmassChargeCoefficient, &
 	AMMmassChargeCoefficient, ketMatrix, spatialYoung0, spatialYoung1, SSNCspinME, SiMinusME, SiPlusME, SziME, spinFreeME)
@@ -506,9 +507,9 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, S
   
   
   !common factor (ONEHALF - for consistent normalization with Skl)
-  !note the value is the same for all transitions (3P, 1P)
-  commonFactor = ONEHALF * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
-
+  if (selectTransition == 1) commonFactor = Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
+  if (selectTransition == 2) commonFactor = SQRT(THREE) / TWO * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
+  
   SO1kl = ZERO
   SO2kl = ZERO
   
@@ -553,27 +554,27 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, S
    jiAklinvWl = inv_tAkl(indexI, pmm_l)
    jiAklinvWk = inv_tAkl(indexI, pmm_k)
   
-   ! I term -> diagonal (spin-same orbit) matrix element (f[ii, ii])
-   t1 = jiAklinvVk * jiAkAklinvVl + jiAlAklinvVk * jiAklinvVl
-   temp1010 =  gamma_diag**3 / THREE * t1 *  WkAklinvWl - &
-   gamma_diag**5 / FIVE *  t1 * (jiAklinvWk * jiAklinvWl)
-   
-   ! Vl <-> Wl
-   t1 = jiAklinvVk * jiAkAklinvWl + jiAlAklinvVk * jiAklinvWl
-   temp1001 = gamma_diag**3 / THREE * t1 * WkAklinvVl - &
-   gamma_diag**5 / FIVE *t1 * (jiAklinvWk * jiAklinvVl)
-  
-   ! Vk <-> Wk
-   t1 = jiAklinvWk * jiAkAklinvVl + jiAlAklinvWk * jiAklinvVl
-   temp0110 = gamma_diag**3 / THREE * t1 * VkAklinvWl - &
-   gamma_diag**5 / FIVE * t1* (jiAklinvVk * jiAklinvWl)
-  
-   ! Vl <-> Wl, Vk <-> Wk
-   t1 = jiAklinvWk * jiAkAklinvWl + jiAlAklinvWk * jiAklinvWl
-   temp0101 =  gamma_diag**3 / THREE * t1 * VkAklinvVl - &
-   gamma_diag**5 / FIVE * t1 * (jiAklinvVk * jiAklinvVl)
-  
-   temp1 = temp1010 + temp0101 - temp1001 - temp0110
+    ! I term -> diagonal (spin-same orbit) matrix element (f[ii, ii])
+ 	t1 = jiAklinvVk * jiAkAklinvVl + jiAlAklinvVk * jiAklinvVl
+ 	temp1010 =  gamma_diag**3 / THREE * t1 *  WkAklinvWl - &
+ 	gamma_diag**5 / FIVE *  t1 * (jiAklinvWk * jiAklinvWl)
+ 
+ 	! Vl <-> Wl
+ 	t1 = jiAklinvVk * jiAkAklinvWl + jiAlAklinvVk * jiAklinvWl
+ 	temp1001 = gamma_diag**3 / THREE * t1 * WkAklinvVl - &
+ 	gamma_diag**5 / FIVE *t1 * (jiAklinvWk * jiAklinvVl)
+
+ 	! Vk <-> Wk
+ 	t1 = jiAklinvWk * jiAkAklinvVl + jiAlAklinvWk * jiAklinvVl
+ 	temp0110 = gamma_diag**3 / THREE * t1 * VkAklinvWl - &
+ 	gamma_diag**5 / FIVE * t1* (jiAklinvVk * jiAklinvWl)
+
+ 	! Vl <-> Wl, Vk <-> Wk
+ 	t1 = jiAklinvWk * jiAkAklinvWl + jiAlAklinvWk * jiAklinvWl
+ 	temp0101 =  gamma_diag**3 / THREE * t1 * VkAklinvVl - &
+ 	gamma_diag**5 / FIVE * t1 * (jiAklinvVk * jiAklinvVl)
+
+    temp1 = temp1010 + temp0101 + temp1001 + temp0110
    
    SO1kl = SO1kl + SOspinME(indexI) * SOmassChargeCoefficient(indexI, indexI, 1) * temp1
    AMM1kl = AMM1kl + SOspinME(indexI) * AMMmassChargeCoefficient(indexI, indexI, 1) * temp1
@@ -630,12 +631,13 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, S
 	 temp0101 = gamma_diag**3 / THREE * t1 * VkAklinvVl - &
 	 gamma_diag**5 / FIVE * t1 * (jiAklinvVk * jiAklinvVl)
   
-	 temp1 = temp1010 + temp0101 - temp1001 - temp0110
+	 temp1 = temp1010 + temp0101 + temp1001 + temp0110
   
 	 SO2kl = SO2kl + SOspinME(indexI) * SOmassChargeCoefficient(indexI, indexI, 2) * temp1
 
 
-	 !! III term -> f[ij, jj]
+	 
+     !! III term -> f[ij, jj]
 	 t1 = jjAkAklinvVl * (jjAklinvVk - jiAklinvVk) + jjAlAklinvVk * (jjAklinvVl - jiAklinvVl)
 	 t2 = jjAklinvWk * jjAklinvWl + jiAklinvWk * jiAklinvWl - jiAklinvWk * jjAklinvWl - jjAklinvWk * jiAklinvWl
 	 temp1010 = gamma**3 / THREE * t1 * WkAklinvWl - &
@@ -659,7 +661,7 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, S
 	 temp0101 = gamma**3 / THREE * t1 * VkAklinvVl - &
 	 gamma**5 / FIVE * t1 * t2
   
-	 temp1 = temp1010 + temp0101 - temp1001 - temp0110
+	 temp1 = temp1010 + temp0101 + temp1001 + temp0110
   
 
 	 SO2kl = SO2kl + SOspinME(indexI) * SOmassChargeCoefficient(indexI, indexJ, 3) * temp1
@@ -691,28 +693,41 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, S
 	 temp0101 = gamma**3 / THREE * t1 * VkAklinvVl - &
 	 gamma**5 / FIVE * t1 * t2
   
-	 temp1 = temp1010 + temp0101 - temp1001 - temp0110
+	 temp1 = temp1010 + temp0101 + temp1001 + temp0110
   
 	 SO2kl = SO2kl + SOspinME(indexI) * SOmassChargeCoefficient(indexI, indexJ, 4) * temp1
 	 AMM2kl = AMM2kl + SOspinME(indexI) * AMMmassChargeCoefficient(indexI, indexJ, 4) * temp1
 
 	 if (selectTransition == 2 .or. indexJ <= indexI .or. abs(SSNCspinME(indexI, indexJ)) < localEps ) cycle 
-	!SSNC term
-	!sum f1010 + f0101
-	t1 = jiAklinvVk * jiAklinvVl + jjAklinvVk * jjAklinvVl - jiAklinvVk * jjAklinvVl - jjAklinvVk * jiAklinvVl
-	t2 = jiAklinvWk * jiAklinvWl + jjAklinvWk * jjAklinvWl - jiAklinvWk * jjAklinvWl - jjAklinvWk * jiAklinvWl
-	temp2 = -gamma**5 / FIVE * (t1 * WkAklinvWl + t2 * VkAklinvVl) + &
-	TWO * gamma**7 / SEVEN * (t1 * t2)
-  
-	!sum f0110 + f1001
-	t1 = jiAklinvVk * jiAklinvWl + jjAklinvVk * jjAklinvWl - jiAklinvVk * jjAklinvWl - jjAklinvVk * jiAklinvWl
-	t2 = jiAklinvWk * jiAklinvVl + jjAklinvWk * jjAklinvVl - jiAklinvWk * jjAklinvVl - jjAklinvWk * jiAklinvVl
-	temp3 =  -gamma**5 / FIVE * (t1  * WkAklinvVl + t2 * VkAklinvWl) + &
-	TWO * gamma**7 / SEVEN * (t1 * t2)
-  
-	temp1 = ONETHIRD*(temp2 - temp3) !ONETHIRD - from common factor and spin part (1/sqrt(6)) 
+	 !SSNC term
+	 !g1010
+	 t1 = jiAklinvVk * jiAklinvVl + jjAklinvVk * jjAklinvVl - jiAklinvVk * jjAklinvVl - jjAklinvVk * jiAklinvVl
+	 t2 = jiAklinvWk * jiAklinvWl + jjAklinvWk * jjAklinvWl - jiAklinvWk * jjAklinvWl - jjAklinvWk * jiAklinvWl
+	 temp1010 = gamma**5 / FIVE * (t1 * WkAklinvWl) - &
+	 gamma**7 / SEVEN * (t1 * t2)
+   
+	 !Vl <-> Wl
+	 t1 = jiAklinvVk * jiAklinvWl + jjAklinvVk * jjAklinvWl - jiAklinvVk * jjAklinvWl - jjAklinvVk * jiAklinvWl
+	 t2 = jiAklinvWk * jiAklinvVl + jjAklinvWk * jjAklinvVl - jiAklinvWk * jjAklinvVl - jjAklinvWk * jiAklinvVl
+	 temp1001 = gamma**5 / FIVE * (t1 * WkAklinvVl) - &
+	 gamma**7 / SEVEN * (t1 * t2)
+   
+	 !Vk <-> Wk
+	 t1 = jiAklinvWk * jiAklinvVl + jjAklinvWk * jjAklinvVl - jiAklinvWk * jjAklinvVl - jjAklinvWk * jiAklinvVl
+	 t2 = jiAklinvVk * jiAklinvWl + jjAklinvVk * jjAklinvWl - jiAklinvVk * jjAklinvWl - jjAklinvVk * jiAklinvWl
+	 temp0110 = gamma**5 / FIVE * (t1 * VkAklinvWl) - &
+	 gamma**7 / SEVEN * (t1 * t2)
+   
+	 !Vl <-> Wl, Vk <-> Wk
+	 t1 = jiAklinvVk * jiAklinvVl + jjAklinvVk * jjAklinvVl - jiAklinvVk * jjAklinvVl - jjAklinvVk * jiAklinvVl
+	 t2 = jiAklinvWk * jiAklinvWl + jjAklinvWk * jjAklinvWl - jiAklinvWk * jjAklinvWl - jjAklinvWk * jiAklinvWl
+	 temp0101 = gamma**5 / FIVE * (t2 * VkAklinvVl) - &
+	 gamma**7 / SEVEN * (t1 * t2)
+   
+	 temp1 = ONETHIRD * (temp1010 + temp1001 + temp0110 + temp0101) !ONETHIRD - from common factor and spin part (1/sqrt(6)) 
+   
+	 SSNCkl = SSNCkl + SSNCspinME(indexI, indexJ) * SSNCmassChargeCoefficient(indexI, indexJ) * temp1
 
-	SSNCkl = SSNCkl + SSNCspinME(indexI, indexJ) * SSNCmassChargeCoefficient(indexI, indexJ) * temp1
 
    enddo ! indexJ cycle
   enddo ! indexI cycle

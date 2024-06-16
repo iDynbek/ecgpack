@@ -1255,9 +1255,10 @@ real(dprec), allocatable, dimension(:, :) :: spinFreeME, spinCoeff
 real(dprec), allocatable, dimension(:, :, :) :: SSNCspinME
 real(dprec) :: SSNCkl, SO1kl, SO2kl, SSNC, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, factor
 
-!selectTransition = 1 -- calculate 3P -> 1D matelem
-!selectTransition = 2 -- calculate 3P -> 3D matelem
-selectTransition = 2
+!selectTransition = 1 -- calculate 3P -> 1D matelem  <3P | H_SO | 1D>
+!selectTransition = 2 -- calculate 3P -> 3D matelem <3P | H_SO + H_SSNC | 3D>
+!selectTransition = 3 -- calculate 1P -> 3D matelem <1P | H_SO | 3D>
+selectTransition = 3
 
 n = Glob_n
 npt = Glob_npt
@@ -1287,8 +1288,8 @@ if (selectTransition == 1) then
 	SOspinME = SiPlusME
 else if (selectTransition == 2) then
 	SOspinME = SziME
-else
-	stop "incorrect selectTransition value"
+else if (selectTransition == 3) then
+	SOspinME = SiMinusME
 endif
 
 do i = 1, nFactorial
@@ -1299,24 +1300,26 @@ allocate(diagS_1(Glob_CurrBasisSize1), diagS_0(Glob_CurrBasisSize0))
 diagS_1 = ZERO
 diagS_0 = ZERO
 Skk = ZERO
-!spinCoeff(:,1) - singlet
-!spinCoeff(:,2) - triplet
+!spinCoeff(:,1) - singlet (1,2), triplet (3)
+!spinCoeff(:,2) - triplet (1,2), singlet (3)
 do i = 1, Glob_CurrBasisSize0
 	do ptr = 1, nFactorial
-	  call OverlapMatrixElementsLP(Glob_Index0(i,1), Glob_Index0(i,2), Glob_NonlinParam0(1 : npt, i), &
-      ketYMatrix(1 : n, 1 : n, ptr), Skk)
-	  diagS_0(i) = diagS_0(i) + spinCoeff(ptr,2) * Skk
+	  	call OverlapMatrixElementsLP(Glob_Index0(i,1), Glob_Index0(i,2), Glob_NonlinParam0(1 : npt, i), &
+      	ketYMatrix(1 : n, 1 : n, ptr), Skk)
+
+		diagS_0(i) = diagS_0(i) + spinCoeff(ptr,2) * Skk
 	enddo ! Permutations from S_n
 enddo
 
 
 Skk = ZERO
 do i = 1, Glob_CurrBasisSize1
-  do ptr = 1, nFactorial
-	call OverlapMatrixElementsLD(Glob_Index1(i,1), Glob_Index1(i,2), Glob_NonlinParam1(1 : npt, i), &
-	ketYMatrix(1 : n, 1 : n, ptr), Skk)
-	diagS_1(i) = diagS_1(i) + spinCoeff(ptr,1) * Skk
-   enddo ! Permutations from S_n
+	do ptr = 1, nFactorial
+		call OverlapMatrixElementsLD(Glob_Index1(i,1), Glob_Index1(i,2), Glob_NonlinParam1(1 : npt, i), &
+		ketYMatrix(1 : n, 1 : n, ptr), Skk)
+
+		diagS_1(i) = diagS_1(i) + spinCoeff(ptr,1) * Skk
+    enddo ! Permutations from S_n
 enddo
 
 SSNCkl = ZERO
@@ -1326,6 +1329,8 @@ AMM1 = ZERO
 AMM2 = ZERO
 
 counter = 0
+
+
 do i = 1, Glob_CurrBasisSize0
     do j = 1, Glob_CurrBasisSize1
     	counter = counter + 1
@@ -1352,7 +1357,7 @@ do i = 1, Glob_CurrBasisSize0
     	endif ! ProcID check
   	enddo !Glob_CurrBasisSize0
 enddo !Glob_CurrBasisSize1
-  
+
 !Combining the results of all processes
 
 temp1 = SSNC

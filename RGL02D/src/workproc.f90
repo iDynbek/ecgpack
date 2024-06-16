@@ -1238,18 +1238,14 @@ subroutine ComputeSpinDep()
 !local variables
 integer :: i, j, n, a, ptr, k, npt, counter
 integer :: nFactorial
-integer :: selectTransition
 real(dprec) :: Skk, temp1, temp2
 real(dprec), allocatable, dimension(:, :, :) :: ketYMatrix
 real(dprec), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
-real(dprec), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient
+real(dprec), allocatable, dimension(:, :, :) :: SSNCspinME
+real(dprec), allocatable, dimension(:, :) :: SSNCmassChargeCoefficient
 real(dprec), allocatable, dimension(:) :: parityFactor, diagS_0, diagS_1, diagS_test_0, diagS_test_1
 real(dprec), allocatable, dimension(:, :) :: spinFreeME, SOspinME, spinCoeff 
-real(dprec) :: SO1kl, SO2kl, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, factor
-
-!selectTransition = 1 -- calculate 3P -> 1S matelem
-!selectTransition = 2 -- calculate 3P -> 3S matelem
-selectTransition = 1
+real(dprec) :: SSNCkl, SSNC, factor
 
 n = Glob_n
 npt = Glob_npt
@@ -1258,8 +1254,7 @@ do i = 2, n
 	nFactorial = nFactorial * i
 enddo
 
-allocate(SOmassChargeCoefficient(n, n, 4))
-allocate(AMMmassChargeCoefficient(n, n, 4))
+allocate(SSNCmassChargeCoefficient(n, n))
 allocate(parityFactor(nFactorial))
 
 allocate(ketYMatrix(1 : n, 1 : n, nFactorial))
@@ -1267,20 +1262,12 @@ allocate(spinFreeME(nFactorial, 2))
 allocate(SziME(n, nFactorial))
 allocate(SiMinusME(n, nFactorial))
 allocate(SiPlusME(n, nFactorial))
-allocate(SOspinME(n, nFactorial))
+allocate(SSNCspinME(n, n, nFactorial))
 allocate(spinCoeff(nFactorial, 2))
 
-call spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMMmassChargeCoefficient, &
-ketYMatrix, Glob_YOperatorString0, Glob_YOperatorString1, SiMinusME, SiPlusME, SziME, spinFreeME)
-
-SOspinME = ZERO
-if (selectTransition == 1) then
-	SOspinME = SiPlusME
-else if (selectTransition == 2) then
-	SOspinME = SziME
-else
-	stop "incorrect selectTransition value"
-endif
+call spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, & 
+ketYMatrix, Glob_YOperatorString0, Glob_YOperatorString1, &
+SSNCspinME, SiMinusME, SiPlusME, SziME, spinFreeME)
 
 
 do i = 1, nFactorial
@@ -1289,11 +1276,8 @@ enddo
 
 ! we should recalculate mean values of a unity operator here (it should be proportional to the old values)
 allocate(diagS_1(Glob_CurrBasisSize1), diagS_0(Glob_CurrBasisSize0))
-allocate(diagS_test_1(Glob_CurrBasisSize1), diagS_test_0(Glob_CurrBasisSize0))
 diagS_1 = ZERO
 diagS_0 = ZERO
-diagS_test_1 = ZERO
-diagS_test_0 = ZERO
 Skk = ZERO
 do i = 1, Glob_CurrBasisSize0
   do ptr = 1, nFactorial
@@ -1305,17 +1289,13 @@ enddo
 Skk = ZERO
 do i = 1, Glob_CurrBasisSize1
 	do ptr = 1, nFactorial
-	  call OverlapMatrixElementsLP(Glob_Index(i,1), Glob_Index(i,2), Glob_NonlinParam1(1 : npt, i), &
+	  call OverlapMatrixElementsLD(Glob_Index(i,1), Glob_Index(i,2), Glob_NonlinParam1(1 : npt, i), &
       ketYMatrix(1 : n, 1 : n, ptr), Skk)
 	  diagS_1(i) = diagS_1(i) + spinCoeff(ptr,2) * Skk
 	enddo ! Permutations from S_n
 enddo
 
-SO1 = ZERO
-SO2 = ZERO
-AMM1 = ZERO
-AMM2 = ZERO
-
+SSNC = ZERO
 counter = 0
 do i = 1, Glob_CurrBasisSize1
     do j = 1, Glob_CurrBasisSize0
@@ -1324,18 +1304,11 @@ do i = 1, Glob_CurrBasisSize1
     		factor = Glob_c1(i) * Glob_c0(j) / sqrt(diagS_1(i)*diagS_0(j))
     		do a = 1, nFactorial ! Permutations from S_n introduced by A operator
 
-        		call spinDependentMatrixElements(selectTransition, Glob_Index(i,1),Glob_Index(i,2), Glob_NonlinParam1(1 : npt, i), &
-				Glob_NonlinParam0(1 : npt, j), ketYMatrix(1 : n, 1 : n, a), &
-				SOspinME(1 : n, a), SOmassChargeCoefficient, AMMmassChargeCoefficient, &
-        		SO1kl, SO2kl, AMM1kl, AMM2kl)
+        		call spinDependentMatrixElements(Glob_Index(i,1),Glob_Index(i,2), Glob_NonlinParam1(1 : npt, i), &
+				Glob_NonlinParam0(1 : npt, j), ketYMatrix(1 : n, 1 : n, a), SSNCspinME(1:n, 1:n, a), &
+				SSNCmassChargeCoefficient, SSNCkl)
                     
-        		SO1 = SO1 + parityFactor(a) * factor * SO1kl
-        		SO2 = SO2 + parityFactor(a) * factor * SO2kl
-        		! final value of SO and SSNC should be multiplied by the appropriate angular factors C_J
-        		! (they are shown in spinData.txt)
-        		AMM1 = AMM1 + parityFactor(a) * factor * AMM1kl
-        		AMM2 = AMM2 + parityFactor(a) * factor * AMM2kl
-
+				SSNC = SSNC + parityFactor(a) * factor * SSNCkl
         	enddo ! Permutations from S_n
     	endif ! ProcID check
   	enddo !Glob_CurrBasisSize0
@@ -1343,21 +1316,9 @@ enddo !Glob_CurrBasisSize1
   
 !Combining the results of all processes
 
-temp1 = SO1
+temp1 = SSNC
 call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
-SO1 = temp2
-
-temp1 = SO2
-call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
-SO2 = temp2
-
-temp1 = AMM1
-call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
-AMM1 = temp2
-
-temp1 = AMM2
-call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
-AMM2 = temp2
+SSNC = temp2
 
 !Printing results
 if (Glob_ProcID==0) then
@@ -1365,30 +1326,13 @@ if (Glob_ProcID==0) then
 	!Opening an additional file where selected expectation values will be saved
 	open(2,file=Glob_ExpValFileName,status='replace')
   
-		write(*,*) '                    SO1=',SO1
-		write(*,*) '                    SO2=',SO2
-		write(*,*) '                   AMM1=',AMM1
-		write(*,*) '                   AMM2=',AMM2
-
-		write(*,*)
-	
-		write(*,*) '        (alpha^2)*SO1=', SO1*(Glob_FineStructConst**2)
-		write(*,*) '        (alpha^2)*SO2=', SO2*(Glob_FineStructConst**2)
-		write(*,*) '       (alpha^2)*AMM1=', AMM1*(Glob_FineStructConst**2)
-		write(*,*) '       (alpha^2)*AMM2=', AMM2*(Glob_FineStructConst**2)
+		write(*,*) '                    SSNC=', SSNC
+		write(*,*) '        (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
 
 
-		write(2,*) '                    SO1=',SO1
-		write(2,*) '                    SO2=',SO2
-		write(2,*) '                   AMM1=',AMM1
-		write(2,*) '                   AMM2=',AMM2
 
-		write(2,*) '        (alpha^2)*SO1=', SO1*(Glob_FineStructConst**2)
-		write(2,*) '        (alpha^2)*SO2=', SO2*(Glob_FineStructConst**2)
-		write(2,*) '       (alpha^2)*AMM1=', AMM1*(Glob_FineStructConst**2)
-		write(2,*) '       (alpha^2)*AMM2=', AMM2*(Glob_FineStructConst**2)
-
-		
+		write(2,*) '                    SSNC=', SSNC
+		write(2,*) '        (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
 
 
 endif

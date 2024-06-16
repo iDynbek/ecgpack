@@ -461,13 +461,16 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, S
 
 	call generatePermutationMatrices(allPermutations, n, nFactorial, parities)
 	
-	!Singlet wf
+	
+
+	!Singlet wf for 1,2 transitions, triplet for 3
 	call getSpinFunction(n, nFactorial, mySpatialYoung1, allPermutations, parities, &
 	finalSpinFunction0, primitives0, numberOfPrimitives0)
-
-	!Triplet wf
+	
+	!Triplet wf for 1,2 transitions, singlet for 3
 	call getSpinFunction(n, nFactorial, mySpatialYoung0, allPermutations, parities, &
 	finalSpinFunction1, primitives1, numberOfPrimitives1)
+
 
 
 	call getSpinOpMeanValues(n, nFactorial, allPermutations, finalSpinFunction0, finalSpinFunction1, primitives0, primitives1, &
@@ -694,6 +697,7 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, S
   	commonFactorSO = -sqrt(FIVE / (12._dprec)) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
 	commonFactorSS = sqrt(15._dprec) / TWO * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
   endif
+  if (selectTransition == 3) commonFactorSO = ONEHALF * sqrt(FIVE / THREE) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
 
   SSNCkl = ZERO
 
@@ -710,7 +714,7 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, S
   
   do indexI = 1, n
 
-   if (selectTransition == 1 .and. abs(SOspinME(indexI)) < localEps) cycle
+   if ((selectTransition == 1 .or. selectTransition == 3) .and. abs(SOspinME(indexI)) < localEps) cycle
    
    ! gamma diagonal coefficient
    gamma_diag = ONE / sqrt(inv_tAkl(indexI, indexI))
@@ -885,7 +889,8 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, S
 
 	 !!SSNC term
 	 !only 3P -> 3D transition contributes, indexI > indexJ
-	 if (selectTransition == 1 .or. indexJ <= indexI .or. abs(SSNCspinME(indexI, indexJ)) < localEps ) cycle 
+	 if (selectTransition == 1 .or. selectTransition == 3 .or. &
+	 indexJ <= indexI .or. abs(SSNCspinME(indexI, indexJ)) < localEps ) cycle 
 
 	 !SSNC term
 	 !g1010

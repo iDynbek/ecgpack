@@ -344,17 +344,18 @@ EndIF
 allocate(Glob_c0(Glob_CurrBasisSize0))
 allocate(Glob_FuncNum0(Glob_CurrBasisSize0))
 allocate(Glob_NonlinParam0(Glob_npt,Glob_CurrBasisSize0))
+allocate(Glob_Index0(Glob_CurrBasisSize0,2))
 allocate(Glob_c1(Glob_CurrBasisSize1))
 allocate(Glob_FuncNum1(Glob_CurrBasisSize1))
 allocate(Glob_NonlinParam1(Glob_npt,Glob_CurrBasisSize1))
-allocate(Glob_Index(Glob_CurrBasisSize1,2))
+allocate(Glob_Index1(Glob_CurrBasisSize1,2))
 
 IF (Glob_ProcID==0) then
 	Do i=1,Glob_CurrBasisSize0
-		read(1,*) Glob_FuncNum0(i),Glob_c0(i),ReadChar(1:2),Glob_NonlinParam0(1:Glob_npt,i)
+		read(1,*) Glob_FuncNum0(i),Glob_c0(i),ReadChar(1:2),Glob_Index0(i,1),Glob_Index0(i,2),Glob_NonlinParam0(1:Glob_npt,i)
 	EndDo
 	Do i=1,Glob_CurrBasisSize1
-		read(2,*) Glob_FuncNum1(i),Glob_c1(i),ReadChar(1:2),Glob_Index(i,1),Glob_Index(i,2),Glob_NonlinParam1(1:Glob_npt,i)
+		read(2,*) Glob_FuncNum1(i),Glob_c1(i),ReadChar(1:2),Glob_Index1(i,1),Glob_Index1(i,2),Glob_NonlinParam1(1:Glob_npt,i)
 	EndDo
 EndIF
 
@@ -364,7 +365,8 @@ call MPI_BCAST(Glob_NonlinParam0,Glob_npt*Glob_CurrBasisSize0,MPI_DPREC,0,MPI_CO
 call MPI_BCAST(Glob_NonlinParam1,Glob_npt*Glob_CurrBasisSize1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 call MPI_BCAST(Glob_FuncNum0,Glob_CurrBasisSize0,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 call MPI_BCAST(Glob_FuncNum1,Glob_CurrBasisSize1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-call MPI_BCAST(Glob_Index,2*Glob_CurrBasisSize1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_Index0,2*Glob_CurrBasisSize0,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+call MPI_BCAST(Glob_Index1,2*Glob_CurrBasisSize1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 	   
 end subroutine Readwf0wf1
 
@@ -373,7 +375,7 @@ end subroutine Readwf0wf1
 subroutine DataInitForAYoungOp(YOpInput)
 !Subroutine DataInitForAYoungOp initializes Young operators and on the outpis it gives
 !Glob_NumYTerms0, Glob_YCoeff0, Glob_YMatr0, and Glob_NumYTerms1, Glob_YCoeff1, Glob_YMatr1.
-!YOpInput = 0 or 1 in the cases L=0 or L=2, respectively.
+!YOpInput = 0 or 1 in the cases L=1 or L=2, respectively.
 
 integer, intent(in)                   :: YOpInput
 
@@ -392,7 +394,7 @@ character(Glob_YOperatorStringLength),allocatable,dimension(:) :: YOpStr,YHOpStr
 
 if (Glob_ProcID==0) Then
 	write(*,*) ' '
-	write(*,*) 'Initializing Young operator for L=',YOpInput
+	write(*,*) 'Initializing Young operator for L=',YOpInput+1
 EndIF
 select case (YOpInput)
    case(0)
@@ -1110,7 +1112,7 @@ Do i=2,npart
   EndDo
 EndDo
 
-!Calculate Glob_YCoeff and Glob_YMatr for both case L=0 and L=1.
+!Calculate Glob_YCoeff and Glob_YMatr for both case L=1 and L=2.
 !The order of calling is important, it must be 0,1.
 Do i=0,1
 	call DataInitForAYoungOp(i)
@@ -1234,6 +1236,8 @@ deallocate(IdentParticleSet)
 end subroutine ProgramDataInit
 
 subroutine ComputeSpinDep()
+!Variables with index 0 refer to the n=1 State
+!Variables with index 1 refer to the n=2 State
 
 !local variables
 integer :: i, j, n, a, ptr, k, npt, counter
@@ -1243,12 +1247,14 @@ real(dprec) :: Skk, temp1, temp2
 real(dprec), allocatable, dimension(:, :, :) :: ketYMatrix
 real(dprec), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
 real(dprec), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient
-real(dprec), allocatable, dimension(:) :: parityFactor, diagS_0, diagS_1, diagS_test_0, diagS_test_1
+real(dprec), allocatable, dimension(:, :) :: SSNCmassChargeCoefficient
+real(dprec), allocatable, dimension(:) :: parityFactor, diagS_0, diagS_1
 real(dprec), allocatable, dimension(:, :) :: spinFreeME, SOspinME, spinCoeff 
-real(dprec) :: SO1kl, SO2kl, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, factor
+real(dprec), allocatable, dimension(:, :, :) :: SSNCspinME
+real(dprec) :: SSNCkl, SO1kl, SO2kl, SSNC, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, factor
 
-!selectTransition = 1 -- calculate 3P -> 1S matelem
-!selectTransition = 2 -- calculate 3P -> 3S matelem
+!selectTransition = 1 -- calculate 3D -> 3D matelem
+!selectTransition = 2 -- calculate 3D -> 1D matelem
 selectTransition = 1
 
 n = Glob_n
@@ -1259,6 +1265,7 @@ do i = 2, n
 enddo
 
 allocate(SOmassChargeCoefficient(n, n, 4))
+allocate(SSNCmassChargeCoefficient(n, n))
 allocate(AMMmassChargeCoefficient(n, n, 4))
 allocate(parityFactor(nFactorial))
 
@@ -1268,16 +1275,17 @@ allocate(SziME(n, nFactorial))
 allocate(SiMinusME(n, nFactorial))
 allocate(SiPlusME(n, nFactorial))
 allocate(SOspinME(n, nFactorial))
+allocate(SSNCspinME(n, n, nFactorial))
 allocate(spinCoeff(nFactorial, 2))
 
-call spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMMmassChargeCoefficient, &
-ketYMatrix, Glob_YOperatorString0, Glob_YOperatorString1, SiMinusME, SiPlusME, SziME, spinFreeME)
-
+call spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, SOmassChargeCoefficient, &
+AMMmassChargeCoefficient, ketYMatrix, Glob_YOperatorString0, Glob_YOperatorString1, &
+SSNCspinME, SiMinusME, SiPlusME, SziME, spinFreeME)
 SOspinME = ZERO
 if (selectTransition == 1) then
-	SOspinME = SiPlusME
-else if (selectTransition == 2) then
 	SOspinME = SziME
+else if (selectTransition == 2) then
+	SOspinME = SiPlusME
 else
 	stop "incorrect selectTransition value"
 endif
@@ -1289,48 +1297,51 @@ enddo
 
 ! we should recalculate mean values of a unity operator here (it should be proportional to the old values)
 allocate(diagS_1(Glob_CurrBasisSize1), diagS_0(Glob_CurrBasisSize0))
-allocate(diagS_test_1(Glob_CurrBasisSize1), diagS_test_0(Glob_CurrBasisSize0))
 diagS_1 = ZERO
 diagS_0 = ZERO
-diagS_test_1 = ZERO
-diagS_test_0 = ZERO
 Skk = ZERO
 do i = 1, Glob_CurrBasisSize0
-  do ptr = 1, nFactorial
-	call OverlapMatrixElementsLS(Glob_NonlinParam0(1:Glob_np, i), ketYMatrix(1 : n, 1 : n, ptr), Skk)
-	diagS_0(i) = diagS_0(i) + spinCoeff(ptr,1) * Skk
-   enddo ! Permutations from S_n
+	do ptr = 1, nFactorial
+	  call OverlapMatrixElementsLD(Glob_Index0(i,1), Glob_Index0(i,2), Glob_NonlinParam0(1 : npt, i), &
+      ketYMatrix(1 : n, 1 : n, ptr), Skk)
+	  diagS_0(i) = diagS_0(i) + spinCoeff(ptr,2) * Skk
+	enddo ! Permutations from S_n
 enddo
+
 
 Skk = ZERO
 do i = 1, Glob_CurrBasisSize1
-	do ptr = 1, nFactorial
-	  call OverlapMatrixElementsLP(Glob_Index(i,1), Glob_Index(i,2), Glob_NonlinParam1(1 : npt, i), &
-      ketYMatrix(1 : n, 1 : n, ptr), Skk)
-	  diagS_1(i) = diagS_1(i) + spinCoeff(ptr,2) * Skk
-	enddo ! Permutations from S_n
+  do ptr = 1, nFactorial
+	call OverlapMatrixElementsLD(Glob_Index1(i,1), Glob_Index1(i,2), Glob_NonlinParam1(1 : npt, i), &
+	ketYMatrix(1 : n, 1 : n, ptr), Skk)
+	diagS_1(i) = diagS_1(i) + spinCoeff(ptr,1) * Skk
+  enddo ! Permutations from S_n
 enddo
 
 SO1 = ZERO
 SO2 = ZERO
+SSNC = ZERO
 AMM1 = ZERO
 AMM2 = ZERO
 
 counter = 0
-do i = 1, Glob_CurrBasisSize1
-    do j = 1, Glob_CurrBasisSize0
+do i = 1, Glob_CurrBasisSize0
+    do j = 1, Glob_CurrBasisSize1
     	counter = counter + 1
     	if (mod(counter, Glob_NumOfProcs) == Glob_ProcID) then
-    		factor = Glob_c1(i) * Glob_c0(j) / sqrt(diagS_1(i)*diagS_0(j))
-    		do a = 1, nFactorial ! Permutations from S_n introduced by A operator
+    		factor = Glob_c0(i) * Glob_c1(j) / sqrt(diagS_0(i)*diagS_1(j))
+ 	  		do a = 1, nFactorial ! Permutations from S_n introduced by A operator
 
-        		call spinDependentMatrixElements(selectTransition, Glob_Index(i,1),Glob_Index(i,2), Glob_NonlinParam1(1 : npt, i), &
-				Glob_NonlinParam0(1 : npt, j), ketYMatrix(1 : n, 1 : n, a), &
-				SOspinME(1 : n, a), SOmassChargeCoefficient, AMMmassChargeCoefficient, &
-        		SO1kl, SO2kl, AMM1kl, AMM2kl)
-                    
+				call spinDependentMatrixElements(selectTransition, Glob_Index0(i,1), Glob_Index1(j,1), &
+				Glob_Index0(i,2), Glob_Index1(j,2), Glob_NonlinParam0(1 : npt, i), &
+				Glob_NonlinParam1(1 : npt, j), ketYMatrix(1 : n, 1 : n, a), &
+				SOspinME(:, a), SSNCspinME(:, :, a), SSNCmassChargeCoefficient, SOmassChargeCoefficient, AMMmassChargeCoefficient, &
+        		SSNCkl, SO1kl, SO2kl, AMM1kl, AMM2kl)
+
         		SO1 = SO1 + parityFactor(a) * factor * SO1kl
         		SO2 = SO2 + parityFactor(a) * factor * SO2kl
+
+				SSNC = SSNC + parityFactor(a) * factor * SSNCkl
         		! final value of SO and SSNC should be multiplied by the appropriate angular factors C_J
         		! (they are shown in spinData.txt)
         		AMM1 = AMM1 + parityFactor(a) * factor * AMM1kl
@@ -1342,6 +1353,10 @@ do i = 1, Glob_CurrBasisSize1
 enddo !Glob_CurrBasisSize1
   
 !Combining the results of all processes
+
+temp1 = SSNC
+call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+SSNC= temp2
 
 temp1 = SO1
 call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
@@ -1365,6 +1380,7 @@ if (Glob_ProcID==0) then
 	!Opening an additional file where selected expectation values will be saved
 	open(2,file=Glob_ExpValFileName,status='replace')
   
+		write(*,*) '                    SSNC=',SSNC
 		write(*,*) '                    SO1=',SO1
 		write(*,*) '                    SO2=',SO2
 		write(*,*) '                   AMM1=',AMM1
@@ -1372,25 +1388,25 @@ if (Glob_ProcID==0) then
 
 		write(*,*)
 	
+		write(*,*) '        (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
 		write(*,*) '        (alpha^2)*SO1=', SO1*(Glob_FineStructConst**2)
 		write(*,*) '        (alpha^2)*SO2=', SO2*(Glob_FineStructConst**2)
 		write(*,*) '       (alpha^2)*AMM1=', AMM1*(Glob_FineStructConst**2)
 		write(*,*) '       (alpha^2)*AMM2=', AMM2*(Glob_FineStructConst**2)
 
-
+		write(2,*) '                    SSNC=',SSNC
 		write(2,*) '                    SO1=',SO1
 		write(2,*) '                    SO2=',SO2
 		write(2,*) '                   AMM1=',AMM1
 		write(2,*) '                   AMM2=',AMM2
 
+		write(2,*) '        (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
 		write(2,*) '        (alpha^2)*SO1=', SO1*(Glob_FineStructConst**2)
 		write(2,*) '        (alpha^2)*SO2=', SO2*(Glob_FineStructConst**2)
 		write(2,*) '       (alpha^2)*AMM1=', AMM1*(Glob_FineStructConst**2)
 		write(2,*) '       (alpha^2)*AMM2=', AMM2*(Glob_FineStructConst**2)
 
 		
-
-
 endif
 
 

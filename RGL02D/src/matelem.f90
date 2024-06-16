@@ -153,7 +153,7 @@ end subroutine OverlapMatrixElementsLS
 
 
 
-subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
+subroutine overlapMatrixElementsLD(m_k, mm_k, vechLk, P, Skk)
 	!This subroutine computes symmetry adapted matrix element with
 	!two real L=2 correlated Gaussians:
 	!
@@ -177,6 +177,7 @@ subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
 	real(dprec),intent(in)      :: P(Glob_n,Glob_n)
 	real(dprec),intent(out)     :: Skk
 	  
+  
 	!Parameters (These are needed to declare static arrays. Using static
 	!arrays makes the function call a little faster in comparison with
 	!the case when arrays are dynamically allocated in stack)
@@ -194,6 +195,7 @@ subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
 	real(dprec)       det_tAkl
 	real(dprec)       tau3, tau33, tau333, tau334, m, m1, m3
 	integer           i,j,k,q,t,indx
+  
 	n=Glob_n
 	np=Glob_np
 	!First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
@@ -216,7 +218,7 @@ subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
 	  enddo 
 	  Ak(i,j)=temp1
 	  Ak(j,i)=temp1
-			temp1=ZERO
+	  temp1=ZERO
 	  do k=1,i
 		temp1=temp1+Ll(i,k)*Ll(j,k)
 	  enddo 
@@ -250,7 +252,6 @@ subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
 	  tAkl(j,i)=tAkl(i,j)
 	  enddo
 	enddo
-	
 	
 	!After this we can do Cholesky factorization of tAkl.
 	!The Cholesky factor will be temporarily stored in the 
@@ -302,13 +303,12 @@ subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
 	  vl(i)=P(m_k,i)
 	  bl(i)=P(mm_k,i)
 	enddo
-	
 	!Compute vkinv_tAkl=vk'*inv_tAkl, bkinv_tAkl=bk'*inv_tAkl
 	do i=1,n
 	  vkinv_tAkl(i)=inv_tAkl(m_k,i)
 	  bkinv_tAkl(i)=inv_tAkl(mm_k,i)
 	enddo
-	
+  
 	!Compute tau3=vkinv_tAkl*vl, tau33=bkinv_tAkl*bl
 	tau3=ZERO
 	tau33=ZERO
@@ -322,18 +322,18 @@ subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
 	enddo
 	m1=tau3*tau33
 	m3=tau333*tau334
-	m=m1-m3  !look formula 40 in document
-	
+	m=m1+m3  !look formula 40 in document
+  
 	!Evaluating overlap
 	!temp1=ZERO
 	temp1=FOUR*det_tAkl*sqrt(det_tAkl)
 	Skk=Glob_Piraised3n2*m/temp1
 	
-	end subroutine overlapMatrixElementsLP
+end subroutine overlapMatrixElementsLD
 
 
-subroutine spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMMmassChargeCoefficient, &
-	ketMatrix, spatialYoung0, spatialYoung1, SiMinusME, SiPlusME, SziME, spinFreeME)
+subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, &
+	ketMatrix, spatialYoung0, spatialYoung1, SSNCspinME, SiMinusME, SiPlusME, SziME, spinFreeME)
 	use spinStuff
 	implicit none
   
@@ -343,8 +343,8 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMM
   
 	!output vars:
 	real(dprec), dimension(nFactorial), intent(out) :: parityFactor
-	real(dprec), dimension(n, n, 4), intent(out) :: SOmassChargeCoefficient, AMMmassChargeCoefficient
-	real(dprec), dimension(n, n, nFactorial), intent(out) :: ketMatrix
+	real(dprec), dimension(n, n), intent(out) :: SSNCmassChargeCoefficient
+	real(dprec), dimension(n, n, nFactorial), intent(out) :: ketMatrix, SSNCspinME
 	real(dprec), dimension(nFactorial, 2), intent(out) :: spinFreeME
 	real(kind = dprec), dimension(n, nFactorial), intent(out) :: SiMinusME, SiPlusME, SziME 
 	
@@ -358,48 +358,12 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMM
 	integer :: numberOfPrimitives0, numberOfPrimitives1
 
   
-	SOmassChargeCoefficient = ZERO
+	SSNCmassChargeCoefficient = ZERO
 	do i = 1, n
-	  SOmassChargeCoefficient(i, i, 1) = -ONEHALF * Glob_PseudoCharge0 * Glob_PseudoCharge(i) / Glob_Mass(i + 1) * &
-	  (ONE / Glob_Mass(i + 1) + TWO / Glob_Mass(1))
-	enddo
-  
-	do i = 1, n
-	  SOmassChargeCoefficient(i, i, 2) = -Glob_PseudoCharge0 * Glob_PseudoCharge(i) / &
-	  (Glob_Mass(i + 1) * Glob_Mass(1))
-	enddo
-  
-	do i = 1, n
-	  do j = 1, n
-		SOmassChargeCoefficient(i, j, 3) = -Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
-		(Glob_Mass(i + 1) * Glob_Mass(j + 1))
-	  enddo
-	enddo
-  
-	do i = 1, n
-	  do j = 1, n
-		SOmassChargeCoefficient(i, j, 4) = -ONEHALF * Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
-		(Glob_Mass(i + 1)**TWO)
-	  enddo
-	enddo
-  
-	AMMmassChargeCoefficient = ZERO
-	do i = 1, n
-	  AMMmassChargeCoefficient(i, i, 1) = -ONEHALF * Glob_PseudoCharge0 * Glob_PseudoCharge(i) / Glob_Mass(i + 1)**TWO
-	enddo
-  
-	do i = 1, n
-	  do j = 1, n
-		AMMmassChargeCoefficient(i, j, 3) = -ONEHALF * Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
-		(Glob_Mass(i + 1) * Glob_Mass(j + 1))
-	  enddo
-	enddo
-  
-	do i = 1, n
-	  do j = 1, n
-		AMMmassChargeCoefficient(i, j, 4) = -ONEHALF * Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
-		(Glob_Mass(i + 1)**TWO)
-	  enddo
+		do j = 1, n
+		  SSNCmassChargeCoefficient(i, j) = Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
+		  (Glob_Mass(i + 1) * Glob_Mass(j + 1))
+		enddo
 	enddo
   
 	! now we deal with the spin stuff
@@ -433,7 +397,7 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMM
 	finalSpinFunction1, primitives1, numberOfPrimitives1)
 
 	call getSpinOpMeanValues(n, nFactorial, allPermutations, finalSpinFunction0, finalSpinFunction1, primitives0, primitives1, &
-	numberOfPrimitives0, numberOfPrimitives1, spinFreeME, SiMinusME, SiPlusME, SziME)
+	numberOfPrimitives0, numberOfPrimitives1, spinFreeME, SSNCspinME, SiMinusME, SiPlusME, SziME)
 
 	ketMatrix = ZERO
 	do i = 1, nFactorial
@@ -453,9 +417,8 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMM
   end subroutine spinPreCalc
 
 
-  subroutine spinDependentMatrixElements(selectTransition, m_k, mm_k, vechLk, vechLl, Pket, &
-	SOspinME, SOmassChargeCoefficient, AMMmassChargeCoefficient, SO1kl, SO2kl, &
-	AMM1kl, AMM2kl)
+  subroutine spinDependentMatrixElements(m_k, mm_k, vechLk, vechLl, Pket, &
+	SSNCspinME, SSNCmassChargeCoefficient, SSNCkl)
   !This subroutine computes symmetry adapted off-diagonal SO matrix element
   !between 2p(P) and S Gaussians. This matrix element
   !is used in calculations of expectation values.
@@ -473,14 +436,14 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMM
   !         1 and 2 stay for spin-same orbit and spin-another orbit contributions
   
   !Input vars:
-  integer,intent(in)       :: m_k, mm_k, selectTransition
+  integer,intent(in)       :: m_k, mm_k
   real(dprec),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
   real(dprec),intent(in)   :: Pket(Glob_n,Glob_n)
-  real(dprec),intent(in)   :: SOspinME(Glob_n), &
-  SOmassChargeCoefficient(Glob_n, Glob_n, 4), AMMmassChargeCoefficient(Glob_n, Glob_n, 4)
+  real(dprec),intent(in)   :: SSNCspinME(Glob_n, Glob_n), &
+  SSNCmassChargeCoefficient(Glob_n, Glob_n)
 
   !Output vars:
-  real(dprec), intent(out)  :: SO1kl, SO2kl, AMM1kl, AMM2kl
+  real(dprec), intent(out)  :: SSNCkl
 
   !Parameters (These are needed to declare static arrays. Using static
   !arrays makes the function call a little faster in comparison with
@@ -628,90 +591,32 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMM
   pm_k = m_k
   pmm_k = mm_k
   !common factor (sqrt(ONEHALF) - for consistent normalization with Skl)
-  if (selectTransition == 1) commonFactor = TWO * sqrt(THREE) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
-  if (selectTransition == 2) commonFactor = FOUR * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
+  commonFactor = - FOUR * sqrt(FIVE / THREE) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
 
-  SO1kl = ZERO
-  SO2kl = ZERO
-  
-  AMM1kl = ZERO
-  AMM2kl = ZERO
-  
+  SSNCkl = ZERO
   do indexI = 1, n
-	if (selectTransition == 1 .and. abs(SOspinME(indexI)) < localEps) cycle
+	do indexJ = indexI + 1, n
 
-   	! gamma diagonal coefficient
-   	gamma_diag = ONE / sqrt(inv_tAkl(indexI, indexI))
-  
-  	! calculating all the traces we need
-   	! tr(Axy') is computed as (y, Ax) everywhere
-   	! variable names: jiAlAklinvVk = (j^i, A_l A_{kl}^(-1) v_k) (names doesnt account for permutations)
-  
-  
-   	jiAlAklinvVk = ZERO
-   	do i = 1, n
-		jiAlAklinvVk = jiAlAklinvVk + tAl(indexI, i) * inv_tAkl(i, pm_k)
-   	enddo
-   	jiAlAklinvWk = ZERO
-   	do i = 1, n
-		jiAlAklinvWk = jiAlAklinvWk + tAl(indexI, i) * inv_tAkl(i, pmm_k)
-   	enddo
-   
-   	jiAklinvVk = inv_tAkl(indexI, pm_k)
-   	jiAklinvWk = inv_tAkl(indexI, pmm_k)
-  
-   	! I term -> diagonal (spin-same orbit) matrix element (f[ii, ii])
-   	temp1 = (gamma_diag ** 3 / THREE) *  (jiAklinvVk * jiAlAklinvWk - jiAklinvWk * jiAlAklinvVk) 
-   	SO1kl = SO1kl + SOspinME(indexI) * SOmassChargeCoefficient(indexI, indexI, 1) * temp1
-   	AMM1kl = AMM1kl + SOspinME(indexI) * AMMmassChargeCoefficient(indexI, indexI, 1) * temp1
-   
+		if (abs(SSNCspinME(indexI, indexJ)) < localEps ) cycle 
 
-   ! these traces are needed for spin-other-orbit contribution and SSNC
-   	do indexJ = 1, n
-		if (indexI == indexJ) cycle
+		jiAklinvVk = inv_tAkl(indexI, pm_k)
+		jiAklinvWk = inv_tAkl(indexI, pmm_k)
+		jjAklinvVk = inv_tAkl(indexJ, pm_k)
+		jjAklinvWk = inv_tAkl(indexJ, pmm_k)
   
-	 	gamma = ONE / sqrt(inv_tAkl(indexI, indexI) + inv_tAkl(indexJ, indexJ) - &
-	 	inv_tAkl(indexI, indexJ) - inv_tAkl(indexJ, indexI))
+		gamma = ONE / sqrt(inv_tAkl(indexI, indexI) + inv_tAkl(indexJ, indexJ) - &
+		inv_tAkl(indexI, indexJ) - inv_tAkl(indexJ, indexI))
 
-  
-	 	jjAlAklinvVk = ZERO
-	 	do i = 1, n
-	   		jjAlAklinvVk = jjAlAklinvVk + tAl(indexJ, i) * inv_tAkl(i, pm_k)
-	 	enddo
+		temp1 = (ONE / FIVE) * gamma ** 5 * (jiAklinvVk * jiAklinvWk + jjAklinvVk * jjAklinvWk - &
+		jiAklinvVk * jjAklinvWk - jjAklinvVk * jiAklinvWk)
 
-	 	jjAlAklinvWk = ZERO
-	 	do i = 1, n
-	   		jjAlAklinvWk = jjAlAklinvWk + tAl(indexJ, i) * inv_tAkl(i, pmm_k)
-	 	enddo
-  
-	 	jjAklinvVk = inv_tAkl(indexJ, pm_k)
-	 	jjAklinvWk = inv_tAkl(indexJ, pmm_k)
-  
-	 	!! II term -> f[ii, ij]
-	 	temp1 = (gamma_diag ** 3 / THREE) * (jiAklinvVk * jjAlAklinvWk - jiAklinvWk * jjAlAklinvVk)
-	   	SO2kl = SO2kl + SOspinME(indexI) * SOmassChargeCoefficient(indexI, indexI, 2) * temp1
-	 
-  
-	 	!! III term -> f[ij, jj]
-		temp1 = (gamma ** 3 / THREE) * (jjAlAklinvWk * (jjAklinvVk - jiAklinvVk) + &
-		jjAlAklinvVk * (jiAklinvWk - jjAklinvWk))
-	   	SO2kl = SO2kl + SOspinME(indexI) * SOmassChargeCoefficient(indexI, indexJ, 3) * temp1
-	   	AMM2kl = AMM2kl + SOspinME(indexI) * AMMmassChargeCoefficient(indexI, indexJ, 3) * temp1
-  
-  
-	 	!! IV term -> f[ij, ii] (i <->j of the III term)
-	 	temp1 = (gamma ** 3 / THREE) * (jiAlAklinvWk * (jiAklinvVk - jjAklinvVk) + &
-		jiAlAklinvVk * (jjAklinvWk - jiAklinvWk))
-	    SO2kl = SO2kl + SOspinME(indexI) * SOmassChargeCoefficient(indexI, indexJ, 4) * temp1
-	    AMM2kl = AMM2kl + SOspinME(indexI) * AMMmassChargeCoefficient(indexI, indexJ, 4) * temp1
-  
-   enddo ! indexJ cycle
+		SSNCkl = SSNCkl + SSNCspinME(indexI, indexJ) * SSNCmassChargeCoefficient(indexI, indexJ) * temp1
+
+    enddo ! indexJ scycle
   enddo ! indexI cycle
+
   
-  SO1kl = SO1kl * commonFactor 
-  SO2kl = SO2kl * commonFactor
-  AMM1kl = AMM1kl * commonFactor
-  AMM2kl = AMM2kl * commonFactor
+  SSNCkl = SSNCkl * commonFactor
   
   
   end subroutine spinDependentMatrixElements
