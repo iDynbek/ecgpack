@@ -36,6 +36,8 @@ endif
 
 call ComputeSpinDep()
 
+!call ComputeScalar()
+
 call MPI_FINALIZE(Glob_MPIErrCode)
 
 
