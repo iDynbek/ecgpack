@@ -697,8 +697,8 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, S
   	commonFactorSO = -sqrt(FIVE / (12._dprec)) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
 	commonFactorSS = sqrt(15._dprec) / TWO * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
   endif
-  if (selectTransition == 3) commonFactorSO = -ONEHALF * sqrt(FIVE / THREE) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
-
+  if (selectTransition == 3) commonFactorSO=-ONEHALF * sqrt(FIVE / THREE) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
+ 
   SSNCkl = ZERO
 
   SO1kl = ZERO
