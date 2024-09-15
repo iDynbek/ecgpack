@@ -6,15 +6,17 @@
 usage_print() {
     echo ""
     echo "PROPER USAGE:"
-    echo "$0 machine=<machinename> toolchain=<toolchainname> config=<confignames> code=<codenames> nparticles=<nparticles> precision=<precisions> use_optimized_lapack=<yesnoflag>"
+    echo "$0 machine=<machinename> toolchain=<toolchainnames> config=<confignames> code=<codenames> nparticles=<nparticles> precision=<precisions> use_optimized_lapack=<yesnoflag>"
     echo ""   
     echo "NOTE:" 
     echo "All arguments optional except nparticles. If multiple values are specified for an argument, they must be separated by a comma."
+    echo "The resulting binary files are stored in the directory bin/<toolchainname>/<configname>/. This script must be executed in the ecg directory."
     echo "" 
     echo "DESCRIPTION:"
-    echo "<machinename> is the name of the machine or OS distro currently supported. Only a single value may be specified. It could be wsl-ubuntu-22.04 (default), shabyt, muon."
-    echo "<toolchain> are the names of the toolchains. Supported values for different machines are"
-    echo "    wsl-ubuntu-22.04: foss-2023b (default), intel-2023b"
+    echo "<machinename> is the name of the machine or OS distro currently supported. Only a single value may be specified. It could be ubuntu-generic (default), linux-generic, shabyt, muon."
+    echo "<toolchainnames> are the names of the toolchains. Supported values for different machines are"
+    echo "    ubuntu-generic: foss-2023b (default), intel-2023b, systemdefault"
+    echo "    linux-generic: foss-2023b (default), intel-2023b, systemdefault"   
     echo "    shabyt: foss-2023b (default), intel-2023b"
     echo "    muon: foss-2023b (default), intel-2023b"
     echo "<confignames> is the list of configurations that need to be built. Currently these could be debug or release. The default includes all configurations."
@@ -24,7 +26,7 @@ usage_print() {
     echo "<yesnoflag> is a flag that specifies whether to use optimized LAPACK libraries (yes) or use nonoptimized LAPACK from source (no). The default value is yes for precision=8. For precision=10 and precision=16 the value is always no, regardless how the flag is set because optimized LAPACK for these two cases is unavailable."
     echo ""
     echo "EXECUTION EXAMPLES:"
-    echo "$0 machine=wsl-ubuntu-22.04 toolchain=foss-2023b config=release code=RGL0,RGL1,RGL2P,RGL2D nparticles=3,4,5,6 precision=8,10,16 use_optimized_lapack=no"
+    echo "$0 machine=ubuntu-generic toolchain=foss-2023b config=release code=RGL0,RGL1,RGL2P,RGL2D nparticles=3,4,5,6 precision=8,10,16 use_optimized_lapack=no"
     echo "$0 machine=muon toolchain=foss-2023b,intel-2023b config=debug,release code=RGL0 nparticles=4,5 precision=8,16 use_optimized_lapack=yes,no"
     echo "$0 machine=shabyt nparticles=4,5 precision=10"
     echo "$0 nparticles=7"
@@ -32,7 +34,7 @@ usage_print() {
 }
 
 # Set default values for arguments
-machine="wsl-ubuntu-22.04"
+machine="ubuntu-generic"
 toolchain="foss-2023b"
 config="debug,release"
 code="RGL0,RGL1,RGL2P,RGL2D,RGL01,RGL02P,RGL02D,RGL11,RGL2P2P,RGL2P2D"
@@ -126,16 +128,77 @@ bindirname="bin"
 # Drop any modules that may have been left loaded and suppress any output of this command
 module reset > /dev/null 2>&1
 
+# Set the counters for counting builds
+counter_attempted_builds=0
+counter_successful_builds=0
+counter_failed_builds=0
+
 # Execute a branch corresponding to a specific machine
-if [ "$machine" = "wsl-ubuntu-22.04" ]; then
+if [ "$machine" = "ubuntu-generic" ] || [ "$machine" = "linux-generic" ] || [ "$machine" = "shabyt" ] || [ "$machine" = "muon" ] ; then
     # Loop over all toolchains
     for toolchain_value in ${toolchain_list[@]}; do
-        # Check if the toolchain is valid for wsl-ubuntu-22.04 and load the corresponding module
-        if [ "$toolchain" = "foss-2023b" ]; then
-            module load foss/2023b
-        elif [ "$toolchain" = "intel-2023b" ]; then
-            module load intel/2023b
-        else
+        # Check if the toolchain is valid for the specified machine and load the corresponding module.
+        # If the module is not loaded or/and the proper Fortran compiler and MPI are inaccessible, 
+        # print an error message.
+        if [ "$toolchain_value" = "foss-2023b" ]; then
+            module_for_toolchain="foss/2023b"
+            module load $module_for_toolchain
+            compiler_type=gnu
+            if module load $module_for_toolchain 2>&1 | grep -qi "error"; then
+                echo "Module" $module_for_toolchain " for toolchain" $toolchain_value "could not be loaded"
+                echo "Either the machine argument you use is incorrect or the lmod configuration has been changed."
+                echo "Skipping this toolchain."
+                continue
+            fi 
+            if ! which gfortran 2>&1 | grep -qi "software/GCCcore/13.2.0/bin/gfortran"; then
+                echo "gfortran compiler matching toolchain" $toolchain_value" is not accessible."
+                echo "Check that module" $module_for_toolchain " is properly configured."
+                echo "Skipping this toolchain."
+                continue
+            fi
+            if ! which mpif90 2>&1 | grep -qi "software/OpenMPI/4.1.6-GCC-13.2.0/bin/mpif90"; then
+                echo "mpif90 compiler matching toolchain" $toolchain_value" is not accessible."
+                echo "Check that module" $module_for_toolchain " is properly configured."
+                echo "Skipping this toolchain."
+                continue
+            fi                           
+        elif [ "$toolchain_value" = "intel-2023b" ]; then
+            module_for_toolchain="intel/2023b"
+            compiler_type=intel
+            module load $module_for_toolchain
+            if module load $module_for_toolchain 2>&1 | grep -qi "error"; then
+                echo "Module" $module_for_toolchain " for toolchain" $toolchain_value "could not be loaded"
+                echo "Either the machine argument you use is incorrect or the lmod configuration has been changed."
+                echo "Skipping this toolchain."
+                continue
+            fi 
+            if ! which ifort 2>&1 | grep -qi "software/intel-compilers/2023.2.1/compiler/2023.2.1/linux/bin/intel64/ifort"; then
+                echo "gfortran compiler matching toolchain" $toolchain_value" is not accessible."
+                echo "Check that module" $module_for_toolchain " is properly configured."
+                echo "Skipping this toolchain."
+                continue
+            fi
+            if ! which mpif90 2>&1 | grep -qi "software/impi/2021.10.0-intel-compilers-2023.2.1/mpi/2021.10.0/bin/mpif90"; then
+                echo "mpif90 compiler matching toolchain" $toolchain_value" is not accessible."
+                echo "Check that module" $module_for_toolchain " is properly configured."
+                echo "Skipping this toolchain."
+                continue
+            fi               
+        elif [ "$toolchain_value" = "systemdefault" ]; then
+            compiler_type=gnu
+            if ! which gfortran 2>&1 | grep -qi "/usr/bin/gfortran"; then
+                echo "gfortran compiler matching toolchain" $toolchain_value" is not accessible."
+                echo "Check that it is installed on your system."
+                echo "Skipping this toolchain."
+                continue
+            fi
+            if ! which mpif90 2>&1 | grep -qi "/usr/bin/mpif90"; then
+                echo "mpif90 compiler matching toolchain" $toolchain_value" is not accessible."
+                echo "Check that it is installed on your system."
+                echo "Skipping this toolchain."
+                continue
+            fi 
+        else        
             echo "ERROR, INVALID TOOLCHAIN $toolchain FOR MACHINE $machine"
             usage_print
             exit 1
@@ -148,49 +211,79 @@ if [ "$machine" = "wsl-ubuntu-22.04" ]; then
                 for nparticles_value in ${nparticles_list[@]}; do
                     # Loop over all precisions
                     for precision_value in ${precision_list[@]}; do
-                        # Loop over all values of use_optimized_lapack, but for precision=10,16 only `no` is allowed
+                        # Set the name of the real type for MPI that will be later inserted in the proper place of the Fortran source
+                        if [[ "$precision_value" = "8"]]; then
+                            MPI_REALX_name=MPI_DOUBLE_PRECISION
+                        elif [[ "$precision_value" = "10"]]; then
+                            MPI_REALX_name=MPI_REAL16
+                        elif [[ "$precision_value" = "16"]]; then
+                            MPI_REALX_name=MPI_REAL16
+                        fi                    
+                        # Loop over all values of use_optimized_lapack, but for precision=10,16 only the `no` is allowed
                         for use_optimized_lapack_value in ${use_optimized_lapack_list[@]}; do
-                            if [[ "$use_optimized_lapack_value" = "yes" && "$precision_value" = "10"  ]]; then
-                                continue
-                            fi
-                            if [[ "$use_optimized_lapack_value" = "yes" && "$precision_value" = "16"  ]]; then
-                                continue
-                            fi                            
-                            echo "========================== New build started ==========================="
+                            binsubdirname=${bindirname}/${toolchain_value}/${config_value} 
+                            binaryfilename=${code_value}_N${nparticles_value}_P${precision_value}
+                            if [[ "$use_optimized_lapack_value" = "yes"]]; 
+                                if [[ "$precision_value" = "10"  ]]; then
+                                    continue
+                                elif [[ "$precision_value" = "16"  ]]; then
+                                    continue
+                                else
+                                    # Add suffix to the binary file name if optimized LAPACK is used
+                                    binaryfilename=${binaryfilename}_optlapack
+                                fi 
+                            fi                                                                                
+                            echo "========================== Starting new build =========================="
                             echo "machine="$machine "   toolchain="$toolchain_value "   config="$config_value
                             echo "code="$code_value "   nparticles="$nparticles_value "   precision="$precision_value "   use_optimized_lapack="$use_optimized_lapack_value
                             echo "------------------------------------------------------------------------"
-                            binsubdirname=${bindirname}/${toolchain_value}/${config_value}
-                            #mkdir -p ${binsubdirname}
-                            binaryfilename=${code_value}_N${nparticles_value}_P${precision_value}
-                            if [[ "$use_optimized_lapack_value" = "yes" && precision_value = "8" ]]; then
-                                    binaryfilename=${binaryfilename}_optlapack
+                            # Check if file ${code_value}/src/wp_def_${precision_value}.f90 exists. This way
+                            # we aslo automtically test if the directory ${code_value} for this specific code exists                            
+                            if ! [ -f "${code_value}/src/wp_def_${precision_value}.f90" ]; then
+                                echo "ERROR, FILE ${code_value}/src/wp_def_${precision_value}.f90 DOES NOT EXIST"
+                                echo "Skipping this build."
+                                continue
+                            fi  
+                            cd ${code_value}                              
+                            counter_attempted_builds=$((counter_attempted_builds+1))
+                            # Make a copy of the original file src/wp_def_${precision_value}.f90
+                            cp -f src/wp_def_${precision_value}.f90 src/wp_def_temporary.f90
+                            # Replace "Glob_MaxAllowedNumOfParticles=..." with "Glob_MaxAllowedNumOfParticles=${nparticles_value}" in file src/wp_def_${precision_value}.f90
+                            sed -i "s/Glob_MaxAllowedNumOfParticles=[0-9]\+/Glob_MaxAllowedNumOfParticles=${precision_value}/g" src/wp_def_${precision_value}.f90
+                            # Replace "MPI_DPREC=..." with "MPI_DPREC=${MPI_REALX_name}" in file src/wp_def_${precision_value}.f90
+                            sed -i "s/MPI_DPREC=[^ ][^ ]*/MPI_DPREC=${MPI_REALX_name}/g" src/wp_def_${precision_value}.f90                            
+                            # Build the code
+                            make clean > /dev/null 2>&1                            
+                            make ${config_value} COMPILER_TYPE=${compiler_type} MACHINE=${machine} PREC=${precision_value} OPTLPKBLS=${use_optimized_lapack_value} EXEFILE=ecg
+                            # Check if the build was successful
+                            if [ $? -eq 0 ]; then
+                                echo "===================== Build finished succesfully ======================="
+                                # Copy the code to the bin directory
+                                mkdir -p ../${binsubdirname}
+                                mv ${config_value}/ecg ../${binsubdirname}/${binaryfilename}
+                                counter_successful_builds=$((counter_successful_builds+1))
+                            else
+                                echo "============================= Build failed ============================="
+                                counter_failed_builds=$((counter_failed_builds+1))
                             fi
-                            #cd ${code_value}
-                            #make clean
-                            #make clean
-                            #cd ../
-                            echo "============================ build finished ============================"
+                            # Restore the original file src/wp_def_${precision_value}.f90
+                            cp -f src/wp_def_temporary.f90 src/wp_def_${precision_value}.f90
+                            # Go back to upper level ecg directory, where the scipt is located
+                            cd ../
                         done
                     done
                 done
             done
-        done
-        if [ "$toolchain" = "foss-2023b" ]; then
-            module unload foss/2023b
-        elif [ "$toolchain" = "intel-2023b" ]; then
-            module unload intel/2023b
-        else  
-            echo "WARNING: TOOLCHAIN" $toolchain_value "IS NOT SUPPORTED FOR" $machine
-            echo "SKIPPING THIS TOOLCHAIN"
-        fi      
-    done
-elif [ "$machine" = "shabyt" ]; then
-    echo "This is work in progress"
-elif [ "$machine" = "muon" ]; then
-    echo "This is work in progress"
+        done     
+    done   
 else
     echo "ERROR, INVALID MACHINE: $machine"
     usage_print
     exit 1
 fi
+
+echo "Total number of attempted builds:  " $counter_attempted_builds
+echo "Total number of successful builds: " $counter_successful_builds
+echo "Total number of failed builds:     " $counter_failed_builds 
+
+exit 0
