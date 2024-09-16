@@ -94,7 +94,7 @@ done
 
 # Check if code is set properly
 for code_value in ${code_list[@]}; do
-    if [[ ( "$code_value" != "CG_0S" ) && ( "$code_value" != "RG_0S" ) && ( "$code_value" != "RG_1P" ) && ( "$code_value" != "RG_2D" ) && ( "$code_value" != "RG_2P" ) && ( "$code_value" != "RG_0S-1P" ) && ( "$code_value" != "RG_0S_2D" ) && ( "$code_value" != "RG_0S-2P" ) && ( "$code_value" != "RG_1P-1P" ) && ( "$code_value" != "RG_1P-2D" ) && ( "$code_value" != "RG_2D-2D" )  && ( "$code_value" != "RG_2P-2D" ) && ( "$code_value" != "RG_2P-2P" ) ]]; then
+    if [[ ( "$code_value" != "CG_0S" ) && ( "$code_value" != "RG_0S" ) && ( "$code_value" != "RG_1P" ) && ( "$code_value" != "RG_2D" ) && ( "$code_value" != "RG_2P" ) && ( "$code_value" != "RG_0S-1P" ) && ( "$code_value" != "RG_0S-2D" ) && ( "$code_value" != "RG_0S-2P" ) && ( "$code_value" != "RG_1P-1P" ) && ( "$code_value" != "RG_1P-2D" ) && ( "$code_value" != "RG_2D-2D" )  && ( "$code_value" != "RG_2P-2D" ) && ( "$code_value" != "RG_2P-2P" ) ]]; then
         echo "ERROR, WRONG VALUE(S) OF ARGUMENT: code"
         usage_print
         exit 1
