@@ -133,9 +133,6 @@ for use_optimized_lapack_value in ${use_optimized_lapack_list[@]}; do
     fi
 done
 
-# Drop any modules that may have been left loaded and suppress any output of this command
-# module reset > /dev/null 2>&1
-
 # Set the name of the directory where all binaries will be stored
 bindirname="bin"  
 
@@ -145,6 +142,8 @@ counter_successful_builds=0
 counter_failed_builds=0
 
 for toolchain_value in ${toolchain_list[@]}; do
+    # Drop any modules that may have been left loaded and suppress any output of this command
+    module reset > /dev/null 2>&1
     # Check if the toolchain is valid for the specified machine and load the corresponding module.
     # If the module is not loaded or/and the proper Fortran compiler and MPI are inaccessible, 
     # print an error message.
