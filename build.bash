@@ -348,7 +348,7 @@ for toolchain_value in ${toolchain_list[@]}; do
                         fi
                         # Restore the original file src/wp_def_${precision_value}.f90
                         cp -f src/wp_def_temporary.f90 src/wp_def_${precision_value}.f90
-                        # Go back to upper level ecg directory, where the scipt is located
+                        # Go back to upper level ecg directory, where the script is located
                         cd ../
                     done
                 done
