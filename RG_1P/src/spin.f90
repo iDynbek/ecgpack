@@ -1774,7 +1774,13 @@ contains
               enddo
            else
               k=permutedStrings(1,ptr) !k = \sigma(1)
-              l=findloc(permutedStrings(:,ptr), 1, 1) !l = \sigma^(-1)(1)
+              !l=findloc(permutedStrings(:,ptr), 1, 1) !l = \sigma^(-1)(1)
+              do i=1,numberOfSpinHalf
+                if (permutedStrings(i,ptr) == 1) then 
+                  l = i
+                  exit
+                endif
+              enddo
               ! ptr = P_{1k} x {1->sigma(1), ... sigma^(-1)(1)->sigma(1) ... }
               ! ptr^(-1) = {1->sigma(1), ... sigma^(-1)(1)->sigma(1) ... } x P_{1k} 
               do i=2,numberOfSpinHalf
