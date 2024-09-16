@@ -19,9 +19,9 @@ usage_print() {
     echo "  linux-generic   ::  foss-2023b, intel-2023b, systemdefault (default)"   
     echo "  shabyt          ::  foss-2023b, intel-2023b, systemdefault (default)"
     echo "  muon            ::  foss-2023b, intel-2023b, systemdefault (default)"
-    echo "  puma            ::  gnu8-8.3.8, intel-2020.4, systemdefault (default)"
-    echo "  ocelote         ::  gnu8-8.3.8, intel-2020.4, systemdefault (default)"
-    echo "  elgato          ::  gnu8-8.3.8, intel-2020.4, systemdefault (default)"    
+    echo "  puma            ::  gnu8-8.3.0, intel-2020.4, systemdefault (default)"
+    echo "  ocelote         ::  gnu8-8.3.0, intel-2020.4, systemdefault (default)"
+    echo "  elgato          ::  gnu8-8.3.0, intel-2020.4, systemdefault (default)"    
     echo "<confignames> is the list of configurations that need to be built. Currently these could be debug or release. The default includes all configurations."
     echo "<codenames> is the list of codes that need to be built. Currently these could be RG_0S,RG_1P,RG_2P,RG_2D,RG_0S-1P,RG_0S2P,RG_0S-2D,RG_1P-1P,RG_2P-2P,RG_2P-2D. The default includes all codes."
     echo "<nparticles> defines for how many particles each code must be build for. There is no default value. This argument must be present."
@@ -218,8 +218,8 @@ for toolchain_value in ${toolchain_list[@]}; do
     if [ "$machine" = "puma" ] || [ "$machine" = "ocelote" ] || [ "$machine" = "elgato" ]; then
         # Possibly insert $machine in the path given by $bindirname (this can be left empty). Be sure to add a trailing slash.
         machinedirname=${machine}"/"
-        if [ "$toolchain_value" = "gnu8-8.3.8" ]; then
-            module_for_toolchain="gnu8/8.3.8"
+        if [ "$toolchain_value" = "gnu8-8.3.0" ]; then
+            module_for_toolchain="gnu8/8.3.0"
             module load $module_for_toolchain
             compiler_type=gnu
             if module load $module_for_toolchain 2>&1 | grep -qi "error"; then
