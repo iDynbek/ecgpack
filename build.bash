@@ -77,7 +77,7 @@ IFS=',' read -ra precision_list <<< $precision
 IFS=',' read -ra use_optimized_lapack_list <<< $use_optimized_lapack
 
 # Check if machine is set properly. Only a single machine can be used as an argument
-if ! [ "$machine" = "ubuntu-generic" ] || [ "$machine" = "linux-generic" ] || [ "$machine" = "shabyt" ] || [ "$machine" = "muon" ] || [ "$machine" = "puma" ] || [ "$machine" = "ocelote" ] || [ "$machine" = "elgato" ]; then
+if [[ ( "$machine" != "ubuntu-generic" ) && ( "$machine" != "linux-generic" ) && ( "$machine" != "shabyt" ) && ( "$machine" != "muon" ) && ( "$machine" != "puma" ) && ( "$machine" != "ocelote" ) && ( "$machine" != "elgato" ) ]]; then
     echo "ERROR, INVALID MACHINE: $machine"
     usage_print
     exit 1
