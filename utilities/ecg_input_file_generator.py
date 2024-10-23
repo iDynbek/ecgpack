@@ -1,0 +1,311 @@
+#!/bin/python3
+# This Python script generates an initial input file for ECG codes with a reasonable basis building and optimization script for the ECG codes.
+#
+# Usage examples:
+#
+# ./ecg_input_file_generator.py -particles 3 -masses "1.E30 1.0 1.0" -charges "2.0 -1.0 -1.0" -symmetry "(1+P23)" -eigenvalue 1 -maxbasis 2000 -systemname "He_1Se"
+#
+# ./ecg_input_file_generator.py -particles 4 -masses "1.E30 1.0 1.0 1.0" -charges "3.0 -1.0 -1.0 -1.0" -symmetry "atom-doublet" -eigenvalue 1 -maxbasis 3000 -systemname "Li_2Se"
+#
+# ./ecg_input_file_generator.py -particles 5 -masses "1.E30 1.0 1.0 1.0 1.0" -charges "4.0 -1.0 -1.0 -1.0 -1.0" -symmetry "atom-triplet" -youngoperatorformat "AS" -eigenvalue 1 -maxbasis 5000 -systemname "Be_3Se"  
+#
+# ./ecg_input_file_generator.py -particles 7 -masses "25519.04528239 1.0 1.0 1.0 1.0 1.0 1.0" -charges "7.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0" -symmetry "(1+P23)(1+P45)(1-P24)(1-P26-P46)(1-P27-P47-P67)(1-P35)" -eigenvalue 1 -maxbasis 15000 -systemname "N+_3Pe"
+#
+# Note that the permutational symmetry can be supplied either by 
+# means of a string with an explicit form of the Young operator 
+# (e.g. "(1+P23)"), or can be specified using the following keywords: 
+# "atom-singlet", "atom-doublet", "atom-triplet", "atom-quartet", "atom-quintet", "atom-sextet","atom-septet", "atom-octet", "atom-nonet".
+# In such a case the first particle is assumed to be an atomic nucleus, while all others are assumed to be identical electrons.
+#
+# The value of argument youngoperatorformat is only used if the permutational symmetry is defined through a keyword (e.g. "atom-quartet"). 
+# It can only take two values - "SA" and "AS". The default/natural/textbook order is "SA", meaning that Y = S*A, where S is the symmetrizer and 
+# A is an antisymmetrizer. The default/natural order always yields n! terms for matrix elements. The reversed order, AS, which is implemented
+# here to enable experimenting with things, may yield a somewhat smaller number of terms for high-spin states. At the same time, so far 
+# there has been no evidense that the reverse order can result in incorrect energies or expectation values.
+#
+# String passed by argument systemname (e.g. "He_1Se") is appended to the names of the input files that are saved with the SAVE_FILE script commands. Note that the eigenvalue number is also appended to the names of the saved files.
+#
+# In case if masses of common nuclear isotopes are needed, here are their values (in a.u., that is in electron masses). These masses
+# were derived using AME 2020 atomic masses and CODATA 2022 values of fundamental constants.
+#
+# M(1H) =    1836.15267337
+# M(1H) =    1836.15267343(11)  [CODATA 2018]
+#
+# M(1H) =    1836.15267337
+#              ±0.00000008
+# M(1H) =    1836.15267343(11)  [CODATA 2018]
+#
+# M(2H) =    3670.48296750
+#              ±0.00000013
+# M(2H) =    3670.48296788(13)  [CODATA 2018]
+#
+# M(3H) =    5496.92153538
+#              ±0.00000031
+# M(3H) =    5496.92153573(27)  [CODATA 2018]
+#
+# M(3He) =   5495.88527968
+#              ±0.00000027
+# M(3He) =   5495.88528007(24)  [CODATA 2018]
+#
+# M(4He) =   7294.29954143
+#              ±0.00000050
+# M(4He) =   7294.29954142(24)  [CODATA 2018]
+#
+# M(6Li) =  10961.89865279
+#              ±0.00000306
+#
+# M(7Li) =  12786.39227726
+#              ±0.00000767
+#
+# M(9Be) =  16424.20551681
+#              ±0.00014634
+#
+# M(10B) =  18247.46863192
+#              ±0.00002975
+#
+# M(11B) =  20063.73694313
+#              ±0.00002434
+#
+# M(12C) =  21868.66385048
+#              ±0.00000090
+#
+# M(13C) =  23697.66782741
+#              ±0.00000141
+#
+# M(14C) =  25520.35060733
+#              ±0.00000830
+#
+# M(14N) =  25519.04528239
+#              ±0.00000171
+#
+# M(15N) =  27336.52871111
+#              ±0.00000242
+#
+# M(16O) =  29148.94969767
+#              ±0.00000246
+#
+# M(17O) =  30979.52555381
+#              ±0.00000324
+#
+# M(18O) =  32802.46481859
+#              ±0.00000330
+
+import argparse
+
+parser = argparse.ArgumentParser(description="Generate file")
+parser.add_argument("-particles", default=3, type=int, choices=[2, 3, 4, 5, 6, 7, 8, 9], help="Number of particles, default is 3")
+parser.add_argument("-maxbasis", default=5000, type=int, help="Maximum basis size, default is 5000")
+parser.add_argument("-systemname", default='SYSTEMNAME', help="System name, default is SYSNAME-01")
+parser.add_argument("-symmetry", default='(1)', help="Permutational symmetry, default is (1)")
+parser.add_argument("-eigenvalue", default=1 ,type=int, help="Eigenvalue number")
+parser.add_argument("-masses", default='nonesupplied', help="Masses, default is 1.0 for all")
+parser.add_argument("-charges", default='nonesupplied', help="Charges, default is 1.0 for all")
+parser.add_argument("-youngoperatorformat", default='SA', choices=['SA', 'AS'], help="Order of symmetrizers and antisymmetryzers in the Young operator")
+
+args = parser.parse_args()
+
+PARTICLES  = args.particles
+MAXBASIS = args.maxbasis
+SYSTEMNAME = args.systemname
+SYMMETRY = args.symmetry
+EIGENVALUE = args.eigenvalue
+MASSES = args.masses
+CHARGES = args.charges
+YOUNGOPERATORFORMAT = args.youngoperatorformat
+
+RANDOM_TRIALS = 100*PARTICLES  #Number of stochastic trials in BASIS_ENL
+OPT_LIMIT_EXPAND = 50*PARTICLES  #Max number of energy evaluations when optimizing a newly selected basis function in BASIS_ENL
+OPT_LIMIT_CYCLE = 30*PARTICLES #Max number of energy evaluations when optimizing a function in OPT_CYCLE
+OPT_LIMIT_FULLOPT = 999999
+SAVE_FREQ = 10  #How often the file is saved in OPT_CYCLE
+OVERLAP_THRESHOLD = 0.98  #Overlap threshold
+LIN_COEFF_THRESHOLD = 3.0 #Maximum allowed magnitude of linear coefficients
+
+#If permutational symmetry was supplied through a keyword 
+#such as "atom-singlet", "atom-doublet", "atom-triplet", "atom-quartet", etc, then 
+#we need to generate generate a suitable Young operator
+
+if (PARTICLES == 3):
+    if (SYMMETRY == "atom-singlet"):
+        S="(1+P23)"
+        A=""
+    if (SYMMETRY == "atom-triplet"):
+        S=""
+        A="(1-P23)"
+
+if (PARTICLES == 4):
+    if (SYMMETRY == "atom-doublet"):
+        S="(1+P23)"
+        A="(1-P24)"
+    if (SYMMETRY == "atom-quartet"):
+        S=""
+        A="(1-P23)(1-P24-P34)"
+
+if (PARTICLES == 5):
+    if (SYMMETRY == "atom-singlet"):
+        S="(1+P23)(1+P45)"
+        A="(1-P24)(1-P35)"
+    if (SYMMETRY == "atom-triplet"):
+        S="(1+P23)"
+        A="(1-P24)(1-P25-P45)"
+    if (SYMMETRY == "atom-quintet"):
+        S=""
+        A="(1-P23)(1-P24-P34)(1-P25-P35-P45)"        
+
+if (PARTICLES == 6):
+    if (SYMMETRY == "atom-doublet"):
+        S="(1+P23)(1+P45)"
+        A="(1-P24)(1-P26-P46)(1-P35)"
+    if (SYMMETRY == "atom-quartet"):
+        S="(1+P23)"
+        A="(1-P24)(1-P25-P45)(1-P26-P46-P56)"
+    if (SYMMETRY == "atom-sextet"):
+        S=""
+        A="(1-P23)(1-P24-P34)(1-P25-P35-P45)(1-P26-P36-P46-P56)"
+
+if (PARTICLES == 7):
+    if (SYMMETRY == "atom-singlet"):
+        S="(1+P23)(1+P45)(1+P67)"
+        A="(1-P24)(1-P26-P46)(1-P35)(1-P37-P57)"
+    if (SYMMETRY == "atom-triplet"):
+        S="(1+P23)(1+P45)"
+        A="(1-P24)(1-P26-P46)(1-P27-P47-P67)(1-P35)"
+    if (SYMMETRY == "atom-quintet"):
+        S="(1+P23)"
+        A="(1-P24)(1-P25-P45)(1-P26-P46-P56)(1-P27-P47-P57-P67)"   
+    if (SYMMETRY == "atom-septet"):
+        S=""
+        A="(1-P23)(1-P24-P34)(1-P25-P35-P45)(1-P26-P36-P46-P56)(1-P27-P37-P47-P57-P67)"              
+
+if (PARTICLES == 8):
+    if (SYMMETRY == "atom-doublet"):
+        S="(1+P23)(1+P45)(1+P67)"
+        A="(1-P24)(1-P26-P46)(1-P28-P48-P68)(1-P35)(1-P37-P57)"
+    if (SYMMETRY == "atom-quartet"):
+        S="(1+P23)(1+P45)"
+        A="(1-P24)(1-P26-P46)(1-P27-P47-P67)(1-P28-P48-P68-P78)(1-P35)"
+    if (SYMMETRY == "atom-sextet"):
+        S="(1+P23)"
+        A="(1-P24)(1-P25-P45)(1-P26-P46-P56)(1-P27-P47-P57-P67)(1-P28-P48-P58-P68-P78)"   
+    if (SYMMETRY == "atom-octet"):
+        S=""
+        A="(1-P23)(1-P24-P34)(1-P25-P35-P45)(1-P26-P36-P46-P56)(1-P27-P37-P47-P57-P67)(1-P28-P38-P48-P58-P68-P78)"                  
+
+if (PARTICLES == 9):
+    if (SYMMETRY == "atom-singlet"):
+        S="(1+P23)(1+P45)(1+P67)(1+P89)"
+        A="(1-P24)(1-P26-P46)(1-P28-P48-P68)(1-P35)(1-P37-P57)(1-P39-P59-P79)"
+    if (SYMMETRY == "atom-triplet"):
+        S="(1+P23)(1+P45)(1+P67)"
+        A="(1-P24)(1-P26-P46)(1-P28-P48-P68)(1-P29-P40-P69-P89)(1-P35)(1-P37-P57)"
+    if (SYMMETRY == "atom-quintet"):
+        S="(1+P23)(1+P45)"
+        A="(1-P24)(1-P26-P46)(1-P27-P47-P67)(1-P28-P48-P68-P78)(1-P29-P49-P69-P79-P89)(1-P35)"   
+    if (SYMMETRY == "atom-septet"):
+        S="(1+P23)"
+        A="(1-P24)(1-P25-P45)(1-P26-P46-P56)(1-P27-P47-P57-P67)(1-P28-P48-P58-P68-P78)(1-P29-P49-P59-P69-P79-P89)"
+    if (SYMMETRY == "atom-nonet"):
+        S=""
+        A="(1-P23)(1-P24-P34)(1-P25-P35-P45)(1-P26-P36-P46-P56)(1-P27-P37-P47-P57-P67)(1-P28-P38-P48-P58-P68-P78)(1-P29-P39-P49-P59-P69-P79-P89)"  
+
+if (SYMMETRY == "atom-singlet" or SYMMETRY == "atom-doublet" or SYMMETRY == "atom-triplet" or SYMMETRY == "atom-quartet" or SYMMETRY == "atom-quintet" or SYMMETRY == "atom-sextet" or SYMMETRY == "atom-septet" or SYMMETRY == "atom-octet" or SYMMETRY == "atom-nonet"):
+    if (YOUNGOPERATORFORMAT == "SA"):
+        #Default/natural/textbook order
+        SYMMETRY = S + A
+    if (YOUNGOPERATORFORMAT == "AS"):
+        #Unnatural order
+        SYMMETRY = A + S
+
+#Print header first
+print(" PARTICLES" + "{:>5}".format(PARTICLES))
+
+print(" MASSES   ", end=" ")
+if (MASSES == 'nonesupplied'):
+    for _ in range(PARTICLES):
+        print("  1.0E0", end=" ")
+    print(" ") 
+else:
+    print(MASSES)  
+
+print(" CHARGES  ", end=" ")
+if (CHARGES == 'nonesupplied'):
+    for _ in range(PARTICLES):
+        print("  1.0E0", end=" ")
+    print(" ") 
+else:
+    print(CHARGES)    
+
+print(" SYMMETRY  " + SYMMETRY)
+print(" BASIS_SIZE  0")
+print(" CURRENT_ENERGY  0.1E20")
+print(" WHICH_EIGENVALUE  " + "{:<5}".format(EIGENVALUE))
+print(" EIGVAL_TOLERANCE  0.1E-11")
+print(" INVITPARAMETER  1.000001E0")
+print(" LAST_EIGVAL_TOL  0.1E0")
+print(" BEST_EIGVAL_TOL  0.1E0")
+print(" WORST_EIGVAL_TOL  0.1E-20")
+print(" GENERATOR_PARAM   0.7E0  1.0E0  3.0E0")
+print(" ==============================")
+print("    0  0.1E20      0      0      0")
+print(" ==============================")
+
+ilist = [3, 6, 10, 15, 20, 30]   # Basis size values for BASIS_ENL and FULL_OPT1 
+for i in range(len(ilist)):
+    kstop = ilist[i] 
+    if (kstop <= MAXBASIS):
+        if (i==0):
+            kstart = 1
+        else:
+            kstart = ilist[i-1]+1
+        HFILE="none" #HFILE="hess.dat"
+        print(" BASIS_ENL G " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        print(" FULL_OPT1 G " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,3600,3600,HFILE))
+        if (kstop%10 == 0):
+            print(" SAVE_FILE {:<6}".format(kstop)+"inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")   
+
+STEP=10
+for i in range(30, 1000, STEP):
+    kstart = i+1
+    kstop = i+STEP
+    if (kstop <= MAXBASIS):
+        NUMCYCLES=10
+        SFR=50
+        if (kstop>100):
+            NUMCYCLES=5
+            SFR=100
+        if (kstop>200):
+            NUMCYCLES=3
+            SFR=500
+        if (kstop>500):
+            NUMCYCLES=1
+            SFR=500           
+        print(" BASIS_ENL I " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        print(" OPT_CYCLE I " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))  
+        if (kstop%SFR == 0):
+            print(" SAVE_FILE {:<6}".format(kstop)+"inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")   
+
+STEP=20
+for i in range(1000, 2000, STEP):
+    kstart = i+1
+    kstop = i+STEP
+    if (kstop <= MAXBASIS):
+        NUMCYCLES=1
+        SFR=500          
+        print(" BASIS_ENL I " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        print(" OPT_CYCLE I " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))  
+        if (kstop%SFR == 0):
+            print(" SAVE_FILE {:<6}".format(kstop)+"inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")    
+
+STEP=50
+for i in range(2000, MAXBASIS, STEP):
+    kstart = i+1
+    kstop = i+STEP
+    if (kstop <= MAXBASIS):
+        NUMCYCLES=1
+        SFR=500          
+        print(" BASIS_ENL I " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        print(" OPT_CYCLE I " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))  
+        if (kstop%SFR == 0):
+            print(" SAVE_FILE {:<6}".format(kstop)+"inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")  
+
+print(" ==============================")            
