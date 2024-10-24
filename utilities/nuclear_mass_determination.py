@@ -25,7 +25,10 @@ print('    Wang et al., Chin. Physics C 45, 030003 (2021)')
 print('    https://dx.doi.org/10.1088/1674-1137/abddaf')
 print('Most common isotopic compositions are avaialble at this NIST website')
 print('    https://physics.nist.gov/cgi-bin/Compositions/stand_alone.pl')
-      
+
+print('')
+print('Masses of most common nuclear isotopes:')
+
 Z=1
 atomic_mass=1007825.031898E-06
 d_atomic_mass=0.000014E-06
@@ -256,3 +259,21 @@ Mstr='M(18O)'
 print('')
 print('{:6s} = {:14.8f}'.format(Mstr,nuclear_mass))
 print('{:12s}±{:10.8f}'.format('',d_nuclear_mass))
+
+print('')
+print('Masses of some exotic particles:')
+
+print('')
+Mstr='M(muon)'
+CODATAstr='206.7682827(46)  [CODATA 2022]'
+print('{:8s} = '.format(Mstr) + CODATAstr)
+
+print('')
+Mstr='M(tauon)'
+CODATAstr='3477.23(23)  [CODATA 2022]'
+print('{:8s} = '.format(Mstr) + CODATAstr)
+
+print('')
+Mstr='M(pion±)'
+CODATAstr='273.13287(47)  [Phys. Lett. B 796, 11 (2019)]'  #139.57061±0.00024 MeV/c^2 From M. Daum, R. Frosch 1, P.-R. Kettle, Phys. Lett. B 796, 11 (2019)
+print('{:8s} = '.format(Mstr) + CODATAstr)

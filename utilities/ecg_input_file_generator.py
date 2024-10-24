@@ -25,9 +25,11 @@
 #
 # String passed by argument systemname (e.g. "He_1Se") is appended to the names of the input files that are saved with the SAVE_FILE script commands. Note that the eigenvalue number is also appended to the names of the saved files.
 #
-# In case if masses of common nuclear isotopes are needed, here are their values (in a.u., that is in electron masses). These masses
+# In case if masses of common nuclear isotopes are needed, below are their values (in a.u., that is in electron masses). These masses
 # were derived using AME 2020 atomic masses and CODATA 2022 values of fundamental constants.
 #
+# Masses of most common nuclear isotopes:
+
 # M(1H)  =  1836.15267344
 #             ±0.00000006
 #
@@ -91,6 +93,14 @@
 #
 # M(18O) = 32802.46481984
 #             ±0.00000292
+#
+# Masses of some exotic particles:
+#
+# M(muon)  = 206.7682827(46)  [CODATA 2022]
+#
+# M(tauon) = 3477.23(23)  [CODATA 2022]
+#
+# M(pion±) = 273.13287(47)  [Phys. Lett. B 796, 11 (2019)]
 
 import argparse
 
