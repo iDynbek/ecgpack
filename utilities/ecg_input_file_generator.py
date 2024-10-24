@@ -9,7 +9,7 @@
 #
 # ./ecg_input_file_generator.py -particles 5 -masses "1.E30 1.0 1.0 1.0 1.0" -charges "4.0 -1.0 -1.0 -1.0 -1.0" -symmetry "atom-triplet" -youngoperatorformat "AS" -eigenvalue 1 -maxbasis 5000 -systemname "Be_3Se"  
 #
-# ./ecg_input_file_generator.py -particles 7 -masses "25519.04528239 1.0 1.0 1.0 1.0 1.0 1.0" -charges "7.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0" -symmetry "(1+P23)(1+P45)(1-P24)(1-P26-P46)(1-P27-P47-P67)(1-P35)" -eigenvalue 1 -maxbasis 15000 -systemname "N+_3Pe"
+# ./ecg_input_file_generator.py -particles 7 -masses "25519.04528337 1.0 1.0 1.0 1.0 1.0 1.0" -charges "7.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0" -symmetry "(1+P23)(1+P45)(1-P24)(1-P26-P46)(1-P27-P47-P67)(1-P35)" -eigenvalue 1 -maxbasis 15000 -systemname "N+_3Pe"
 #
 # Note that the permutational symmetry can be supplied either by 
 # means of a string with an explicit form of the Young operator 
