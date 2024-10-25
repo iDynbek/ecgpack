@@ -281,7 +281,7 @@ for i in range(len(ilist)):
         if (kstart > ISTART):
             EIGSOLVER='I'            
         print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
-        print(" FULL_OPT1  " + EIGSOLVER + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,60,60,HFILE))
+        print(" FULL_OPT1  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,60,60,HFILE))
         if (kstop%10 == 0):
             print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")   
 
