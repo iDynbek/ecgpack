@@ -7,20 +7,20 @@
 #
 # ./ecg_input_file_generator.py -particles 4 -masses "1.E30 1.0 1.0 1.0" -charges "3.0 -1.0 -1.0 -1.0" -symmetry "atom-doublet" -eigenvalue 1 -maxbasis 3000 -istart 50 -systemname "Li_2Se"
 #
-# ./ecg_input_file_generator.py -particles 5 -masses "1.E30 1.0 1.0 1.0 1.0" -charges "4.0 -1.0 -1.0 -1.0 -1.0" -symmetry "atom-triplet" -youngoperatorformat "AS" -eigenvalue 1 -maxbasis 5000 -istart 80 -systemname "Be_3Se"  
+# ./ecg_input_file_generator.py -particles 5 -masses "1.E30 1.0 1.0 1.0 1.0" -charges "4.0 -1.0 -1.0 -1.0 -1.0" -symmetry "atom-triplet" -youngoperatorformat "AS" -eigenvalue 1 -maxbasis 5000 -istart 80 -systemname "Be_3Se"
 #
 # ./ecg_input_file_generator.py -particles 7 -masses "25519.04528337 1.0 1.0 1.0 1.0 1.0 1.0" -charges "7.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0" -symmetry "(1+P23)(1+P45)(1-P24)(1-P26-P46)(1-P27-P47-P67)(1-P35)" -eigenvalue 1 -maxbasis 15000 -istart 80 -systemname "N+_3Pe"
 #
-# Note that the permutational symmetry can be supplied either by 
-# means of a string with an explicit form of the Young operator 
-# (e.g. "(1+P23)"), or can be specified using the following keywords: 
+# Note that the permutational symmetry can be supplied either by
+# means of a string with an explicit form of the Young operator
+# (e.g. "(1+P23)"), or can be specified using the following keywords:
 # "atom-singlet", "atom-doublet", "atom-triplet", "atom-quartet", "atom-quintet", "atom-sextet","atom-septet", "atom-octet", "atom-nonet".
 # In such a case the first particle is assumed to be an atomic nucleus, while all others are assumed to be identical electrons.
 #
-# The value of argument youngoperatorformat is only used if the permutational symmetry is defined through a keyword (e.g. "atom-quartet"). 
-# It can only take two values - "SA" and "AS". The default/natural/textbook order is "SA", meaning that Y = S*A, where S is the symmetrizer and 
+# The value of argument youngoperatorformat is only used if the permutational symmetry is defined through a keyword (e.g. "atom-quartet").
+# It can only take two values - "SA" and "AS". The default/natural/textbook order is "SA", meaning that Y = S*A, where S is the symmetrizer and
 # A is an antisymmetrizer. The default/natural order always yields n! terms for matrix elements. The reversed order, AS, which is implemented
-# here to enable experimenting with things, may yield a somewhat smaller number of terms for high-spin states. At the same time, so far 
+# here to enable experimenting with things, may yield a somewhat smaller number of terms for high-spin states. At the same time, so far
 # there has been no evidense that the reverse order can result in incorrect energies or expectation values.
 #
 # Argument maxbasis defines the final desired basis size
@@ -139,8 +139,8 @@ SAVE_FREQ = 10  #How often the file is saved in OPT_CYCLE
 OVERLAP_THRESHOLD = 0.98  #Overlap threshold
 LIN_COEFF_THRESHOLD = 3.0 #Maximum allowed magnitude of linear coefficients
 
-#If permutational symmetry was supplied through a keyword 
-#such as "atom-singlet", "atom-doublet", "atom-triplet", "atom-quartet", etc, then 
+#If permutational symmetry was supplied through a keyword
+#such as "atom-singlet", "atom-doublet", "atom-triplet", "atom-quartet", etc, then
 #we need to generate generate a suitable Young operator
 
 if (PARTICLES == 3):
@@ -168,7 +168,7 @@ if (PARTICLES == 5):
         A="(1-P24)(1-P25-P45)"
     if (SYMMETRY == "atom-quintet"):
         S=""
-        A="(1-P23)(1-P24-P34)(1-P25-P35-P45)"        
+        A="(1-P23)(1-P24-P34)(1-P25-P35-P45)"
 
 if (PARTICLES == 6):
     if (SYMMETRY == "atom-doublet"):
@@ -190,10 +190,10 @@ if (PARTICLES == 7):
         A="(1-P24)(1-P26-P46)(1-P27-P47-P67)(1-P35)"
     if (SYMMETRY == "atom-quintet"):
         S="(1+P23)"
-        A="(1-P24)(1-P25-P45)(1-P26-P46-P56)(1-P27-P47-P57-P67)"   
+        A="(1-P24)(1-P25-P45)(1-P26-P46-P56)(1-P27-P47-P57-P67)"
     if (SYMMETRY == "atom-septet"):
         S=""
-        A="(1-P23)(1-P24-P34)(1-P25-P35-P45)(1-P26-P36-P46-P56)(1-P27-P37-P47-P57-P67)"              
+        A="(1-P23)(1-P24-P34)(1-P25-P35-P45)(1-P26-P36-P46-P56)(1-P27-P37-P47-P57-P67)"
 
 if (PARTICLES == 8):
     if (SYMMETRY == "atom-doublet"):
@@ -204,10 +204,10 @@ if (PARTICLES == 8):
         A="(1-P24)(1-P26-P46)(1-P27-P47-P67)(1-P28-P48-P68-P78)(1-P35)"
     if (SYMMETRY == "atom-sextet"):
         S="(1+P23)"
-        A="(1-P24)(1-P25-P45)(1-P26-P46-P56)(1-P27-P47-P57-P67)(1-P28-P48-P58-P68-P78)"   
+        A="(1-P24)(1-P25-P45)(1-P26-P46-P56)(1-P27-P47-P57-P67)(1-P28-P48-P58-P68-P78)"
     if (SYMMETRY == "atom-octet"):
         S=""
-        A="(1-P23)(1-P24-P34)(1-P25-P35-P45)(1-P26-P36-P46-P56)(1-P27-P37-P47-P57-P67)(1-P28-P38-P48-P58-P68-P78)"                  
+        A="(1-P23)(1-P24-P34)(1-P25-P35-P45)(1-P26-P36-P46-P56)(1-P27-P37-P47-P57-P67)(1-P28-P38-P48-P58-P68-P78)"
 
 if (PARTICLES == 9):
     if (SYMMETRY == "atom-singlet"):
@@ -218,13 +218,13 @@ if (PARTICLES == 9):
         A="(1-P24)(1-P26-P46)(1-P28-P48-P68)(1-P29-P40-P69-P89)(1-P35)(1-P37-P57)"
     if (SYMMETRY == "atom-quintet"):
         S="(1+P23)(1+P45)"
-        A="(1-P24)(1-P26-P46)(1-P27-P47-P67)(1-P28-P48-P68-P78)(1-P29-P49-P69-P79-P89)(1-P35)"   
+        A="(1-P24)(1-P26-P46)(1-P27-P47-P67)(1-P28-P48-P68-P78)(1-P29-P49-P69-P79-P89)(1-P35)"
     if (SYMMETRY == "atom-septet"):
         S="(1+P23)"
         A="(1-P24)(1-P25-P45)(1-P26-P46-P56)(1-P27-P47-P57-P67)(1-P28-P48-P58-P68-P78)(1-P29-P49-P59-P69-P79-P89)"
     if (SYMMETRY == "atom-nonet"):
         S=""
-        A="(1-P23)(1-P24-P34)(1-P25-P35-P45)(1-P26-P36-P46-P56)(1-P27-P37-P47-P57-P67)(1-P28-P38-P48-P58-P68-P78)(1-P29-P39-P49-P59-P69-P79-P89)"  
+        A="(1-P23)(1-P24-P34)(1-P25-P35-P45)(1-P26-P36-P46-P56)(1-P27-P37-P47-P57-P67)(1-P28-P38-P48-P58-P68-P78)(1-P29-P39-P49-P59-P69-P79-P89)"
 
 if (SYMMETRY == "atom-singlet" or SYMMETRY == "atom-doublet" or SYMMETRY == "atom-triplet" or SYMMETRY == "atom-quartet" or SYMMETRY == "atom-quintet" or SYMMETRY == "atom-sextet" or SYMMETRY == "atom-septet" or SYMMETRY == "atom-octet" or SYMMETRY == "atom-nonet"):
     if (YOUNGOPERATORFORMAT == "SA"):
@@ -241,37 +241,38 @@ print(" MASSES   ", end=" ")
 if (MASSES == 'nonesupplied'):
     for _ in range(PARTICLES):
         print("  1.0E0", end=" ")
-    print(" ") 
+    print(" ")
 else:
-    print(MASSES)  
+    print(MASSES)
 
 print(" CHARGES  ", end=" ")
 if (CHARGES == 'nonesupplied'):
     for _ in range(PARTICLES):
         print("  1.0E0", end=" ")
-    print(" ") 
+    print(" ")
 else:
-    print(CHARGES)    
+    print(CHARGES)
 
 print(" SYMMETRY  " + SYMMETRY)
 print(" BASIS_SIZE  0")
-print(" CURRENT_ENERGY  0.1E20")
+print(" CURRENT_ENERGY    1.0E30")
 print(" WHICH_EIGENVALUE  " + "{:<5}".format(EIGENVALUE))
-print(" EIGVAL_TOLERANCE  0.1E-11")
-print(" INVITPARAMETER  1.000001E0")
-print(" LAST_EIGVAL_TOL  0.1E0")
-print(" BEST_EIGVAL_TOL  0.1E0")
-print(" WORST_EIGVAL_TOL  0.1E-20")
+print(" EIGVAL_TOLERANCE  1.0E-12")
+print(" INVITPARAMETER    1.000001000E0")
+print(" LAST_EIGVAL_TOL   1.0E0")
+print(" BEST_EIGVAL_TOL   1.0E0")
+print(" WORST_EIGVAL_TOL  1.0E-30")
 print(" GENERATOR_PARAM   0.7E0  1.0E0  3.0E0")
 print(" ==============================")
-print("    0  0.1E20      0      0      0")
+print("    0  1.0E30      0      0      0")
 print(" ==============================")
 
 EIGSOLVER='G'
 
-ilist = [3, 6, 10, 15, 20, 30]   # Basis size values for BASIS_ENL and FULL_OPT1 
+#OVERLAP_THRESHOLD=0.80
+ilist = [3, 6, 10, 15, 20, 30]   # Basis size values for BASIS_ENL and FULL_OPT1
 for i in range(len(ilist)):
-    kstop = ilist[i] 
+    kstop = ilist[i]
     if (kstop <= MAXBASIS):
         if (i==0):
             kstart = 1
@@ -279,12 +280,13 @@ for i in range(len(ilist)):
             kstart = ilist[i-1]+1
         HFILE="none" #HFILE="hess.dat"
         if (kstart > ISTART):
-            EIGSOLVER='I'            
+            EIGSOLVER='I'
         print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
         print(" FULL_OPT1  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,60,60,HFILE))
         if (kstop%10 == 0):
-            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")   
+            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")
 
+#OVERLAP_THRESHOLD=0.90
 STEP=10
 for i in range(30, 1000, STEP):
     kstart = i+1
@@ -300,40 +302,42 @@ for i in range(30, 1000, STEP):
             SFR=500
         if (kstop>500):
             NUMCYCLES=1
-            SFR=500  
+            SFR=500
         if (kstart > ISTART):
-            EIGSOLVER='I'                       
+            EIGSOLVER='I'
         print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
-        print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))  
+        print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))
         if (kstop%SFR == 0):
-            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")   
+            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")
 
+#OVERLAP_THRESHOLD=0.98
 STEP=20
 for i in range(1000, 2000, STEP):
     kstart = i+1
     kstop = i+STEP
     if (kstop <= MAXBASIS):
         NUMCYCLES=1
-        SFR=500  
+        SFR=500
         if (kstart > ISTART):
-            EIGSOLVER='I'                  
+            EIGSOLVER='I'
         print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
-        print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))  
+        print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))
         if (kstop%SFR == 0):
-            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")    
+            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")
 
+#OVERLAP_THRESHOLD=0.98
 STEP=50
 for i in range(2000, MAXBASIS, STEP):
     kstart = i+1
     kstop = i+STEP
     if (kstop <= MAXBASIS):
         NUMCYCLES=1
-        SFR=500  
+        SFR=500
         if (kstart > ISTART):
-            EIGSOLVER='I'                  
+            EIGSOLVER='I'
         print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
-        print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))  
+        print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))
         if (kstop%SFR == 0):
-            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")  
+            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")
 
-print(" ==============================")            
+print(" ==============================")
