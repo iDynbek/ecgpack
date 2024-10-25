@@ -9,7 +9,7 @@
 #
 # ./ecg_input_file_generator.py -particles 5 -masses "1.E30 1.0 1.0 1.0 1.0" -charges "4.0 -1.0 -1.0 -1.0 -1.0" -symmetry "atom-triplet" -youngoperatorformat "AS" -eigenvalue 1 -maxbasis 5000 -istart 80 -systemname "Be_3Se"  
 #
-# ./ecg_input_file_generator.py -particles 7 -masses "25519.04528337 1.0 1.0 1.0 1.0 1.0 1.0" -charges "7.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0" -symmetry "(1+P23)(1+P45)(1-P24)(1-P26-P46)(1-P27-P47-P67)(1-P35)" -eigenvalue 1 -maxbasis 15000 -systemname "N+_3Pe"
+# ./ecg_input_file_generator.py -particles 7 -masses "25519.04528337 1.0 1.0 1.0 1.0 1.0 1.0" -charges "7.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0" -symmetry "(1+P23)(1+P45)(1-P24)(1-P26-P46)(1-P27-P47-P67)(1-P35)" -eigenvalue 1 -maxbasis 15000 -istart 80 -systemname "N+_3Pe"
 #
 # Note that the permutational symmetry can be supplied either by 
 # means of a string with an explicit form of the Young operator 
@@ -281,7 +281,7 @@ for i in range(len(ilist)):
         if (kstart > ISTART):
             EIGSOLVER='I'            
         print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
-        print(" FULL_OPT1 G " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,60,60,HFILE))
+        print(" FULL_OPT1  " + EIGSOLVER + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,60,60,HFILE))
         if (kstop%10 == 0):
             print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")   
 
