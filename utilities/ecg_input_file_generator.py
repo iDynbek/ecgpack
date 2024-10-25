@@ -134,9 +134,6 @@ YOUNGOPERATORFORMAT = args.youngoperatorformat
 RANDOM_TRIALS = 100*PARTICLES  #Number of stochastic trials in BASIS_ENL
 OPT_LIMIT_EXPAND = 50*PARTICLES  #Max number of energy evaluations when optimizing a newly selected basis function in BASIS_ENL
 OPT_LIMIT_CYCLE = 30*PARTICLES #Max number of energy evaluations when optimizing a function in OPT_CYCLE
-OPT_LIMIT_FULLOPT = 999999
-SAVE_FREQ = 10  #How often the file is saved in OPT_CYCLE
-OVERLAP_THRESHOLD = 0.98  #Overlap threshold
 LIN_COEFF_THRESHOLD = 3.0 #Maximum allowed magnitude of linear coefficients
 
 #If permutational symmetry was supplied through a keyword
@@ -267,77 +264,155 @@ print(" ==============================")
 print("    0  1.0E30      0      0      0")
 print(" ==============================")
 
+HFILE="none" #HFILE="hess.dat"
 EIGSOLVER='G'
 
-#OVERLAP_THRESHOLD=0.80
-ilist = [3, 6, 10, 15, 20, 30]   # Basis size values for BASIS_ENL and FULL_OPT1
+OVERLAP_THRESHOLD=0.95  #Overlap threshold
+NUMCYCLES=10 #Number of cycles in OPT_CYCLE
+OPT_LIMIT_FULLOPT=999999 #Maximum allowed number of function evaluations in FULL_OPT1
+SAVE_FREQ=10  #How often the file is saved during cycles in OPT_CYCLE
+SFR=5 #How often (multiple of the basis size) the next inout_XXXX.txt is created
+STEP=10 #STEP in BASIS_ENL
+ilist = [3, 5, 10, 15, 20, 30]   # Basis size values for BASIS_ENL and FULL_OPT1
 for i in range(len(ilist)):
     kstop = ilist[i]
-    if (kstop <= MAXBASIS):
+    if (kstop <= MAXBASIS):    
         if (i==0):
             kstart = 1
         else:
             kstart = ilist[i-1]+1
-        HFILE="none" #HFILE="hess.dat"
         if (kstart > ISTART):
             EIGSOLVER='I'
         print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
         print(" FULL_OPT1  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,60,60,HFILE))
-        if (kstop%10 == 0):
+        print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))        
+        if (kstop%SFR == 0):
             print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")
 
-#OVERLAP_THRESHOLD=0.90
-STEP=10
-for i in range(30, 1000, STEP):
+OVERLAP_THRESHOLD=0.96  #Overlap threshold
+NUMCYCLES=10 #Number of cycles in OPT_CYCLE
+OPT_LIMIT_FULLOPT=999999 #Maximum allowed number of function evaluations in FULL_OPT1
+SAVE_FREQ=10  #How often the file is saved during cycles in OPT_CYCLE
+SFR=10 #How often (multiple of the basis size) the next inout_XXXX.txt is created
+STEP=10 #STEP in BASIS_ENL
+for i in range(30, 50, STEP):
     kstart = i+1
     kstop = i+STEP
     if (kstop <= MAXBASIS):
-        NUMCYCLES=10
-        SFR=50
-        if (kstop>100):
-            NUMCYCLES=5
-            SFR=100
-        if (kstop>200):
-            NUMCYCLES=3
-            SFR=500
-        if (kstop>500):
-            NUMCYCLES=1
-            SFR=500
         if (kstart > ISTART):
             EIGSOLVER='I'
         print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        print(" FULL_OPT1  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,60,60,HFILE))        
         print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))
         if (kstop%SFR == 0):
             print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")
 
-#OVERLAP_THRESHOLD=0.98
-STEP=20
+OVERLAP_THRESHOLD=0.97  #Overlap threshold
+NUMCYCLES=10 #Number of cycles in OPT_CYCLE
+OPT_LIMIT_FULLOPT=3 #Maximum allowed number of function evaluations in FULL_OPT1
+SAVE_FREQ=10  #How often the file is saved during cycles in OPT_CYCLE
+SFR=50 #How often (multiple of the basis size) the next inout_XXXX.txt is created
+STEP=10 #STEP in BASIS_ENL
+for i in range(50, 100, STEP):
+    kstart = i+1
+    kstop = i+STEP
+    if (kstop <= MAXBASIS):
+        if (kstart > ISTART):
+            EIGSOLVER='I'
+        print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        print(" FULL_OPT1  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,60,60,HFILE))        
+        print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))
+        if (kstop%SFR == 0):
+            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")
+
+OVERLAP_THRESHOLD=0.98  #Overlap threshold
+NUMCYCLES=5 #Number of cycles in OPT_CYCLE
+OPT_LIMIT_FULLOPT=3 #Maximum allowed number of function evaluations in FULL_OPT1
+SAVE_FREQ=10  #How often the file is saved during cycles in OPT_CYCLE
+SFR=100 #How often (multiple of the basis size) the next inout_XXXX.txt is created
+STEP=10 #STEP in BASIS_ENL
+for i in range(100, 200, STEP):
+    kstart = i+1
+    kstop = i+STEP
+    if (kstop <= MAXBASIS):
+        if (kstart > ISTART):
+            EIGSOLVER='I'
+        print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        print(" FULL_OPT1  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,60,60,HFILE))        
+        print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))
+        if (kstop%SFR == 0):
+            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")
+
+OVERLAP_THRESHOLD=0.98 #Overlap threshold
+NUMCYCLES=3 #Number of cycles in OPT_CYCLE
+OPT_LIMIT_FULLOPT=3 #Maximum allowed number of function evaluations in FULL_OPT1
+SAVE_FREQ=10  #How often the file is saved during cycles in OPT_CYCLE
+SFR=500 #How often (multiple of the basis size) the next inout_XXXX.txt is created
+STEP=10 #STEP in BASIS_ENL
+for i in range(200, 500, STEP):
+    kstart = i+1
+    kstop = i+STEP
+    if (kstop <= MAXBASIS):
+        if (kstart > ISTART):
+            EIGSOLVER='I'
+        print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        #print(" FULL_OPT1  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,60,60,HFILE))        
+        print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))
+        if (kstop%SFR == 0):
+            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")
+
+OVERLAP_THRESHOLD=0.98  #Overlap threshold
+NUMCYCLES=1 #Number of cycles in OPT_CYCLE
+OPT_LIMIT_FULLOPT=3 #Maximum allowed number of function evaluations in FULL_OPT1
+SAVE_FREQ=10  #How often the file is saved during cycles in OPT_CYCLE
+SFR=500 #How often (multiple of the basis size) the next inout_XXXX.txt is created
+STEP=10 #STEP in BASIS_ENL
+for i in range(500, 1000, STEP):
+    kstart = i+1
+    kstop = i+STEP
+    if (kstop <= MAXBASIS):
+        if (kstart > ISTART):
+            EIGSOLVER='I'
+        print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        #print(" FULL_OPT1  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,60,60,HFILE))        
+        print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))
+        if (kstop%SFR == 0):
+            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")    
+
+OVERLAP_THRESHOLD=0.98  #Overlap threshold
+NUMCYCLES=1 #Number of cycles in OPT_CYCLE
+OPT_LIMIT_FULLOPT=3 #Maximum allowed number of function evaluations in FULL_OPT1
+SAVE_FREQ=10  #How often the file is saved during cycles in OPT_CYCLE
+SFR=500 #How often (multiple of the basis size) the next inout_XXXX.txt is created
+STEP=20 #STEP in BASIS_ENL
 for i in range(1000, 2000, STEP):
     kstart = i+1
     kstop = i+STEP
     if (kstop <= MAXBASIS):
-        NUMCYCLES=1
-        SFR=500
         if (kstart > ISTART):
             EIGSOLVER='I'
         print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        #print(" FULL_OPT1  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,60,60,HFILE))        
         print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))
         if (kstop%SFR == 0):
-            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")
+            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")  
 
-#OVERLAP_THRESHOLD=0.98
-STEP=50
-for i in range(2000, MAXBASIS, STEP):
+OVERLAP_THRESHOLD=0.98  #Overlap threshold
+NUMCYCLES=1 #Number of cycles in OPT_CYCLE
+OPT_LIMIT_FULLOPT=3 #Maximum allowed number of function evaluations in FULL_OPT1
+SAVE_FREQ=10  #How often the file is saved during cycles in OPT_CYCLE
+SFR=500 #How often (multiple of the basis size) the next inout_XXXX.txt is created
+STEP=50 #STEP in BASIS_ENL
+for i in range(2000, 20000, STEP):
     kstart = i+1
     kstop = i+STEP
     if (kstop <= MAXBASIS):
-        NUMCYCLES=1
-        SFR=500
         if (kstart > ISTART):
             EIGSOLVER='I'
         print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        #print(" FULL_OPT1  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,60,60,HFILE))        
         print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))
         if (kstop%SFR == 0):
-            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")
+            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")  
 
 print(" ==============================")
