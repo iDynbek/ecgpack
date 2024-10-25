@@ -3,11 +3,11 @@
 #
 # Usage examples:
 #
-# ./ecg_input_file_generator.py -particles 3 -masses "1.E30 1.0 1.0" -charges "2.0 -1.0 -1.0" -symmetry "(1+P23)" -eigenvalue 1 -maxbasis 2000 -systemname "He_1Se"
+# ./ecg_input_file_generator.py -particles 3 -masses "1.E30 1.0 1.0" -charges "2.0 -1.0 -1.0" -symmetry "(1+P23)" -eigenvalue 1 -maxbasis 2000 -istart 50 -systemname "He_1Se"
 #
-# ./ecg_input_file_generator.py -particles 4 -masses "1.E30 1.0 1.0 1.0" -charges "3.0 -1.0 -1.0 -1.0" -symmetry "atom-doublet" -eigenvalue 1 -maxbasis 3000 -systemname "Li_2Se"
+# ./ecg_input_file_generator.py -particles 4 -masses "1.E30 1.0 1.0 1.0" -charges "3.0 -1.0 -1.0 -1.0" -symmetry "atom-doublet" -eigenvalue 1 -maxbasis 3000 -istart 50 -systemname "Li_2Se"
 #
-# ./ecg_input_file_generator.py -particles 5 -masses "1.E30 1.0 1.0 1.0 1.0" -charges "4.0 -1.0 -1.0 -1.0 -1.0" -symmetry "atom-triplet" -youngoperatorformat "AS" -eigenvalue 1 -maxbasis 5000 -systemname "Be_3Se"  
+# ./ecg_input_file_generator.py -particles 5 -masses "1.E30 1.0 1.0 1.0 1.0" -charges "4.0 -1.0 -1.0 -1.0 -1.0" -symmetry "atom-triplet" -youngoperatorformat "AS" -eigenvalue 1 -maxbasis 5000 -istart 80 -systemname "Be_3Se"  
 #
 # ./ecg_input_file_generator.py -particles 7 -masses "25519.04528337 1.0 1.0 1.0 1.0 1.0 1.0" -charges "7.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0" -symmetry "(1+P23)(1+P45)(1-P24)(1-P26-P46)(1-P27-P47-P67)(1-P35)" -eigenvalue 1 -maxbasis 15000 -systemname "N+_3Pe"
 #
@@ -22,6 +22,10 @@
 # A is an antisymmetrizer. The default/natural order always yields n! terms for matrix elements. The reversed order, AS, which is implemented
 # here to enable experimenting with things, may yield a somewhat smaller number of terms for high-spin states. At the same time, so far 
 # there has been no evidense that the reverse order can result in incorrect energies or expectation values.
+#
+# Argument maxbasis defines the final desired basis size
+#
+# Argument istart defines the size of the basis when the eigenvalue value solver option switches from 'G' to 'I' (e.g. from LAPACKS's DSYGVX to the Inverse iteration method)
 #
 # String passed by argument systemname (e.g. "He_1Se") is appended to the names of the input files that are saved with the SAVE_FILE script commands. Note that the eigenvalue number is also appended to the names of the saved files.
 #
@@ -107,6 +111,7 @@ import argparse
 parser = argparse.ArgumentParser(description="Generate file")
 parser.add_argument("-particles", default=3, type=int, choices=[2, 3, 4, 5, 6, 7, 8, 9], help="Number of particles, default is 3")
 parser.add_argument("-maxbasis", default=5000, type=int, help="Maximum basis size, default is 5000")
+parser.add_argument("-istart", default=50, type=int, help="Size of the basis after which the inverse iteration eigensolver will be used (the G option changes to I)")
 parser.add_argument("-systemname", default='SYSTEMNAME', help="System name, default is SYSNAME-01")
 parser.add_argument("-symmetry", default='(1)', help="Permutational symmetry, default is (1)")
 parser.add_argument("-eigenvalue", default=1 ,type=int, help="Eigenvalue number")
@@ -118,6 +123,7 @@ args = parser.parse_args()
 
 PARTICLES  = args.particles
 MAXBASIS = args.maxbasis
+ISTART = args.istart
 SYSTEMNAME = args.systemname
 SYMMETRY = args.symmetry
 EIGENVALUE = args.eigenvalue
@@ -261,6 +267,8 @@ print(" ==============================")
 print("    0  0.1E20      0      0      0")
 print(" ==============================")
 
+EIGSOLVER='G'
+
 ilist = [3, 6, 10, 15, 20, 30]   # Basis size values for BASIS_ENL and FULL_OPT1 
 for i in range(len(ilist)):
     kstop = ilist[i] 
@@ -270,10 +278,12 @@ for i in range(len(ilist)):
         else:
             kstart = ilist[i-1]+1
         HFILE="none" #HFILE="hess.dat"
-        print(" BASIS_ENL G " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
-        print(" FULL_OPT1 G " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,3600,3600,HFILE))
+        if (kstart > ISTART):
+            EIGSOLVER='I'            
+        print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        print(" FULL_OPT1 G " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>10}".format(kstop,1,kstop,OPT_LIMIT_FULLOPT,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,60,60,HFILE))
         if (kstop%10 == 0):
-            print(" SAVE_FILE {:<6}".format(kstop)+"inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")   
+            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")   
 
 STEP=10
 for i in range(30, 1000, STEP):
@@ -290,11 +300,13 @@ for i in range(30, 1000, STEP):
             SFR=500
         if (kstop>500):
             NUMCYCLES=1
-            SFR=500           
-        print(" BASIS_ENL I " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
-        print(" OPT_CYCLE I " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))  
+            SFR=500  
+        if (kstart > ISTART):
+            EIGSOLVER='I'                       
+        print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))  
         if (kstop%SFR == 0):
-            print(" SAVE_FILE {:<6}".format(kstop)+"inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")   
+            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")   
 
 STEP=20
 for i in range(1000, 2000, STEP):
@@ -302,11 +314,13 @@ for i in range(1000, 2000, STEP):
     kstop = i+STEP
     if (kstop <= MAXBASIS):
         NUMCYCLES=1
-        SFR=500          
-        print(" BASIS_ENL I " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
-        print(" OPT_CYCLE I " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))  
+        SFR=500  
+        if (kstart > ISTART):
+            EIGSOLVER='I'                  
+        print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))  
         if (kstop%SFR == 0):
-            print(" SAVE_FILE {:<6}".format(kstop)+"inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")    
+            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")    
 
 STEP=50
 for i in range(2000, MAXBASIS, STEP):
@@ -314,10 +328,12 @@ for i in range(2000, MAXBASIS, STEP):
     kstop = i+STEP
     if (kstop <= MAXBASIS):
         NUMCYCLES=1
-        SFR=500          
-        print(" BASIS_ENL I " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
-        print(" OPT_CYCLE I " + "{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))  
+        SFR=500  
+        if (kstart > ISTART):
+            EIGSOLVER='I'                  
+        print(" BASIS_ENL  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstart,kstop,1,RANDOM_TRIALS,OPT_LIMIT_EXPAND,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD))
+        print(" OPT_CYCLE  " + EIGSOLVER + "  {:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}{:>7}".format(kstop,1,kstop,1,1,NUMCYCLES,OPT_LIMIT_CYCLE,OVERLAP_THRESHOLD,LIN_COEFF_THRESHOLD,SAVE_FREQ))  
         if (kstop%SFR == 0):
-            print(" SAVE_FILE {:<6}".format(kstop)+"inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")  
+            print(" SAVE_FILE  {:<6}".format(kstop) + " inout_" + SYSTEMNAME + "-" + "{:02d}".format(EIGENVALUE) + "-" + "{:05d}".format(kstop)+".txt")  
 
 print(" ==============================")            
