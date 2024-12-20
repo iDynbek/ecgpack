@@ -233,7 +233,7 @@ for STATEFULLDIR in "${DIRS[@]}"; do
             # The error takes place if the first word of the third line from the end is "Error"
             if [[ -f "$LASTOUTFILE" ]]; then
                 LASTOUTFILE_BASENAME=$(basename "$LASTOUTFILE")
-                if tail -3 $LASTOUTFILE | head -1 | awk '{ if ($1 == "Error") exit 0; else exit 1}' ; then
+                if tail -1 $LASTOUTFILE | head -1 | awk '{ if ($1 == "exceeded" && $2 == "limit") exit 0; else exit 1}' ; then
                     HEALTH="FAILED"
                 fi
                 if tail -1 $LASTOUTFILE | head -1 | awk '{ if ($1 == "Error" && $6 == "cannot") exit 0; else exit 1}' ; then
