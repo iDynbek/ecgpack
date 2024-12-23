@@ -5,7 +5,7 @@
 # in the script (some minimal and straightforward manual adjustments are needed by the user), such as the
 # current energy, basis size, number of optimization steps made, energy, excitation energy, SLURM status, 
 # JoBID, run time, and health status of the job. The script will print the output in a table format with 
-# columns separated by spaces. Depending on how things are setup, the output may be up to 134 characters
+# columns separated by spaces. Depending on how things are setup, the output may be up to 136 characters
 # wide.
 
 # Full path to the directory where all individual job directories are located
@@ -27,7 +27,7 @@ JOBPREFIX="C_"
 # from the corresponding inout.txt file.
 SHOW_EIGENVALUE_NUMBER=true
 
-# Flag to show the number of steps made in current optimization cycle (set true or false).
+# Flag to show the number of cycles and steps made for the current basis size (set true or false).
 SHOW_OPTSTP=true
 
 # Flag to show the energy (set true or false)
@@ -37,7 +37,7 @@ SHOW_ENERGY=true
 # If the flag is set to false, the script will skip printing the column showing the excitation energy.
 SHOW_EXCITATION_ENERY=true
 # Predefined ground state energy (only needed if SHOW_EXCITATION_ENERY=true)
-GROUND_STATE_ENERGY="-0.3784318438397631E+02"
+GROUND_STATE_ENERGY="-0.3784318443309652E+02"
 
 # Flag to show the current status of job in SLURM, i.e. whether a job is currently running or pending (set true or false).
 # If the flag is set to false, the script will skip printing the columns showing the SLURM status.
@@ -75,8 +75,8 @@ if [ "$SHOW_EIGENVALUE_NUMBER" = true ]; then
     export SEPLINE_SINGLE+="---"
 fi
 if [ "$SHOW_OPTSTP" = true ]; then
-    export SEPLINE_DOUBLE+="========"
-    export SEPLINE_SINGLE+="--------"
+    export SEPLINE_DOUBLE+="=========="
+    export SEPLINE_SINGLE+="----------"
 fi
 if [ "$SHOW_ENERGY" = true ]; then
     export SEPLINE_DOUBLE+="====================="
@@ -131,7 +131,7 @@ if [ "$SHOW_EIGENVALUE_NUMBER" = true ]; then
 fi
 printf " %-5s" "BASIS"
 if [ "$SHOW_OPTSTP" = true ]; then
-    printf " %7s" "OPT_STP"
+    printf " %9s" "O_CYC_STP"
 fi
 if [ "$SHOW_ENERGY" = true ]; then
     printf " %20s" "CURRENT_ENERGY"
@@ -168,8 +168,10 @@ for STATEFULLDIR in "${DIRS[@]}"; do
         CURRBASISSIZE=$(grep 'BASIS_SIZE' "$INOUTFILE" | awk '{print $2}')
         printf " %5s" "$CURRBASISSIZE"
         if [ "$SHOW_OPTSTP" = true ]; then
+            CURROPTCYCLE=$(awk 'NR==15 {print $3}' "$INOUTFILE")
             CURROPTSTEP=$(awk 'NR==15 {print $4}' "$INOUTFILE")
-            printf " %7s" "$CURROPTSTEP"
+            CURROPT=$(echo "${CURROPTCYCLE}:${CURROPTSTEP}" | tr -d ' ')
+            printf " %9s" "$CURROPT"
         fi
         CURRENERGY=""
         if [ "$SHOW_ENERGY" = true ]; then
