@@ -5,7 +5,7 @@
 # in the script (some minimal and straightforward manual adjustments are needed by the user), such as the
 # current energy, basis size, number of optimization steps made, energy, excitation energy, SLURM status, 
 # JoBID, run time, and health status of the job. The script will print the output in a table format with 
-# columns separated by spaces. Depending on how things are setup, the output may be up to 136 characters
+# columns separated by spaces. Depending on how things are setup, the output may be up to 140 characters
 # wide.
 
 # Full path to the directory where all individual job directories are located
@@ -17,11 +17,14 @@ JOBSDIR="/shared/home/sergiy.bubin/ecg/jobs"
 USE_MANUAL_DIR_LIST=true
 
 # Manual list of directories (space-separated, only needed if USE_MANUAL_DIR_LIST=true)
-MANUAL_DIR_LIST=("C_3Pe-01" "C_1De-01" "C_1Se-01" "C_3Po-01" "C_1Po-01" "C_1Pe-01" "C_3De-01" "C_3Se-01" "C_3Pe-02" "C_1De-02" "C_1Se-02" "C_1Po-02" "C_3Po-02" "C_1Po-02" "C_1Pe-02" "C_3De-02" "C_3Se-02" "C_3Pe-03" "C_1De-03" "C_1Se-03" "C_3De-03" "C_3Pe-04")
+MANUAL_DIR_LIST=("C_3Pe-01" "C_1De-01" "C_1Se-01" "C_3Po-01" "C_1Po-01" "C_1Pe-01" "C_3De-01" "C_3Se-01" "C_3Pe-02" "C_1De-02" "C_1Se-02" "C_3Po-02" "C_1Po-02" "C_1Pe-02" "C_3De-02" "C_3Se-02" "C_3Pe-03" "C_1De-03" "C_1Se-03" "C_3De-03" "C_3Pe-04")
 
 # Prefix for the job directories (if not using manual list and doing auto-search, it is only needed when USE_MANUAL_DIR_LIST=false).
 # For example, if "C_" is used then all directories with the names beginning with "C_" will be processed.
 JOBPREFIX="C_"
+
+# Flag to show the item number in the list of jobs (set true or false).
+SHOW_LIST_ITEM_NUMBER=true
 
 # Flag to show the eigenvalue number (set true or false). This number, as well as some other info, is extracted 
 # from the corresponding inout.txt file.
@@ -37,7 +40,7 @@ SHOW_ENERGY=true
 # If the flag is set to false, the script will skip printing the column showing the excitation energy.
 SHOW_EXCITATION_ENERY=true
 # Predefined ground state energy (only needed if SHOW_EXCITATION_ENERY=true)
-GROUND_STATE_ENERGY="-0.3784318443309652E+02"
+GROUND_STATE_ENERGY="-0.3784318445259657E+02"
 
 # Flag to show the current status of job in SLURM, i.e. whether a job is currently running or pending (set true or false).
 # If the flag is set to false, the script will skip printing the columns showing the SLURM status.
@@ -70,6 +73,10 @@ export TITLE+=$HOSTNAME
 # Construct separator lines (their length depends on how many columns are shown)
 SEPLINE_DOUBLE="================="
 SEPLINE_SINGLE="-----------------"
+if [ "$SHOW_LIST_ITEM_NUMBER" = true ]; then
+    export SEPLINE_DOUBLE+="===="
+    export SEPLINE_SINGLE+="----"
+fi
 if [ "$SHOW_EIGENVALUE_NUMBER" = true ]; then
     export SEPLINE_DOUBLE+="==="
     export SEPLINE_SINGLE+="---"
@@ -125,6 +132,9 @@ fi
 printf "%s\n" "$SEPLINE_DOUBLE"
 printf "%s\n" "$TITLE"
 printf "%s\n" "$SEPLINE_SINGLE"
+if [ "$SHOW_LIST_ITEM_NUMBER" = true ]; then
+    printf "%-4s" "#"
+fi
 printf "%-12s" "STATE"
 if [ "$SHOW_EIGENVALUE_NUMBER" = true ]; then
     printf " %-2s" "EV"
@@ -150,7 +160,9 @@ if [ "$SHOW_JOB_HEALTH_STATUS" = true ]; then
 fi
 printf "\n"
 printf "%s\n" "$SEPLINE_SINGLE"
+ITEM_NUM=0
 for STATEFULLDIR in "${DIRS[@]}"; do
+    let ITEM_NUM++
     STATEDIR=$(basename "$STATEFULLDIR")
     INOUTFILE=${STATEFULLDIR}/inout.txt
     CURRBASISSIZE=""
@@ -158,6 +170,9 @@ for STATEFULLDIR in "${DIRS[@]}"; do
     CURRENERGY=""
     EIGVAL=""
     EXCITATION_ENERGY=""
+    if [ "$SHOW_LIST_ITEM_NUMBER" = true ]; then
+        printf "%-4s" "$ITEM_NUM"
+    fi
     printf "%-12s" "$STATEDIR"
     # Extract the data from the job input and screen output files, if they exists
     if [[ -f $INOUTFILE ]]; then
