@@ -891,7 +891,9 @@ real(dprec)   local_eps_for_xx
 !Vars to calculate delta-fucntions directly
 real(dprec) :: myalpha, jijAVk, jijAVl, jijAWk, jijAWl
 !Var to set if orbit-orbit correction is needed
+logical :: isOOklNeeded
 
+isOOklNeeded = .true.
 local_eps_for_xx = 1.d-6
 n=Glob_n
 np=Glob_np
@@ -1725,301 +1727,303 @@ do i=1,n
 enddo
 drach_MVkl = drach_MVkl*Glob_dmva2 + MVkl
    
-
-do i=1,n
-  do j=1,n
-    tbltbk(i,j)=tbl(j)*tbk(i)
-    tvltvk(i,j)=tvl(j)*tvk(i)
-    tbltvk(i,j)=tbl(j)*tvk(i)
-    tvltbk(i,j)=tvl(j)*tbk(i)
-    
-    tvltbl(i,j)=tvl(j)*tbl(i)
-    tvktbk(i,j)=tvk(j)*tbk(i)
+if (isOOklNeeded) then
+  do i=1,n
+    do j=1,n
+      tbltbk(i,j)=tbl(j)*tbk(i)
+      tvltvk(i,j)=tvl(j)*tvk(i)
+      tbltvk(i,j)=tbl(j)*tvk(i)
+      tvltbk(i,j)=tvl(j)*tbk(i)
+      
+      tvltbl(i,j)=tvl(j)*tbl(i)
+      tvktbk(i,j)=tvk(j)*tbk(i)
+    enddo
   enddo
-enddo
 
 
-call symmetrize_matrix(tbltbk)
-call symmetrize_matrix(tvltvk)
-call symmetrize_matrix(tvltbk)
-call symmetrize_matrix(tbltvk)
-call symmetrize_matrix(tvltbl)
-call symmetrize_matrix(tvktbk)
+  call symmetrize_matrix(tbltbk)
+  call symmetrize_matrix(tvltvk)
+  call symmetrize_matrix(tvltbk)
+  call symmetrize_matrix(tbltvk)
+  call symmetrize_matrix(tvltbl)
+  call symmetrize_matrix(tvktbk)
 
 
-!Evaluating Orbit-Orbit (OO) matrix element (without the factor of alpha**2)
-OOkl=ZERO
-!First double loop for OO
-do i=1,n
-  do j=1,n  
-    tr1=tAl(j,i)
-    tr2=tAl(i,j)
-    tr3=3*tAl(j,j)
-    do p=1,n
-      do q=1,n
-        W1(p,q)=tAl(p,i)*tAl(j,q)+tAl(p,j)*tAl(i,q)
+  !Evaluating Orbit-Orbit (OO) matrix element (without the factor of alpha**2)
+  OOkl=ZERO
+  !First double loop for OO
+  do i=1,n
+    do j=1,n  
+      tr1=tAl(j,i)
+      tr2=tAl(i,j)
+      tr3=3*tAl(j,j)
+      do p=1,n
+        do q=1,n
+          W1(p,q)=tAl(p,i)*tAl(j,q)+tAl(p,j)*tAl(i,q)
+        enddo
       enddo
-    enddo
-    do p=1,n
-      W1(p,j)=W1(p,j)+tAkl(p,j)*tAl(j,i)      
-    enddo
+      do p=1,n
+        W1(p,j)=W1(p,j)+tAkl(p,j)*tAl(j,i)      
+      enddo
 
-    do q=1,n
-      W1(j,q)=W1(j,q)+tAl(i,j)*tAl(j,q)+tr3*tAl(i,q)      
-    enddo    
-    !W2 = Akl Ejj Al
-    do p=1,n
       do q=1,n
-        W2(p,q)=tAkl(p,j)*tAl(j,q)
+        W1(j,q)=W1(j,q)+tAl(i,j)*tAl(j,q)+tr3*tAl(i,q)      
+      enddo    
+      !W2 = Akl Ejj Al
+      do p=1,n
+        do q=1,n
+          W2(p,q)=tAkl(p,j)*tAl(j,q)
+        enddo
       enddo
-    enddo
-    !W3 = Eji Al
-    W3(1:n,1:n)=ZERO
-    do q=1,n
-      W3(j,q)=tAl(i,q)
-    enddo
+      !W3 = Eji Al
+      W3(1:n,1:n)=ZERO
+      do q=1,n
+        W3(j,q)=tAl(i,q)
+      enddo
 
-    do p=1,n
-      do q=1,n
-        W4(p,q) = 2*tAl(p,j)*tvl(i)*tvk(q) + 2*tAl(p,i)*tvl(j)*tvk(q)
-        W44(p,q) = 2*tAl(p,j)*tbk(i)*tvk(q) + 2*tAl(p,i)*tbk(j)*tvk(q)        
-        W4b(p,q) = 2*tAl(p,j)*tbl(i)*tbk(q) + 2*tAl(p,i)*tbl(j)*tbk(q)
-        W44b(p,q) = 2*tAl(p,j)*tvk(i)*tbk(q) + 2*tAl(p,i)*tvk(j)*tbk(q)
+      do p=1,n
+        do q=1,n
+          W4(p,q) = 2*tAl(p,j)*tvl(i)*tvk(q) + 2*tAl(p,i)*tvl(j)*tvk(q)
+          W44(p,q) = 2*tAl(p,j)*tbk(i)*tvk(q) + 2*tAl(p,i)*tbk(j)*tvk(q)        
+          W4b(p,q) = 2*tAl(p,j)*tbl(i)*tbk(q) + 2*tAl(p,i)*tbl(j)*tbk(q)
+          W44b(p,q) = 2*tAl(p,j)*tvk(i)*tbk(q) + 2*tAl(p,i)*tvk(j)*tbk(q)
+        enddo
       enddo
-    enddo
-    !W4 = W4 + vl vk' Ejj Al Eij
-    do p=1,n
-      W4(p,j) = W4(p,j) + tvl(p)*tvk(j)*tAl(j,i)
-      W44(p,j) = W44(p,j) + tbk(p)*tvk(j)*tAl(j,i)     
-      W4b(p,j) = W4b(p,j) + tbl(p)*tbk(j)*tAl(j,i)
-      W44b(p,j) = W44b(p,j) + tvk(p)*tbk(j)*tAl(j,i)
-    enddo
-    do q=1,n
-      W4(j,q) = W4(j,q) + 2*tAl(i,j)*tvl(j)*tvk(q) + tr3*tvl(i)*tvk(q) + tvl(i)*tvk(j)*tAl(j,q)     
-      W44(j,q) = W44(j,q) + 2*tAl(i,j)*tbk(j)*tvk(q) + tr3*tbk(i)*tvk(q) + tbk(i)*tvk(j)*tAl(j,q)      
-      W4b(j,q) = W4b(j,q) + 2*tAl(i,j)*tbl(j)*tbk(q) + tr3*tbl(i)*tbk(q) + tbl(i)*tbk(j)*tAl(j,q)     
-      W44b(j,q) = W44b(j,q) + 2*tAl(i,j)*tvk(j)*tbk(q) + tr3*tvk(i)*tbk(q) + tvk(i)*tbk(j)*tAl(j,q)
-    enddo
+      !W4 = W4 + vl vk' Ejj Al Eij
+      do p=1,n
+        W4(p,j) = W4(p,j) + tvl(p)*tvk(j)*tAl(j,i)
+        W44(p,j) = W44(p,j) + tbk(p)*tvk(j)*tAl(j,i)     
+        W4b(p,j) = W4b(p,j) + tbl(p)*tbk(j)*tAl(j,i)
+        W44b(p,j) = W44b(p,j) + tvk(p)*tbk(j)*tAl(j,i)
+      enddo
+      do q=1,n
+        W4(j,q) = W4(j,q) + 2*tAl(i,j)*tvl(j)*tvk(q) + tr3*tvl(i)*tvk(q) + tvl(i)*tvk(j)*tAl(j,q)     
+        W44(j,q) = W44(j,q) + 2*tAl(i,j)*tbk(j)*tvk(q) + tr3*tbk(i)*tvk(q) + tbk(i)*tvk(j)*tAl(j,q)      
+        W4b(j,q) = W4b(j,q) + 2*tAl(i,j)*tbl(j)*tbk(q) + tr3*tbl(i)*tbk(q) + tbl(i)*tbk(j)*tAl(j,q)     
+        W44b(j,q) = W44b(j,q) + 2*tAl(i,j)*tvk(j)*tbk(q) + tr3*tvk(i)*tbk(q) + tvk(i)*tbk(j)*tAl(j,q)
+      enddo
 
-    do p=1,n
-      do q=1,n
-        W5(p,q) = tAkl(p,j)*tvl(j)*tvk(q) + tAl(p,j)*tvl(j)*tvk(q) + tvl(p)*tvk(j)*tAl(j,q)
-        W55(p,q) = tAkl(p,j)*tbk(j)*tvk(q) + tAl(p,j)*tbk(j)*tvk(q) + tbk(p)*tvk(j)*tAl(j,q)       
-        W5b(p,q) = tAkl(p,j)*tbl(j)*tbk(q) + tAl(p,j)*tbl(j)*tbk(q) + tbl(p)*tbk(j)*tAl(j,q)
-        W55b(p,q) = tAkl(p,j)*tvk(j)*tbk(q) + tAl(p,j)*tvk(j)*tbk(q) + tvk(p)*tbk(j)*tAl(j,q)
+      do p=1,n
+        do q=1,n
+          W5(p,q) = tAkl(p,j)*tvl(j)*tvk(q) + tAl(p,j)*tvl(j)*tvk(q) + tvl(p)*tvk(j)*tAl(j,q)
+          W55(p,q) = tAkl(p,j)*tbk(j)*tvk(q) + tAl(p,j)*tbk(j)*tvk(q) + tbk(p)*tvk(j)*tAl(j,q)       
+          W5b(p,q) = tAkl(p,j)*tbl(j)*tbk(q) + tAl(p,j)*tbl(j)*tbk(q) + tbl(p)*tbk(j)*tAl(j,q)
+          W55b(p,q) = tAkl(p,j)*tvk(j)*tbk(q) + tAl(p,j)*tvk(j)*tbk(q) + tvk(p)*tbk(j)*tAl(j,q)
+        enddo
       enddo
-    enddo
-    
-    !W6 = Akl Ejj Al
-    do p=1,n
-      do q=1,n
-        W6(p,q) = tAkl(p,j)*tAl(j,q)
+      
+      !W6 = Akl Ejj Al
+      do p=1,n
+        do q=1,n
+          W6(p,q) = tAkl(p,j)*tAl(j,q)
+        enddo
       enddo
+      
+      !W7 = Eji vl vk'
+      W7(1:n,1:n)=ZERO
+      W77(1:n,1:n)=ZERO
+      W7b(1:n,1:n)=ZERO
+      W77b(1:n,1:n)=ZERO
+      do q=1,n
+        W7(j,q) = tvl(i)*tvk(q)
+        W77(j,q) = tbl(i)*tvl(q)
+        W7b(j,q) = tbl(i)*tbk(q)
+        W77b(j,q) = tvl(i)*tbl(q)
+      enddo
+      
+      call symmetrize_matrix(W1)
+      call symmetrize_matrix(W2)
+      call symmetrize_matrix(W3)
+      call symmetrize_matrix(W4)
+      call symmetrize_matrix(W5)
+      call symmetrize_matrix(W44)
+      call symmetrize_matrix(W55)
+      call symmetrize_matrix(W6)
+      call symmetrize_matrix(W7)
+      call symmetrize_matrix(W77)    
+      call symmetrize_matrix(W4b)
+      call symmetrize_matrix(W5b)
+      call symmetrize_matrix(W44b)
+      call symmetrize_matrix(W55b)
+      call symmetrize_matrix(W7b)
+      call symmetrize_matrix(W77b)
+      !compute integrals   
+                            temp1=ME_rXr_over_rij(j,j,W1,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+                        temp2=ME_rXr_rYr_over_rij(j,j,W2,W3,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)              
+            temp4=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W4,tbltbk,inv_tAkl,det_tAkl)
+          temp44=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W44,tvltbl,inv_tAkl,det_tAkl)
+          temp4b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W4b,tvltvk,inv_tAkl,det_tAkl)
+          temp44b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W44b,tvltbl,inv_tAkl,det_tAkl)    
+          temp444=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W7,W5b,inv_tAkl,det_tAkl)    
+        temp4444=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W77,W55b,inv_tAkl,det_tAkl)    
+        temp444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W7b,W5,inv_tAkl,det_tAkl)
+        temp4444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W77b,W55,inv_tAkl,det_tAkl)    
+        temp5=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W5,tbltbk,inv_tAkl,det_tAkl)
+      temp55=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W55,tvltbl,inv_tAkl,det_tAkl)  
+      temp5b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W5b,tvltvk,inv_tAkl,det_tAkl)
+      temp55b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W55b,tvltbl,inv_tAkl,det_tAkl) 
+        temp6=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W7,tbltbk,inv_tAkl,det_tAkl)
+      temp66=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W77,tvktbk,inv_tAkl,det_tAkl)
+      temp6b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W7b,tvltvk,inv_tAkl,det_tAkl)
+      temp66b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W77b,tvktbk,inv_tAkl,det_tAkl)
+      temp7=-6*(tr1+tr2)*rmkl(j,j)+4*temp1-8*temp2-2*(temp4-temp44)+4*(temp5-temp55)+4*(temp6-temp66)    
+      temp7=temp7-2*(temp4b-temp44b)+4*(temp5b-temp55b)+4*(temp6b-temp66b)-2*(temp444-temp4444)-2*(temp444b-temp444b)
+      OOkl=OOkl-temp7*ScaledChargeProd(Glob_PseudoCharge(j),Glob_PseudoCharge0)/Glob_Mass(j+1)
     enddo
-    
-    !W7 = Eji vl vk'
-    W7(1:n,1:n)=ZERO
-    W77(1:n,1:n)=ZERO
-    W7b(1:n,1:n)=ZERO
-    W77b(1:n,1:n)=ZERO
-    do q=1,n
-      W7(j,q) = tvl(i)*tvk(q)
-      W77(j,q) = tbl(i)*tvl(q)
-      W7b(j,q) = tbl(i)*tbk(q)
-      W77b(j,q) = tvl(i)*tbl(q)
-    enddo
-    
-    call symmetrize_matrix(W1)
-    call symmetrize_matrix(W2)
-    call symmetrize_matrix(W3)
-    call symmetrize_matrix(W4)
-    call symmetrize_matrix(W5)
-    call symmetrize_matrix(W44)
-    call symmetrize_matrix(W55)
-    call symmetrize_matrix(W6)
-    call symmetrize_matrix(W7)
-    call symmetrize_matrix(W77)    
-    call symmetrize_matrix(W4b)
-    call symmetrize_matrix(W5b)
-    call symmetrize_matrix(W44b)
-    call symmetrize_matrix(W55b)
-    call symmetrize_matrix(W7b)
-    call symmetrize_matrix(W77b)
-    !compute integrals   
-                          temp1=ME_rXr_over_rij(j,j,W1,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
-                      temp2=ME_rXr_rYr_over_rij(j,j,W2,W3,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)              
-          temp4=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W4,tbltbk,inv_tAkl,det_tAkl)
-        temp44=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W44,tvltbl,inv_tAkl,det_tAkl)
-        temp4b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W4b,tvltvk,inv_tAkl,det_tAkl)
-        temp44b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W44b,tvltbl,inv_tAkl,det_tAkl)    
-        temp444=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W7,W5b,inv_tAkl,det_tAkl)    
-      temp4444=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W77,W55b,inv_tAkl,det_tAkl)    
-      temp444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W7b,W5,inv_tAkl,det_tAkl)
-      temp4444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W77b,W55,inv_tAkl,det_tAkl)    
-      temp5=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W5,tbltbk,inv_tAkl,det_tAkl)
-    temp55=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W55,tvltbl,inv_tAkl,det_tAkl)  
-    temp5b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W5b,tvltvk,inv_tAkl,det_tAkl)
-    temp55b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W55b,tvltbl,inv_tAkl,det_tAkl) 
-      temp6=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W7,tbltbk,inv_tAkl,det_tAkl)
-    temp66=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W77,tvktbk,inv_tAkl,det_tAkl)
-    temp6b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W7b,tvltvk,inv_tAkl,det_tAkl)
-    temp66b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W77b,tvktbk,inv_tAkl,det_tAkl)
-    temp7=-6*(tr1+tr2)*rmkl(j,j)+4*temp1-8*temp2-2*(temp4-temp44)+4*(temp5-temp55)+4*(temp6-temp66)    
-    temp7=temp7-2*(temp4b-temp44b)+4*(temp5b-temp55b)+4*(temp6b-temp66b)-2*(temp444-temp4444)-2*(temp444b-temp444b)
-    OOkl=OOkl-temp7*ScaledChargeProd(Glob_PseudoCharge(j),Glob_PseudoCharge0)/Glob_Mass(j+1)
   enddo
-enddo
-OOkl=OOkl/Glob_Mass(1)
+  OOkl=OOkl/Glob_Mass(1)
 
 
-!Second double loop for OO
-do i=1,n
-  do j=i+1,n
-    tr1=tAl(j,i)
-    tr2=tAl(i,j)
-    tr3=3*tAl(j,j)   
-    tr4=tvl(j)*tvk(j)
-    !W1 = Al Eji Al + Al Ejj (Eji - Eii) Al 
-    do p=1,n
-      do q=1,n
-        W1(p,q)=tAl(p,i)*tAl(j,q)+tAl(p,j)*tAl(i,q)
+  !Second double loop for OO
+  do i=1,n
+    do j=i+1,n
+      tr1=tAl(j,i)
+      tr2=tAl(i,j)
+      tr3=3*tAl(j,j)   
+      tr4=tvl(j)*tvk(j)
+      !W1 = Al Eji Al + Al Ejj (Eji - Eii) Al 
+      do p=1,n
+        do q=1,n
+          W1(p,q)=tAl(p,i)*tAl(j,q)+tAl(p,j)*tAl(i,q)
+        enddo
       enddo
-    enddo
-    !W1 = W1 + Akl Ejj Al (Eij - Eii) 
-    do p=1,n
-      W1(p,j)=W1(p,j)+tAkl(p,j)*tAl(j,i)
-      W1(p,i)=W1(p,i)-tAkl(p,j)*tAl(j,i)    
-    enddo
-    !W1 = W1 + (Eji - Eii) Al Ejj Al + tr3 (Eji - Eii) Al 
-    do q=1,n
-      temp1=tAl(i,j)*tAl(j,q)+tr3*tAl(i,q)
-      W1(j,q)=W1(j,q)+temp1
-      W1(i,q)=W1(i,q)-temp1    
-    enddo   
-    !W2 = Akl Ejj Al
-    do p=1,n
-      do q=1,n
-        W2(p,q)=tAkl(p,j)*tAl(j,q)
+      !W1 = W1 + Akl Ejj Al (Eij - Eii) 
+      do p=1,n
+        W1(p,j)=W1(p,j)+tAkl(p,j)*tAl(j,i)
+        W1(p,i)=W1(p,i)-tAkl(p,j)*tAl(j,i)    
       enddo
-    enddo
-    !W3 = (Eji - Eii) Al
-    W3(1:n,1:n)=ZERO
-    do q=1,n
-      W3(j,q)=tAl(i,q)
-      W3(i,q)=-tAl(i,q)
-    enddo
+      !W1 = W1 + (Eji - Eii) Al Ejj Al + tr3 (Eji - Eii) Al 
+      do q=1,n
+        temp1=tAl(i,j)*tAl(j,q)+tr3*tAl(i,q)
+        W1(j,q)=W1(j,q)+temp1
+        W1(i,q)=W1(i,q)-temp1    
+      enddo   
+      !W2 = Akl Ejj Al
+      do p=1,n
+        do q=1,n
+          W2(p,q)=tAkl(p,j)*tAl(j,q)
+        enddo
+      enddo
+      !W3 = (Eji - Eii) Al
+      W3(1:n,1:n)=ZERO
+      do q=1,n
+        W3(j,q)=tAl(i,q)
+        W3(i,q)=-tAl(i,q)
+      enddo
 
-    do p=1,n
-      do q=1,n
-        W4(p,q) = 2*tAl(p,j)*tvl(i)*tvk(q) + 2*tAl(p,i)*tvl(j)*tvk(q)
-        W44(p,q) = 2*tAl(p,j)*tbk(i)*tvk(q) + 2*tAl(p,i)*tbk(j)*tvk(q)        
-        W4b(p,q) = 2*tAl(p,j)*tbl(i)*tbk(q) + 2*tAl(p,i)*tbl(j)*tbk(q)
-        W44b(p,q) = 2*tAl(p,j)*tvk(i)*tbk(q) + 2*tAl(p,i)*tvk(j)*tbk(q)
+      do p=1,n
+        do q=1,n
+          W4(p,q) = 2*tAl(p,j)*tvl(i)*tvk(q) + 2*tAl(p,i)*tvl(j)*tvk(q)
+          W44(p,q) = 2*tAl(p,j)*tbk(i)*tvk(q) + 2*tAl(p,i)*tbk(j)*tvk(q)        
+          W4b(p,q) = 2*tAl(p,j)*tbl(i)*tbk(q) + 2*tAl(p,i)*tbl(j)*tbk(q)
+          W44b(p,q) = 2*tAl(p,j)*tvk(i)*tbk(q) + 2*tAl(p,i)*tvk(j)*tbk(q)
+        enddo
       enddo
-    enddo
-    !W4 = W4 + vl vk' Ejj Al (Eij-Eii)
-    do p=1,n
-      W4(p,j) = W4(p,j) + tvl(p)*tvk(j)*tAl(j,i)
-      W4(p,i) = W4(p,i) - tvl(p)*tvk(j)*tAl(j,i)
-      W44(p,j) = W44(p,j) + tbk(p)*tvk(j)*tAl(j,i)
-      W44(p,i) = W44(p,i) - tbk(p)*tvk(j)*tAl(j,i)      
-      W4b(p,j) = W4b(p,j) + tbl(p)*tbk(j)*tAl(j,i)
-      W4b(p,i) = W4b(p,i) - tbl(p)*tbk(j)*tAl(j,i)     
-      W44b(p,j) = W44b(p,j) + tvk(p)*tbk(j)*tAl(j,i)
-      W44b(p,i) = W44b(p,i) - tvk(p)*tbk(j)*tAl(j,i)      
-    enddo
+      !W4 = W4 + vl vk' Ejj Al (Eij-Eii)
+      do p=1,n
+        W4(p,j) = W4(p,j) + tvl(p)*tvk(j)*tAl(j,i)
+        W4(p,i) = W4(p,i) - tvl(p)*tvk(j)*tAl(j,i)
+        W44(p,j) = W44(p,j) + tbk(p)*tvk(j)*tAl(j,i)
+        W44(p,i) = W44(p,i) - tbk(p)*tvk(j)*tAl(j,i)      
+        W4b(p,j) = W4b(p,j) + tbl(p)*tbk(j)*tAl(j,i)
+        W4b(p,i) = W4b(p,i) - tbl(p)*tbk(j)*tAl(j,i)     
+        W44b(p,j) = W44b(p,j) + tvk(p)*tbk(j)*tAl(j,i)
+        W44b(p,i) = W44b(p,i) - tvk(p)*tbk(j)*tAl(j,i)      
+      enddo
 
-    do q=1,n
-      temp1 = 2*tAl(i,j)*tvl(j)*tvk(q) + tr3*tvl(i)*tvk(q) + tvl(i)*tvk(j)*tAl(j,q)      
-      temp11 = 2*tAl(i,j)*tbk(j)*tvk(q) + tr3*tbk(i)*tvk(q) + tbk(i)*tvk(j)*tAl(j,q)     
-      temp1b = 2*tAl(i,j)*tbl(j)*tbk(q) + tr3*tbl(i)*tbk(q) + tbl(i)*tbk(j)*tAl(j,q)
-      temp11b = 2*tAl(i,j)*tvk(j)*tbk(q) + tr3*tvk(i)*tbk(q) + tvk(i)*tbk(j)*tAl(j,q)
-      W4(j,q) = W4(j,q) + temp1
-      W4(i,q) = W4(i,q) - temp1
-      W44(j,q) = W44(j,q) + temp11
-      W44(i,q) = W44(i,q) - temp11      
-      W4b(j,q) = W4b(j,q) + temp1b
-      W4b(i,q) = W4b(i,q) - temp1b
-      W44b(j,q) = W44b(j,q) + temp11b
-      W44b(i,q) = W44b(i,q) - temp11b
-    enddo
-    
-    !W5 = Akl Ejj vl vk' + Al Ejj vl vk' + vl vk' Ejj Al
-    do p=1,n
       do q=1,n
-        W5(p,q) = tAkl(p,j)*tvl(j)*tvk(q) + tAl(p,j)*tvl(j)*tvk(q) + tvl(p)*tvk(j)*tAl(j,q)        
-        W55(p,q) = tAkl(p,j)*tbk(j)*tvk(q) + tAl(p,j)*tbk(j)*tvk(q) + tbk(p)*tvk(j)*tAl(j,q)       
-        W5b(p,q) = tAkl(p,j)*tbl(j)*tbk(q) + tAl(p,j)*tbl(j)*tbk(q) + tbl(p)*tbk(j)*tAl(j,q)
-        W55b(p,q) = tAkl(p,j)*tvk(j)*tbk(q) + tAl(p,j)*tvk(j)*tbk(q) + tvk(p)*tbk(j)*tAl(j,q)
+        temp1 = 2*tAl(i,j)*tvl(j)*tvk(q) + tr3*tvl(i)*tvk(q) + tvl(i)*tvk(j)*tAl(j,q)      
+        temp11 = 2*tAl(i,j)*tbk(j)*tvk(q) + tr3*tbk(i)*tvk(q) + tbk(i)*tvk(j)*tAl(j,q)     
+        temp1b = 2*tAl(i,j)*tbl(j)*tbk(q) + tr3*tbl(i)*tbk(q) + tbl(i)*tbk(j)*tAl(j,q)
+        temp11b = 2*tAl(i,j)*tvk(j)*tbk(q) + tr3*tvk(i)*tbk(q) + tvk(i)*tbk(j)*tAl(j,q)
+        W4(j,q) = W4(j,q) + temp1
+        W4(i,q) = W4(i,q) - temp1
+        W44(j,q) = W44(j,q) + temp11
+        W44(i,q) = W44(i,q) - temp11      
+        W4b(j,q) = W4b(j,q) + temp1b
+        W4b(i,q) = W4b(i,q) - temp1b
+        W44b(j,q) = W44b(j,q) + temp11b
+        W44b(i,q) = W44b(i,q) - temp11b
       enddo
-    enddo
-    
-    !W6 = Akl Ejj Al
-    do p=1,n
+      
+      !W5 = Akl Ejj vl vk' + Al Ejj vl vk' + vl vk' Ejj Al
+      do p=1,n
+        do q=1,n
+          W5(p,q) = tAkl(p,j)*tvl(j)*tvk(q) + tAl(p,j)*tvl(j)*tvk(q) + tvl(p)*tvk(j)*tAl(j,q)        
+          W55(p,q) = tAkl(p,j)*tbk(j)*tvk(q) + tAl(p,j)*tbk(j)*tvk(q) + tbk(p)*tvk(j)*tAl(j,q)       
+          W5b(p,q) = tAkl(p,j)*tbl(j)*tbk(q) + tAl(p,j)*tbl(j)*tbk(q) + tbl(p)*tbk(j)*tAl(j,q)
+          W55b(p,q) = tAkl(p,j)*tvk(j)*tbk(q) + tAl(p,j)*tvk(j)*tbk(q) + tvk(p)*tbk(j)*tAl(j,q)
+        enddo
+      enddo
+      
+      !W6 = Akl Ejj Al
+      do p=1,n
+        do q=1,n
+          W6(p,q) = tAkl(p,j)*tAl(j,q)
+        enddo
+      enddo
+      
+      !W7 = (Eji - Eii) vl vk'
+      W7(1:n,1:n)=ZERO
+      W77(1:n,1:n)=ZERO
+      W7b(1:n,1:n)=ZERO
+      W77b(1:n,1:n)=ZERO
       do q=1,n
-        W6(p,q) = tAkl(p,j)*tAl(j,q)
+        W7(j,q) = tvl(i)*tvk(q)
+        W7(i,q) = -tvl(i)*tvk(q)      
+        W77(j,q) = tbl(i)*tvl(q)
+        W77(i,q) = -tbl(i)*tvl(q)
+        W7b(j,q) = tbl(i)*tbk(q)
+        W7b(i,q) = -tbl(i)*tbk(q)
+        W77b(j,q) = tvl(i)*tbl(q)
+        W77b(i,q) = -tvl(i)*tbl(q)
       enddo
+      
+      call symmetrize_matrix(W1)
+      call symmetrize_matrix(W2)
+      call symmetrize_matrix(W3)
+      call symmetrize_matrix(W4)
+      call symmetrize_matrix(W44)
+      call symmetrize_matrix(W5)
+      call symmetrize_matrix(W55)
+      call symmetrize_matrix(W6)
+      call symmetrize_matrix(W7)
+      call symmetrize_matrix(W77)
+      call symmetrize_matrix(W4b)
+      call symmetrize_matrix(W5b)
+      call symmetrize_matrix(W44b)
+      call symmetrize_matrix(W55b)
+      call symmetrize_matrix(W7b)
+      call symmetrize_matrix(W77b)
+      !compute integrals (remember to take the difference)
+      temp1=ME_rXr_over_rij(i,j,W1,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+      temp2=ME_rXr_rYr_over_rij(i,j,W2,W3,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+        temp4=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W4,tbltbk,inv_tAkl,det_tAkl)
+        temp44=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W44,tvltbl,inv_tAkl,det_tAkl)     
+        temp4b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W4b,tvltvk,inv_tAkl,det_tAkl)     
+      temp44b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W44b,tvltbl,inv_tAkl,det_tAkl)      
+      temp444=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W7,W5b,inv_tAkl,det_tAkl)    
+      temp4444=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W77,W55b,inv_tAkl,det_tAkl)    
+      temp444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W7b,W5,inv_tAkl,det_tAkl)
+    temp4444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W77b,W55,inv_tAkl,det_tAkl)    
+    temp5=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W5,tbltbk,inv_tAkl,det_tAkl)
+    temp55=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W55,tvltbl,inv_tAkl,det_tAkl)     
+    temp5b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W5b,tvltvk,inv_tAkl,det_tAkl)
+  temp55b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W55b,tvltbl,inv_tAkl,det_tAkl)     
+    temp6=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W7,tbltbk,inv_tAkl,det_tAkl)
+    temp66=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W77,tvktbk,inv_tAkl,det_tAkl)    
+    temp6b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W7b,tvltvk,inv_tAkl,det_tAkl)
+  temp66b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W77b,tvktbk,inv_tAkl,det_tAkl)
+      temp7=-6*(tr1+tr2)*rmkl(i,j)+4*temp1-8*temp2-2*(temp4-temp44)+4*(temp5-temp55)+4*(temp6-temp66)
+      temp7=temp7-2*(temp4b-temp44b)+4*(temp5b-temp55b)+4*(temp6b-temp66b)-2*(temp444-temp4444)-2*(temp444b-temp4444b)
+      OOkl=OOkl+&
+        temp7*ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))/(Glob_Mass(i+1)*Glob_Mass(j+1))
     enddo
-    
-    !W7 = (Eji - Eii) vl vk'
-    W7(1:n,1:n)=ZERO
-    W77(1:n,1:n)=ZERO
-    W7b(1:n,1:n)=ZERO
-    W77b(1:n,1:n)=ZERO
-    do q=1,n
-      W7(j,q) = tvl(i)*tvk(q)
-      W7(i,q) = -tvl(i)*tvk(q)      
-      W77(j,q) = tbl(i)*tvl(q)
-      W77(i,q) = -tbl(i)*tvl(q)
-      W7b(j,q) = tbl(i)*tbk(q)
-      W7b(i,q) = -tbl(i)*tbk(q)
-      W77b(j,q) = tvl(i)*tbl(q)
-      W77b(i,q) = -tvl(i)*tbl(q)
-    enddo
-    
-    call symmetrize_matrix(W1)
-    call symmetrize_matrix(W2)
-    call symmetrize_matrix(W3)
-    call symmetrize_matrix(W4)
-    call symmetrize_matrix(W44)
-    call symmetrize_matrix(W5)
-    call symmetrize_matrix(W55)
-    call symmetrize_matrix(W6)
-    call symmetrize_matrix(W7)
-    call symmetrize_matrix(W77)
-    call symmetrize_matrix(W4b)
-    call symmetrize_matrix(W5b)
-    call symmetrize_matrix(W44b)
-    call symmetrize_matrix(W55b)
-    call symmetrize_matrix(W7b)
-    call symmetrize_matrix(W77b)
-    !compute integrals (remember to take the difference)
-    temp1=ME_rXr_over_rij(i,j,W1,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
-    temp2=ME_rXr_rYr_over_rij(i,j,W2,W3,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
-      temp4=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W4,tbltbk,inv_tAkl,det_tAkl)
-      temp44=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W44,tvltbl,inv_tAkl,det_tAkl)     
-      temp4b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W4b,tvltvk,inv_tAkl,det_tAkl)     
-    temp44b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W44b,tvltbl,inv_tAkl,det_tAkl)      
-    temp444=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W7,W5b,inv_tAkl,det_tAkl)    
-    temp4444=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W77,W55b,inv_tAkl,det_tAkl)    
-    temp444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W7b,W5,inv_tAkl,det_tAkl)
-  temp4444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W77b,W55,inv_tAkl,det_tAkl)    
-  temp5=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W5,tbltbk,inv_tAkl,det_tAkl)
-  temp55=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W55,tvltbl,inv_tAkl,det_tAkl)     
-  temp5b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W5b,tvltvk,inv_tAkl,det_tAkl)
-temp55b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W55b,tvltbl,inv_tAkl,det_tAkl)     
-  temp6=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W7,tbltbk,inv_tAkl,det_tAkl)
-  temp66=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W77,tvktbk,inv_tAkl,det_tAkl)    
-  temp6b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W7b,tvltvk,inv_tAkl,det_tAkl)
-temp66b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W77b,tvktbk,inv_tAkl,det_tAkl)
-    temp7=-6*(tr1+tr2)*rmkl(i,j)+4*temp1-8*temp2-2*(temp4-temp44)+4*(temp5-temp55)+4*(temp6-temp66)
-    temp7=temp7-2*(temp4b-temp44b)+4*(temp5b-temp55b)+4*(temp6b-temp66b)-2*(temp444-temp4444)-2*(temp444b-temp4444b)
-    OOkl=OOkl+&
-      temp7*ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))/(Glob_Mass(i+1)*Glob_Mass(j+1))
   enddo
-enddo
-OOkl=OOkl/2
-
+  OOkl=OOkl/2
+else
+  OOkl = ZERO
+endif
 !!
 
 !Evaluation of correlation functions
