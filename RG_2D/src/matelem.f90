@@ -878,6 +878,21 @@ real(dprec)   inv_tAkltAk(nn,nn),inv_tAkltAkM(nn,nn)
 real(dprec)   inv_tAkltbk(nn),tvlinv_tAkl(nn),tvlinv_tAkltAkM(nn),tvlinv_tAkltAlM(nn)
 real(dprec)   tbltbk(nn,nn),tvltvk(nn,nn),tbltvk(nn,nn),tvltbk(nn,nn),tvktbk(nn,nn),tvltbl(nn,nn)
 
+
+!Vars for calculating <1/rij 1/pq>
+real(dprec) :: a, b, d, fij, fpq, tfij, tfpq, uij, upq, tuij, tupq, phi,  phi_sq, phi_cube, dsqab, &
+acosphi, tau, ttau, myeta, myteta, &
+commonFactor, arccosCommon, a1, a2, a3, a4, aone, atwo, arccosAns
+real(dprec) :: R11, R12, R1, R21, R22, R23, R2, R31, R32, R33, R3, R4, R51, R52, R53, R5, R6, &
+ROne, RTwo, radicalCommon, radicalAns, totalAns, commonArccosRadical, xx, &
+RDZeroOne, RDZeroTwo, RDOneOne, RDOneTwo, RDTwoOne, RDTwoTwo, RDThreeOne, RDThreeTwo, &
+RDFourOne, RDFourTwo
+real(dprec)   local_eps_for_xx
+!Vars to calculate delta-fucntions directly
+real(dprec) :: myalpha, jijAVk, jijAVl, jijAWk, jijAWl
+!Var to set if orbit-orbit correction is needed
+
+local_eps_for_xx = 1.d-6
 n=Glob_n
 np=Glob_np
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
@@ -1178,7 +1193,7 @@ do i=1,n
   rkl(i,i)= temp1*temp3*(ONE+ONETHIRD*term1/(m*temp2) - ONEFIFTH*term2/(THREE*m*temp2*temp2))
   r2kl(i,i)=Skl*THREEHALF*temp2*(ONE+TWO*ONETHIRD*term1/(m*temp2))
   temp10=temp8/(temp2*temp3)
-  deltarkl(i,i)=temp10*(ONE-term1/(m*temp2)+term2/(THREE*m*temp2*temp2))
+  !deltarkl(i,i)=temp10*(ONE-term1/(m*temp2)+term2/(THREE*m*temp2*temp2))
   prvalkl(i,i)=PI*temp10*( TWO*(Glob_EulerConst+log(temp2))*(ONE-term1/(m*temp2)+term2/(m*temp2*temp2)) &
   + FOUR*(term1-TWO*term2/temp2)/(THREE*m*temp2)+EIGHT*term2/(15*m*temp2*temp2) )
 enddo
@@ -1242,8 +1257,8 @@ do i=1,n
     r2kl(j,i)=Skl*THREEHALF*temp2*(ONE+TWO*ONETHIRD*term1/(m*temp2))
     r2kl(i,j)=r2kl(j,i)
     temp10=temp8/(temp2*temp3)
-    deltarkl(j,i)=temp10*(ONE-term1/(m*temp2)+term2/(THREE*m*temp2*temp2))
-    deltarkl(i,j)=deltarkl(j,i)
+    !deltarkl(j,i)=temp10*(ONE-term1/(m*temp2)+term2/(THREE*m*temp2*temp2))
+    !deltarkl(i,j)=deltarkl(j,i)
     prvalkl(j,i)=PI*temp10*( TWO*(Glob_EulerConst+log(temp2))*(ONE-term1/(m*temp2)+term2/(m*temp2*temp2)) &
       + FOUR*(term1-TWO*term2/temp2)/(THREE*m*temp2)+EIGHT*term2/(15*m*temp2*temp2) )
     prvalkl(i,j)=prvalkl(j,i)
@@ -1334,6 +1349,10 @@ do j=1,n
 enddo 
 
 !Evaluation of (1/r_{ij}*1/r_{pq}))_kl is not implemented yet
+tau = tau3                                                                                     !tau
+ttau = tau33   
+myeta =  tau333
+myteta = tau334
 temp1=4*Skl/(3*PI)
 do i=1,n
   do j=i,n
@@ -1350,39 +1369,211 @@ do i=1,n
           rmrmkl(q,p,i,j)=temp2
           rmrmkl(q,p,j,i)=temp2       
         else  
-          !jAj(nn,nn,nn,nn),jAtvl(nn,nn),tvkAj(nn,nn)
-          temp2=TrAJ(i,j)          !sigma    a
-          temp3=TrAJ(p,q)          !chi      b
-          temp4=jAj(p,q,i,j)       !         c
-          !tau3                    !zeta     w
-          temp5=tvkAj(i,j)         !         f
-          temp6=tvkAj(p,q)         !         g          
-          temp7=jAtvl(i,j)         !         u
-          temp8=jAtvl(p,q)         !         v
-          temp9 = sqrt(temp2*temp3)
-          temp10 = temp4/temp9
-          threshold = ONE - temp10*temp10
-          if ( threshold  < TEN * EPSILON(threshold) )then
-            ! employed expression
-            ! expansion_term_2 = 2*Skl* (Sqrt(a*b)*g*u + Sqrt(a*b)*f*v - 3*a*b*tau3) / (3*a*b*Sqrt(a*b)*tau3)   
-            temp11 = temp9 * temp6 * temp7                                                              ! Sqrt(a*b)*g*u
-            temp12 = temp9 * temp5 * temp8                                                              ! Sqrt(a*b)*f*v	 
-            temp13 = THREE * temp2 * temp3 * tau3                                                       ! 3*a*b*tau3
-            temp14 = (TWO * Skl) * (temp11 + temp12 - temp13) / (temp13 * temp9)
-          else
-            temp11=sqrt(ONE-temp10*temp10)                                                                              ! sqrt(1-x^2)
-            temp12=(temp6*temp7+temp5*temp8)/(temp2*temp3*tau3)                                                         ! h
-            temp13=(temp2*temp6*temp8+temp3*temp5*temp7)/(temp2*temp3*temp9*tau3)                                       ! t
-            temp14=(temp1/temp11)*(THREE/temp9-temp13+(temp12-temp10*THREE/temp9)*ftransaux(temp10))
+          if (i==j .and. p/=q) then 
+            a = inv_tAkl(i,i)
+            b = inv_tAkl(p,p) + inv_tAkl(q,q) -  inv_tAkl(p,q) - inv_tAkl(q,p) 
+            d = inv_tAkl(i, p) - inv_tAkl(i, q)
+            fij = tvkinv_tAkl(i)
+            tfij = tbkinv_tAkl(i)
+            uij = inv_tAkltvl(i)
+            tuij = inv_tAkltbl(i)
+            fpq =  tvkinv_tAkl(p) - tvkinv_tAkl(q)                                                            !fij
+            tfpq = tbkinv_tAkl(p) - tbkinv_tAkl(q)   
+            upq = inv_tAkltvl(p) - inv_tAkltvl(q)                                                  !uij  
+            tupq = inv_tAkltbl(p) - inv_tAkltbl(q) 
+          else if (i/=j .and. p==q) then
+            a = inv_tAkl(i,i) + inv_tAkl(j,j) -  inv_tAkl(i,j) - inv_tAkl(j,i)
+            b = inv_tAkl(p,p)
+            d = inv_tAkl(i, p) - inv_tAkl(j, p)
+            fij =  tvkinv_tAkl(i) -   tvkinv_tAkl(j)                                                     !fij
+            tfij = tbkinv_tAkl(i) - tbkinv_tAkl(j)
+            uij = inv_tAkltvl(i) - inv_tAkltvl(j)                                                             !uij  
+            tuij = inv_tAkltbl(i) - inv_tAkltbl(j)
+            fpq = tvkinv_tAkl(p)
+            tfpq = tbkinv_tAkl(p)
+            upq = inv_tAkltvl(p)
+            tupq =inv_tAkltbl(p)
+          else if (i==j .and. p==q) then
+            a = inv_tAkl(i,i)
+            b = inv_tAkl(p,p)
+            d = inv_tAkl(i,p)
+            fij = tvkinv_tAkl(i)                                                          !fij
+            tfij = tbkinv_tAkl(i)
+            uij = inv_tAkltvl(i)                                                          !uij  
+            tuij = inv_tAkltbl(i)
+            fpq = tvkinv_tAkl(p)
+            tfpq = tbkinv_tAkl(p)
+            upq = inv_tAkltvl(p)
+            tupq = inv_tAkltbl(p)
+          else 
+            a = inv_tAkl(i,i) + inv_tAkl(j,j) -  inv_tAkl(i,j) - inv_tAkl(j,i)
+            b = inv_tAkl(p,p) + inv_tAkl(q,q) -  inv_tAkl(p,q) - inv_tAkl(q,p)     !a
+            d = inv_tAkl(i, p) + inv_tAkl(j, q) - inv_tAkl(i, q) - inv_tAkl(j, p)   !d
+            fij = tvkinv_tAkl(i) - tvkinv_tAkl(j)                                                            !fij
+            tfij = tbkinv_tAkl(i) - tbkinv_tAkl(j)  
+            fpq = tvkinv_tAkl(p) - tvkinv_tAkl(q)                                                             !fij
+            tfpq = tbkinv_tAkl(p) - tbkinv_tAkl(q) 
+            uij = inv_tAkltvl(i) - inv_tAkltvl(j)                                                             !uij  
+            tuij = inv_tAkltbl(i) - inv_tAkltbl(j)   
+            upq = inv_tAkltvl(p) - inv_tAkltvl(q)                                                             !uij  
+            tupq = inv_tAkltbl(p) - inv_tAkltbl(q)
           endif
-          rmrmkl(i,j,p,q)=temp14
-          rmrmkl(j,i,p,q)=temp14
-          rmrmkl(i,j,q,p)=temp14
-          rmrmkl(j,i,q,p)=temp14
-          rmrmkl(p,q,i,j)=temp14
-          rmrmkl(p,q,j,i)=temp14
-          rmrmkl(q,p,i,j)=temp14
-          rmrmkl(q,p,j,i)=temp14
+          dsqab = d/(sqrt(a*b))
+          xx = dsqab*dsqab
+          phi = sqrt(ONE-xx)
+          phi_sq = ONE - xx
+          phi_cube = phi_sq*phi
+          commonFactor = (Glob_Piraised3n2/PI)/(abs(det_tAkl)*sqrt(abs(det_tAkl)))
+
+          if (xx < local_eps_for_xx) then
+
+            !Zero-order correction
+            radicalCommon = 1._dprec/(45._dprec*(a*b)**(2)*sqrt(a*b))
+            R1 = 15._dprec*a*b*(3._dprec*a*b*tau - b*fij*uij - a*fpq*upq)*ttau
+            R2 = b*(-15._dprec*a*b*tau + 9._dprec*b*fij*uij + 5._dprec*a*fpq*upq)*tfij*tuij
+            R3 = a*(-15._dprec*a*b*tau + 5._dprec*b*fij*uij + 9._dprec*a*fpq*upq)*tfpq*tupq
+            RDZeroOne = R1 + R2 + R3
+
+            R1 = 15._dprec*a*b*(3._dprec*a*b*myeta - b*fij*tuij - a*fpq*tupq)*myteta
+            R2 = b*(-15._dprec*a*b*myeta + 9._dprec*b*fij*tuij + 5._dprec*a*fpq*tupq)*tfij*uij
+            R3 = a*(-15._dprec*a*b*myeta + 5._dprec*b*fij*tuij + 9._dprec*a*fpq*tupq)*tfpq*upq
+            RDZeroTwo = R1 + R2 + R3
+
+            !First-order correction
+            R1 = (FIVE*a*b*ttau-THREE*b*tfij*tuij-THREE*a*tfpq*tupq)*(fij*upq+fpq*uij)
+            R2 = (FIVE*a*b*tau-THREE*b*fij*uij-THREE*a*fpq*upq)*(tfij*tupq+tfpq*tuij)
+            RDOneOne = (R1 + R2)*d
+
+            R1 = (FIVE*a*b*myteta-THREE*b*tfij*uij-THREE*a*tfpq*upq)*(fij*tupq+fpq*tuij)
+            R2 = (FIVE*a*b*myeta-THREE*b*fij*tuij-THREE*a*fpq*tupq)*(tfij*upq+tfpq*uij)
+            RDOneTwo = (R1 + R2)*d
+
+            !Second-order correction
+            R1 = 25._dprec*a*b*ttau*(a*b*tau - b*fij*uij - a*fpq*upq)
+            R2 = b*tfij*tuij*(-25._dprec*a*b*tau+25._dprec*b*fij*uij+21._dprec*a*fpq*upq)
+            R3 = 6._dprec*a*b*tfij*tupq*(fpq*uij + fij*upq)
+            R4 = -25._dprec*(a**2)*b*tau*tfpq*tupq
+            R5 = 3._dprec*a*b*tfpq*fij*(2._dprec*upq*tuij + 7._dprec*uij*tupq)
+            R6 = a*tfpq*fpq*(6._dprec*b*uij*tuij + 25._dprec*a*upq*tupq)
+            RDTwoOne = (R1 + R2 + R3 + R4 + R5 + R6)*d**2/(150._dprec*(a*b)**3*sqrt(a*b))
+
+            R1 = 25._dprec*a*b*myteta*(a*b*myeta - b*fij*tuij - a*fpq*tupq)
+            R2 = b*tfij*uij*(-25._dprec*a*b*myeta+25._dprec*b*fij*tuij+21._dprec*a*fpq*tupq)
+            R3 = 6._dprec*a*b*tfij*upq*(fpq*tuij + fij*tupq)
+            R4 = -25._dprec*(a**2)*b*myeta*tfpq*upq
+            R5 = 3._dprec*a*b*tfpq*fij*(2._dprec*tupq*uij + 7._dprec*tuij*upq)
+            R6 = a*tfpq*fpq*(6._dprec*b*tuij*uij + 25._dprec*a*tupq*upq)
+            RDTwoTwo = (R1 + R2 + R3 + R4 + R5 + R6)*d**2/(150._dprec*(a*b)**3*sqrt(a*b))
+
+
+            !Third-order correction
+            R1 = (a*b*ttau-b*tfij*tuij-a*tfpq*tupq)*(fij*upq+fpq*uij)
+            R2 = (a*b*tau-b*fij*uij-a*fpq*upq)*(tfij*tupq+tfpq*tuij)
+            RDThreeOne = (R1 + R2)*d**3/(10._dprec*(a*b)**3*sqrt(a*b))
+
+            R1 = (a*b*myteta-b*tfij*uij-a*tfpq*upq)*(fij*tupq+fpq*tuij)
+            R2 = (a*b*myeta-b*fij*tuij-fpq*tupq)*(tfij*upq+tfpq*uij)
+            RDThreeTwo = (R1 + R2)*d**3/(10._dprec*(a*b)**3*sqrt(a*b))
+
+            !Fourth-order correction
+            R1 = 7._dprec*a*b*ttau*(3._dprec*a*b*tau - 5._dprec*b*fij*uij - 5._dprec*a*fpq*upq)
+            R2 = b*tfij*tuij*(-35._dprec*a*b*tau + 49._dprec*b*fij*uij + 45._dprec*a*fpq*upq)
+            R3 = 20._dprec*a*b*tfij*tupq*(fpq*uij+fij*upq)
+            R4 = a*tfpq*fpq*(20._dprec*b*uij*tuij + 49._dprec*a*upq*tupq)
+            R5 = -35._dprec*(a**2)*b*tau*tupq*tfpq
+            R6 = 5._dprec*a*b*tfpq*fij*(4._dprec*upq*tuij + 9._dprec*uij*tupq)
+            RDFourOne = (R1 + R2 + R3 + R4 + R5 + R6)*(d**4)/(280._dprec*((a*b)**4)*sqrt(a*b))
+
+            R1 = 7._dprec*a*b*myteta*(3._dprec*a*b*myeta - 5._dprec*b*fij*tuij - 5._dprec*a*fpq*tupq)
+            R2 = b*tfij*uij*(-35._dprec*a*b*myeta + 49._dprec*b*fij*tuij + 45._dprec*a*fpq*tupq)
+            R3 = 20._dprec*a*b*tfij*upq*(fpq*tuij+fij*tupq)
+            R4 = a*tfpq*fpq*(20._dprec*b*tuij*uij + 49._dprec*a*tupq*upq)
+            R5 = -35._dprec*(a**2)*b*myeta*upq*tfpq
+            R6 = 5._dprec*a*b*tfpq*fij*(4._dprec*tupq*uij + 9._dprec*tuij*upq)
+            RDFourTwo = (R1 + R2 + R3 + R4 + R5 + R6)*(d**4)/(280._dprec*((a*b)**4)*sqrt(a*b))
+
+            
+            totalAns = commonFactor*radicalCommon*(RDZeroOne + RDZeroTwo + RDOneOne + RDOneTwo) + &
+            commonFactor*(RDTwoOne + RDTwoTwo + RDThreeOne + RDThreeTwo + RDFourOne + RDFourTwo)
+
+          else
+            acosphi=asin(abs(dsqab))
+
+            commonArccosRadical = 1._dprec/(15._dprec*abs(d)**3*sqrt(a*b)*(a*b)**3*phi_cube)
+            !!! Calculation of arccos part  !!!
+            arccosCommon =-(a*b)**3*sqrt(a*b)*phi_cube
+
+            a1 = 5._dprec*d*ttau*(fpq*uij + fij*upq - 3._dprec*d*tau)
+            a2 = (5._dprec*d*tau - 3._dprec*fij*upq - 3._dprec*fpq*uij)*(tfij*tupq + tfpq*tuij)
+            a3 = 2._dprec*fij*uij*tfpq*tupq
+            a4 = 2._dprec*fpq*upq*tfij*tuij
+            aone = a1 + a2 + a3 + a4
+
+            !Second term
+            a1 = 5._dprec*d*myteta*(fpq*tuij + fij*tupq - 3._dprec*d*myeta)
+            a2 = (5._dprec*d*myeta - 3._dprec*fij*tupq - 3._dprec*fpq*tuij)*(tfij*upq + tfpq*uij)
+            a3 = 2._dprec*fij*tuij*tfpq*upq
+            a4 = 2._dprec*fpq*tupq*tfij*uij
+            atwo = a1 + a2 + a3 + a4
+
+            arccosAns = arccosCommon * (aone + atwo) * acosphi
+
+
+            !!! Calculation of radical part  !!!
+            radicalCommon=abs(d)
+
+            !First term
+            R11 = (a*b*upq - b*d*uij)*fij
+            R12 = (a*b*uij - a*d*upq)*fpq
+            R1 = 5._dprec*(a**2)*(b**2)*d*(phi_sq)*ttau*(R11+R12)
+            R21 = (d**2)*((2._dprec*(d**2) - 3._dprec*a*b)*uij + a*d*upq)*fij
+            R22 = 5._dprec*(a**2)*b*(d**2)*(phi_sq)*tau
+            R23 = a*((d**3)*uij + a*((d**2)-2._dprec*a*b)*upq)*fpq
+            R2 = -(b**2)*tfij*tuij*(R21 + R22 + R23)
+            R31 = -b*((d**3)*uij + a*(3._dprec*a*b-4._dprec*(d**2))*upq)*fij
+            R32 = 5._dprec*(a**2)*(b**2)*d*(phi_sq)*tau
+            R33 = -a*(b*(3._dprec*a*b-4._dprec*(d**2))*uij + (d**3)*upq)*fpq
+            R3 = a*b*tfij*tupq*(R31 + R32 + R33)
+            R4 = a*b*tfpq*tuij*(R31 + R32 + R33)
+            R51 = (d**2)*((2._dprec*(d**2) - 3._dprec*a*b)*upq + b*d*uij)*fpq
+            R52 = 5._dprec*a*(b**2)*(d**2)*(phi_sq)*tau
+            R53 = b*((d**3) * upq + b*((d**2) - 2._dprec*a*b)*uij)*fij
+            R5 = -(a**2)*tfpq*tupq*(R51 + R52 + R53)
+            ROne = R1 + R2 + R3 + R4 + R5
+
+            !Second term
+            R11 = (a*b*tupq - b*d*tuij)*fij
+            R12 = (a*b*tuij - a*d*tupq)*fpq
+            R1 = 5._dprec*(a**2)*(b**2)*d*(phi_sq)*myteta*(R11 + R12)
+            R21 = (d**2)*((2._dprec*(d**2) - 3._dprec*a*b)*tuij + a*d*tupq)*fij
+            R22 = 5._dprec*(a**2)*b*(d**2)*(phi_sq)*myeta
+            R23 = a*((d**3)*tuij + a*((d**2)-2._dprec*a*b)*tupq)*fpq
+            R2 = -(b**2)*tfij*uij*(R21 + R22 + R23)
+            R31 = -b*((d**3)*tuij + a*(3._dprec*a*b-4._dprec*(d**2))*tupq)*fij
+            R32 = 5._dprec*(a**2)*(b**2)*d*(phi_sq)*myeta
+            R33 = -a*(b*(3._dprec*a*b-4._dprec*(d**2))*tuij + (d**3)*tupq)*fpq
+            R3 = a*b*tfij*upq*(R31 + R32 + R33)
+            R4 = a*b*tfpq*uij*(R31 + R32 + R33)
+            R51 = (d**2)*((2._dprec*(d**2) - 3._dprec*a*b)*tupq + b*d*tuij)*fpq
+            R52 = 5._dprec*a*(b**2)*(d**2)*(phi_sq)*myeta
+            R53 = b*((d**3) * tupq + b*((d**2) - 2._dprec*a*b)*tuij)*fij
+            R5 = -(a**2)*tfpq*upq*(R51 + R52 + R53)
+            RTwo = R1 + R2 + R3 + R4 + R5
+
+            radicalAns = radicalCommon * (ROne + RTwo)
+
+           
+            totalAns = commonFactor * commonArccosRadical * (arccosAns + radicalAns)
+
+          endif
+          rmrmkl(i,j,p,q)=totalAns
+          rmrmkl(j,i,p,q)=totalAns
+          rmrmkl(i,j,q,p)=totalAns
+          rmrmkl(j,i,q,p)=totalAns
+          rmrmkl(p,q,i,j)=totalAns
+          rmrmkl(p,q,j,i)=totalAns
+          rmrmkl(q,p,i,j)=totalAns
+          rmrmkl(q,p,j,i)=totalAns
         endif  
       enddo
     enddo
@@ -1390,7 +1581,40 @@ do i=1,n
 enddo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!evaluate delta-functions directly
+!V ---- tau
+!tV --- myeta
+!W ---- ttau
+!tW --- myteta
+deltarkl = ZERO
+do i = 1,n 
+  do j = i,n
+    if (i==j) then 
+      myalpha = inv_tAkl(i,i)
+      jijAvk = tvkinv_tAkl(i)
+      jijAvl = inv_tAkltvl(i)
+      jijAwk = tbkinv_tAkl(i)
+      jijAwl = inv_tAkltbl(i)
+    else
+      myalpha = inv_tAkl(i,i) + inv_tAkl(j,j) - inv_tAkl(i,j) - inv_tAkl(j,i)
+      jijAvk = tvkinv_tAkl(i) - tvkinv_tAkl(j)
+      jijAvl = inv_tAkltvl(i) - inv_tAkltvl(j)
+      jijAwk = tbkinv_tAkl(i) - tbkinv_tAkl(j)
+      jijAwl = inv_tAkltbl(i) - inv_tAkltbl(j)
+    endif
+    R1 = (myalpha**2)*(tau*ttau + myeta*myteta)
+    R2 = -myalpha*(jijAvk*jijAvl*ttau + tau*jijAwk*jijAwl+ &
+    jijAvk*jijAwl*myteta + myeta*jijAwk*jijAvl)
+    R3 = TWO*(jijAvk*jijAvl*jijAwk*jijAwl)
 
+    deltarkl(i,j) = (R1 + R2 + R3)*&
+    Glob_Piraised3n2/(FOUR*PI*SQRTPI*(myalpha**3)*sqrt(myalpha)*det_tAkl*sqrt(det_tAkl))
+
+    deltarkl(j,i) = deltarkl(i,j)
+  enddo
+enddo
+
+!evaluate drachmanized delta-function and V2kl operator
 V2kl=ZERO
 do p=1,n 
   do q=p,n
@@ -1413,12 +1637,13 @@ do p=1,n
     endif
 
     !temp2=ME_rXr_over_rij(W2,p,q,inv_tAkl,rmkl(p,q),TrAJ(p,q))
-    temp2=ZERO
-    temp2=ME_d_X_over_rij_d(p,q,Glob_dmvM,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
-    !temp2=ME_d_X_over_rij_d(p,q,Glob_dmvM,tAk,tAl,inv_tAkl,tvk,tvl, &
-    !inv_tAkltvl,tvkinv_tAkl,trAJ(p,q),tau3,eta2(p,q),Skl)
+    !temp2=ZERO
+    temp2 = ME_d_X_over_rij_d(p,q,Glob_dmvM,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl, &
+    tvkinv_tAkl, tbkinv_tAkl, inv_tAkltvl, inv_tAkltbl)
     drach_deltarkl(p,q)=(Glob_CurrEnergy*rmkl(p,q)-temp1-temp2)/temp4
+    !drach_deltarkl(p,q)=temp2
     drach_deltarkl(q,p)=drach_deltarkl(p,q)
+    
     V2kl=V2kl+temp5*temp1    
   enddo
 enddo
@@ -1489,15 +1714,13 @@ drach_MVkl=dXddYd(Glob_dmvM,Glob_dmvMB,tvk,tbk,tvl,tbl,tAl,tAk,inv_tAkl,det_tAkl
                          inv_tAkltAl,inv_tAkltAk)
 do i=1,n                                        
   drach_MVkl=drach_MVkl-ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i)) &
-                        *ME_d_X_over_rij_d(i,i,Glob_dmvB,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
-                        !*ME_d_X_over_rij_d(i,i,Glob_dmvB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl, &
-                         !          tvkinv_tAkl,trAJ(i,i),tau3,eta2(i,i),Skl)
+                        *ME_d_X_over_rij_d(i,i,Glob_dmvB,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl,&
+                        tvkinv_tAkl, tbkinv_tAkl, inv_tAkltvl, inv_tAkltbl)           
                                    
   do j=i+1,n                                                                  
   drach_MVkl=drach_MVkl-ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j)) &
-                        *ME_d_X_over_rij_d(i,j,Glob_dmvB,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
-                       ! *ME_d_X_over_rij_d(i,j,Glob_dmvB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl, &
-                       !            tvkinv_tAkl,trAJ(i,j),tau3,eta2(i,j),Skl)                        
+                        *ME_d_X_over_rij_d(i,j,Glob_dmvB,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl,&
+                        tvkinv_tAkl, tbkinv_tAkl, inv_tAkltvl, inv_tAkltbl)                            
   enddo                
 enddo
 drach_MVkl = drach_MVkl*Glob_dmva2 + MVkl
@@ -1514,6 +1737,7 @@ do i=1,n
     tvktbk(i,j)=tvk(j)*tbk(i)
   enddo
 enddo
+
 
 call symmetrize_matrix(tbltbk)
 call symmetrize_matrix(tvltvk)
@@ -1625,20 +1849,20 @@ do i=1,n
                           temp1=ME_rXr_over_rij(j,j,W1,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
                       temp2=ME_rXr_rYr_over_rij(j,j,W2,W3,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)              
           temp4=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W4,tbltbk,inv_tAkl,det_tAkl)
-         temp44=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W44,tvltbl,inv_tAkl,det_tAkl)
-         temp4b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W4b,tvltvk,inv_tAkl,det_tAkl)
+        temp44=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W44,tvltbl,inv_tAkl,det_tAkl)
+        temp4b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W4b,tvltvk,inv_tAkl,det_tAkl)
         temp44b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W44b,tvltbl,inv_tAkl,det_tAkl)    
         temp444=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W7,W5b,inv_tAkl,det_tAkl)    
-       temp4444=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W77,W55b,inv_tAkl,det_tAkl)    
-       temp444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W7b,W5,inv_tAkl,det_tAkl)
+      temp4444=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W77,W55b,inv_tAkl,det_tAkl)    
+      temp444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W7b,W5,inv_tAkl,det_tAkl)
       temp4444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W77b,W55,inv_tAkl,det_tAkl)    
       temp5=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W5,tbltbk,inv_tAkl,det_tAkl)
-     temp55=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W55,tvltbl,inv_tAkl,det_tAkl)  
-     temp5b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W5b,tvltvk,inv_tAkl,det_tAkl)
+    temp55=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W55,tvltbl,inv_tAkl,det_tAkl)  
+    temp5b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W5b,tvltvk,inv_tAkl,det_tAkl)
     temp55b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W3,W55b,tvltbl,inv_tAkl,det_tAkl) 
       temp6=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W7,tbltbk,inv_tAkl,det_tAkl)
-     temp66=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W77,tvktbk,inv_tAkl,det_tAkl)
-     temp6b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W7b,tvltvk,inv_tAkl,det_tAkl)
+    temp66=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W77,tvktbk,inv_tAkl,det_tAkl)
+    temp6b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W7b,tvltvk,inv_tAkl,det_tAkl)
     temp66b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(j,j,W6,W77b,tvktbk,inv_tAkl,det_tAkl)
     temp7=-6*(tr1+tr2)*rmkl(j,j)+4*temp1-8*temp2-2*(temp4-temp44)+4*(temp5-temp55)+4*(temp6-temp66)    
     temp7=temp7-2*(temp4b-temp44b)+4*(temp5b-temp55b)+4*(temp6b-temp66b)-2*(temp444-temp4444)-2*(temp444b-temp444b)
@@ -1772,22 +1996,22 @@ do i=1,n
     !compute integrals (remember to take the difference)
     temp1=ME_rXr_over_rij(i,j,W1,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
     temp2=ME_rXr_rYr_over_rij(i,j,W2,W3,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
-       temp4=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W4,tbltbk,inv_tAkl,det_tAkl)
+      temp4=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W4,tbltbk,inv_tAkl,det_tAkl)
       temp44=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W44,tvltbl,inv_tAkl,det_tAkl)     
       temp4b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W4b,tvltvk,inv_tAkl,det_tAkl)     
-     temp44b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W44b,tvltbl,inv_tAkl,det_tAkl)      
-     temp444=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W7,W5b,inv_tAkl,det_tAkl)    
+    temp44b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W44b,tvltbl,inv_tAkl,det_tAkl)      
+    temp444=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W7,W5b,inv_tAkl,det_tAkl)    
     temp4444=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W77,W55b,inv_tAkl,det_tAkl)    
     temp444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W7b,W5,inv_tAkl,det_tAkl)
-   temp4444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W77b,W55,inv_tAkl,det_tAkl)    
-   temp5=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W5,tbltbk,inv_tAkl,det_tAkl)
+  temp4444b=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W77b,W55,inv_tAkl,det_tAkl)    
+  temp5=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W5,tbltbk,inv_tAkl,det_tAkl)
   temp55=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W55,tvltbl,inv_tAkl,det_tAkl)     
   temp5b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W5b,tvltvk,inv_tAkl,det_tAkl)
- temp55b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W55b,tvltbl,inv_tAkl,det_tAkl)     
-   temp6=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W7,tbltbk,inv_tAkl,det_tAkl)
+temp55b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W3,W55b,tvltbl,inv_tAkl,det_tAkl)     
+  temp6=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W7,tbltbk,inv_tAkl,det_tAkl)
   temp66=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W77,tvktbk,inv_tAkl,det_tAkl)    
   temp6b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W7b,tvltvk,inv_tAkl,det_tAkl)
- temp66b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W77b,tvktbk,inv_tAkl,det_tAkl)
+temp66b=ONETHIRD*SG_ME_rXr_rYr_rZr_over_rij(i,j,W6,W77b,tvktbk,inv_tAkl,det_tAkl)
     temp7=-6*(tr1+tr2)*rmkl(i,j)+4*temp1-8*temp2-2*(temp4-temp44)+4*(temp5-temp55)+4*(temp6-temp66)
     temp7=temp7-2*(temp4b-temp44b)+4*(temp5b-temp55b)+4*(temp6b-temp66b)-2*(temp444-temp4444)-2*(temp444b-temp4444b)
     OOkl=OOkl+&
@@ -1795,7 +2019,8 @@ do i=1,n
   enddo
 enddo
 OOkl=OOkl/2
-    
+
+!!
 
 !Evaluation of correlation functions
 if (AreCorrFuncNeeded) then
@@ -2547,81 +2772,417 @@ ME_over_rij=temp1*(m+ONEFIFTH*u/(t_J*t_J)-ONETHIRD*mu/t_J)/sqrt(t_J)
 end function ME_over_rij
 
 
-
-function ME_d_X_over_rij_d(i,j,X,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+function ME_d_X_over_rij_d(p,q,X,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,twk,twl, &
+  tvkinv_tAkl, twkinv_tAkl, inv_tAkltvl, inv_tAkltwl)
     
-real(dprec)   ME_d_X_over_rij_d
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
-!Arguments:
-real(dprec)   X(nn,nn),tAl(nn,nn),tAk(nn,nn),inv_tAkl(nn,nn),det_tAkl
-integer       i,j,tvk(nn),tvl(nn),tbk(nn),tbl(nn)
+  real(dprec)   ME_d_X_over_rij_d
+  integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+  !Arguments:
+  real(dprec)   X(nn,nn),tAl(nn,nn),tAk(nn,nn),inv_tAkl(nn,nn),det_tAkl, &
+  tvkinv_tAkl(nn), twkinv_tAkl(nn), inv_tAkltvl(nn), inv_tAkltwl(nn)
+  integer       p,q,tvk(nn),tvl(nn),twk(nn),twl(nn)
 
-!Local variables:
-integer       c,s,p,q,n,k
-real(dprec)   tvkXtAl(nn),tbkXtAl(nn)
-real(dprec)   temp1,temp2,temp3,temp4,temp5
-real(dprec)   tAkX(nn,nn),tAkXtAl(nn,nn),tAkXtvl(nn),tAkXtbl(nn),XtAl(nn,nn)
+  
+  !Local variables:
+  integer       c,s,n,k,i,j
+  real(dprec)   tvkXtAl(nn),tbkXtAl(nn)
+  real(dprec)   tAkX(nn,nn),tAkXtAl(nn,nn),tAkXtvl(nn),tAkXtbl(nn),XtAl(nn,nn)
 
 
-!Doing multiplication Xtvl=X*tvl,tvkX=tvk*X
-n=Glob_n
-do s=1,n
-  do c=1,n
-    temp1=ZERO
-    temp2=ZERO
-    do k=1,n
-      temp1=temp1+tAk(c,k)*X(k,s)
-      temp2=temp2+X(c,k)*tAl(k,s)
+  real(dprec) :: commonFactor, gamma, temp, temp1, temp2, temp3
+
+  !Vars for Q-part
+  real(dprec) :: trXs, Xij, V, Vij, VX, VijX, VXij, VijXij, &
+  W, Wij, WX, WijX, WXij, WijXij, &
+  jijAvk, jijAvl, jijAwk, jijAwl, &
+  jijAXsAvk, jijAXsAvl, jijAXsAwk, jijAXsAwl 
+  real(dprec) :: tV, tVij, tVX, tVijX, tVXij, tVijXij, &
+  tW, tWij, tWX, tWijX, tWXij, tWijXij
+  real(dprec) :: I11, I12, I13, I1, &
+  I21, I22, I23, I2, &
+  I31, I32, I33, I3, &
+  I41, I42, I43, I4
+  real(dprec) :: XAl(nn, nn), AXsA(nn, nn), Xs(nn, nn), XsA(nn, nn)
+  real(dprec) :: AXsA_Vl(nn), AXsA_Wl(nn), Vk_AXsA(nn), Wk_AXsA(nn)
+  real(dprec) :: Qans
+  !Vars for RVk part
+  real(dprec) :: AlA(nn,nn), XAlA(nn,nn), XAlA_Vl(nn), XAlA_Wl(nn), &
+  Vk_XAlA(nn), Wk_XAlA(nn), VkXAlAjij, VkXAlAVl, VkXAlAWl
+  real(dprec) :: RVk, RVk1, RVk2, RVk3
+  !Vars for RWk part
+  real(dprec) :: WkXAlAVl, WkXAlAWl, WkXAlAjij, RWk, RWk1, RWk2, RWk3
+  !Vars for RVl part
+  real(dprec) :: AkX(nn,nn), AAkX(nn,nn),  AAkX_Vl(nn), AAkX_Wl(nn), &
+  VkAAkXVl, WkAAkXWl, VkAAkXWl, WkAAkXVl, &
+  jijAAkXVl, jijAAkXWl
+  real(dprec) :: RVl, RVl1, RVl2, RVl3
+  !Vars for RWl part
+  real(dprec) :: RWl, RWl1, RWl2, RWl3
+  !Vars for D2 terms
+  real(dprec) :: X_Vl(nn), X_Wl(nn), &
+  VkXVl, VkXWl, WkXWl, WkXVl, DTwo1, DTwo2, DTwo3, DTwo4, DTwo
+
+  n = Glob_n
+
+  !!! Q-part  !!!
+  !Build Xs matrix
+  XAl = ZERO
+  do i=1,n 
+    do j=1,n 
+      temp = ZERO
+      do k=1,n 
+        temp = temp + X(i,k)*tAl(k,j)
+      enddo
+      XAl(i,j) = temp
     enddo
-    tAkX(c,s)=temp1
-    XtAl(c,s)=temp2
   enddo
-enddo
-
-!Doing multiplication tAlXtAk=tAlX*tAk,tAkXtAl=tAkX*tAl
-do s=1,n
-  do c=1,n
-    temp1=ZERO
-    do k=1,n
-      temp1=temp1+tAkX(c,k)*tAl(k,s)
+  Xs = ZERO
+  do i=1,n 
+    do j=1,n 
+      temp = ZERO
+      do k=1,n 
+        temp = temp + tAk(i,k) * XAl(k,j)
+      enddo
+      Xs(i,j) = temp
     enddo
-    tAkXtAl(c,s)=temp1
   enddo
-enddo
 
-call symmetrize_matrix(tAkXtAl)
-
-do s=1,n
-  temp1=ZERO
-  temp2=ZERO
-  do c=1,n
-	temp1=temp1+tAkX(c,s)*tvl(c)
-        temp2=temp2+tAkX(c,s)*tbl(c)
+  !Symmetrize MS
+  do i = 1,n
+    do j = i+1,n
+        temp=ONEHALF*(Xs(j,i)+Xs(i,j))
+        Xs(j,i) = temp
+        Xs(i,j) = temp
+    enddo
   enddo
-  tAkXtvl(s)=temp1
-  tAkXtbl(s)=temp2
-enddo
 
-do p=1,n
-  temp1=ZERO
-  temp2=ZERO
-  do q=1,n
-    temp1=temp1+tvk(q)*XtAl(q,p)
-    temp2=temp2+tbk(q)*XtAl(q,p)
+  !Find trA
+  trXs = ZERO
+  do i=1,n
+    do j=1,n
+      trXs = trXs + inv_tAkl(i,j)*Xs(j,i) 
+    enddo
   enddo
-  tvkXtAl(p)=temp1
-  tbkXtAl(p)=temp2
-enddo
+
+  XsA = ZERO
+  do i=1,n
+    do j=1,n
+      temp = ZERO
+      do k=1,n
+        temp = temp + Xs(i,k)*inv_tAkl(k,j)
+      enddo
+      XsA(i,j) = temp
+    enddo
+  enddo
+
+  AXsA = ZERO
+  do i=1,n
+    do j=1,n
+      temp = ZERO
+      do k=1,n
+        temp = temp + inv_tAkl(i,k)*XsA(k,j)
+      enddo
+      AXsA(i,j) = temp
+    enddo
+  enddo
+
+  V=ZERO
+  W=ZERO
+  tV=ZERO
+  tW=ZERO
+  do i=1,n
+    V=V+tvkinv_tAkl(i)*tvl(i)
+    W=W+twkinv_tAkl(i)*twl(i)
+    tV=tV+tvkinv_tAkl(i)*twl(i)
+    tW=tW+twkinv_tAkl(i)*tvl(i)
+  enddo
+
+  
+  do i=1,n
+    temp = ZERO
+    temp1 = ZERO
+    temp2 = ZERO
+    temp3 = ZERO
+    do j=1,n 
+      temp = temp + AXsA(i,j)*tvl(j)
+      temp1 = temp1 + AXsA(i,j)*twl(j)
+      temp2 = temp2 + tvk(j)*AXsA(j,i)
+      temp3 = temp3 + twk(j)*AXsA(j,i)
+    enddo
+    AXsA_Vl(i) = temp
+    AXsA_Wl(i) = temp1
+    Vk_AXsA(i) = temp2
+    Wk_AXsA(i) = temp3
+  enddo
+
+  VX = ZERO
+  WX = ZERO
+  tVX = ZERO
+  tWX = ZERO
+  do i=1,n 
+    VX = VX + tvk(i)*AXsA_vl(i)
+    WX = WX + twk(i)*AXsA_wl(i)
+    tVX = tVX + tvk(i)*AXsA_wl(i)
+    tWX = tWX + twk(i)*AXsA_vl(i)
+  enddo
+  !!! END Q part !!!!
+
+  !!!!! RVk & RWk part of M-matelem !!!!
+  AlA = ZERO
+  do i=1,n
+    do j=1,n
+      temp = ZERO
+      do k=1,n
+        temp = temp + tAl(i,k)*inv_tAkl(k,j)
+      enddo
+      AlA(i,j) = temp
+    enddo
+  enddo
+
+  XAlA = ZERO
+  do i=1,n
+    do j=1,n
+      temp = ZERO
+      do k=1,n
+        temp = temp + X(i,k)*AlA(k,j)
+      enddo
+      XAlA(i,j) = temp
+    enddo
+  enddo
+
+  do i=1,n
+    temp = ZERO
+    temp1 = ZERO
+    temp2 = ZERO
+    temp3 = ZERO
+    do j=1,n 
+      temp = temp + XAlA(i,j)*tvl(j)
+      temp1 = temp1 + XAlA(i,j)*twl(j)
+      temp2 = temp2 + tvk(j)*XAlA(j,i)
+      temp3 = temp3 + twk(j)*XAlA(j,i)
+    enddo
+    XAlA_Vl(i) = temp
+    XAlA_Wl(i) = temp1
+    Vk_XAlA(i) = temp2
+    Wk_XAlA(i) = temp3
+  enddo
+
+  VkXAlAVl = ZERO
+  VkXAlAWl = ZERO
+  WkXAlAWl = ZERO
+  WkXAlAVl = ZERO
+  do i=1,n 
+    VkXAlAVl = VkXAlAVl + tvk(i)*XAlA_Vl(i)
+    VkXAlAWl = VkXAlAWl + tvk(i)*XAlA_Wl(i)
+    WkXAlAWl = WkXAlAWl + twk(i)*XAlA_Wl(i)
+    WkXAlAVl = WkXAlAVl + twk(i)*XAlA_Vl(i)
+  enddo
+  !!!!! END RVk & RWk part of M-matelem !!!!
+
+  !!!!! RVl part of M-matelem !!!!
+  AkX = ZERO
+  do i=1,n
+    do j=1,n
+      temp = ZERO
+      do k=1,n
+        temp = temp + tAk(i,k)*X(k,j)
+      enddo
+      AkX(i,j) = temp
+    enddo
+  enddo
+
+  AAkX = ZERO
+  do i=1,n
+    do j=1,n
+      temp = ZERO
+      do k=1,n
+        temp = temp + inv_tAkl(i,k)*AkX(k,j)
+      enddo
+      AAkX(i,j) = temp
+    enddo
+  enddo
+
+  do i=1,n
+    temp = ZERO
+    temp1 = ZERO
+    do j=1,n 
+      temp = temp + AAkX(i,j)*tvl(j)
+      temp1 = temp1 + AAkX(i,j)*twl(j)
+    enddo
+    AAkX_Vl(i) = temp
+    AAkX_Wl(i) = temp1
+  enddo
+
+  VkAAkXVl = ZERO
+  VkAAkXWl = ZERO
+  WkAAkXWl = ZERO
+  WkAAkXVl = ZERO
+  do i=1,n 
+    VkAAkXVl =  VkAAkXVl + tvk(i)*AAkX_Vl(i)
+    VkAAkXWl = VkAAkXWl + tvk(i)*AAkX_Wl(i)
+    WkAAkXWl = WkAAkXWl + twk(i)*AAkX_Wl(i)
+    WkAAkXVl = WkAAkXVl + twk(i)*AAkX_Vl(i)
+  enddo
+  !!!!! END RVl part of M-matelem !!!!
+
+  !!!!! D2 terms !!!! 
+  do i=1,n
+    temp = ZERO
+    temp1 = ZERO
+    do j=1,n 
+      temp = temp + X(i,j)*tvl(j)
+      temp1 = temp1 + X(i,j)*twl(j)
+    enddo
+    X_Vl(i) = temp
+    X_Wl(i) = temp1
+  enddo
+
+  VkXVl = ZERO
+  VkXWl = ZERO
+  WkXWl = ZERO 
+  WkXVl = ZERO
+  do i=1,n 
+    VkXVl = VkXVl + tvk(i)*X_Vl(i) 
+    VkXWl = VkXWl + tvk(i)*X_Wl(i) 
+    WkXWl = WkXWl + tWk(i)*X_Wl(i)
+    WkXVl = WkXVl + tWk(i)*X_Vl(i)
+  enddo
+
+  !!!!! END D2 terms !!!!
 
 
-temp1=4*ME_rXr_over_rij(i,j,tAkXtAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
-temp2=-2*ME_over_rij_tvl(i,j,inv_tAkl,det_tAkl,tvk,tAkXtvl,tbk,tbl)
-temp3=-2*ME_over_rij_tbl(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tAkXtbl)
-temp4=-2*ME_over_rij_tvk(i,j,inv_tAkl,det_tAkl,tvkXtAl,tvl,tbk,tbl)
-temp5=-2*ME_over_rij_tbk(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbkXtAl,tbl)
-ME_d_X_over_rij_d=temp1+temp2+temp3+temp4+temp5
+  if (p==q) then
+    !Common part
+    gamma = inv_tAkl(p,p)
+    gamma = ONE/sqrt(gamma)
+    !Q part
+    Xij = AXsA(p, p)
+    jijAvk = tvkinv_tAkl(p)
+    jijAvl = inv_tAkltvl(p)
+    jijAwk = twkinv_tAkl(p)
+    jijAwl = inv_tAkltwl(p)
+    jijAXsAvl = AXsA_Vl(p)
+    jijAXsAvk = Vk_AXsA(p)
+    jijAXsAwl = AXsA_Wl(p)
+    jijAXsAwk = Wk_AXsA(p)
+    !RVk part
+    VkXAlAjij = Vk_XAlA(p)
+    !RWk part
+    WkXAlAjij = Wk_XAlA(p) 
+    ! RVl part 
+    jijAAkXvl = AAkX_Vl(p)
+    jijAAkXWl = AAkX_Wl(p)
+  else
+    !Common part
+    gamma = inv_tAkl(p,p) + inv_tAkl(q,q) - inv_tAkl(p,q) - inv_tAkl(q,p)
+    gamma = ONE/sqrt(gamma)
+    !Q part
+    Xij = AXsA(p,p) + AXsA(q,q) - AXsA(p,q) - AXsA(q,p)   
+    jijAvk = tvkinv_tAkl(p) - tvkinv_tAkl(q)
+    jijAvl = inv_tAkltvl(p) - inv_tAkltvl(q)
+    jijAwk = twkinv_tAkl(p) - twkinv_tAkl(q)
+    jijAwl = inv_tAkltwl(p) - inv_tAkltwl(q)
+    jijAXsAvl = AXsA_Vl(p) - AXsA_Vl(q)
+    jijAXsAvk = Vk_AXsA(p) - Vk_AXsA(q)
+    jijAXsAwl = AXsA_Wl(p) - AXsA_Wl(q)
+    jijAXsAwk = Wk_AXsA(p) - Wk_AXsA(q)
+    !RVk part
+    VkXAlAjij = Vk_XAlA(p) - Vk_XAlA(q) 
+    !RWk part
+    WkXAlAjij = Wk_XAlA(p) - Wk_XAlA(q)
+    ! RVl part 
+    jijAAkXvl = AAkX_Vl(p) - AAkX_Vl(q)
+    jijAAkXWl = AAkX_Wl(p) - AAkX_Wl(q)
+  endif
 
-end function ME_d_X_over_rij_d
+  commonFactor = Glob_Piraised3n2/(sqrt(PI)*det_tAkl*sqrt(det_tAkl))
+
+  !Q-part
+  Vij = jijAvk * jijAvl
+  VijX = jijAvk * jijAXsAvl 
+  VXij = jijAvl * jijAXsAvk
+  VijXij = jijAvk * Xij * jijAvl
+
+  Wij = jijAwk * jijAwl
+  WijX = jijAwk * jijAXsAwl 
+  WXij = jijAwl * jijAXsAwk
+  WijXij = jijAwk * Xij * jijAwl
+
+  tVij = jijAvk * jijAwl
+  tVijX = jijAvk * jijAXsAwl 
+  tVXij = jijAwl * jijAXsAvk
+  tVijXij = jijAvk * Xij * jijAwl
+
+  tWij = jijAwk * jijAvl
+  tWijX = jijAwk * jijAXsAvl 
+  tWXij = jijAvl * jijAXsAwk
+  tWijXij = jijAwk * Xij * jijAvl
+
+  I11 = trXs*V*W + trXs*tV*tW
+  I12 = VX*W + tVX*tW
+  I13 = V*WX + tV*tWX
+  I1 = (THREEHALF*I11 + I12 + I13)*gamma
+
+  I21 = (Xij*V*W + trXs*Vij*W + trXs*V*Wij) + (Xij*tV*tW + trXs*tVij*tW + trXs*tV*tWij)
+  I22 = (VijX*W + VXij*W + VX*Wij) + (tVijX*tW + tVXij*tW + tVX*tWij) 
+  I23 = (V*WijX + V*WXij + Vij*WX) + (tV*tWijX + tV*tWXij + tVij*tWX)
+  I2 = -(THREEHALF*I21 + I22 + I23)*gamma**3/THREE
+
+  I31 = (Xij*Vij*W + Xij*V*Wij + trXs*Vij*Wij) + (Xij*tVij*tW + Xij*tV*tWij + trXs*tVij*tWij)
+  I32 = (VijXij*W + VijX*Wij + VXij*Wij) + (tVijXij*tW + tVijX*tWij + tVXij*tWij) 
+  I33 = (V*WijXij + Vij*WijX + Vij*WXij) + (tV*tWijXij + tVij*tWijX + tVij*tWXij)
+  I3 = (THREEHALF*I31 + I32 + I33)*gamma**5/FIVE
+
+  I41 = Xij*Vij*Wij + Xij*tVij*tWij 
+  I42 = VijXij*Wij + tVijXij*tWij
+  I43 = Vij*WijXij +  tVij*tWijXij
+  I4 = -(THREEHALF*I41 + I42 + I43)*gamma**7/SEVEN
+
+  Qans = (I1 + I2 + I3 + I4)*TWO*commonFactor
+
+  !RVk-part of M-matelem
+  RVk1 = gamma*(VkXAlAVl*W +VkXAlAWl*tW)
+  RVk2 = -gamma**3/THREE*(VkXAlAjij*jijAvl*W + VkXAlAVl*Wij + &
+  VkXAlAjij*jijAWl*tW + VkXAlAWl*tWij)
+  RVk3 = gamma**5/FIVE*(VkXAlAjij*jijAvl*Wij + VkXAlAjij*jijAWl*tWij)
+  RVk = -(RVk1 + RVk2 + RVk3)*commonFactor
+
+  !RWk-part of M-matelem
+  RWk1 = gamma*(V*WkXAlAWl + tV*WkXAlAVl)
+  RWk2 = -gamma**3/THREE*(Vij*WkXAlAWl + V*WkXAlAjij*jijAWl + &
+  tVij*WkXAlAVl + tV*WkXAlAjij*jijAVl)
+  RWk3 = gamma**5/FIVE*(Vij*WkXAlAjij*jijAWl + tVij*WkXAlAjij*jijAVl)
+  RWk = -(RWk1 + RWk2 + RWk3)*commonFactor
+
+  !RVl-part of M-matelem
+  RVl1 = gamma*(VkAAkXVl*W + tV*WkAAkXVl)
+  RVl2 = -gamma**3/THREE*(jijAVk*jijAAkXVl*W + VkAAkXVl*Wij + &
+  jijAVk*jijAWl*WkAAkXVl +  tV*jijAWk*jijAAkXVl)
+  RVl3 = gamma**5/FIVE*(jijAVk*jijAAkXVl*Wij + &
+  tVij*jijAWk*jijAAkXVl)
+  
+  RVl = -(RVl1 + RVl2 + RVl3)*Glob_Piraised3n2/(sqrt(PI)*det_tAkl*sqrt(det_tAkl))
+
+  !RWl-part of M-matelem 
+  RWl1 = gamma*(V*WkAAkXWl + VkAAkXWl*tW)
+  RWl2 = -gamma**3/THREE*(Vij*WkAAkXWl + V*jijAWk*jijAAkXWl + &
+  jijAVk*jijAAkXWl*tW + VkAAkXWl*tWij)
+  RWl3 = gamma**5/FIVE*(Vij*jijAWk*jijAAkXWl + jijAVk*jijAAkXWl*tWij)
+  RWl = -(RWl1 + RWl2 + RWl3)*Glob_Piraised3n2/(sqrt(PI)*det_tAkl*sqrt(det_tAkl))
+  !END RWl-part of M-matelem !
+
+  
+  !D2 part
+  DTwo1 = VkXWl*(gamma*tW - ONE/THREE*(gamma**3) * jijAwk * jijAVl)
+  DTwo2 = WkXVl*(gamma*tV - ONE/THREE*(gamma**3) * jijAVk * jijAWl)
+  DTwo3 = VkXVl*(gamma*W - ONE/THREE*(gamma**3) * jijAWk * jijAWl)
+  DTwo4 = WkXWl*(gamma*V - ONE/THREE*(gamma**3) * jijAVk * jijAVl)
+  DTwo = (DTwo1 + DTwo2 + DTwo3 + DTwo4)*commonFactor
+
+  ME_d_X_over_rij_d = Qans + RVk + RVl + RWk + RWl + DTwo
+
+  end function ME_d_X_over_rij_d
+
 
 
 function ME_rXr_rYr_over_rij(i,j,X,Y,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
@@ -3469,500 +4030,6 @@ big_term4=term16+term17+term18+term19
 dXddYd= big_term1+big_term2+big_term3+big_term4
 
 end function dXddYd
-function ME_over_rij_tbk(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
-!function ME_rXr_over_rij computes the following matrix element:
-!<\tilde phi_k| (r' X r)/r_ij |\tilde phi_l>
-!Here X is a some real symmetric matrix. If matrix X is not symmetric
-!then user needs to symmetrize it before calling this function.
-!Input:
-!            X  :: n x n real matrix
-!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
-!   tvkinv_tAkl :: n-component vector where tvk*inv_tAkl is stored
-!   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
-!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
-!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
-real(dprec)   ME_over_rij_tbk
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
-!Arguments:
-real(dprec)   inv_tAkl(nn,nn),det_tAkl
-integer       i,j,tvl(nn),tvk(nn),tbl(nn)
-
-real(dprec)   inv_tAkltvl(nn),inv_tAkltbl(nn),inv_tAkltbk(nn)
-real(dprec)   tvkinv_tAkl(nn),tbkinv_tAkl(nn),tvlinv_tAkl(nn)
-real(dprec)   tau3,tau33,tau333,tau334,m1,m3,m,tbk(nn)
-!Local variables:
-integer       p,q,n
-real(dprec)   Aj(nn),AjX(nn),t_JV1,t_JV2,t_JV5,t_JV6,t_J,Ajtvl,Ajtbl    
-real(dprec)    temp1,temp2,temp3,temp11,temp22,temp33,mu,u
-
-n=Glob_n
-
-!Compute inv_tAkltvl = inv_tAkl * tvl
-do p=1,n
-  temp1=ZERO
-  temp2=ZERO
-  temp3=ZERO
-  do q=1,n
-    temp1=temp1+inv_tAkl(q,p)*tvl(q)
-    temp2=temp2+inv_tAkl(q,p)*tbl(q)
-    temp3=temp3+inv_tAkl(q,p)*tbk(q)
-  enddo
-  inv_tAkltvl(p)=temp1
-  inv_tAkltbl(p)=temp2
-  inv_tAkltbk(p)=temp3
-enddo
-
-!Compute tvkinv_tAkl=tvk'*inv_tAkl
-do p=1,n
-  temp1=ZERO
-  temp2=ZERO
-  temp3=ZERO
-  do q=1,n
-    temp1=temp1+tvk(q)*inv_tAkl(q,p)
-    temp2=temp2+tbk(q)*inv_tAkl(q,p)
-    temp3=temp3+tvl(q)*inv_tAkl(q,p)
-  enddo
-  tvkinv_tAkl(p)=temp1
-  tbkinv_tAkl(p)=temp2
-  tvlinv_tAkl(p)=temp3
-enddo
-
-
-!Compute tau3=tvkinv_tAkl*tvl
-tau3=ZERO
-tau33=ZERO
-tau333=ZERO
-tau334=ZERO
-do p=1,n
-  tau3=tau3+tvkinv_tAkl(p)*tvl(p)
-  tau33=tau33+tbkinv_tAkl(p)*tbl(p)
-  tau333=tau333+tvkinv_tAkl(p)*tbl(p)
-  tau334=tau334+tbkinv_tAkl(p)*tvl(p)
-enddo
-m1=tau3*tau33
-m3=tau333*tau334
-m=m1+m3  !look formula 40 in document
-
-!Form Aj=inv_tAkl*ji        j/=i 
-!     Aj=inv_tAkl*(ji-jj)   j/=i 
-!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
-if (i==j) then
- do p=1,n
-   Aj(p)=inv_tAkl(p,i)
- enddo
-else
- do p=1,n
-   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
- enddo
-endif 
-
-
-!Compute t_J=tr[inv_tAkl*Jij] 
-if (i==j) then
-  t_J=inv_tAkl(i,i)
-else
-  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
-endif
-
-!Compute Ajtvl=Aj'*tvl
-!        t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
-!        t_JV=tr[inv_tAkl*Jij*inv_tAkl*tvl*tvk']=tvk'*Aj*Ajtvl
-!        t_JXV=tr[inv_tAkl*Jij*inv_tAkl*X*inv_tAkl*tvl*tvk']=tvk'*Aj*AjX'*inv_tAkltvl
-Ajtvl=ZERO
-Ajtbl=ZERO
-temp1=ZERO
-temp11=ZERO
-do p=1,n
-  Ajtvl=Ajtvl+Aj(p)*tvl(p)
-  Ajtbl=Ajtbl+Aj(p)*tbl(p)  
-  temp1=temp1+tvk(p)*Aj(p)
-  temp11=temp11+tbk(p)*Aj(p)
-enddo
-t_JV1=temp11*Ajtbl
-t_JV2=temp1*Ajtvl
-t_JV5=temp11*Ajtvl
-t_JV6=temp1*Ajtbl
-
-mu=tau3*t_JV1+tau33*t_JV2+tau333*t_JV5+tau334*t_JV6
-u=t_JV1*t_JV2+t_JV5*t_JV6
-
-temp1=Glob_Piraised3n2/(TWO*SQRTPI*det_tAkl**(THREEHALF))
-
-ME_over_rij_tbk=temp1*(m+ONEFIFTH*u/(t_J*t_J)-ONETHIRD*mu/t_J)/sqrt(t_J)
-
-end function ME_over_rij_tbk
-
-
-function ME_over_rij_tvk(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
-!function ME_rXr_over_rij computes the following matrix element:
-!<\tilde phi_k| (r' X r)/r_ij |\tilde phi_l>
-!Here X is a some real symmetric matrix. If matrix X is not symmetric
-!then user needs to symmetrize it before calling this function.
-!Input:
-!            X  :: n x n real matrix
-!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
-!   tvkinv_tAkl :: n-component vector where tvk*inv_tAkl is stored
-!   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
-!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
-!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
-real(dprec)   ME_over_rij_tvk
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
-!Arguments:
-real(dprec)   inv_tAkl(nn,nn),det_tAkl
-integer       i,j,tvl(nn),tbk(nn),tbl(nn)
-
-real(dprec)   inv_tAkltvl(nn),inv_tAkltbl(nn),inv_tAkltbk(nn)
-real(dprec)   tvkinv_tAkl(nn),tbkinv_tAkl(nn),tvlinv_tAkl(nn)
-real(dprec)   tau3,tau33,tau333,tau334,m1,m3,m,tvk(nn)
-!Local variables:
-integer       p,q,n
-real(dprec)   Aj(nn),AjX(nn),t_JV1,t_JV2,t_JV5,t_JV6,t_J,Ajtvl,Ajtbl    
-real(dprec)    temp1,temp2,temp3,temp11,temp22,temp33,mu,u
-
-n=Glob_n
-
-!Compute inv_tAkltvl = inv_tAkl * tvl
-do p=1,n
-  temp1=ZERO
-  temp2=ZERO
-  temp3=ZERO
-  do q=1,n
-    temp1=temp1+inv_tAkl(q,p)*tvl(q)
-    temp2=temp2+inv_tAkl(q,p)*tbl(q)
-    temp3=temp3+inv_tAkl(q,p)*tbk(q)
-  enddo
-  inv_tAkltvl(p)=temp1
-  inv_tAkltbl(p)=temp2
-  inv_tAkltbk(p)=temp3
-enddo
-
-!Compute tvkinv_tAkl=tvk'*inv_tAkl
-do p=1,n
-  temp1=ZERO
-  temp2=ZERO
-  temp3=ZERO
-  do q=1,n
-    temp1=temp1+tvk(q)*inv_tAkl(q,p)
-    temp2=temp2+tbk(q)*inv_tAkl(q,p)
-    temp3=temp3+tvl(q)*inv_tAkl(q,p)
-  enddo
-  tvkinv_tAkl(p)=temp1
-  tbkinv_tAkl(p)=temp2
-  tvlinv_tAkl(p)=temp3
-enddo
-
-
-!Compute tau3=tvkinv_tAkl*tvl
-tau3=ZERO
-tau33=ZERO
-tau333=ZERO
-tau334=ZERO
-do p=1,n
-  tau3=tau3+tvkinv_tAkl(p)*tvl(p)
-  tau33=tau33+tbkinv_tAkl(p)*tbl(p)
-  tau333=tau333+tvkinv_tAkl(p)*tbl(p)
-  tau334=tau334+tbkinv_tAkl(p)*tvl(p)
-enddo
-m1=tau3*tau33
-m3=tau333*tau334
-m=m1+m3  !look formula 40 in document
-
-!Form Aj=inv_tAkl*ji        j/=i 
-!     Aj=inv_tAkl*(ji-jj)   j/=i 
-!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
-if (i==j) then
- do p=1,n
-   Aj(p)=inv_tAkl(p,i)
- enddo
-else
- do p=1,n
-   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
- enddo
-endif 
-
-
-!Compute t_J=tr[inv_tAkl*Jij] 
-if (i==j) then
-  t_J=inv_tAkl(i,i)
-else
-  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
-endif
-
-!Compute Ajtvl=Aj'*tvl
-!        t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
-!        t_JV=tr[inv_tAkl*Jij*inv_tAkl*tvl*tvk']=tvk'*Aj*Ajtvl
-!        t_JXV=tr[inv_tAkl*Jij*inv_tAkl*X*inv_tAkl*tvl*tvk']=tvk'*Aj*AjX'*inv_tAkltvl
-Ajtvl=ZERO
-Ajtbl=ZERO
-temp1=ZERO
-temp11=ZERO
-do p=1,n
-  Ajtvl=Ajtvl+Aj(p)*tvl(p)
-  Ajtbl=Ajtbl+Aj(p)*tbl(p)  
-  temp1=temp1+tvk(p)*Aj(p)
-  temp11=temp11+tbk(p)*Aj(p)
-enddo
-t_JV1=temp11*Ajtbl
-t_JV2=temp1*Ajtvl
-t_JV5=temp11*Ajtvl
-t_JV6=temp1*Ajtbl
-
-mu=tau3*t_JV1+tau33*t_JV2+tau333*t_JV5+tau334*t_JV6
-u=t_JV1*t_JV2+t_JV5*t_JV6
-
-temp1=Glob_Piraised3n2/(TWO*SQRTPI*det_tAkl**(THREEHALF))
-
-ME_over_rij_tvk=temp1*(m+ONEFIFTH*u/(t_J*t_J)-ONETHIRD*mu/t_J)/sqrt(t_J)
-
-end function ME_over_rij_tvk
-
-
-function ME_over_rij_tbl(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
-!function ME_rXr_over_rij computes the following matrix element:
-!<\tilde phi_k| (r' X r)/r_ij |\tilde phi_l>
-!Here X is a some real symmetric matrix. If matrix X is not symmetric
-!then user needs to symmetrize it before calling this function.
-!Input:
-!            X  :: n x n real matrix
-!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
-!   tvkinv_tAkl :: n-component vector where tvk*inv_tAkl is stored
-!   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
-!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
-!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
-real(dprec)   ME_over_rij_tbl
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
-!Arguments:
-real(dprec)   inv_tAkl(nn,nn),det_tAkl
-integer       i,j,tvk(nn),tvl(nn),tbk(nn)
-
-real(dprec)   inv_tAkltvl(nn),inv_tAkltbl(nn),inv_tAkltbk(nn)
-real(dprec)   tvkinv_tAkl(nn),tbkinv_tAkl(nn),tvlinv_tAkl(nn)
-real(dprec)   tau3,tau33,tau333,tau334,m1,m3,m,tbl(nn)
-!Local variables:
-integer       p,q,n
-real(dprec)   Aj(nn),AjX(nn),t_JV1,t_JV2,t_JV5,t_JV6,t_J,Ajtvl,Ajtbl    
-real(dprec)    temp1,temp2,temp3,temp11,temp22,temp33,mu,u
-
-n=Glob_n
-
-!Compute inv_tAkltvl = inv_tAkl * tvl
-do p=1,n
-  temp1=ZERO
-  temp2=ZERO
-  temp3=ZERO
-  do q=1,n
-    temp1=temp1+inv_tAkl(q,p)*tvl(q)
-    temp2=temp2+inv_tAkl(q,p)*tbl(q)
-    temp3=temp3+inv_tAkl(q,p)*tbk(q)
-  enddo
-  inv_tAkltvl(p)=temp1
-  inv_tAkltbl(p)=temp2
-  inv_tAkltbk(p)=temp3
-enddo
-
-!Compute tvkinv_tAkl=tvk'*inv_tAkl
-do p=1,n
-  temp1=ZERO
-  temp2=ZERO
-  temp3=ZERO
-  do q=1,n
-    temp1=temp1+tvk(q)*inv_tAkl(q,p)
-    temp2=temp2+tbk(q)*inv_tAkl(q,p)
-    temp3=temp3+tvl(q)*inv_tAkl(q,p)
-  enddo
-  tvkinv_tAkl(p)=temp1
-  tbkinv_tAkl(p)=temp2
-  tvlinv_tAkl(p)=temp3
-enddo
-
-
-!Compute tau3=tvkinv_tAkl*tvl
-tau3=ZERO
-tau33=ZERO
-tau333=ZERO
-tau334=ZERO
-do p=1,n
-  tau3=tau3+tvkinv_tAkl(p)*tvl(p)
-  tau33=tau33+tbkinv_tAkl(p)*tbl(p)
-  tau333=tau333+tvkinv_tAkl(p)*tbl(p)
-  tau334=tau334+tbkinv_tAkl(p)*tvl(p)
-enddo
-m1=tau3*tau33
-m3=tau333*tau334
-m=m1+m3  !look formula 40 in document
-
-!Form Aj=inv_tAkl*ji        j/=i 
-!     Aj=inv_tAkl*(ji-jj)   j/=i 
-!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
-if (i==j) then
- do p=1,n
-   Aj(p)=inv_tAkl(p,i)
- enddo
-else
- do p=1,n
-   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
- enddo
-endif 
-
-
-!Compute t_J=tr[inv_tAkl*Jij] 
-if (i==j) then
-  t_J=inv_tAkl(i,i)
-else
-  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
-endif
-
-!Compute Ajtvl=Aj'*tvl
-!        t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
-!        t_JV=tr[inv_tAkl*Jij*inv_tAkl*tvl*tvk']=tvk'*Aj*Ajtvl
-!        t_JXV=tr[inv_tAkl*Jij*inv_tAkl*X*inv_tAkl*tvl*tvk']=tvk'*Aj*AjX'*inv_tAkltvl
-Ajtvl=ZERO
-Ajtbl=ZERO
-temp1=ZERO
-temp11=ZERO
-do p=1,n
-  Ajtvl=Ajtvl+Aj(p)*tvl(p)
-  Ajtbl=Ajtbl+Aj(p)*tbl(p)  
-  temp1=temp1+tvk(p)*Aj(p)
-  temp11=temp11+tbk(p)*Aj(p)
-enddo
-t_JV1=temp11*Ajtbl
-t_JV2=temp1*Ajtvl
-t_JV5=temp11*Ajtvl
-t_JV6=temp1*Ajtbl
-
-mu=tau3*t_JV1+tau33*t_JV2+tau333*t_JV5+tau334*t_JV6
-u=t_JV1*t_JV2+t_JV5*t_JV6
-
-temp1=Glob_Piraised3n2/(TWO*SQRTPI*det_tAkl**(THREEHALF))
-
-ME_over_rij_tbl=temp1*(m+ONEFIFTH*u/(t_J*t_J)-ONETHIRD*mu/t_J)/sqrt(t_J)
-
-end function ME_over_rij_tbl
-
-function ME_over_rij_tvl(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
-!function ME_rXr_over_rij computes the following matrix element:
-!<\tilde phi_k| (r' X r)/r_ij |\tilde phi_l>
-!Here X is a some real symmetric matrix. If matrix X is not symmetric
-!then user needs to symmetrize it before calling this function.
-!Input:
-!            X  :: n x n real matrix
-!      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
-!   tvkinv_tAkl :: n-component vector where tvk*inv_tAkl is stored
-!   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
-!           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
-!           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
-real(dprec)   ME_over_rij_tvl
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
-!Arguments:
-real(dprec)   inv_tAkl(nn,nn),det_tAkl
-integer       i,j,tvk(nn),tbk(nn),tbl(nn)
-
-real(dprec)   inv_tAkltvl(nn),inv_tAkltbl(nn),inv_tAkltbk(nn)
-real(dprec)   tvkinv_tAkl(nn),tbkinv_tAkl(nn),tvlinv_tAkl(nn)
-real(dprec)   tau3,tau33,tau333,tau334,m1,m3,m,tvl(nn)
-!Local variables:
-integer       p,q,n,k
-real(dprec)   Aj(nn),AjX(nn),t_JV1,t_JV2,t_JV5,t_JV6,t_J,Ajtvl,Ajtbl    
-real(dprec)    temp1,temp2,temp3,temp11,temp22,temp33,mu,u
-
-n=Glob_n
-
-!Compute inv_tAkltvl = inv_tAkl * tvl
-do p=1,n
-  temp1=ZERO
-  temp2=ZERO
-  temp3=ZERO
-  do q=1,n
-    temp1=temp1+inv_tAkl(q,p)*tvl(q)
-    temp2=temp2+inv_tAkl(q,p)*tbl(q)
-    temp3=temp3+inv_tAkl(q,p)*tbk(q)
-  enddo
-  inv_tAkltvl(p)=temp1
-  inv_tAkltbl(p)=temp2
-  inv_tAkltbk(p)=temp3
-enddo
-
-!Compute tvkinv_tAkl=tvk'*inv_tAkl
-do p=1,n
-  temp1=ZERO
-  temp2=ZERO
-  temp3=ZERO
-  do q=1,n
-    temp1=temp1+tvk(q)*inv_tAkl(q,p)
-    temp2=temp2+tbk(q)*inv_tAkl(q,p)
-    temp3=temp3+tvl(q)*inv_tAkl(q,p)
-  enddo
-  tvkinv_tAkl(p)=temp1
-  tbkinv_tAkl(p)=temp2
-  tvlinv_tAkl(p)=temp3
-enddo
-
-
-!Compute tau3=tvkinv_tAkl*tvl
-tau3=ZERO
-tau33=ZERO
-tau333=ZERO
-tau334=ZERO
-do p=1,n
-  tau3=tau3+tvkinv_tAkl(p)*tvl(p)
-  tau33=tau33+tbkinv_tAkl(p)*tbl(p)
-  tau333=tau333+tvkinv_tAkl(p)*tbl(p)
-  tau334=tau334+tbkinv_tAkl(p)*tvl(p)
-enddo
-m1=tau3*tau33
-m3=tau333*tau334
-m=m1+m3  !look formula 40 in document
-
-!Form Aj=inv_tAkl*ji        j/=i 
-!     Aj=inv_tAkl*(ji-jj)   j/=i 
-!Remember that Jii=ji*ji' and Jij=(ji-jj)*(ji-jj)'
-if (i==j) then
- do p=1,n
-   Aj(p)=inv_tAkl(p,i)
- enddo
-else
- do p=1,n
-   Aj(p)=inv_tAkl(p,i)-inv_tAkl(p,j)
- enddo
-endif 
-
-
-!Compute t_J=tr[inv_tAkl*Jij] 
-if (i==j) then
-  t_J=inv_tAkl(i,i)
-else
-  t_J=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
-endif
-
-!Compute Ajtvl=Aj'*tvl
-!        t_XJ=tr[inv_tAkl*X*inv_tAkl*Jij]=AjX'*Aj
-!        t_JV=tr[inv_tAkl*Jij*inv_tAkl*tvl*tvk']=tvk'*Aj*Ajtvl
-!        t_JXV=tr[inv_tAkl*Jij*inv_tAkl*X*inv_tAkl*tvl*tvk']=tvk'*Aj*AjX'*inv_tAkltvl
-Ajtvl=ZERO
-Ajtbl=ZERO
-temp1=ZERO
-temp11=ZERO
-do p=1,n
-  Ajtvl=Ajtvl+Aj(p)*tvl(p)
-  Ajtbl=Ajtbl+Aj(p)*tbl(p)  
-  temp1=temp1+tvk(p)*Aj(p)
-  temp11=temp11+tbk(p)*Aj(p)
-enddo
-t_JV1=temp11*Ajtbl
-t_JV2=temp1*Ajtvl
-t_JV5=temp11*Ajtvl
-t_JV6=temp1*Ajtbl
-
-mu=tau3*t_JV1+tau33*t_JV2+tau333*t_JV5+tau334*t_JV6
-u=t_JV1*t_JV2+t_JV5*t_JV6
-
-temp1=Glob_Piraised3n2/(TWO*SQRTPI*det_tAkl**(THREEHALF))
-
-ME_over_rij_tvl=temp1*(m+ONEFIFTH*u/(t_J*t_J)-ONETHIRD*mu/t_J)/sqrt(t_J)
-
-end function ME_over_rij_tvl
-
 
 function ME_dXd(X,tvk,tvl,inv_tAkltvl,inv_tAkl,tAk,tAl,inv_tAkltAl,Skl,tau3)
 real(dprec)   ME_dXd
