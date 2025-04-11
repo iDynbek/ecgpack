@@ -824,7 +824,7 @@ integer       pi,pj,pt,ps
 logical       AreTermsIdentical
 integer,allocatable,dimension(:)      :: IdentParticleSet
 integer,allocatable,dimension(:,:)    :: IdentPseudoPartPairSet
-real(dprec)   mk,mi,m0
+real(dprec)   mk,mi,m0,mh
 
 if (Glob_ProcID==0) write(*,*) 'Initializing program data'
 
@@ -852,27 +852,37 @@ do i=2,npart
   Glob_bvc(i-1,i)=Glob_bvc(i-1,i)+ONE
 enddo
 
-!Determine the mass and the index of the the lightest particle 
+!Determine the mass and the index of the the lightest and heaviest particle 
 !(reference particle excluded). 
-!and its index
+!and the index if lightest
 k=0
+mh=0
 mk=2*Glob_MassTotal
 do i=1,n
   if (Glob_Mass(i+1)<mk) then
     k=i
     mk=Glob_Mass(i+1)
   endif    
+  if (Glob_Mass(i+1)>mh) then
+    mh=Glob_Mass(i+1)
+  endif   
 enddo  
+
+if (abs(mk - mh) > 1.d-14) then
+  Glob_AreParticleMassesTheSame = .false.
+endif
   
 m0=Glob_Mass(1)
 !alpha = sqrt( 0.5 * (m_0^3 + m_k^3)/(m_0*m_k*(m_0 + m_k)^2) )
 Glob_dmva2 = (m0**3 + mk**3)/(TWO*m0*mk*(m0+mk)**2) 
 !Glob_dmvB(i,i) = (beta^2 + gamma_i^2)/(alpha^2 * M_ii) - M_ii
 Glob_dmvB(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
-do i=1,n
-  mi=Glob_Mass(i+1)
-  Glob_dmvB(i,i)=( (m0**3+mi**3)*mk*(m0+mk)**2 - (m0**3+mk**3)*mi*(m0+mi)**2 ) / ( TWO*(m0+mi)*(m0**3+mk**3)*m0*mi**2 )
-enddo  
+if (.not. Glob_AreParticleMassesTheSame) then 
+  do i=1,n
+    mi=Glob_Mass(i+1)
+    Glob_dmvB(i,i)=( (m0**3+mi**3)*mk*(m0+mk)**2 - (m0**3+mk**3)*mi*(m0+mi)**2 ) / ( TWO*(m0+mi)*(m0**3+mk**3)*m0*mi**2 )
+  enddo 
+endif  
 Glob_dmvM(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
 Glob_dmvM(1:n,1:n)=Glob_MassMatrix(1:n,1:n)
 Glob_dmvMB=Glob_dmvM+Glob_dmvB
