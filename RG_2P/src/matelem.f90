@@ -1669,14 +1669,15 @@ do i=1,n
 enddo
 MVkl=-MVkl/8
 
-
+   
 drach_MVkl=ZERO		   
-!drach_MVkl=ME_dWd21(Glob_dmvM,Glob_dmvMB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,inv_tau3,Skl) &
 drach_MVkl=dXddYd(Glob_dmvM,Glob_dmvMB,tvk,tbk,tvl,tbl,tAl,tAk,inv_tAkl,det_tAkl,tau3,tau33,tau333,tau334,inv_tAkltAl,inv_tAkltAk)&
-  -V2kl-Glob_CurrEnergy*Glob_CurrEnergy*Skl+2*Glob_CurrEnergy*Vkl+ &
-  !Glob_CurrEnergy*ME_dXd(Glob_dmvB,tvk,tvl,inv_tAkltvl,inv_tAkl,tAk,tAl,inv_tAkltAl,Skl,tau3)!+&
-  Glob_CurrEnergy*dXddYd(Glob_dmvB,Glob_dmvB,tvk,tbk,tvl,tbl,tAl,tAk,inv_tAkl,det_tAkl,tau3,tau33,tau333,tau334, &
-                         inv_tAkltAl,inv_tAkltAk)
+  -V2kl-Glob_CurrEnergy*Glob_CurrEnergy*Skl+2*Glob_CurrEnergy*Vkl
+
+if (.not. Glob_AreParticleMassesTheSame) then
+  drach_MVkl = drach_MVkl - &
+  Glob_CurrEnergy*ME_dXd(Glob_dmvB,tvk,tvl,tbk,tbl,det_tAkl,tAl,inv_tAkl)
+endif
 do i=1,n                                        
   drach_MVkl=drach_MVkl-ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i)) &
   *ME_d_X_over_rij_d(i,i,Glob_dmvB,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl,&
@@ -3984,7 +3985,7 @@ term16=24*trAlY*prod*(tau3*term16_1-tau333*term16_2)
 term17=-24*trQ*prod*(tau3*term16_1-tau333*term16_2)&
 -16*prod*(Q2*term16_1+tau3*term17_1-Q6*term16_2-tau333*term17_2)
 term18=16*prod*(term3_1*term16_1-tau333*term18_2)
-term19=16*prod*(tau3*term19_1-term4_2*term16_1)
+term19=16*prod*(tau3*term19_1-term4_2*term16_2)
 
 big_term1=term1+term2+term3+term4+term6
 big_term2=term7+term8+term9+term11
@@ -3995,47 +3996,159 @@ dXddYd= big_term1+big_term2+big_term3+big_term4
 end function dXddYd
 
 
-function ME_dXd(X,tvk,tvl,inv_tAkltvl,inv_tAkl,tAk,tAl,inv_tAkltAl,Skl,tau3)
-real(dprec)   ME_dXd
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
-real(dprec)   X(nn,nn),tAk(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn),inv_tAkltAl(nn,nn)
-integer       i,j,n,k,tvk(nn),tvl(nn)
-real(dprec)   inv_tAkltAlX(nn,nn),inv_tAkltAlXtAk(nn,nn),tvkinv_tAkltAlX(nn),inv_tAkltvl(nn)
-real(dprec)   temp1, Skl,tau,tau1,tau2,tau3
-n=Glob_n
-do i=1,n
-  do j=1,n
-    temp1=ZERO
-    do k=1,n
-      temp1=temp1+inv_tAkltAl(j,k)*X(k,i)
+function ME_dXd(RR,vk,vl,wk,wl,det_tAkl,Al,Aklinv)
+  !Arguments
+  integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+  real(dprec)   ME_dXd
+  real(dprec)   det_tAkl, RR(nn,nn),Al(nn,nn),Aklinv(nn,nn)
+  integer       vk(nn), vl(nn), wk(nn), wl(nn)
+
+  !local variables
+
+  integer :: n, temp, i, j, k
+  real(dprec) :: AlRR(nn,nn), X(nn,nn), XA(nn,nn), AXA(nn,nn), AAlRR(nn,nn)
+  real(dprec) :: Aklinv_vl(nn), Aklinv_wl(nn), AXA_vl(nn), AXA_wl(nn), &
+  AAlRR_vl(nn), AALRR_wl(nn)
+  real(dprec) :: V, W, tV, tW, trRR, trX
+  real(dprec) :: VX, WX, tVX, tWX
+  real(dprec) :: sublV, sublW, subltV, subltW
+  real(dprec) :: norm, term1, term2, term3, term4
+  real(dprec) :: commonFactor
+
+  n = Glob_n
+  !Build X matrix
+  temp=0.d0
+  do i=1,n 
+    do j=1,n
+      temp = 0.d0
+      do k=1,n
+        temp = temp + Al(i,k)*RR(k,j)
+      enddo
+    AlRR(i,j) = temp
     enddo
-    inv_tAkltAlX(j,i)=temp1
   enddo
-enddo
-tau1=ZERO
-do i=1,n
-  temp1=ZERO
-  do k=1,n
-    temp1=temp1+inv_tAkltAlX(i,k)*tAk(k,i)
+
+  temp=0.d0
+  do i=1,n 
+    do j=1,n
+      temp = 0.d0
+      do k=1,n
+        temp = temp + AlRR(i,k)*Al(k,j)
+      enddo
+    X(i,j) = temp
+    enddo
   enddo
-  tau1=tau1+temp1
-enddo
-do i=1,n
-  temp1=ZERO
-  do j=1,n
-    temp1=temp1+tvk(j)*inv_tAkltAlX(j,i)
+
+  
+  !Build AXA matrices
+  temp=0.d0
+  do i=1,n 
+    do j=1,n
+      temp = 0.d0
+      do k=1,n
+        temp = temp + X(i,k)*Aklinv(k,j)
+      enddo
+    XA(i,j) = temp
+    enddo
   enddo
-  tvkinv_tAkltAlX(i)=temp1
-enddo
-tau2=ZERO
-do i=1,n
-  temp1=ZERO
-  do j=1,n
-    temp1=temp1+tvkinv_tAkltAlX(j)*tAk(j,i)
+
+  temp=0.d0
+  do i=1,n 
+    do j=1,n
+      temp = 0.d0
+      do k=1,n
+        temp = temp + Aklinv(i,k)*XA(k,j)
+      enddo
+    AXA(i,j) = temp
+    enddo
   enddo
-  tau2=tau2+temp1*inv_tAkltvl(i)
-enddo
-ME_dXd=Skl*(SIX*tau1+FOUR*tau2/tau3)
+
+
+  ! Build AAlRR matr:
+  temp=0.d0
+  do i=1,n 
+    do j=1,n
+      temp = 0.d0
+      do k=1,n
+        temp = temp + Aklinv(i,k)*AlRR(k,j)
+      enddo
+    AAlRR(i,j) = temp
+    enddo
+  enddo
+  
+
+ !Calculate traces:
+ trRR = 0.d0
+ do i=1,n
+  do k=1,n 
+    trRR = trRR + RR(i,k)*Al(k,i)
+  enddo
+ enddo
+
+ trX = 0.d0
+ do i=1,n
+  do k=1,n 
+    trX = trX + Aklinv(i,k)*X(k,i)
+  enddo
+ enddo
+
+ Aklinv_vl = ZERO
+ Aklinv_wl = ZERO
+ AXA_vl = ZERO
+ AXA_wl = ZERO
+ AAlRR_vl = ZERO
+ AAlRR_wl = ZERO
+ do i=1,n 
+  do k=1,n 
+    Aklinv_vl(i) = Aklinv_vl(i) + Aklinv(i,k)*vl(k)
+    Aklinv_wl(i) = Aklinv_wl(i) + Aklinv(i,k)*wl(k)
+    AXA_vl(i) = AXA_vl(i) + AXA(i,k)*vl(k)
+    AXA_wl(i) = AXA_wl(i) + AXA(i,k)*wl(k)
+    AAlRR_vl(i) = AAlRR_vl(i)  + AAlRR(i,k)*vl(k)
+    AAlRR_wl(i) = AAlRR_wl(i) + AAlRR(i,k)*wl(k)
+  enddo
+ enddo
+
+ V = ZERO
+ W = ZERO
+ VX = ZERO
+ WX = ZERO
+ sublV = ZERO
+ sublW = ZERO
+ tV = ZERO
+ tW = ZERO
+ tVX = ZERO
+ tWX = ZERO
+ subltV = ZERO
+ subltW = ZERO
+
+ do i=1,n 
+  V = V + vk(i)*Aklinv_vl(i)
+  W = W + wk(i)*Aklinv_wl(i)
+  VX = VX + vk(i)*AXA_vl(i)
+  WX = WX + wk(i)*AXA_wl(i)
+  sublV = sublV + vk(i)*AAlRR_vl(i)
+  sublW = sublW + wk(i)*AAlRR_wl(i)
+
+  tV = tV + vk(i)*Aklinv_wl(i)
+  tW = tW + wk(i)*Aklinv_vl(i)
+  tVX = tVX + vk(i)*AXA_wl(i)
+  tWX = tWX + wk(i)*AXA_vl(i)
+  subltV = subltV + vk(i)*AAlRR_wl(i)
+  subltW = subltW + wk(i)*AAlRR_vl(i)
+ enddo
+ 
+  !!! Calculate terms !!!
+  commonFactor = Glob_Piraised3n2/(det_tAkl*sqrt(det_tAkl))
+  norm = V*W - tV*tW
+  term1 = -THREEHALF*trRR*norm
+  term2 = THREEHALF*trX*norm + &
+  (VX*W + V*WX - tVX*tW - tV*tWX)
+  term3 = -(sublV*W - tV*subltW)
+  term4 = -(V*sublW - subltV*tW)
+  
+  ME_dXd = (term1 + term2 + term3 + term4)*commonFactor
+
 end function ME_dXd
 
 
