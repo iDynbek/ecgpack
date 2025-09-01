@@ -1255,10 +1255,11 @@ real(dprec), allocatable, dimension(:, :) :: spinFreeME, spinCoeff
 real(dprec), allocatable, dimension(:, :, :) :: SSNCspinME
 real(dprec) :: SSNCkl, SO1kl, SO2kl, SSNC, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, factor
 
-!selectTransition = 1 -- calculate 3P -> 1D matelem  <3P | H_SO | 1D>
-!selectTransition = 2 -- calculate 3P -> 3D matelem <3P | H_SO + H_SSNC | 3D>
-!selectTransition = 3 -- calculate 1P -> 3D matelem <1P | H_SO | 3D>
-selectTransition = 3
+!selectTransition = 1 -- calculate 3P_2 -> 1D_2 matelem  <3P | H_SO | 1D>
+!selectTransition = 2 -- calculate 3P_1 -> 3D_1 matelem <3P | H_SO + H_SSNC | 3D>
+!selectTransition = 3 -- calculate 1P_1 -> 3D_1 matelem <1P | H_SO | 3D>
+!selectTransition = 4 -- calculate 4P_5/2 -> 2D_5/2 matelem <4P | H_SO + H_SSNC | 2D>
+selectTransition = 4
 
 n = Glob_n
 npt = Glob_npt
@@ -1290,6 +1291,8 @@ else if (selectTransition == 2) then
 	SOspinME = SziME
 else if (selectTransition == 3) then
 	SOspinME = SiMinusME
+else if (selectTransition == 4) then 
+	SOspinME = SiPlusME
 endif
 
 do i = 1, nFactorial
@@ -1322,7 +1325,7 @@ do i = 1, Glob_CurrBasisSize1
     enddo ! Permutations from S_n
 enddo
 
-SSNCkl = ZERO
+SSNC = ZERO
 SO1 = ZERO
 SO2 = ZERO
 AMM1 = ZERO

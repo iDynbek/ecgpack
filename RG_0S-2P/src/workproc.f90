@@ -1249,7 +1249,8 @@ real(dprec) :: SO1kl, SO2kl, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, factor
 
 !selectTransition = 1 -- calculate 3P -> 1S matelem
 !selectTransition = 2 -- calculate 3P -> 3S matelem
-selectTransition = 1
+!selectTransition = 3 -- calculate 4P -> 2S matelem
+selectTransition = 3
 
 n = Glob_n
 npt = Glob_npt
@@ -1278,6 +1279,8 @@ if (selectTransition == 1) then
 	SOspinME = SiPlusME
 else if (selectTransition == 2) then
 	SOspinME = SziME
+else if (selectTransition == 3) then
+	SOspinME = SiPlusME
 else
 	stop "incorrect selectTransition value"
 endif

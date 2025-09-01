@@ -630,6 +630,7 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMM
   !common factor (sqrt(ONEHALF) - for consistent normalization with Skl)
   if (selectTransition == 1) commonFactor = TWO * sqrt(THREE) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
   if (selectTransition == 2) commonFactor = FOUR * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
+  if (selectTransition == 3) commonFactor = TWO * SQRT(TWO) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
 
   SO1kl = ZERO
   SO2kl = ZERO
@@ -638,7 +639,7 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMM
   AMM2kl = ZERO
   
   do indexI = 1, n
-	if (selectTransition == 1 .and. abs(SOspinME(indexI)) < localEps) cycle
+	!if (selectTransition == 1 .and. abs(SOspinME(indexI)) < localEps) cycle
 
    	! gamma diagonal coefficient
    	gamma_diag = ONE / sqrt(inv_tAkl(indexI, indexI))

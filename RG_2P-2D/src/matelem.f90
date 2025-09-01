@@ -698,7 +698,11 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, S
 	commonFactorSS = sqrt(15._dprec) / TWO * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
   endif
   if (selectTransition == 3) commonFactorSO=-ONEHALF * sqrt(FIVE / THREE) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
- 
+  if (selectTransition == 4) then 
+	commonFactorSO = ONEHALF * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
+	commonFactorSS = ONEHALF * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
+  endif
+
   SSNCkl = ZERO
 
   SO1kl = ZERO
@@ -714,7 +718,7 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, S
   
   do indexI = 1, n
 
-   if ((selectTransition == 1 .or. selectTransition == 3) .and. abs(SOspinME(indexI)) < localEps) cycle
+   !if ((selectTransition == 1 .or. selectTransition == 3) .and. abs(SOspinME(indexI)) < localEps) cycle
    
    ! gamma diagonal coefficient
    gamma_diag = ONE / sqrt(inv_tAkl(indexI, indexI))
@@ -919,18 +923,17 @@ subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, S
    
 	 temp1 = -temp1010 - temp1001 + temp0110 + temp0101 
 	 SSNCkl = SSNCkl + SSNCspinME(indexI, indexJ) * SSNCmassChargeCoefficient(indexI, indexJ) * temp1
-
+    
 	 
 	
    enddo ! indexJ cycle
   enddo ! indexI cycle
-
+  
   SSNCkl = SSNCkl * commonFactorSS
   SO1kl = SO1kl * commonFactorSO 
   SO2kl = SO2kl * commonFactorSO
   AMM1kl = AMM1kl * commonFactorSO
   AMM2kl = AMM2kl * commonFactorSO
-  
   
   end subroutine spinDependentMatrixElements
 

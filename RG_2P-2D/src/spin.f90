@@ -390,7 +390,7 @@ contains
     real(kind = dprec) :: ans, Sz1, Sz0, Sz10, temp1, temp2
     integer, dimension(:, :, :, :), allocatable :: pairPermutations
     real(kind = dprec), dimension(:), allocatable :: tmpSpinFunctionA0, tmpSpinFunctionB0, tmpSpinFunctionC0, &
-    tmpSpinFunctionA1, tmpSpinFunctionB1, tmpspinFunctionC1
+    tmpspinFunctionD0, tmpSpinFunctionA1, tmpSpinFunctionB1, tmpspinFunctionC1, tmpspinFunctionD1
     real(kind = dprec), dimension(n, n, nFactorial) :: SiSjME 
     character(len = maxLen) :: spinFunctionString
     integer :: io
@@ -424,9 +424,9 @@ contains
 
 
     allocate(tmpSpinFunctionA0(numberOfPrimitives0), tmpSpinFunctionB0(numberOfPrimitives0), &
-    tmpSpinFunctionC0(numberOfPrimitives0))
+    tmpSpinFunctionC0(numberOfPrimitives0), tmpSpinFunctionD0(numberOfPrimitives0))
     allocate(tmpSpinFunctionA1(numberOfPrimitives1), tmpSpinFunctionB1(numberOfPrimitives1), &
-    tmpSpinFunctionC1(numberOfPrimitives1))
+    tmpSpinFunctionC1(numberOfPrimitives1), tmpSpinFunctionD1(numberOfPrimitives1))
 
     !Determine the values of Sz for each wf
     Sz0 = getSzTotal(primitives0, spinFunction0, n, numberOfPrimitives0)
@@ -474,8 +474,7 @@ contains
           enddo
         case (0)
           do k = 1, n
-            tmpSpinFunctionC0 = tmpSpinFunctionB0
-            call actOnSpinFunctionWithSzi(primitives0, tmpSpinFunctionC0, k, n, numberOfPrimitives0)
+            call actOnSpinFunctionWithSzi(primitives0, tmpSpinFunctionB0, tmpspinFunctionC0, k, n, numberOfPrimitives0)
             SziME(k, ptr) = ONEHALF * spinFunctionsScalarProductReal(tmpSpinFunctionA1, tmpSpinFunctionC0, numberOfPrimitives1)
           enddo
         case (-1)
@@ -503,6 +502,27 @@ contains
               SSNCspinME(i, j, ptr) = &
               THREE * ONEFOURTH * spinFunctionsScalarProductReal(tmpSpinFunctionA1, tmpSpinFunctionC0, numberOfPrimitives0) - &
               SiSjME(i, j, ptr)  
+          enddo
+        enddo    
+      else if (opCase == 1) then
+         do i = 1, n 
+          do j = i + 1, n 
+              !<Si+Sjz>
+
+              call actOnSpinFunctionWithSzi(primitives0, tmpSpinFunctionB0, tmpspinFunctionC0, j, n, numberOfPrimitives0)
+              call actOnSpinFunctionWithSPlusiReal(primitives1, primitives0, &
+            numberOfPrimitives1, numberOfPrimitives0, i, n, tmpSpinFunctionC0, tmpSpinFunctionC1)
+              SSNCspinME(i, j, ptr) = ONEHALF*&
+              spinFunctionsScalarProductReal(tmpSpinFunctionA1, tmpSpinFunctionC1, numberOfPrimitives1) 
+
+              !<SizSj+>
+              call actOnSpinFunctionWithSPlusiReal(primitives1, primitives0, &
+            numberOfPrimitives1, numberOfPrimitives0, j, n, tmpSpinFunctionB0, tmpSpinFunctionB1)
+               call actOnSpinFunctionWithSzi(primitives1, tmpSpinFunctionB1, tmpspinFunctionC1, i, n, numberOfPrimitives1)
+
+              SSNCspinME(i, j, ptr) = SSNCspinME(i, j, ptr) + ONEHALF*&
+              spinFunctionsScalarProductReal(tmpSpinFunctionA1, tmpSpinFunctionC1, numberOfPrimitives1) 
+              !print*, SSNCspinME(i,j,ptr)
           enddo
         enddo    
       endif
@@ -608,7 +628,7 @@ contains
 
   end subroutine
 
-  subroutine actOnSpinFunctionWithSzi(primitives, spinFunction, i, n, numberOfPrimitives)
+  subroutine actOnSpinFunctionWithSzi(primitives, spinFunctionA, spinFunctionB, i, n, numberOfPrimitives)
     implicit none
 
     ! returns 2 s_z(i) \Chi from i and \Chi
@@ -619,15 +639,16 @@ contains
     !                ^i'th place
 
     integer, intent(in) :: n, numberOfPrimitives, i
-    real(kind = dprec), dimension(numberOfPrimitives), intent(inout) :: spinFunction ! old coefficients
+    real(kind = dprec), dimension(numberOfPrimitives), intent(inout) :: spinFunctionA, spinFunctionB
     integer, dimension(n, numberOfPrimitives), intent(in) :: primitives ! all the strings possible
 
     ! local variables
     integer :: j
 
+    spinFunctionB = spinFunctionA
     do j = 1, numberOfPrimitives
-      if (abs(spinFunction(j)) < localEps) cycle
-      if (primitives(i, j) == 0 ) spinFunction(j) = - spinFunction(j)
+      if (abs(spinFunctionA(j)) < localEps) cycle
+      if (primitives(i, j) == 0 ) spinFunctionB(j) = - spinFunctionA(j)
     enddo
 
   end subroutine
