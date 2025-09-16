@@ -15,10 +15,11 @@ usage_print() {
     echo "DESCRIPTION OF ARGUMENTS:"
     echo "<machinename> is the name of the machine. Only a single value may be specified. It could be ubuntu-generic (default), linux-generic, shabyt, muon, puma, ocelote, elgato."
     echo "<toolchainnames> are the names of the toolchains. Supported values for different machines are"
-    echo "  ubuntu-generic  ::  foss-2025a, foss-2023b, intel-2025a, intel-2023b, systemdefault (default)"
-    echo "  linux-generic   ::  foss-2025a, foss-2023b, intel-2025a, intel-2023b, systemdefault (default)"
-    echo "  shabyt          ::  foss-2025a, foss-2023b, intel-2025a, intel-2023b, systemdefault (default)"
-    echo "  muon            ::  foss-2025a, foss-2023b, intel-2025a, intel-2023b, systemdefault (default)"
+    echo "  ubuntu-generic  ::  foss-2025a, foss-2024a, foss-2023b, intel-2025a, intel-2023b, systemdefault (default)"
+    echo "  linux-generic   ::  foss-2025a, foss-2024a, foss-2023b, intel-2025a, intel-2023b, systemdefault (default)"
+    echo "  irgetas         ::  foss-2025a, foss-2024a, foss-2023b, intel-2025a, intel-2023b, systemdefault (default)"    
+    echo "  shabyt          ::  foss-2025a, foss-2024a, foss-2023b, intel-2025a, intel-2023b, systemdefault (default)"
+    echo "  muon            ::  foss-2025a, foss-2024a, foss-2023b, intel-2025a, intel-2023b, systemdefault (default)"
     echo "  puma            ::  gnu8-8.3.0, intel-2020.4, systemdefault (default)"
     echo "  ocelote         ::  gnu8-8.3.0, intel-2020.4, systemdefault (default)"
     echo "  elgato          ::  gnu8-8.3.0, intel-2020.4, systemdefault (default)"
@@ -149,7 +150,7 @@ for toolchain_value in ${toolchain_list[@]}; do
     # Check if the toolchain is valid for the specified machine and load the corresponding module.
     # If the module is not loaded or/and the proper Fortran compiler and MPI are inaccessible,
     # print an error message.
-    if [ "$machine" = "ubuntu-generic" ] || [ "$machine" = "linux-generic" ] || [ "$machine" = "shabyt" ] || [ "$machine" = "muon" ]; then
+    if [ "$machine" = "ubuntu-generic" ] || [ "$machine" = "linux-generic" ] || [ "$machine" = "irgetas" ] || [ "$machine" = "shabyt" ] || [ "$machine" = "muon" ]; then
         # Possibly insert $machine in the path given by $bindirname (this can be left empty)
         machinedirname=""
         if [ "$toolchain_value" = "foss-2025a" ]; then
@@ -174,6 +175,28 @@ for toolchain_value in ${toolchain_list[@]}; do
                 echo "Skipping this toolchain."
                 continue
             fi
+        elif [ "$toolchain_value" = "foss-2024a" ]; then
+            module_for_toolchain="foss/2024a"
+            module load $module_for_toolchain
+            compiler_type=gnu
+            if module load $module_for_toolchain 2>&1 | grep -qi "error"; then
+                echo "Module" $module_for_toolchain " for toolchain" $toolchain_value "could not be loaded"
+                echo "Either the machine argument you use is incorrect or the lmod configuration has been changed."
+                echo "Skipping this toolchain."
+                continue
+            fi
+            if ! which gfortran 2>&1 | grep -qi "software/GCCcore/13.3.0/bin/gfortran"; then
+                echo "gfortran compiler matching toolchain" $toolchain_value" is not accessible."
+                echo "Check that module" $module_for_toolchain " is properly configured."
+                echo "Skipping this toolchain."
+                continue
+            fi
+            if ! which mpif90 2>&1 | grep -qi "software/OpenMPI/5.0.3-GCC-13.3.0/bin/mpif90"; then
+                echo "mpif90 compiler matching toolchain" $toolchain_value" is not accessible."
+                echo "Check that module" $module_for_toolchain " is properly configured."
+                echo "Skipping this toolchain."
+                continue
+            fi            
         elif [ "$toolchain_value" = "foss-2023b" ]; then
             module_for_toolchain="foss/2023b"
             module load $module_for_toolchain
