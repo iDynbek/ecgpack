@@ -24,16 +24,17 @@ module spinStuff
 
 contains
 
-  subroutine getSpinOperatorsMeanValues(n, nFactorial, spatialYoung, permutationMatrices, &
-    positronPosition, isPositronPermuted, numberOfSpinFunctions, spinFreeME, SziME, SiSjME, SSNCspinME)
+  subroutine getSpinOperatorsMeanValues(n, nFactorial, spatialYoung, positronPosition, numberOfSpinFunctions, &
+    permutationMatrices, parities, spinFreeME, SziME, SiSjME, SSNCspinME)
     implicit none
 
     integer, intent(in) :: n, nFactorial
     character(len = *), intent(in) :: spatialYoung
-    integer, dimension(n, n, nFactorial), intent(in) :: permutationMatrices
-    
+
     integer, intent(out) :: positronPosition, numberOfSpinFunctions
-    integer, dimension(nFactorial), intent(out) :: isPositronPermuted
+    integer, dimension(n, n, nFactorial), intent(out) :: permutationMatrices
+    integer, dimension(n), intent(out) :: parities
+
     ! mean values of some spin operators
     real(kind = dprec), dimension(nFactorial), intent(out) :: spinFreeME
     real(kind = dprec), dimension(n, 2, nFactorial), intent(out) :: SziME
@@ -110,19 +111,12 @@ contains
     else
       SeDoubled = 2 * numberOfAs - n
     endif
+
     if (positronPosition > 0 .and. SeDoubled > 0) then
       numberOfSpinFunctions = 2
     else
       numberOfSpinFunctions = 1
     endif
-
-    isPositronPermuted = 0
-    if (positronPosition > 0) then
-       do i = 1, nFactorial
-          if (permutationMatrices(positronPosition, positronPosition, i) == 0) isPositronPermuted(i) = 1
-       enddo
-    endif
-
 
     ! if we only have electrons, we generate spin function chi:
     ! S^2 chi_{S, S} = S (S + 1) chi_{S, S}
@@ -186,6 +180,8 @@ contains
     allocate(YMatr(n, n, nFactorial))
     allocate(intSpinfunctionA(numberOfPrimitives), intSpinfunctionB(numberOfPrimitives))
 
+    call generatePermutationMatrices(permutationMatrices, n, nFactorial, parities)
+
     call generateSpinYoungFromSpatialString(spatialYoung, n, nFactorial, NumYTerms, YCoeff, YMatr)
 
     if (positronPosition < 0) then ! electrons only
@@ -228,11 +224,13 @@ contains
       do i = 1, numberOfAs + 1
         primitives(i, 1) = 1
       enddo
+
       ! using the permutation matrices we generate all the unique sequences
       ptr = 2
       do i = 2, nFactorial
 
         call permute(permutationMatrices(:, :, i), primitives(:, 1), primitiveA, n)
+        !write(*, myFmt) (primitiveA(j), j = 1, n)
 
         ! check whether we have the string already
         found = 0
@@ -249,6 +247,7 @@ contains
         endif
 
       enddo
+
       ! fill in the primitive string with numberOfAs 'a's
       pos = ptr
       do i = 1, numberOfAs
@@ -545,7 +544,7 @@ contains
         spinFreeME(ptr) = spinFunctionsScalarProductReal(tmpSpinFunctionA, tmpSpinFunctionB, numberOfPrimitives)
 
         do k = 1, n
-           tmpSpinFunctionC = tmpSpinFunctionB
+          tmpSpinFunctionC = tmpSpinFunctionB
 
           call actOnSpinFunctionWithSzi(primitives, tmpSpinFunctionC, k, n, numberOfPrimitives)
 
@@ -570,7 +569,8 @@ contains
         permutationMatrices(:, :, ptr), n, numberOfPrimitives)
 
         do i = 1, n
-           do j = 1, n
+           do j = i + 1, n
+
               call permuteSpinFunctionReal(primitives, tmpSpinFunctionB, tmpSpinFunctionC, &
               pairPermutations(:, :, i, j), n, numberOfPrimitives)
 
@@ -590,20 +590,19 @@ contains
      enddo  !all permutations
 
 
-      !for test purposes one can store some mean values
+      ! ! for test purposes one can store some mean values
       !if (Glob_ProcID == 0) then
 
-         
-         !permutation matrices
          !open(newunit=io, file="spinData.txt", status="old", action="write", position = "append")
-         !open(newunit=io, file="11.txt", status="replace", action="write")
-         !write(io, *) "permutationMatrices: "
+         !permutation matrices
+
+         !write(io, *) "permutationMatrices"
          !do ptr=1,nFactorial
-            !write(io, *) 'ptr = ', ptr
-            !do i=1,n
-            !   write(io, *) permutationMatrices(i, :, ptr)
-            !enddo
-            !write(io, *) ''
+         !   write(io, *) 'ptr = ', ptr
+         !   do i=1,n
+         !      write(io, *) permutationMatrices(i, :, ptr)
+         !   enddo
+         !   write(io, *) ''
          !enddo
             
          
@@ -611,67 +610,52 @@ contains
          !write(io, '("<chi | 1 | P^s_{a} chi>:")')
          !write(io, *) 'ptr  ', 'spinFreeME  '
          !do ptr = 1, nFactorial
-           !if (positronPosition > 0) then
-             !if (permutationMatrices(positronPosition, positronPosition, ptr) /= 1) cycle
-           !endif
+          ! if (positronPosition > 0) then
+          !   if (permutationMatrices(positronPosition, positronPosition, ptr) /= 1) cycle
+          ! endif
 
        
-           !write(io, '(i3, 2x, f6.3)') ptr, spinFreeME(ptr)
+         !  write(io, '(i3, 2x, f6.3)') ptr, spinFreeME(ptr)
          !enddo
          !write(io,*) ''
           
          
          ! ! S_z(i)      
-         !write(io, *) "(<chi |s_z_i | P^s_{a} chi>:) for electronic permutations"
-         !write(io, *) 'ptr   ', 'k   ', 'p  ', 'Sz   '
+         !write(io, '("<chi |s_z_i | P^s_{a} chi>:")')
+         !write(io, *) 'ptr   ', 'k   ', 'Sz   '
          
-          !do ptr = 1, nFactorial
-            !if (positronPosition > 0) then
-              !if (permutationMatrices(positronPosition, positronPosition, ptr) /= 1) cycle
-            !endif
+         ! do ptr = 1, nFactorial
+         !   if (positronPosition > 0) then
+         !     if (permutationMatrices(positronPosition, positronPosition, ptr) /= 1) cycle
+         !   endif
 
-            !do k = 1, n
-            !   write(io, '(i3, 2x, i1, 2x, i1, 2x, f6.3)') ptr, k, p, SziME(k, p, ptr)
-            !enddo
-            
-          !enddo
-          !write(io,*) ''
-          !! s(i) s(j) for each pair
-          !write(io, *) '(<chi | s_i s_j | P^s_{a} chi>:) for electronic permuatations'
-          !write(io, *) 'ptr  ', 'i  ', 'j  ', 'p', 'SiSj  '
-          !do ptr = 1, nFactorial
-          !  if (positronPosition > 0) then
-          !    if (permutationMatrices(positronPosition, positronPosition, ptr) /= 1) cycle
-          ! endif
-
-            
-          !  do i = 1, n
-          !     do j = i + 1, n
-          !        write(io, '(i3, 2x, i1, 2x, i1, 2x, i1, 2x, f6.3)') ptr, i, j, p, SiSjME(i, j, p, ptr)
-               
-          !     enddo
-          !  enddo
-          !enddo
-
-          !! SSNCspinME
-          !write(io, *) '(<chi | SSNCspinME | P^s_{a} chi>:) for electronic permuatations'
-          !write(io, *) 'ptr  ', 'i  ', 'j  ', 'p  ', 'SSNCspinME  '
-          !do ptr = 1, nFactorial
-          !  if (positronPosition > 0) then
-          !    if (permutationMatrices(positronPosition, positronPosition, ptr) /= 1) cycle
-          ! endif
+         !   do k = 1, n
+         !     write(io, '(i3, 2x, i1, 2x, f6.3)') ptr, k, SziME(k, p, ptr)
+         !   enddo
+         ! enddo
+         ! write(io,*) ''
+          
+          ! s(i) s(j) for each pair
+        !  write(io, '("<chi | s_i s_j | P^s_{a} chi>:")')
+        !  write(io, *) 'ptr  ', 'i  ', 'j  ', 'SiSj  '
+        !  do ptr = 1, nFactorial
+        !    if (positronPosition > 0) then
+        !      if (permutationMatrices(positronPosition, positronPosition, ptr) /= 1) cycle
+        !    endif
 
             
-           ! do i = 1, n
-           !    do j = i + 1, n
-           !       write(io, '(i3, 2x, i1, 2x, i1, 2x, i1, 2x, f6.3)') ptr, i, j, p, SSNCspinME(i, j, p, ptr)
-           !    enddo
-           ! enddo
-          !enddo
+        !    do i = 1, n
+        !     do j = i + 1, n
+        !        write(io, '(i3, 2x, i1, 2x, i1, 2x, f6.3)') ptr, i, j, SiSjME(i, j, p, ptr)
+        !     enddo
+        !    enddo
+        !  enddo
 
-          !close(io)
-       !endif
        
+          !close(io)
+
+       !endif
+
     enddo ! number of spin functions
 
 
@@ -1652,182 +1636,96 @@ contains
 
   end function
 
-  subroutine generatePermutationMatrices(spinMatrices, spatialMatrices, parities, &
-       spinHalfIndices, numberOfSpinHalf, n, numberOfPermutations)
-     implicit none
 
-     integer, intent(in) :: n, numberOfSpinHalf, numberOfPermutations
-     integer, dimension(:), intent(in) :: spinHalfIndices
-     integer, dimension(:, :,:), intent(inout) :: spinMatrices, spatialMatrices
-     integer, dimension(:),  intent(inout) :: parities
-          
-     ! local variables
-     integer :: i, k, l, ii, jj, kk, ptr, tmp, j, npart
-     integer, dimension(:, :), allocatable :: permutedStrings, tempMatr
-     integer, dimension(:), allocatable :: indices, elements
-     integer, dimension(:, :, :), allocatable :: pairPermutationsRef
-     character (len = maxLen) :: myFmt
+  subroutine generatePermutationMatrices(matrices, n, nFactorial, parities)
+    implicit none
 
-     npart = n + 1
-     allocate(permutedStrings(numberOfSpinHalf, numberOfPermutations), indices(numberOfSpinHalf))
-     allocate(tempMatr(n, n))
-     allocate(pairPermutationsRef(n,n,npart))
-     ! first, we generate all the possible permutations
-     ! for a given string '1 2 3 ... n'
-     
+    integer, intent(in) :: n, nFactorial
+    integer, dimension(n, n, nFactorial), intent(out) :: matrices
+    integer, dimension(nFactorial), intent(out) :: parities
+
+
+    ! local variables
+    integer :: i, ptr, tmp, j
+    integer, dimension(:, :), allocatable :: permutedStrings
+    integer, dimension(n) :: indeces, elements
+    character (len = maxLen) :: myFmt
+
+    allocate(permutedStrings(n, nFactorial))
+    ! first, we generate all the possible permutations
+    ! for a given string '1 2 3 ... n'
+
     ! unitary permutation
-     do i = 1, numberOfSpinHalf
-        permutedStrings(i, 1) = i
-     enddo
+    do i = 1, n
+      permutedStrings(i, 1) = i
+    enddo
 
-     ptr = 2
-     ! we generate the arrays with Heap's algotithm
-     ! https://en.wikipedia.org/wiki/Heap's_algorithm
-     
-     elements = permutedStrings(:, 1)
-     indices = 1
-     i = 2
-     do while (i <= numberOfSpinHalf)
-        if (indices(i) < i) then
-           
-           if (mod(i, 2) /= 0) then
-              tmp = elements(1)
-              elements(1) = elements(i)
-              elements(i) = tmp
-           else
-              tmp = elements(indices(i))
-              elements(indices(i)) = elements(i)
-              elements(i) = tmp
-           endif
-           
-           permutedStrings(:, ptr) = elements
-           ptr = ptr + 1
-           
-           indices(i) = indices(i) + 1
-           i = 2
-           
+    ptr = 2
+    ! we generate the arrays with Heap's algotithm
+    ! https://en.wikipedia.org/wiki/Heap's_algorithm
+
+    elements = permutedStrings(:, 1)
+    indeces = 1
+    i = 2
+    do while (i <= n)
+      if (indeces(i) < i) then
+
+        if (mod(i, 2) /= 0) then
+          tmp = elements(1)
+          elements(1) = elements(i)
+          elements(i) = tmp
         else
-           
-           indices(i) = 1
-           i = i + 1
-           
+          tmp = elements(indeces(i))
+          elements(indeces(i)) = elements(i)
+          elements(i) = tmp
         endif
-     enddo
 
-     !! code to print permuted strings
-     !write(*,*) "Permuted strings: "
-     !do i = 1, numberOfPermutations
-     !   write(*, *) (permutedStrings(j, i), j = 1, numberOfSpinHalf)
-     !enddo
-     !print *, '================='
+        permutedStrings(:, ptr) = elements
+        ptr = ptr + 1
 
-     !Generate spin permutation matrices
-     spinMatrices = 0
-     do ptr = 1, numberOfPermutations
-        do i = 1, numberOfSpinHalf
-           spinMatrices(permutedStrings(i, ptr), i, ptr) = 1
-        enddo
-     enddo
-     
-     !! code to print every spin permutation matrix:
-     !write(*,*) "spinMatrices: "
-     !do ptr = 1, numberOfPermutations
-     !  do i = 1, numberOfSpinHalf
-     !    write(*, *) (spinmatrices(i, j, ptr), j = 1, numberOfSpinHalf)
-     !  enddo
-     !  print *, '================='
-     !enddo
-    
-     !Generate spatial permutation matrices
-     !Here we should consider two cases: whether the reference particle is permuted or not
-     !Also note that one has to take the inverse of the permutation matrix to obtain spatial permutation
+        indeces(i) = indeces(i) + 1
+        i = 2
 
-     !Filling array of pair permutations with the reference particle
-     pairPermutationsRef = 0
-     do i=1,n
-        pairPermutationsRef(i, i, :) = 1
-     enddo
-     do i=2,npart
-        pairPermutationsRef(:, i-1, i) = -1
-     enddo
+      else
 
-     
-     spatialMatrices = 0
-     !Spin-0 particles are not permuted
-     do i=2,n+1
-        if (Glob_spinTable(i) == 0) spatialMatrices(i-1,i-1,:) = 1
-     enddo
-     !write(myFmt, '("(", i0, "(i3))")') n
-     if (Glob_spinTable(1) == 0) then
-        !Reference particle is not permuted
-        do ptr = 1, numberOfPermutations
-           do i = 1, numberOfSpinHalf
-              spatialMatrices(spinHalfIndices(i)-1, spinHalfIndices(permutedStrings(i, ptr))-1, ptr) = 1
-           enddo
-        enddo
-     else
-        do ptr = 1, numberOfPermutations
-           if (permutedStrings(1, ptr) == 1) then
-              !Permutation does not touch reference particle
-              do i=2,numberOfSpinHalf
-                 spatialMatrices(spinHalfIndices(i)-1, spinHalfIndices(permutedStrings(i, ptr))-1, ptr) = 1
-              enddo
-           else
-              k=permutedStrings(1,ptr) !k = \sigma(1)
-              !l=findloc(permutedStrings(:,ptr), 1, 1) !l = \sigma^(-1)(1)
-              do i=1,numberOfSpinHalf
-                if (permutedStrings(i,ptr) == 1) then 
-                  l = i
-                  exit
-                endif
-              enddo
-              ! ptr = P_{1k} x {1->sigma(1), ... sigma^(-1)(1)->sigma(1) ... }
-              ! ptr^(-1) = {1->sigma(1), ... sigma^(-1)(1)->sigma(1) ... } x P_{1k} 
-              do i=2,numberOfSpinHalf
-                 if (i /= l) then
-                    spatialMatrices(spinHalfIndices(i)-1, spinHalfIndices(permutedStrings(i, ptr))-1, ptr) = 1
-                 else
-                    spatialMatrices(spinHalfIndices(i)-1, spinHalfIndices(k)-1, ptr) = 1
-                 endif
-              enddo
-              tempMatr = 0
-              do ii=1,n
-                 do jj=1,n
-                    do kk=1,n
-                       tempMatr(ii,jj) = tempMatr(ii,jj) + &
-                            spatialMatrices(ii,kk,ptr) * pairPermutationsRef(kk,jj,spinHalfIndices(k))
-                    enddo
-                 enddo
-              enddo
-              spatialMatrices(:,:,ptr) = tempMatr(:,:)
-           endif
-        enddo
-     endif
-           
-     
-    !! code to print every spatial permutation matrix:
-    ! write(*,*) "spatialMatrices: "
-    ! do ptr = 1, numberOfPermutations
+        indeces(i) = 1
+        i = i + 1
+
+      endif
+    enddo
+
+    ! now the matrices (note that coordinate permutation matrices can be
+    ! obtained by transposing these)
+    matrices = ZERO
+    do ptr = 1, nFactorial
+      do i = 1, n
+        matrices(permutedStrings(i, ptr), i, ptr) = 1
+      enddo
+    enddo
+
+    ! ! code to print every permutation matrix:
+    ! write(myFmt, '("(", i0, "(i3))")') n
+    ! do ptr = 1, nFactorial
     !   do i = 1, n
-    !     write(*, *) (spatialMatrices(i, j, ptr), j = 1, n)
+    !     write(*, myFmt) (matrices(i, j, ptr), j = 1, n)
     !   enddo
     !   print *, '================='
     ! enddo
-    
+
     ! straiforward inefficient way of determining the permutations' parity
     ! n^2 for each permutation
     ! in principle, non-recursive Heap's algorithm naturally generates parities -1 1 -1 1 -1 1 ...
-    
-    do ptr = 1, numberOfPermutations
-       tmp = 0
-       do i = 1, numberOfSpinHalf
-          do j = i + 1, numberOfSpinHalf
-             if (permutedStrings(i, ptr) > permutedStrings(j, ptr)) tmp = tmp + 1
-          enddo
-       enddo
-       parities(ptr) = (-1)**tmp
+
+    do ptr = 1, nFactorial
+      tmp = 0
+      do i = 1, n
+        do j = i + 1, n
+          if (permutedStrings(i, ptr) > permutedStrings(j, ptr)) tmp = tmp + 1
+        enddo
+      enddo
+      parities(ptr) = (-1)**tmp
     enddo
-    
+
     ! ! code to print every permutation and its parity:
     !
     ! write(myFmt, '("(", i0, "(i3))")') n + 1
@@ -1836,7 +1734,7 @@ contains
     ! enddo
     !
 
-  end subroutine generatePermutationMatrices
+  end subroutine
 
   function simpleClebsch(SeDoubled, SpDoubled, SDoubled, mpDoubled) result(ans)
     implicit none
@@ -1895,6 +1793,7 @@ contains
 
 
   end function
+
 
   function soAngularCoeff(sDoubled, jDoubled) result(ans)
     implicit none

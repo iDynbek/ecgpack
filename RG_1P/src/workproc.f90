@@ -27,7 +27,6 @@ real(dprec),allocatable,dimension(:) :: WorkBuffReal
 integer,allocatable,dimension(:)     :: WorkBuffInt
 integer        i,j,Line,j1,j2,j3,j4
 character(70)  ReadChar
-character(255) TempStr
 logical        ErrorInDataFile,IsBBOPStep
   
 ErrorInDataFile=.false.
@@ -66,7 +65,6 @@ if (Glob_n>Glob_MaxAllowedNumOfPseudoParticles) then
   endif
   ErrorInDataFile=.true.
 endif
-
 if (ErrorInDataFile) stop
 call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 Glob_np=Glob_n*(Glob_n+1)/2
@@ -164,42 +162,6 @@ call MPI_BCAST(WorkInt,Glob_YOperatorStringLength,MPI_INTEGER,0, &
 do i=1,Glob_YOperatorStringLength
    Glob_YOperatorString(i:i)=char(WorkInt(i))
 enddo
-
-if (Glob_ProcID==0) then
-  read(1, '(a)', iostat=ReadErr) TempStr
-  i = 1
-  do while (TempStr(i:i) == ' ')
-    i = i + 1
-  enddo
-  ReadChar = TempStr(i:i+4)
-
-  if ((ReadErr /= 0) .or. ReadChar(1:5) /= "SPINS") then 
-     backspace 1
-  else
-     Glob_spinTableSupplied = .true.
-     i = i + 5
-     do while (TempStr(i:i) == ' ')
-        i = i + 1
-     enddo
-     Glob_spinString = TempStr(i:)
-     write(6,'(1x,a5)',advance='no') ReadChar(1:5)
-     call writestringadv(6,Glob_spinString,len_trim(Glob_spinString))
-  endif
-endif
-
-do i=1,Glob_spinStringLength
-   WorkInt(i)=ichar(Glob_spinString(i:i))
-enddo
-     
-call MPI_BCAST(WorkInt,Glob_spinStringLength,MPI_INTEGER,0, &
-     MPI_COMM_WORLD,Glob_MPIErrCode)
-do i=1,Glob_spinStringLength
-   Glob_spinString(i:i)=char(WorkInt(i))
-enddo
-call MPI_BCAST(Glob_spinTableSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-
-
-
 
 if (Glob_ProcID==0) then
   read(1,*) ReadChar(1:10),Glob_CurrBasisSize
@@ -867,21 +829,22 @@ subroutine ProgramDataInit()
 !calculations. It should be called at the start of the program,
 !right after reading input/output file.
 
-integer       n,npart, NumFactY
+integer       n,npart
 integer       i,j,k,p,q,t,s,w,ii,jj,kk
 character(1)  c1,cc1
-integer       StrLen
+integer       StrLen,NumFactY
 integer       TotNumOfYTerms,TotNumOfYHYTerms,CurrNumOfTerms
-integer       L,R
+integer       L,R,FirstLPos,LastRPos,MaxNumTermsInFact
+integer,allocatable,dimension(:)      :: TempSymCoeff,TempSymCoeff1,NumTermsInYOpFact
+integer,allocatable,dimension(:,:,:)  :: TempSymMatr,TempSymMatr1
+integer,allocatable,dimension(:,:)    :: Matr1,Matr2,Matr3,Matr4
+integer                               :: Coeff,Cf3
+character(Glob_YOperatorStringLength),allocatable,dimension(:) :: YOpStr, YHOpStr
 integer       pi,pj,pt,ps
 logical       AreTermsIdentical
 integer,allocatable,dimension(:)      :: IdentParticleSet
 integer,allocatable,dimension(:,:)    :: IdentPseudoPartPairSet
 real(dprec)   mk,mi,m0
-real(dprec),allocatable,dimension(:,:,:) :: YMatr, YHYMatr
-real(dprec),allocatable,dimension(:) :: YCoeff, YHYCoeff
-integer :: NumYTerms, NumYHYTerms
-character(Glob_YOperatorStringLength), dimension(:), allocatable :: YOpStr, YHOpStr
 
 if (Glob_ProcID==0) write(*,*) 'Initializing program data'
 
@@ -890,80 +853,6 @@ Glob_AbsTolForDSYGVX=2*DLAMCH('S')
 
 n=Glob_n
 npart=n+1
-
-!Processing Glob_spinString
-allocate(Glob_spinTable(npart))
-if (Glob_spinTableSupplied) then
-   !Trimming spaces
-   StrLen=len_trim(Glob_spinString)
-   i = 0
-   do while (i <= StrLen)
-      i = i + 1
-      c1=Glob_spinString(i:i)
-      if ((c1==' ')) then
-         do j=i,StrLen-1
-            Glob_spinString(j:j)=Glob_spinString(j+1:j+1)
-         enddo
-         Glob_spinString(j:j)=' '
-         i = i - 1
-         StrLen = StrLen - 1
-      endif
-   enddo
-   StrLen=len_trim(Glob_spinString)
-
-   !Checking for wrong symbols in Glob_spinString
-   do i=1,StrLen
-      c1=Glob_spinString(i:i)
-      if ((c1/='/') .and. (c1/='1').and.(c1/='2').and.(c1/='3').and.(c1/='4').and.(c1/='5').and. &
-           (c1/='6').and.(c1/='7').and.(c1/='8').and.(c1/='9').and.(c1/='0')) then 
-         write(*,*) 'Error in ProgramDataInit: the Spin String'
-         write(*,*) 'contains wrong symbols'
-         stop
-      endif
-   enddo
-   
-   !Filling array Glob_spinTable with the doubled spins
-   Glob_spinTable = 0
-   k = 0
-   i = 0
-   do while (i < StrLen)
-      i = i + 1
-      c1 = Glob_spinString(i:i)
-      if ((i /= StrLen .and. Glob_spinString(i+1:i+1) /= '/') .or. (i == StrLen) ) then
-         k = k + 1
-         read(c1, *) Glob_spinTable(k)
-         Glob_spinTable(k) = Glob_spinTable(k) * 2
-      else
-         k = k + 1
-         read(c1, *) Glob_spinTable(k)
-         i = i + 2
-      endif
-   enddo
-   if (k /= npart) then
-      if (Glob_ProcID == 0) then 
-        write(*,*) 'Error in ProgramDataInit: number of spins'
-        write(*,*) 'does not match the number of particles'
-        stop
-      endif
-   endif
-else
-  if (Glob_ProcID == 0) then 
-    write(*, *) "No spin string was provided"
-    write(*, *) "The following spins will be assumed:"
-  endif
-  Glob_spinTable = 1
-  Glob_spinTable(1) = 0
-endif
-
-!Print spinTable
-if (Glob_ProcID == 0) then 
-   write(*, '(1x, a)', advance='no') "Doubled spins: "
-   do i=1,npart-1
-      write(*,'(1x,i3)',advance='no') Glob_spinTable(i)
-   enddo
-   write(*,'(1x,i3)') Glob_spinTable(npart)
-endif
-
 
 !Constructing Glob_MassMatrix
 allocate(Glob_MassMatrix(n,n))
@@ -1063,11 +952,11 @@ do i=2,npart
 enddo
 do i=2,npart
   do j=i+1,npart
-  Glob_Transposit(i-1,i-1,i,j)=0
+    Glob_Transposit(i-1,i-1,i,j)=0
 	Glob_Transposit(j-1,j-1,i,j)=0
 	Glob_Transposit(j-1,i-1,i,j)=1
 	Glob_Transposit(i-1,j-1,i,j)=1
-  Glob_Transposit(i-1,i-1,j,i)=0
+    Glob_Transposit(i-1,i-1,j,i)=0
 	Glob_Transposit(j-1,j-1,j,i)=0
 	Glob_Transposit(j-1,i-1,j,i)=1
 	Glob_Transposit(i-1,j-1,j,i)=1
@@ -1077,30 +966,506 @@ enddo
 !Constructing the Young operator based on the content of
 !a string variable Glob_YOperatorString
 
-call parseYoungString(Glob_YOperatorString, YOpStr, YHOpStr, NumFactY)
+!First we throw away spaces and multiplication signs
+!from Glob_YOperatorString
+StrLen=len_trim(Glob_YOperatorString)
+do i=1,StrLen
+  c1=Glob_YOperatorString(i:i)
+  if ((c1==' ').or.(c1=='*')) then
+    do j=i,StrLen-1
+      Glob_YOperatorString(j:j)=Glob_YOperatorString(j+1:j+1)
+	enddo
+    Glob_YOperatorString(j:j)=' '
+  endif
+enddo
+StrLen=len_trim(Glob_YOperatorString)
 
-!subroutine getYoungMatrices(YOpStr, YHOpStr, NumFactY, TotNumOfYTerms, TotNumOfYHYTerms, NumYTerms, &
-  !NumYHYTerms, YCoeff, YMatr, YHYCoeff, YHYMatr)
+!Checking for wrong symbols in Glob_YOperatorString
+do i=1,StrLen
+  c1=Glob_YOperatorString(i:i)
+  if ((c1/='1').and.(c1/='2').and.(c1/='3').and.(c1/='4').and.(c1/='5').and. &
+      (c1/='6').and.(c1/='7').and.(c1/='8').and.(c1/='9').and.(c1/='0').and. &
+	  (c1/='P').and.(c1/='+').and.(c1/='-').and.(c1/='*').and.(c1/=')').and. &
+	  (c1/='(')) then
+    write(*,*) 'Error in ProgramDataInit: the Young operator expression'
+    write(*,*) 'contains wrong symbols'
+    stop
+  endif
+enddo
 
-call getYoungMatrices(YOpStr, YHOpStr, NumFactY, TotNumOfYTerms, TotNumOfYHYTerms, NumYTerms, &
-NumYHYTerms, YCoeff, YMatr, YHYCoeff, YHYMatr)
+!Checking if the number of left and right brackets is the same
+!and counting how many brackets there are
+L=0
+R=0
+do i=1,StrLen
+  if (Glob_YOperatorString(i:i)==')') R=R+1
+  if (Glob_YOperatorString(i:i)=='(') L=L+1
+enddo
+if (R/=L) then
+  write(*,*) 'Error in ProgramDataInit: the numer of left and right brackets in the'
+  write(*,*) 'Young operator is different'
+  stop
+endif
 
-Glob_NumYTerms = NumYTerms
-Glob_NumYHYTerms = NumYHYTerms
-allocate(Glob_YCoeff(Glob_NumYTerms), Glob_YHYCoeff(Glob_NumYHYTerms))
-allocate(Glob_YMatr(n,n,Glob_NumYTerms), Glob_YHYMatr(n,n,Glob_NumYHYTerms))
-Glob_YCoeff = YCoeff
-Glob_YMatr = YMatr
-Glob_YHYCoeff = YHYCoeff
-Glob_YHYMatr = YHYMatr
-deallocate(YCoeff, YHYCoeff, YMatr, YHYMatr, YOpStr, YHOpstr)
+!NumFactY is the number of factors in the Young operator,
+!FirstLPos is the position of the first left bracket,
+!LastRPos is the position of the last right bracket,
+if (R/=0) then
+  FirstLPos=scan(Glob_YOperatorString(1:StrLen),'(')
+  LastRPos=scan(Glob_YOperatorString(1:StrLen),')',back=.true.)
+  NumFactY=R
+  i=0
+  do j=1,R
+	k=0
+	i=i+1
+    c1=Glob_YOperatorString(i:i)
+    do while (c1/='(')
+	  if (c1/='*') k=1
+	  i=i+1
+	  c1=Glob_YOperatorString(i:i)
+	enddo
+	if (k==1) NumFactY=NumFactY+1
+	do while (c1/=')')
+	  i=i+1
+	  c1=Glob_YOperatorString(i:i)
+	enddo
+  enddo
+  if (Glob_YOperatorString(StrLen:StrLen)/=')') NumFactY=NumFactY+1
+else
+  NumFactY=1
+endif
+
+!Splitting Glob_YOperatorString into an array of smaller
+!strings, YOpStr. Each column of this array will contain just
+!one factor, with no brackets. A '+' or a '-' sign is added in
+!front of the first term in a factor if needed. Multiplication
+!signs are dropped .
+allocate(YOpStr(NumFactY))
+do i=1,NumFactY
+  YOpStr(i)=' '
+enddo
+if (R==0) then
+  c1=Glob_YOperatorString(1:1)
+  if ((c1/='+').or.(c1/='-')) then
+    YOpStr(1)(1:1)='+'
+	YOpStr(1)(2:StrLen+1)=Glob_YOperatorString(1:StrLen)
+  else
+	YOpStr(1)(1:StrLen)=Glob_YOperatorString(1:StrLen)
+  endif
+else
+  i=1
+  k=1
+  p=i
+  q=0
+  c1=Glob_YOperatorString(i:i)
+  if ((c1/='(').and.(c1/='+').and.(c1/='-')) then
+    q=1
+    YOpStr(k)(1:1)='+'
+  endif
+  do while (Glob_YOperatorString(i:i)/='(')
+    i=i+1
+  enddo
+  if (i>1) then
+    YOpStr(k)(p+q:i-1+q)=Glob_YOperatorString(p:i-1)
+    !if (YOpStr(k)(i-1+q:i-1+q)=='*') YOpStr(k)(i-1+q:i-1+q)=' '
+    k=k+1
+  endif
+  do j=1,R
+    i=i+1
+	p=i
+	q=0
+    c1=Glob_YOperatorString(i:i)
+    if ((c1/=')').and.(c1/='+').and.(c1/='-')) then
+      q=1
+      YOpStr(k)(1:1)='+'
+	endif
+	do while (Glob_YOperatorString(i:i)/=')')
+      i=i+1
+	enddo
+    YOpStr(k)(1+q:i+q-p)=Glob_YOperatorString(p:i-1)
+    k=k+1
+	i=i+1
+    c1=Glob_YOperatorString(i:i)
+	if (c1=='*') then
+      i=i+1
+      c1=Glob_YOperatorString(i:i)
+	endif
+	if ((c1/='(').and.(c1/=' '))  then
+	  p=i
+      YOpStr(k)(1:1)='+'
+	  do while ((c1/='(').and.(c1/=' '))
+	    i=i+1
+        c1=Glob_YOperatorString(i:i)
+      enddo
+      YOpStr(k)(2:i+1-p)=Glob_YOperatorString(p:i-1)
+	  k=k+1
+    endif
+  enddo
+endif
+
+!Print all factors in the Young operator
+!j=StrLen+1
+!do i=1,NumFactY
+!  write (*,'(1x,i3,1x,a3,a<j>)') i,':  ',YOpStr(i)(1:j)
+!enddo
+
+!Creating an array that contains all the factors of the
+!Y^{\dagger} operator. Basically, Y^{\dagger} is the reversed Y (i.e.
+!the order of all factors is reversed as well as
+!permutation products (if there are any) in each factor come
+!in reverse order.
+allocate(YHOpStr(NumFactY))
+do i=1,NumFactY
+  YHOpStr(i)=' '
+enddo
+do i=NumFactY,1,-1
+  s=NumFactY-i+1
+  j=1
+  c1=YOpStr(s)(j:j)
+  do while (c1/=' ')
+    if (c1=='P') then
+	  k=0 !k counts the number of Permutations in the current term
+	  t=0
+      do while ((c1/='+').and.(c1/='-').and.(c1/=' '))
+        if (c1=='P') k=k+1
+		t=t+1
+		c1=YOpStr(s)(j+t:j+t)
+	  enddo
+	  do t=1,k
+        YHOpStr(i)(j+3*(k-t):j+3*(k-t)+2)=YOpStr(s)(j+3*(t-1):j+3*(t-1)+2)
+	  enddo
+	  j=j+3*k
+	else
+      YHOpStr(i)(j:j)=c1
+      j=j+1
+	endif
+	c1=YOpStr(s)(j:j)
+  enddo
+enddo
+
+!Counting how many terms there are in each factor of the Young
+!operator, as well as the total number of terms in the nonsimplified
+!Young operator
+allocate(NumTermsInYOpFact(NumFactY))
+TotNumOfYTerms=1
+do k=1,NumFactY
+  j=0
+  do i=1,Glob_YOperatorStringLength
+    if ((YOpStr(k)(i:i)=='+').or.(YOpStr(k)(i:i)=='-')) j=j+1
+  enddo
+  NumTermsInYOpFact(k)=j
+  TotNumOfYTerms=TotNumOfYTerms*j
+  TotNumOfYHYTerms=TotNumOfYTerms*TotNumOfYTerms
+enddo
 if (Glob_ProcID==0) then
   write(*,*)  'Total number of terms in the nonsimplified Y operator:     ',TotNumOfYTerms
   write(*,*)  'Total number of terms in the nonsimplified Y^{+}Y operator:',TotNumOfYHYTerms
-  write(*,*)  'Total number of terms in the simplified Y operator:        ',Glob_NumYTerms
-  write(*,*)  'Total number of terms in the simplified Y^{+}Y operator:   ',Glob_NumYHYTerms
 endif
 
+allocate(Matr1(1:n,1:n))
+allocate(Matr2(1:n,1:n))
+allocate(Matr3(1:n,1:n))
+allocate(Matr4(1:n,1:n))
+
+!Multiplying all factors in YOpStr and placing actual matrices
+!and coefficients in arrays Glob_YMatr and Glob_YCoeff
+!One should remember one important fact here: a product of
+!of actual pair permutation operators corresponds to the reversed
+!product of matrices that act on the matrix of nonlinear parameters.
+!Thus, when doing multiplication we will simultaneously be changing
+!the order of permutation matrices.
+CurrNumOfTerms=NumTermsInYOpFact(NumFactY)
+allocate(TempSymCoeff(CurrNumOfTerms))
+allocate(TempSymMatr(n,n,CurrNumOfTerms))
+do j=NumFactY,1,-1
+  !reading the current factor
+  k=0
+  i=1
+  c1=YOpStr(j)(i:i)
+  p=i
+  do while (c1/=' ')
+    i=i+1
+    c1=YOpStr(j)(i:i)
+    do while ((c1/='P').and.(c1/='+').and.(c1/='-').and.(i<Glob_YOperatorStringLength))
+      i=i+1
+      c1=YOpStr(j)(i:i)
+    enddo
+    if (i-p>1) then
+      read(YOpStr(j)(p:i-1),*) Coeff
+    else
+      if (YOpStr(j)(i-1:i-1)=='+') then
+        Coeff=1
+	  else
+        Coeff=-1
+	  endif
+    endif
+    Matr1=Glob_Transposit(1:n,1:n,1,1)
+    do while (c1=='P')
+      read(YOpStr(j)(i+1:i+1),*) p
+      read(YOpStr(j)(i+2:i+2),*) q
+	  Matr2(1:n,1:n)=Glob_Transposit(1:n,1:n,p,q)
+	  Matr4(1:n,1:n)=Matr1(1:n,1:n)
+	  do ii=1,n
+	    do jj=1,n
+	      w=0
+	      do kk=1,n
+	        w=w+Matr2(ii,kk)*Matr4(kk,jj)
+	      enddo
+	      Matr1(ii,jj)=w
+	    enddo
+	  enddo
+	  i=i+3
+      c1=YOpStr(j)(i:i)
+    enddo
+    k=k+1
+    p=i
+    if (j/=NumFactY) then
+      if (k==1) then
+	    Matr3(1:n,1:n)=Matr1(1:n,1:n)
+        Cf3=Coeff
+	  else
+	    do s=1,t
+          Matr2(1:n,1:n)=TempSymMatr(1:n,1:n,s)
+          q=t*(k-1)+s
+	      do ii=1,n
+	        do jj=1,n
+	          w=0
+	          do kk=1,n
+	            w=w+Matr2(ii,kk)*Matr1(kk,jj)
+	          enddo
+	          TempSymMatr(ii,jj,q)=w
+	        enddo
+	      enddo
+	      TempSymCoeff(q)=Coeff*TempSymCoeff(s)
+	    enddo
+      endif
+	else
+      TempSymMatr(1:n,1:n,k)=Matr1(1:n,1:n)
+      TempSymCoeff(k)=Coeff
+    endif
+  enddo
+  if (j/=NumFactY) then
+    do s=1,t
+      Matr2(1:n,1:n)=TempSymMatr(1:n,1:n,s)
+	  do ii=1,n
+	     do jj=1,n
+	        w=0
+	        do kk=1,n
+	          w=w+Matr2(ii,kk)*Matr3(kk,jj)
+	        enddo
+	        TempSymMatr(ii,jj,s)=w
+	     enddo
+	  enddo
+	  TempSymCoeff(s)=Cf3*TempSymCoeff(s)
+    enddo
+  endif
+  !mark the identical terms (adding their coefficients
+  !and setting all of them but one to zero)
+  t=CurrNumOfTerms
+  do i=1,CurrNumOfTerms
+    if (TempSymCoeff(i)==0) cycle
+    do s=i+1,CurrNumOfTerms
+      if (TempSymCoeff(s)==0) cycle
+      if (all(TempSymMatr(1:n,1:n,i)==TempSymMatr(1:n,1:n,s))) then
+        TempSymCoeff(i)=TempSymCoeff(i)+TempSymCoeff(s)
+        if (TempSymCoeff(i)==0) t=t-1
+	    TempSymCoeff(s)=0
+	    t=t-1
+	  endif
+    enddo
+  enddo
+  !reallocate arrays containing symmetry terms
+  !to allow for multiplication by the next factor
+  if (j/=1) then
+    allocate(TempSymCoeff1(t))
+    allocate(TempSymMatr1(n,n,t))
+    s=0
+    do i=1,CurrNumOfTerms
+      if (TempSymCoeff(i)/=0) then
+        s=s+1
+        TempSymCoeff1(s)=TempSymCoeff(i)
+        TempSymMatr1(1:n,1:n,s)=TempSymMatr(1:n,1:n,i)
+      endif
+    enddo
+    CurrNumOfTerms=t*NumTermsInYOpFact(j-1)
+    deallocate(TempSymCoeff)
+    deallocate(TempSymMatr)
+    allocate(TempSymCoeff(CurrNumOfTerms))
+    allocate(TempSymMatr(n,n,CurrNumOfTerms))
+    TempSymCoeff(1:t)=TempSymCoeff1(1:t)
+    TempSymMatr(1:n,1:n,1:t)=TempSymMatr1(1:n,1:n,1:t)
+    deallocate(TempSymCoeff1)
+    deallocate(TempSymMatr1)
+  endif
+enddo
+
+Glob_NumYTerms=t
+allocate(Glob_YCoeff(Glob_NumYTerms))
+allocate(Glob_YMatr(n,n,Glob_NumYTerms))
+s=0
+do i=1,CurrNumOfTerms
+  if (TempSymCoeff(i)/=0) then
+    s=s+1
+    Glob_YCoeff(s)=TempSymCoeff(i)
+    Glob_YMatr(1:n,1:n,s)=TempSymMatr(1:n,1:n,i)
+  endif
+enddo
+deallocate(TempSymCoeff)
+deallocate(TempSymMatr)
+if (Glob_ProcID==0) then
+  write(*,*)  'Total number of terms in the simplified Y operator:        ',Glob_NumYTerms
+endif
+
+!Now doing the same thing for Y^{\dagger}Y operator, that
+!is expanding it and collecting identical terms
+
+!Multiplying all factors in YHOpStr by already existing
+!matrices and coefficients of Y. and placing actual matrices
+!and coefficients in arrays Glob_YHYMatr and Glob_YHYCoeff
+!One should remember one important fact here: a product of
+!of actual pair permutation operators corresponds to the reversed
+!product of matrices that act on the matrix of nonlinear parameters.
+!Thus, when doing multiplication we will simultaneously be changing
+!the order of permutation matrices.
+CurrNumOfTerms=NumTermsInYOpFact(1)*Glob_NumYTerms
+allocate(TempSymCoeff(CurrNumOfTerms))
+allocate(TempSymMatr(n,n,CurrNumOfTerms))
+!TempSymCoeff(1:Glob_NumYTerms)=Glob_YCoeff(1:Glob_NumYTerms)
+!TempSymMatr(1:n,1:n,1:Glob_NumYTerms)=Glob_YMatr(1:n,1:n,1:Glob_NumYTerms)
+TempSymCoeff(1:Glob_NumYTerms)=Glob_YCoeff(1:Glob_NumYTerms)
+TempSymMatr(1:n,1:n,1:Glob_NumYTerms)=Glob_YMatr(1:n,1:n,1:Glob_NumYTerms)
+t=Glob_NumYTerms
+do j=NumFactY,1,-1
+  !reading the current factor
+  k=0
+  i=1
+  c1=YHOpStr(j)(i:i)
+  p=i
+  do while (c1/=' ')
+    i=i+1
+    c1=YHOpStr(j)(i:i)
+    do while ((c1/='P').and.(c1/='+').and.(c1/='-').and.(i<Glob_YOperatorStringLength))
+      i=i+1
+      c1=YHOpStr(j)(i:i)
+    enddo
+    if (i-p>1) then
+      read(YHOpStr(j)(p:i-1),*) Coeff
+    else
+      if (YHOpStr(j)(i-1:i-1)=='+') then
+        Coeff=1
+	  else
+        Coeff=-1
+	  endif
+    endif
+    Matr1=Glob_Transposit(1:n,1:n,1,1)
+    do while (c1=='P')
+      read(YHOpStr(j)(i+1:i+1),*) p
+      read(YHOpStr(j)(i+2:i+2),*) q
+	  Matr2(1:n,1:n)=Glob_Transposit(1:n,1:n,p,q)
+	  Matr4(1:n,1:n)=Matr1(1:n,1:n)
+	  do ii=1,n
+	    do jj=1,n
+	      w=0
+	      do kk=1,n
+	        w=w+Matr2(ii,kk)*Matr4(kk,jj)
+	      enddo
+	      Matr1(ii,jj)=w
+	    enddo
+	  enddo
+	  i=i+3
+      c1=YHOpStr(j)(i:i)
+    enddo
+    k=k+1
+    p=i
+    if (k==1) then
+	  Matr3(1:n,1:n)=Matr1(1:n,1:n)
+      Cf3=Coeff
+	else
+	  do s=1,t
+        Matr2(1:n,1:n)=TempSymMatr(1:n,1:n,s)
+        q=t*(k-1)+s
+	    do ii=1,n
+	      do jj=1,n
+	          w=0
+	          do kk=1,n
+	            w=w+Matr2(ii,kk)*Matr1(kk,jj)
+	          enddo
+	          TempSymMatr(ii,jj,q)=w
+	      enddo
+	    enddo
+	    TempSymCoeff(q)=Coeff*TempSymCoeff(s)
+	  enddo
+    endif
+  enddo
+  do s=1,t
+    Matr2(1:n,1:n)=TempSymMatr(1:n,1:n,s)
+	do ii=1,n
+	   do jj=1,n
+	      w=0
+	      do kk=1,n
+	        w=w+Matr2(ii,kk)*Matr3(kk,jj)
+	      enddo
+	      TempSymMatr(ii,jj,s)=w
+	   enddo
+	enddo
+	TempSymCoeff(s)=Cf3*TempSymCoeff(s)
+  enddo
+  !mark the identical terms (adding their coefficients
+  !and setting all of them but one to zero)
+  t=CurrNumOfTerms
+  do i=1,CurrNumOfTerms
+    if (TempSymCoeff(i)==0) cycle
+    do s=i+1,CurrNumOfTerms
+      if (TempSymCoeff(s)==0) cycle
+      if (all(TempSymMatr(1:n,1:n,i)==TempSymMatr(1:n,1:n,s))) then
+        TempSymCoeff(i)=TempSymCoeff(i)+TempSymCoeff(s)
+        if (TempSymCoeff(i)==0) t=t-1
+	    TempSymCoeff(s)=0
+	    t=t-1
+	  endif
+    enddo
+  enddo
+  !reallocate arrays containing symmetry terms
+  !to allow for multiplication by the next factor
+  if (j/=1) then
+    allocate(TempSymCoeff1(t))
+    allocate(TempSymMatr1(n,n,t))
+    s=0
+    do i=1,CurrNumOfTerms
+      if (TempSymCoeff(i)/=0) then
+        s=s+1
+        TempSymCoeff1(s)=TempSymCoeff(i)
+        TempSymMatr1(1:n,1:n,s)=TempSymMatr(1:n,1:n,i)
+      endif
+    enddo
+    CurrNumOfTerms=t*NumTermsInYOpFact(NumFactY-j+2)
+    deallocate(TempSymCoeff)
+    deallocate(TempSymMatr)
+    allocate(TempSymCoeff(CurrNumOfTerms))
+    allocate(TempSymMatr(n,n,CurrNumOfTerms))
+    TempSymCoeff(1:t)=TempSymCoeff1(1:t)
+    TempSymMatr(1:n,1:n,1:t)=TempSymMatr1(1:n,1:n,1:t)
+    deallocate(TempSymCoeff1)
+    deallocate(TempSymMatr1)
+  endif
+enddo
+
+Glob_NumYHYTerms=t
+allocate(Glob_YHYCoeff(Glob_NumYHYTerms))
+allocate(Glob_YHYMatr(n,n,Glob_NumYHYTerms))
+s=0
+do i=1,CurrNumOfTerms
+  if (TempSymCoeff(i)/=0) then
+    s=s+1
+    Glob_YHYCoeff(s)=TempSymCoeff(i)
+    Glob_YHYMatr(1:n,1:n,s)=TempSymMatr(1:n,1:n,i)
+  endif
+enddo
+deallocate(TempSymCoeff)
+deallocate(TempSymMatr)
+if (Glob_ProcID==0) then
+  write(*,*)  'Total number of terms in the simplified Y^{+}Y operator:   ',Glob_NumYHYTerms
+endif
 
 !Print all independent Y operator matrices and coefficients
 !open(1,file='symterms_new.txt',status='replace')
@@ -1148,7 +1513,13 @@ endif
 !close(1)
 !stop
 
-
+deallocate(Matr4)
+deallocate(Matr3)
+deallocate(Matr2)
+deallocate(Matr1)
+deallocate(NumTermsInYOpFact)
+deallocate(YHOpStr)
+deallocate(YOpStr)
 
 !Now we determine which particles are identical. This determination
 !is based on the input values of masses and charges only. The information
@@ -8309,7 +8680,7 @@ character(1)        ::    GSEPSolMethod
 
 !Local variables:
 integer        i,j,k,kk,counter,a,b,c,d,a1,b1
-integer        n,npart,np,npt,cbs
+integer        n,np,npt,cbs
 integer        OpenFileErr,ErrorCode
 logical        IsSwapFileOK
 integer        BlockSizeForDSYGVX
@@ -8349,37 +8720,19 @@ real(dprec),allocatable,dimension(:,:)     :: rm2,rm,r,r2,deltar,drach_deltar,pr
 real(dprec),allocatable,dimension(:,:,:,:) :: rmrmkl
 
 ! spin-dependent stuff
-integer :: nFactorial, nFermions, numberOfPermutations, spinDependentValuesNeeded
+integer :: nFactorial, spinDependentValuesNeeded
 real(dprec) :: Skk
-real(dprec), allocatable, dimension(:, :, :) :: ketYMatrix, SziME, drach_SSFMatrix, &
+real(dprec), allocatable, dimension(:, :, :) :: SziME, ketYMatrix, drach_SSFMatrix, &
 drach_AnihMatrix, SSFMatrix, AnihMatrix
-real(dprec), allocatable, dimension(:, :) :: SO1massChargeCoefficient, AMM1massChargeCoefficient, SSNCmassChargeCoefficient
-real(dprec), allocatable, dimension(:, :, :) :: SO2massChargeCoefficient, AMM2massChargeCoefficient
-real(dprec), allocatable, dimension(:, :) :: SSFmassChargeCoefficient, AnihMassChargeCoefficient
-real(dprec), allocatable, dimension(:, :, :, :) :: SiSjME, SiSjME_ext, SSNCspinME
-real(dprec), allocatable, dimension(:) :: SO1kl, SO2kl, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, SSNC, SSNCkl, &
+real(dprec), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinmassChargeCoefficient
+real(dprec), allocatable, dimension(:, :) :: SSFmassChargeCoefficient, SSNCmassChargeCoefficient, AnihMassChargeCoefficient
+real(dprec), allocatable, dimension(:, :, :, :) :: SiSjME, SSNCspinME
+real(dprec), allocatable, dimension(:) :: SO1kl, SO2kl, SO1, SO2, AMM1, AMM2, AMM1Fin, AMM2Fin,&
+AMM1kl, AMM2kl, AMM1Finkl, AMM2Finkl, SSNC, SSNCkl, &
 drach_SSF, drach_SSFe, drach_Anih, SSF, SSFe, Anih
 real(dprec), allocatable, dimension(:) :: parityFactor, diagS
 real(dprec), allocatable, dimension(:) :: spinFreeME
-real(dprec), allocatable, dimension(:,:) :: spinFreeOpCoeff
-integer, allocatable, dimension(:) :: isPositronPermuted
 integer :: positronPosition, numberOfSpinFunctions
-
-
-!local variables for Young Operator handling
-!subscript "b" denotes bosonic variables
-character(1) :: c1
-integer :: ptr,p,q,ii,ss,tt
-integer    ::   NumFactY, numBosonFact, TotNumOfYTerms_b, TotNumOfYHYTerms_b, CurrNumOfTerms_b, &
-NumYTerms_b, NumYHYTerms_b
-integer :: numFermionFact
-character(Glob_YOperatorStringLength),allocatable,dimension(:) :: YOpStr, YHOpStr
-character(Glob_YOperatorStringLength),  allocatable, dimension(:) :: YOpStr_f, YOpStr_b, YHOpStr_b
-character(Glob_YOperatorStringLength) :: fermionYoungString
-real(dprec),allocatable,dimension(:)  :: YCoeff_b, YHYCoeff_b
-real(dprec),allocatable,dimension(:,:,:) :: YMatr_b, YHYMatr_b
-real(dprec),allocatable,dimension(:,:) :: tempMatr
-logical :: isBosonYoungPresent
 
 ! One can set this flag to zero to disable everything introduced by DT
 spinDependentValuesNeeded = 1
@@ -8402,7 +8755,6 @@ Glob_GSEPSolutionMethod=GSEPsolMethod
 Glob_OverlapPenaltyAllowed=.false.
 Glob_HSLeadDim=Glob_CurrBasisSize
 n=Glob_n
-npart = n + 1
 np=Glob_np
 npt=Glob_npt
 Glob_HSBuffLen=max(min(Glob_CurrBasisSize*(Glob_CurrBasisSize+1)/2,1000),30*Glob_CurrBasisSize)
@@ -8769,218 +9121,136 @@ endif
 
 if (Glob_ProcID==0) write(*,'(1x,a31)',advance='no') 'Computing expectation values...'
 
-
 ! in case we want to evaluate the spin-dependent operators mean values,
 ! we switch from spin-free to a regular formalism here
 ! note that we change global arrays Glob_YHYMatr and Glob_YHYCoeff here
 if (spinDependentValuesNeeded == 1) then
-!Process Young operator
 
-!Sepatare Glob_YOperatorString into an array of strings with separate factors
-call parseYoungString(Glob_YOperatorString, YOpStr, YHOpStr, NumFactY)
-
-!Separate fermionic and bosonic parts
-allocate(YOpStr_b(NumFactY), YOpStr_f(NumFactY))
-numBosonFact = 0
-numFermionFact = 0
-do i = 1, NumFactY
-  j = 1
-  c1 = YOpStr(i)(j:j)
-  do while (c1 /= ' ')
-    if (c1 == 'P') then
-      read(YOpStr(i)(j+1:j+1),*) p
-      j = j + 3
-      c1 = YOpStr(i)(j:j)
-      if (Glob_spinTable(p) == 0) then
-        numBosonFact = numBosonFact + 1
-        YOpStr_b(numBosonFact) = YOpStr(i)
-        exit
-      else
-        numFermionFact = numFermionFact + 1
-        YOpStr_f(numFermionFact) = YOpStr(i)
-        exit
-      endif
-    endif
-    j = j + 1
-    c1 = YOpStr(i)(j:j)
+  nFactorial = 1
+  do i = 2, n
+    nFactorial = nFactorial * i
   enddo
-enddo
 
-!Build Y^{\dagger} for bosonic part of Young operator
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!Copied fragment from ProgramDataInit()!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!Creating an array that contains all the factors of the
-!Y^{\dagger} operator. Basically, Y^{\dagger} is the reversed Y (i.e.
-!the order of all factors is reversed as well as
-!permutation products (if there are any) in each factor come
-!in reverse order.
-if (numBosonFact == 0) then 
-  isBosonYoungPresent = .false.
-  NumYHYTerms_b = 1
-  allocate(YHYMatr_b(n,n,1), YHYCoeff_b(1))
-  YHYCoeff_b = ONE
-  YHYMatr_b(:,:,1) = Glob_Transposit(:,:,1,1)
-else
-  allocate(YHOpStr_b(numBosonFact))
-  do i=1,numBosonFact
-    YHOpStr_b(i)=' '
-  enddo
-  do i=numBosonFact,1,-1
-    ss=numBosonFact-i+1
-    j=1
-    c1=YOpStr_b(ss)(j:j)
-    do while (c1/=' ')
-      if (c1=='P') then
-        k=0 !k counts the number of Permutations in the current term
-        tt=0
-        do while ((c1/='+').and.(c1/='-').and.(c1/=' '))
-          if (c1=='P') k=k+1
-          tt=tt+1
-          c1=YOpStr_b(ss)(j+tt:j+tt)
-        enddo
-        do tt=1,k
-          YHOpStr_b(i)(j+3*(k-tt):j+3*(k-tt)+2)=YOpStr_b(ss)(j+3*(tt-1):j+3*(tt-1)+2)
-        enddo
-        j=j+3*k
-      else
-        YHOpStr_b(i)(j:j)=c1
-        j=j+1
+
+  allocate(SOmassChargeCoefficient(n, n, 4))
+  allocate(SSFmassChargeCoefficient(n, n))
+  allocate(SSNCmassChargeCoefficient(n, n))
+  allocate(AnihMassChargeCoefficient(n, n))  
+  allocate(AMMmassChargeCoefficient(n, n, 4))
+  allocate(AMMFinmassChargeCoefficient(n, n, 4))
+  allocate(parityFactor(nFactorial))
+
+  allocate(ketYMatrix(1 : n, 1 : n, nFactorial))
+  allocate(spinFreeME(nFactorial))
+  allocate(SziME(n, 2, nFactorial))
+  allocate(SiSjME(n, n, 2, nFactorial))
+  allocate(SSNCspinME(n, n, 2, nFactorial))
+  !allocate(SiSjCoeff(n, n, 2, nFactorial))
+
+  call spinPreCalc(n, nFactorial, SziME, parityFactor, SSFmassChargeCoefficient,SSNCmassChargeCoefficient, &
+  SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, AnihMassChargeCoefficient, ketYMatrix, &
+  Glob_YOperatorString, positronPosition, numberOfSpinFunctions, spinFreeME, SiSjME, SSNCspinME)
+
+  
+
+  ! changing global variables here, care
+  deallocate(Glob_YHYMatr, Glob_YHYCoeff)
+
+  Glob_NumYHYTerms = nFactorial
+
+
+  if (positronPosition > 0) then ! we do have a positron
+
+    do i = 1, nFactorial
+      if (nint(ketYMatrix(positronPosition, positronPosition, i)) == 0) then
+        Glob_NumYHYTerms = Glob_NumYHYTerms - 1 ! exclude positron permutations
       endif
-    c1=YOpStr_b(ss)(j:j)
     enddo
-  enddo
-  !Get bosonic matricesYHYMatr_b, YHYCoeff_b
-  call getYoungMatrices(YOpStr_b, YHOpStr_b, numBosonFact, TotNumOfYTerms_b, TotNumOfYHYTerms_b, NumYTerms_b, &
-  NumYHYTerms_b, YCoeff_b, YMatr_b, YHYCoeff_b, YHYMatr_b)
-endif
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!End of copied fragment from ProgramDataInit()!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!Restore fermionYoungString from YOpStr_f for spin calculations
-fermionYoungString=''
-if (numFermionFact == 0) then
-  fermionYoungString='(1)'
-else
-  do i = 1, numFermionFact
-    fermionYoungString = trim(fermionYoungString) // "(" // trim(YOpStr_f(i)) // ")"
-  enddo 
-endif
+  endif
+  
+  allocate(Glob_YHYMatr(n, n, Glob_NumYHYTerms))
+  allocate(Glob_YHYCoeff(Glob_NumYHYTerms))
 
+  k = 1
+  do i = 1, nFactorial
+    if (positronPosition > 0) then
+      if (nint(ketYMatrix(positronPosition, positronPosition, i)) == 0) cycle
+    endif
+    
+    Glob_YHYMatr(:, :, k) = ketYMatrix(:, :, i)
+    Glob_YHYCoeff(k) = parityFactor(i) * spinFreeME(i)
+    
 
-!Start of fermionic part
-nFermions = count(Glob_spinTable == 1)
-numberOfPermutations = 1
-do i=2,nFermions
-   numberOfPermutations = numberOfPermutations * i
-enddo
- 
-allocate(SO1massChargeCoefficient(n, 2))
-allocate(SO2massChargeCoefficient(n, n, 4))
-allocate(SSFmassChargeCoefficient(n, n))
-allocate(SSNCmassChargeCoefficient(n, n))
-allocate(AnihMassChargeCoefficient(n, n))  
-allocate(AMM1massChargeCoefficient(n, 2))
-allocate(AMM2massChargeCoefficient(n, n, 4))
+    ! do kk = 1, numberOfSpinFunctions
+    !   do j = 1, n
+    !     do c = 1, n
+    !       SiSjCoeff(j, c, kk, k) = parityFactor(i) * SiSjME(j, c, kk, i)
+    !     enddo
+    !   enddo
+    ! enddo
 
-
-allocate(parityFactor(numberOfPermutations))
-allocate(isPositronPermuted(numberOfPermutations))
-allocate(ketYMatrix(n, n, numberOfPermutations))
-
-allocate(spinFreeME(numberOfPermutations))
-allocate(SziME(npart, 2, numberOfPermutations))
-allocate(SiSjME(npart, npart, 2, numberOfPermutations))
-allocate(SSNCspinME(npart, npart, 2, numberOfPermutations))
-
-call spinPreCalc(n, nFermions, numberOfPermutations, SziME, parityFactor, SSFmassChargeCoefficient,&
-     SSNCmassChargeCoefficient, SO1massChargeCoefficient, SO2massChargeCoefficient, &
-     AMM1massChargeCoefficient, AMM2massChargeCoefficient, AnihMassChargeCoefficient, ketYMatrix, &
-     fermionYoungString, positronPosition, isPositronPermuted, numberOfSpinFunctions, spinFreeME, SiSjME, SSNCspinME)
-
-!changing global variables Glob_YHYMatr and Glob_YHYCoeff  here, care
-deallocate(Glob_YHYMatr, Glob_YHYCoeff)
-Glob_NumYHYTerms = numberOfPermutations
-if (positronPosition > 0) then
-  do ptr = 1, numberOfPermutations
-    if (isPositronPermuted(ptr) == 1) Glob_NumYHYTerms = Glob_NumYHYTerms - 1
-  enddo
-endif
-
-!Glob_NumYHYTerms is (Number of electronic permutations) x (Number of terms in bosonic Y^{\dagger}Y)
-Glob_NumYHYTerms = Glob_NumYHYTerms * NumYHYTerms_b 
-allocate(Glob_YHYCoeff(Glob_NumYHYTerms)) 
-allocate(Glob_YHYMatr(n,n,Glob_NumYHYTerms)) 
-Glob_YHYMatr = ZERO
-Glob_YHYCoeff = ZERO
-k=0
-do ptr = 1, numberOfPermutations
-  if (positronPosition > 0 .and. isPositronPermuted(ptr) == 1) cycle
-  do q = 1, NumYHYTerms_b
-    k = k + 1 !number of matrix and spin-free coefficient in Glob_YHYMatr, Glob_YHYCoeff
-    do i = 1, n
+    ! skipping positronic permutations
+    do kk = 1, numberOfSpinFunctions
       do j = 1, n
-        do ii = 1, n
-          Glob_YHYMatr(i,j,k) = Glob_YHYMatr(i,j,k) + ketYMatrix(i,ii,ptr) * YHYMatr_b(ii,j,q)
-          Glob_YHYCoeff(k) = parityFactor(ptr) * spinFreeME(ptr) * YHYCoeff_b(q)  
+        do c = 1, n
+          SiSjME(j, c, kk, k) = parityFactor(i) * SiSjME(j, c, kk, i)
         enddo
       enddo
-    enddo  
-  enddo
-enddo
+    enddo
 
-!Fill array SiSjME_ext
-allocate(SiSjME_ext(npart,npart,2,Glob_NumYHYTerms))
-k = 0
-SiSjME_ext = ZERO
-do ptr = 1, numberOfPermutations
-  if (positronPosition > 0 .and. isPositronPermuted(ptr) == 1) cycle
-  do q = 1, NumYHYTerms_b
     k = k + 1
-    SiSjME_ext(:,:,:,k) = SiSjME(:,:,:,ptr) * parityFactor(ptr) * YHYCoeff_b(q)
+
   enddo
-enddo
 
-! we should recalculate mean values of a unity operator here (it should be proportional to the old values)
-allocate(diagS(cbs))
-diagS = ZERO
-Skk = ZERO
-do i = 1, cbs
-  do a = 1, Glob_NumYHYTerms 
-    call overlapMatrixElementsL1(Glob_ZIndex(i), Glob_NonlinParam(1 : npt, i), &
-    Glob_YHYMatr(:,:,a), Skk)
-    diagS(i) = diagS(i) + Glob_YHYCoeff(a) * Skk        
+
+  allocate(diagS(cbs))
+  diagS = ZERO
+
+  ! we should recalculate mean values of a unity operator here (it should be proportional to the old values)
+  Skk = ZERO
+  do i = 1, cbs
+
+    do a = 1, Glob_NumYHYTerms 
+
+      call overlapMatrixElementsL1(Glob_ZIndex(i), Glob_NonlinParam(1 : npt, i), &
+      Glob_YHYMatr(1 : n, 1 : n, a), Skk)
+
+      diagS(i) = diagS(i) + Glob_YHYCoeff(a) * Skk        
+
+    enddo ! Permutations from S_n
+
+
+    Glob_diagS(i) = diagS(i)
+
   enddo
-  Glob_diagS(i) = diagS(i)
-enddo ! Permutations from S_n
 
-allocate(drach_SSFMatrix(n, n, numberOfSpinFunctions))
-drach_SSFMatrix = ZERO
-allocate(SSFMatrix(n, n, numberOfSpinFunctions))
-SSFMatrix = ZERO
+  allocate(drach_SSFMatrix(n, n, numberOfSpinFunctions))
+  drach_SSFMatrix = ZERO
+  allocate(SSFMatrix(n, n, numberOfSpinFunctions))
+  SSFMatrix = ZERO
 
-allocate(drach_AnihMatrix(n, n, numberOfSpinFunctions))
-drach_AnihMatrix = ZERO
-allocate(AnihMatrix(n, n, numberOfSpinFunctions))
-AnihMatrix = ZERO
+  allocate(drach_AnihMatrix(n, n, numberOfSpinFunctions))
+  drach_AnihMatrix = ZERO
+  allocate(AnihMatrix(n, n, numberOfSpinFunctions))
+  AnihMatrix = ZERO
 
-endif !spinDependentValuesNeeded
+endif
 
 !main loop
 MEkl_s(1:NumOfExpcVals)=ZERO
 if (AreCorrFuncNeeded.or.AreMCorrFuncNeeded.or.ArePartDensNeeded.or.AreMPartDensNeeded) CFDMEkl_s(1:NumOfCFAndDensExpVals)=ZERO
 counter=0
 do i=1,cbs
-   do j=1,i  !j=1,i
+  do j=1,i  !j=1,i
     counter=counter+1
     if (mod(counter,Glob_NumOfProcs)==Glob_ProcID) then
       if (i==j) then
 	    factor=Glob_c(i)*Glob_c(j)/sqrt(Glob_diagS(i)*Glob_diagS(i))  !1
       else
         factor=TWO*Glob_c(i)*Glob_c(j)/sqrt(Glob_diagS(i)*Glob_diagS(j))  !2
-     endif
-     if (SymmAdaptMethod==1) then
+	  endif
+	  if (SymmAdaptMethod==1) then
 	    do k=1,Glob_NumYHYTerms
 	      call MatrixElementsL1ForExpcVals(Glob_ZIndex(i),Glob_ZIndex(j),            &
 	        Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
@@ -9046,52 +9316,39 @@ do i=1,cbs
 
               do a=1,NumOfExpcVals
                 MEkl_s(a)=MEkl_s(a)+factor*Glob_YHYCoeff(k)*MEkl(a)
-             enddo
+	      enddo
+
         if (spinDependentValuesNeeded == 1) then
           ! SSF term is special: it needs SiSj mean value with it
           ! not the spin-free value like the other terms here
           ! we build it from drachmanized deltas for each pair b, a
-        do c = 1, numberOfSpinFunctions
+          do c = 1, numberOfSpinFunctions
             do a = 1, n
-                 drach_SSFMatrix(a, a, c) = drach_SSFMatrix(a, a, c) + &
-                    factor * SiSjME_ext(1, a + 1, c, k) * drach_deltarkl(a, a) 
               do b = a + 1, n
-                 drach_SSFMatrix(a, b, c) = drach_SSFMatrix(a, b, c) + & 
-                      factor * SiSjME_ext(a + 1, b + 1, c, k) * drach_deltarkl(b, a)
+                drach_SSFMatrix(a, b, c) = drach_SSFMatrix(a, b, c) + factor * SiSjME(a, b, c, k) * drach_deltarkl(b, a)
               enddo
             enddo
 
             do a = 1, n
-              SSFMatrix(a, a, c) = SSFMatrix(a, a, c) + &
-                      factor * SiSjME_ext(1, a + 1, c, k) * deltarkl(a, a)
               do b = a + 1, n
-                 SSFMatrix(a, b, c) = SSFMatrix(a, b, c) + &
-                      factor * SiSjME_ext(a + 1, b + 1, c, k) * deltarkl(b, a)
+                SSFMatrix(a, b, c) = SSFMatrix(a, b, c) + factor * SiSjME(a, b, c, k) * deltarkl(b, a)
               enddo
             enddo
 
             if (positronPosition > 0) then
               ! with positron we also need anihilation correction
               do a = 1, n
-                drach_AnihMatrix(a, a, c) = drach_AnihMatrix(a, a, c) + &
-                  factor * (SiSjME_ext(1, a + 1, c, k) + THREE / FOUR * Glob_YHYCoeff(k)) &
-                  * drach_deltarkl(a, a)
-                do b = 1, n
-                  if (a == b) cycle
+                do b = a + 1, n
                   drach_AnihMatrix(a, b, c) = drach_AnihMatrix(a, b, c) + &
-                  factor * (SiSjME_ext(a + 1, b + 1, c, k) + THREE / FOUR * Glob_YHYCoeff(k))  &
+                  factor * (SiSjME(a, b, c, k) + THREE / FOUR * Glob_YHYCoeff(k)) &
                   * drach_deltarkl(b, a)
                 enddo
               enddo
 
               do a = 1, n
-                 AnihMatrix(a, a, c) = AnihMatrix(a, a, c) + &
-                 factor * (SiSjME_ext(1, a + 1, c, k) + THREE / FOUR * Glob_YHYCoeff(k)) &
-                 * deltarkl(a, a)
-                do b = 1, n
-                  if (a == b) cycle
+                do b = a + 1, n
                   AnihMatrix(a, b, c) = AnihMatrix(a, b, c) + &
-                  factor * (SiSjME_ext(a + 1, b + 1, c, k) + THREE / FOUR * Glob_YHYCoeff(k)) &
+                  factor * (SiSjME(a, b, c, k) + THREE / FOUR * Glob_YHYCoeff(k)) &
                   * deltarkl(b, a)
                 enddo
               enddo              
@@ -9122,7 +9379,8 @@ do i=1,cbs
           endif !SymmAdaptMethod==1
 
 	  if (SymmAdaptMethod==2) then
-            do k=1,Glob_NumYTerms
+
+	    do k=1,Glob_NumYTerms
               do kk=1,Glob_NumYTerms
 	        call MatrixElementsL1ForExpcVals(Glob_ZIndex(i),Glob_ZIndex(j),            &
 	          Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
@@ -9216,7 +9474,6 @@ do i=1,cbs
   enddo
 enddo
 
-
 !Combining the results of all processes
 do a=1,NumOfExpcVals
   temp1=MEkl_s(a)
@@ -9236,7 +9493,7 @@ endif
 if (spinDependentValuesNeeded == 1) then
   do c = 1, numberOfSpinFunctions
     do a = 1, n
-      do b = a, n
+      do b = a + 1, n
         temp1 = drach_SSFMatrix(a, b, c)
         call MPI_ALLREDUCE(temp1,temp2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
         drach_SSFMatrix(a, b, c) = temp2 
@@ -9244,7 +9501,7 @@ if (spinDependentValuesNeeded == 1) then
     enddo
 
     do a = 1, n
-      do b = a, n
+      do b = a + 1, n
         temp1 = SSFMatrix(a, b, c)
         call MPI_ALLREDUCE(temp1,temp2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
         SSFMatrix(a, b, c) = temp2 
@@ -9253,7 +9510,7 @@ if (spinDependentValuesNeeded == 1) then
 
     if (positronPosition > 0) then
       do a = 1, n
-        do b = a, n
+        do b = a + 1, n
           temp1 = drach_AnihMatrix(a, b, c)
           call MPI_ALLREDUCE(temp1,temp2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           drach_AnihMatrix(a, b, c) = temp2 
@@ -9261,7 +9518,7 @@ if (spinDependentValuesNeeded == 1) then
       enddo
 
       do a = 1, n
-        do b = a, n
+        do b = a + 1, n
           temp1 = AnihMatrix(a, b, c)
           call MPI_ALLREDUCE(temp1,temp2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           AnihMatrix(a, b, c) = temp2 
@@ -9344,14 +9601,15 @@ do a=1,n
   enddo
 enddo
 
-!spin-dependent expectation values calculation involves sum over all electronic permutations
-if (spinDependentValuesNeeded == 1) then 
+! spin-dependent expectation values calculation involves sum over all electronic permutations
+if (spinDependentValuesNeeded == 1) then
+
+  
   ! we already have everything needed for SSF term calculation
   allocate(drach_SSF(numberOfSpinFunctions))
   drach_SSF = ZERO
   do k = 1, numberOfSpinFunctions
     do i = 1, n
-      drach_SSF(k) = drach_SSF(k) + drach_SSFMatrix(i, i, k) * SSFmassChargeCoefficient(i, i)
       do j = i + 1, n
         drach_SSF(k) = drach_SSF(k) + drach_SSFMatrix(i, j, k) * SSFmassChargeCoefficient(i, j)
       enddo
@@ -9362,7 +9620,6 @@ if (spinDependentValuesNeeded == 1) then
   SSF = ZERO
   do k = 1, numberOfSpinFunctions
     do i = 1, n
-      SSF(k) = SSF(k) + SSFMatrix(i, i, k) * SSFmassChargeCoefficient(i, i)  
       do j = i + 1, n
         SSF(k) = SSF(k) + SSFMatrix(i, j, k) * SSFmassChargeCoefficient(i, j)
       enddo
@@ -9371,92 +9628,60 @@ if (spinDependentValuesNeeded == 1) then
 
   ! we also calculate "electronic" SSF term as a test
   if (positronPosition > 0) then
-     allocate(drach_SSFe(numberOfSpinFunctions))
-     drach_SSFe = ZERO
-     do k = 1, numberOfSpinFunctions
-        if (positronPosition == 1) then
-           do i = 1, n
-              do j = i + 1, n
-                 drach_SSFe(k) = drach_SSFe(k) + drach_SSFMatrix(i, j, k) * SSFmassChargeCoefficient(i, j)
-              enddo
-           enddo
-        else
-           do i = 1, n
-              if (positronPosition - 1 == i) cycle
-              drach_SSFe(k) = drach_SSFe(k) + drach_SSFMatrix(i, i, k) * SSFmassChargeCoefficient(i, i)
-              do j = i + 1, n
-                 if (positronPosition - 1 == j) cycle
-                 drach_SSFe(k) = drach_SSFe(k) + drach_SSFMatrix(i, j, k) * SSFmassChargeCoefficient(i, j)
-              enddo
-           enddo
-           
-        endif
-     enddo
-          
-      
-     allocate(SSFe(numberOfSpinFunctions))
-     SSFe = ZERO
-     do k = 1, numberOfSpinFunctions
-        if (positronPosition == 1) then
-           do i = 1, n
-              do j = i + 1, n
-                 SSFe(k) = SSFe(k) + SSFMatrix(i, j, k) * SSFmassChargeCoefficient(i, j)
-              enddo
-           enddo
-        else
-           do i = 1, n
-              if (positronPosition - 1 == i) cycle
-              SSFe(k) = SSFe(k) + SSFMatrix(i, i, k) * SSFmassChargeCoefficient(i, i)
-              do j = i + 1, n
-                 if (positronPosition - 1 == j) cycle
-                 SSFe(k) = SSFe(k) + SSFMatrix(i, j, k) * SSFmassChargeCoefficient(i, j)
-              enddo
-           enddo
-        endif
-     enddo
-     
-     allocate(drach_Anih(numberOfSpinFunctions))
-     drach_Anih = ZERO
-     do k = 1, numberOfSpinFunctions
-        if (positronPosition == 1) then
-           do i = 1, n
-              if (Glob_spinTable(i + 1) == 0) cycle
-              drach_Anih(k) = drach_Anih(k) + drach_AnihMatrix(i, i, k) * AnihMassChargeCoefficient(i, i)
-           enddo
-        else
-            do i = 1, n
-              if (Glob_spinTable(i + 1) == 0 .or. (positronPosition - 1 == i .and. Glob_spinTable(1) == 0)) cycle
-              drach_Anih(k) = drach_Anih(k) + drach_AnihMatrix(positronPosition-1, i, k) * &
-              AnihMassChargeCoefficient(positronPosition-1, i)
-            enddo
-        endif
-     enddo
- 
+    allocate(drach_SSFe(numberOfSpinFunctions))
+    drach_SSFe = ZERO
+    do k = 1, numberOfSpinFunctions
+      do i = 1, n
+        if (i == positronPosition) cycle
+        do j = i + 1, n
+          if (j == positronPosition) cycle
+          drach_SSFe(k) = drach_SSFe(k) + drach_SSFMatrix(i, j, k) * SSFmassChargeCoefficient(i, j)
+        enddo
+      enddo
+    enddo
 
-     allocate(Anih(numberOfSpinFunctions))
-     Anih = ZERO
-     do k = 1, numberOfSpinFunctions
-        if (positronPosition == 1) then
-           do i = 1, n
-            if (Glob_spinTable(i + 1) == 0) cycle
-            Anih(k) = Anih(k) + AnihMatrix(i, i, k) * AnihMassChargeCoefficient(i, i)
-           enddo
-        else
-           do i = 1, n
-            if (Glob_spinTable(i + 1) == 0 .or. (positronPosition - 1 == i .and. Glob_spinTable(1) == 0)) cycle
-            Anih(k) = Anih(k) + AnihMatrix(positronPosition-1, i, k) * &
-            AnihMassChargeCoefficient(positronPosition-1, i)
-           enddo
-        endif
-     enddo
-     
+    allocate(SSFe(numberOfSpinFunctions))
+    SSFe = ZERO
+    do k = 1, numberOfSpinFunctions
+      do i = 1, n
+        if (i == positronPosition) cycle
+        do j = i + 1, n
+          if (j == positronPosition) cycle
+          SSFe(k) = SSFe(k) + SSFMatrix(i, j, k) * SSFmassChargeCoefficient(i, j)
+        enddo
+      enddo
+    enddo
+
+    allocate(drach_Anih(numberOfSpinFunctions))
+    drach_Anih = ZERO
+    do k = 1, numberOfSpinFunctions
+      do i = 1, n
+        do j = i + 1, n
+          if (i /= positronPosition .and. j /= positronPosition) cycle
+          drach_Anih(k) = drach_Anih(k) + drach_AnihMatrix(i, j, k) * AnihMassChargeCoefficient(i, j)
+        enddo
+      enddo
+    enddo
+
+    allocate(Anih(numberOfSpinFunctions))
+    Anih = ZERO
+    do k = 1, numberOfSpinFunctions
+      do i = 1, n
+        do j = i + 1, n
+          if (i /= positronPosition .and. j /= positronPosition) cycle
+          Anih(k) = Anih(k) + AnihMatrix(i, j, k) * AnihMassChargeCoefficient(i, j)
+        enddo
+      enddo
+    enddo
+  
   endif
 
-
-allocate(SO1(numberOfSpinFunctions), SO2(numberOfSpinFunctions), SSNC(numberOfSpinFunctions), &
+  allocate(SO1(numberOfSpinFunctions), SO2(numberOfSpinFunctions), SSNC(numberOfSpinFunctions), &
   AMM1(numberOfSpinFunctions), AMM2(numberOfSpinFunctions), &
+  AMM1Fin(numberOfSpinFunctions), AMM2Fin(numberOfSpinFunctions),&
   SO1kl(numberOfSpinFunctions), SO2kl(numberOfSpinFunctions), SSNCkl(numberOfSpinFunctions), &
-  AMM1kl(numberOfSpinFunctions), AMM2kl(numberOfSpinFunctions))
+  AMM1kl(numberOfSpinFunctions), AMM2kl(numberOfSpinFunctions), &
+  AMM1Finkl(numberOfSpinFunctions), AMM2Finkl(numberOfSpinFunctions))
 
   SSNC = ZERO
   
@@ -9466,8 +9691,10 @@ allocate(SO1(numberOfSpinFunctions), SO2(numberOfSpinFunctions), SSNC(numberOfSp
   AMM1 = ZERO
   AMM2 = ZERO
 
+  AMM1Fin = ZERO 
+  AMM2Fin = ZERO
+
   counter = 0
- 
   do i = 1, cbs
      do j = 1, i
       counter = counter + 1
@@ -9477,33 +9704,40 @@ allocate(SO1(numberOfSpinFunctions), SO2(numberOfSpinFunctions), SSNC(numberOfSp
         else
           factor = TWO * Glob_c(i) * Glob_c(j) / sqrt(diagS(i)*diagS(j))  !2
         endif
-        k = 0
-        do a = 1, numberOfPermutations ! Permutations from S_n introduced by A operator
-            if (positronPosition > 0 .and. isPositronPermuted(a) == 1) cycle
-            do q = 1, NumYHYTerms_b
-              k = k + 1
-              call spinDependentMatrixElements(Glob_ZIndex(i),Glob_ZIndex(j),   &
-              Glob_NonlinParam(1 : npt, i), Glob_NonlinParam(1 : npt, j), Glob_YHYMatr(:,:,k), &
-              SziME(1:npart, 1 : numberOfSpinFunctions, a), SSNCspinME(1:npart, 1:npart, 1:numberOfSpinFunctions, a), &
-              SSNCmassChargeCoefficient, SO1massChargeCoefficient, SO2massChargeCoefficient, &
-              AMM1massChargeCoefficient, AMM2massChargeCoefficient, &
-              SSNCkl, SO1kl, SO2kl, AMM1kl, AMM2kl, numberOfSpinFunctions)
 
-              SSNC = SSNC + parityFactor(a) * factor * YHYCoeff_b(q) * SSNCkl
+        do a = 1, nFactorial ! Permutations from S_n introduced by A operator
+          if (positronPosition > 0) then
+            if (nint(ketYMatrix(positronPosition, positronPosition, a)) == 0) cycle
+          endif ! we only need electronic permutations
+
+          call spinDependentMatrixElements(Glob_ZIndex(i),Glob_ZIndex(j),   &
+          Glob_NonlinParam(1 : npt, i), Glob_NonlinParam(1 : npt, j), &
+          ketYMatrix(1 : n, 1 : n, a), &
+          SziME(1 : n, 1 : numberOfSpinFunctions, a), SSNCspinME(1:n, 1:n, 1:numberOfSpinFunctions, a), &
+          SSNCmassChargeCoefficient, SOmassChargeCoefficient, AMMmassChargeCoefficient, &
+          AMMFinmassChargeCoefficient, &
+          SSNCkl, SO1kl, SO2kl, AMM1kl, AMM2kl, AMM1Finkl, AMM2Finkl, numberOfSpinFunctions)
+
+          
+          SSNC = SSNC + parityFactor(a) * factor * SSNCkl
                     
-              ! final value of SO and SSNC should be multiplied by the appropriate angular factors C_J
-              ! (they are shown in spinData.txt)
-              SO1 = SO1 + parityFactor(a) * factor * YHYCoeff_b(q) * SO1kl
-              SO2 = SO2 + parityFactor(a) * factor * YHYCoeff_b(q) * SO2kl
+          SO1 = SO1 + parityFactor(a) * factor * SO1kl
+          SO2 = SO2 + parityFactor(a) * factor * SO2kl
+          ! final value of SO and SSNC should be multiplied by the appropriate angular factors C_J
+          ! (they are shown in spinData.txt)
+          AMM1 = AMM1 + parityFactor(a) * factor * AMM1kl
+          AMM2 = AMM2 + parityFactor(a) * factor * AMM2kl
 
-              AMM1 = AMM1 + parityFactor(a) * factor * YHYCoeff_b(q) * AMM1kl
-              AMM2 = AMM2 + parityFactor(a) * factor * YHYCoeff_b(q) * AMM2kl
+          AMM1Fin = AMM1Fin + parityFactor(a) * factor * AMM1Finkl
+          AMM2Fin = AMM2Fin + parityFactor(a) * factor * AMM2Finkl
 
-              enddo !Terms in bosonic YHY Operator
-        enddo !Fermionic permutations
-      endif !ProcID check
-    enddo !basis j
-  enddo !basis i
+
+
+        enddo ! Permutations from S_n
+
+      endif ! ProcID check
+    enddo
+  enddo
 
   !Combining the results of all processes
   
@@ -9525,6 +9759,14 @@ allocate(SO1(numberOfSpinFunctions), SO2(numberOfSpinFunctions), SSNC(numberOfSp
     call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
     AMM2(k) = temp2
 
+    temp1 = AMM1Fin(k)
+    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+    AMM1Fin(k) = temp2
+
+    temp1 = AMM2Fin(k)
+    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+    AMM2Fin(k) = temp2
+
     temp1 = SSNC(k)
     call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
     SSNC(k) = temp2
@@ -9534,6 +9776,7 @@ allocate(SO1(numberOfSpinFunctions), SO2(numberOfSpinFunctions), SSNC(numberOfSp
 
 
 endif ! whether spin-dependent expectation value should be evaluated or not
+
 
 !Printing results
 if (Glob_ProcID==0) then
@@ -9557,10 +9800,10 @@ if (Glob_ProcID==0) then
     if (numberOfSpinFunctions == 1) then
       write(*,*) '                    SO1=',SO1(1)
       write(*,*) '                    SO2=',SO2(1)
-      write(*,*) '               SO total=',SO1(1) + SO2(1)
       write(*,*) '                   AMM1=',AMM1(1)
       write(*,*) '                   AMM2=',AMM2(1)
-      write(*,*) '              AMM total=',AMM1(1) + AMM2(1)
+      write(*,*) '                   AMM1Fin=',AMM1Fin(1)
+      write(*,*) '                   AMM2Fin=',AMM2Fin(1)
       write(*,*) '              drach_SSF=',drach_SSF(1)
       write(*,*) '                    SSF=',SSF(1)
       write(*,*) '                    SSNC=',SSNC(1)
@@ -9573,10 +9816,10 @@ if (Glob_ProcID==0) then
     elseif (numberOfSpinFunctions == 2) then
       write(*,*) '                  SO1_h=',SO1(1)
       write(*,*) '                  SO2_h=',SO2(1)
-      write(*,*) '             SO_h total=',SO1(1) + SO2(1)
       write(*,*) '                 AMM1_h=',AMM1(1)
       write(*,*) '                 AMM2_h=',AMM2(1)
-      write(*,*) '            AMM_h total=',AMM1(1) + AMM2(1)
+      write(*,*) '                 AMM1Fin_h=',AMM1Fin(1)
+      write(*,*) '                 AMM2Fin_h=',AMM2Fin(1)
       write(*,*) '            drach_SSF_h=',drach_SSF(1)
       write(*,*) '           drach_SSFe_h=',drach_SSFe(1)
       write(*,*) '           drach_Anih_h=',drach_Anih(1)
@@ -9587,10 +9830,10 @@ if (Glob_ProcID==0) then
 
       write(*,*) '                  SO1_l=',SO1(2)
       write(*,*) '                  SO2_l=',SO2(2)
-      write(*,*) '             SO_l total=',SO1(2) + SO2(2)
       write(*,*) '                 AMM1_l=',AMM1(2)
       write(*,*) '                 AMM2_l=',AMM2(2)
-      write(*,*) '            AMM_l total=',AMM1(2) + AMM2(2)
+      write(*,*) '                 AMM1Fin_l=',AMM1Fin(2)
+      write(*,*) '                 AMM2Fin_l=',AMM2Fin(2)
       write(*,*) '            drach_SSF_l=',drach_SSF(2)
       write(*,*) '           drach_SSFe_l=',drach_SSFe(2)
       write(*,*) '           drach_Anih_l=',drach_Anih(2)
@@ -9598,6 +9841,7 @@ if (Glob_ProcID==0) then
       write(*,*) '                 SSFe_l=',SSFe(2)
       write(*,*) '                 Anih_l=',Anih(2)
       write(*,*) '                  SSNC_l=',SSNC(2)
+
    endif
   endif
   write(*,*) '           (alpha^2)*MV=',MV*(Glob_FineStructConst**2)
@@ -9648,6 +9892,7 @@ if (Glob_ProcID==0) then
    endif
   endif
   write(*,*)
+
   write(2,'(a)',advance='no') '                  basis '
   write(2,*) cbs
   write(2,'(a)',advance='no') '                 Energy '
@@ -9857,7 +10102,7 @@ if (Glob_ProcID==0) then
 	  write(*,'(1x)',advance='no')
 	  do j=1,k
 	    a=Glob_EqvPairList(1,j,i)
-		  b=Glob_EqvPairList(2,j,i)
+		b=Glob_EqvPairList(2,j,i)
 	    if (a==b) then
           write(*,'(a4,i1,a3)',advance='no') 'r^2_',a,' = '
         else
@@ -9881,7 +10126,7 @@ if (Glob_ProcID==0) then
 	  write(*,'(1x)',advance='no')
 	  do j=1,k
 	    a=Glob_EqvPairList(1,j,i)
-		  b=Glob_EqvPairList(2,j,i)
+		b=Glob_EqvPairList(2,j,i)
 	    if (a==b) then
           write(*,'(a8,i1,a4)',advance='no') 'delta(r_',a,') = '
         else
@@ -10094,570 +10339,5 @@ if (Glob_ProcID==0) write (*,*) 'Routine ExpectationValues has finished'
 
 end subroutine ExpectationValues
 
-
-
-subroutine parseYoungString(YoungString, YOpStr, YHOpStr, NumFactY)
-  !Parses YoungString and fills string arrays of Young and Young^{\dagger} operators with separate factors
-
-  !Varibales:
-  !Input: "YoungString" - string to be processed
-  
-  !Output:
-  !"YOpStr" - string array with separate factors of Young operator
-  !"YHOpStr" - string array with separate factors of Young^{\dagger} operator
-  !"NumFactY" - number of factors in (non-simplified) Young operator
-
-  character(Glob_YOperatorStringLength), intent(inout) :: YoungString
-  character(Glob_YOperatorStringLength), dimension(:), allocatable, intent(out) :: YOpStr, YHOpStr
-  integer, intent(out) :: NumFactY
-
-  !local vars
-  integer :: StrLen
-  integer :: i,j,k,p,q,s,t,L,R,FirstLPos,LastRPos
-  character(1) :: c1
-
-!First we throw away spaces and multiplication signs
-!from YoungString
-  StrLen=len_trim(YoungString)
-  do i=1,StrLen
-    c1=(YoungString(i:i))
-    if ((c1==' ').or.(c1=='*')) then
-      do j=i,StrLen-1
-        YoungString(j:j)=YoungString(j+1:j+1)
-    enddo
-        YoungString(j:j)=' '
-    endif
-  enddo
-  StrLen=len_trim(YoungString)
-  
-  !Checking for wrong symbols in YoungString
-  do i=1,StrLen
-    c1=YoungString(i:i)
-    if ((c1/='1').and.(c1/='2').and.(c1/='3').and.(c1/='4').and.(c1/='5').and. &
-        (c1/='6').and.(c1/='7').and.(c1/='8').and.(c1/='9').and.(c1/='0').and. &
-      (c1/='P').and.(c1/='+').and.(c1/='-').and.(c1/='*').and.(c1/=')').and. &
-      (c1/='(')) then
-      write(*,*) 'Error in ProgramDataInit: the Young operator expression'
-      write(*,*) 'contains wrong symbols'
-      stop
-    endif
-  enddo
-  
-  !Checking if the number of left and right brackets is the same
-  !and counting how many brackets there are
-  L=0
-  R=0
-  do i=1,StrLen
-    if (YoungString(i:i)==')') R=R+1
-    if (YoungString(i:i)=='(') L=L+1
-  enddo
-  if (R/=L) then
-    write(*,*) 'Error in ProgramDataInit: the numer of left and right brackets in the'
-    write(*,*) 'Young operator is different'
-    stop
-  endif
-  
-  !NumFactY is the number of factors in the Young operator,
-  !FirstLPos is the position of the first left bracket,
-  !LastRPos is the position of the last right bracket,
-  if (R/=0) then
-    FirstLPos=scan(YoungString(1:StrLen),'(')
-    LastRPos=scan(YoungString(1:StrLen),')',back=.true.)
-    NumFactY=R
-    i=0
-    do j=1,R
-    k=0
-    i=i+1
-      c1=YoungString(i:i)
-      do while (c1/='(')
-      if (c1/='*') k=1
-      i=i+1
-      c1=YoungString(i:i)
-    enddo
-    if (k==1) NumFactY=NumFactY+1
-    do while (c1/=')')
-      i=i+1
-      c1=YoungString(i:i)
-    enddo
-    enddo
-    if (YoungString(StrLen:StrLen)/=')') NumFactY=NumFactY+1
-  else
-    NumFactY=1
-  endif
-  
-  !Splitting YoungString into an array of smaller
-  !strings, YOpStr. Each column of this array will contain just
-  !one factor, with no brackets. A '+' or a '-' sign is added in
-  !front of the first term in a factor if needed. Multiplication
-  !signs are dropped .
-  allocate(YOpStr(NumFactY))
-  do i=1,NumFactY
-    YOpStr(i)=' '
-  enddo
-  if (R==0) then
-    c1=YoungString(1:1)
-    if ((c1/='+').or.(c1/='-')) then
-      YOpStr(1)(1:1)='+'
-    YOpStr(1)(2:StrLen+1)=YoungString(1:StrLen)
-    else
-    YOpStr(1)(1:StrLen)=YoungString(1:StrLen)
-    endif
-  else
-    i=1
-    k=1
-    p=i
-    q=0
-    c1=YoungString(i:i)
-    if ((c1/='(').and.(c1/='+').and.(c1/='-')) then
-      q=1
-      YOpStr(k)(1:1)='+'
-    endif
-    do while (YoungString(i:i)/='(')
-      i=i+1
-    enddo
-    if (i>1) then
-      YOpStr(k)(p+q:i-1+q)=YoungString(p:i-1)
-      !if (YOpStr(k)(i-1+q:i-1+q)=='*') YOpStr(k)(i-1+q:i-1+q)=' '
-      k=k+1
-    endif
-    do j=1,R
-      i=i+1
-    p=i
-    q=0
-      c1=YoungString(i:i)
-      if ((c1/=')').and.(c1/='+').and.(c1/='-')) then
-        q=1
-        YOpStr(k)(1:1)='+'
-    endif
-    do while (YoungString(i:i)/=')')
-        i=i+1
-    enddo
-      YOpStr(k)(1+q:i+q-p)=YoungString(p:i-1)
-      k=k+1
-    i=i+1
-      c1=YoungString(i:i)
-    if (c1=='*') then
-        i=i+1
-        c1=YoungString(i:i)
-    endif
-    if ((c1/='(').and.(c1/=' '))  then
-      p=i
-        YOpStr(k)(1:1)='+'
-      do while ((c1/='(').and.(c1/=' '))
-        i=i+1
-          c1=YoungString(i:i)
-        enddo
-        YOpStr(k)(2:i+1-p)=YoungString(p:i-1)
-      k=k+1
-      endif
-    enddo
-  endif
-  
-  !Print all factors in the Young operator
-  !j=StrLen+1
-  !do i=1,NumFactY
-  !  write (*,'(1x,i3,1x,a3,a<j>)') i,':  ',YOpStr(i)(1:j)
-  !enddo
-  
-  !Creating an array that contains all the factors of the
-  !Y^{\dagger} operator. Basically, Y^{\dagger} is the reversed Y (i.e.
-  !the order of all factors is reversed as well as
-  !permutation products (if there are any) in each factor come
-  !in reverse order.
-  allocate(YHOpStr(NumFactY))
-  do i=1,NumFactY
-    YHOpStr(i)=' '
-  enddo
-  do i=NumFactY,1,-1
-    s=NumFactY-i+1
-    j=1
-    c1=YOpStr(s)(j:j)
-    do while (c1/=' ')
-      if (c1=='P') then
-      k=0 !k counts the number of Permutations in the current term
-      t=0
-        do while ((c1/='+').and.(c1/='-').and.(c1/=' '))
-          if (c1=='P') k=k+1
-      t=t+1
-      c1=YOpStr(s)(j+t:j+t)
-      enddo
-      do t=1,k
-          YHOpStr(i)(j+3*(k-t):j+3*(k-t)+2)=YOpStr(s)(j+3*(t-1):j+3*(t-1)+2)
-      enddo
-      j=j+3*k
-    else
-        YHOpStr(i)(j:j)=c1
-        j=j+1
-    endif
-    c1=YOpStr(s)(j:j)
-    enddo
-  enddo
-
-end subroutine
-
-subroutine getYoungMatrices(YOpStr, YHOpStr, NumFactY, TotNumOfYTerms, TotNumOfYHYTerms, NumYTerms, &
-  NumYHYTerms, YCoeff, YMatr, YHYCoeff, YHYMatr)
-  !Get matrices and coefficients of of Y and Y^{\dagger}Y from string arrays YOpStr and YHOpStr
-
-  !Input:
-  !YOpStr, YHOpStr - string arrays of separate factors for Y and Y^{\dagger}
-  !NumFactY - nubmer of terms in the non-simplified Y operator
-
-  !Output:
-  !Number of terms, coeffieicints and matrices for Y and Y^{\dagger}Y
-
-  integer, intent(in) :: NumFactY
-  character(Glob_YOperatorStringLength),dimension(NumFactY), intent(in) :: YOpStr, YHOpStr
-
-  integer, intent(out) :: TotNumOfYTerms, TotNumOfYHYTerms, NumYTerms, NumYHYTerms
-  real(dprec),allocatable,dimension(:),intent(out)  :: YCoeff, YHYCoeff
-  real(dprec),allocatable,dimension(:,:,:) :: YMatr, YHYMatr
-
-
-  integer       n
-  integer       i,j,k,p,q,t,s,w,ii,jj,kk
-  character(1)  c1
-  integer       CurrNumOfTerms
-  integer,allocatable,dimension(:)      :: TempSymCoeff,TempSymCoeff1,NumTermsInYOpFact
-  integer,allocatable,dimension(:,:,:)  :: TempSymMatr,TempSymMatr1
-  integer,allocatable,dimension(:,:)    :: Matr1,Matr2,Matr3,Matr4
-  integer                               :: Coeff,Cf3
-  integer       pi,pj,pt,ps
-  real(dprec)   mk,mi,m0
-  
-  n = Glob_n
-  !Counting how many terms there are in each factor of the Young
-  !operator, as well as the total number of terms in the nonsimplified
-  !Young operator
-
-  allocate(NumTermsInYOpFact(NumFactY))
-  TotNumOfYTerms=1
-  do k=1,NumFactY
-    j=0
-    do i=1,Glob_YOperatorStringLength
-     if ((YOpStr(k)(i:i)=='+').or.(YOpStr(k)(i:i)=='-')) j=j+1
-   enddo
-    NumTermsInYOpFact(k)=j
-    TotNumOfYTerms=TotNumOfYTerms*j
-    TotNumOfYHYTerms=TotNumOfYTerms*TotNumOfYTerms
-  enddo
-  !if (Glob_ProcID==0) then
-  !write(*,*)  'Total number of terms in the nonsimplified Y operator:     ',TotNumOfYTerms
-  !write(*,*)  'Total number of terms in the nonsimplified Y^{+}Y operator:',TotNumOfYHYTerms
-!endif
-
-
-allocate(Matr1(1:n,1:n))
-allocate(Matr2(1:n,1:n))
-allocate(Matr3(1:n,1:n))
-allocate(Matr4(1:n,1:n))
-
-!Multiplying all factors in YOpStr and placing actual matrices
-!and coefficients in arrays Glob_YMatr and Glob_YCoeff
-!One should remember one important fact here: a product of
-!of actual pair permutation operators corresponds to the reversed
-!product of matrices that act on the matrix of nonlinear parameters.
-!Thus, when doing multiplication we will simultaneously be changing
-!the order of permutation matrices.
-CurrNumOfTerms=NumTermsInYOpFact(NumFactY)
-allocate(TempSymCoeff(CurrNumOfTerms))
-allocate(TempSymMatr(n,n,CurrNumOfTerms))
-do j=NumFactY,1,-1
-  !reading the current factor
-  k=0
-  i=1
-  c1=YOpStr(j)(i:i)
-  p=i
-  do while (c1/=' ')
-    i=i+1
-    c1=YOpStr(j)(i:i)
-    do while ((c1/='P').and.(c1/='+').and.(c1/='-').and.(i<Glob_YOperatorStringLength))
-      i=i+1
-      c1=YOpStr(j)(i:i)
-    enddo
-    if (i-p>1) then
-      read(YOpStr(j)(p:i-1),*) Coeff
-    else
-      if (YOpStr(j)(i-1:i-1)=='+') then
-        Coeff=1
-	  else
-        Coeff=-1
-	  endif
-    endif
-    Matr1=Glob_Transposit(1:n,1:n,1,1)
-    do while (c1=='P')
-      read(YOpStr(j)(i+1:i+1),*) p
-      read(YOpStr(j)(i+2:i+2),*) q
-	  Matr2(1:n,1:n)=Glob_Transposit(1:n,1:n,p,q)
-	  Matr4(1:n,1:n)=Matr1(1:n,1:n)
-	  do ii=1,n
-	    do jj=1,n
-	      w=0
-	      do kk=1,n
-	        w=w+Matr2(ii,kk)*Matr4(kk,jj)
-	      enddo
-	      Matr1(ii,jj)=w
-	    enddo
-	  enddo
-	  i=i+3
-      c1=YOpStr(j)(i:i)
-    enddo
-    k=k+1
-    p=i
-    if (j/=NumFactY) then
-      if (k==1) then
-	    Matr3(1:n,1:n)=Matr1(1:n,1:n)
-        Cf3=Coeff
-	  else
-	    do s=1,t
-          Matr2(1:n,1:n)=TempSymMatr(1:n,1:n,s)
-          q=t*(k-1)+s
-	      do ii=1,n
-	        do jj=1,n
-	          w=0
-	          do kk=1,n
-	            w=w+Matr2(ii,kk)*Matr1(kk,jj)
-	          enddo
-	          TempSymMatr(ii,jj,q)=w
-	        enddo
-	      enddo
-	      TempSymCoeff(q)=Coeff*TempSymCoeff(s)
-	    enddo
-      endif
-	else
-      TempSymMatr(1:n,1:n,k)=Matr1(1:n,1:n)
-      TempSymCoeff(k)=Coeff
-    endif
-  enddo
-  if (j/=NumFactY) then
-    do s=1,t
-      Matr2(1:n,1:n)=TempSymMatr(1:n,1:n,s)
-	  do ii=1,n
-	     do jj=1,n
-	        w=0
-	        do kk=1,n
-	          w=w+Matr2(ii,kk)*Matr3(kk,jj)
-	        enddo
-	        TempSymMatr(ii,jj,s)=w
-	     enddo
-	  enddo
-	  TempSymCoeff(s)=Cf3*TempSymCoeff(s)
-    enddo
-  endif
-  !mark the identical terms (adding their coefficients
-  !and setting all of them but one to zero)
-  t=CurrNumOfTerms
-  do i=1,CurrNumOfTerms
-    if (TempSymCoeff(i)==0) cycle
-    do s=i+1,CurrNumOfTerms
-      if (TempSymCoeff(s)==0) cycle
-      if (all(TempSymMatr(1:n,1:n,i)==TempSymMatr(1:n,1:n,s))) then
-        TempSymCoeff(i)=TempSymCoeff(i)+TempSymCoeff(s)
-        if (TempSymCoeff(i)==0) t=t-1
-	    TempSymCoeff(s)=0
-	    t=t-1
-	  endif
-    enddo
-  enddo
-  !reallocate arrays containing symmetry terms
-  !to allow for multiplication by the next factor
-  if (j/=1) then
-    allocate(TempSymCoeff1(t))
-    allocate(TempSymMatr1(n,n,t))
-    s=0
-    do i=1,CurrNumOfTerms
-      if (TempSymCoeff(i)/=0) then
-        s=s+1
-        TempSymCoeff1(s)=TempSymCoeff(i)
-        TempSymMatr1(1:n,1:n,s)=TempSymMatr(1:n,1:n,i)
-      endif
-    enddo
-    CurrNumOfTerms=t*NumTermsInYOpFact(j-1)
-    deallocate(TempSymCoeff)
-    deallocate(TempSymMatr)
-    allocate(TempSymCoeff(CurrNumOfTerms))
-    allocate(TempSymMatr(n,n,CurrNumOfTerms))
-    TempSymCoeff(1:t)=TempSymCoeff1(1:t)
-    TempSymMatr(1:n,1:n,1:t)=TempSymMatr1(1:n,1:n,1:t)
-    deallocate(TempSymCoeff1)
-    deallocate(TempSymMatr1)
-  endif
-enddo
-
-NumYTerms=t
-allocate(YCoeff(NumYTerms))
-allocate(YMatr(n,n,NumYTerms))
-s=0
-do i=1,CurrNumOfTerms
-  if (TempSymCoeff(i)/=0) then
-    s=s+1
-    YCoeff(s)=TempSymCoeff(i)
-    YMatr(1:n,1:n,s)=TempSymMatr(1:n,1:n,i)
-  endif
-enddo
-deallocate(TempSymCoeff)
-deallocate(TempSymMatr)
-!if (Glob_ProcID==0) then
-  !write(*,*)  'Total number of terms in the simplified Y operator:        ',Glob_NumYTerms
-!endif
-
-!Now doing the same thing for Y^{\dagger}Y operator, that
-!is expanding it and collecting identical terms
-
-!Multiplying all factors in YHOpStr by already existing
-!matrices and coefficients of Y. and placing actual matrices
-!and coefficients in arrays Glob_YHYMatr and Glob_YHYCoeff
-!One should remember one important fact here: a product of
-!of actual pair permutation operators corresponds to the reversed
-!product of matrices that act on the matrix of nonlinear parameters.
-!Thus, when doing multiplication we will simultaneously be changing
-!the order of permutation matrices.
-CurrNumOfTerms=NumTermsInYOpFact(1)*NumYTerms
-allocate(TempSymCoeff(CurrNumOfTerms))
-allocate(TempSymMatr(n,n,CurrNumOfTerms))
-!TempSymCoeff(1:Glob_NumYTerms)=Glob_YCoeff(1:Glob_NumYTerms)
-!TempSymMatr(1:n,1:n,1:Glob_NumYTerms)=Glob_YMatr(1:n,1:n,1:Glob_NumYTerms)
-TempSymCoeff(1:NumYTerms)=YCoeff(1:NumYTerms)
-TempSymMatr(1:n,1:n,1:NumYTerms)=YMatr(1:n,1:n,1:NumYTerms)
-t=NumYTerms
-do j=NumFactY,1,-1
-  !reading the current factor
-  k=0
-  i=1
-  c1=YHOpStr(j)(i:i)
-  p=i
-  do while (c1/=' ')
-    i=i+1
-    c1=YHOpStr(j)(i:i)
-    do while ((c1/='P').and.(c1/='+').and.(c1/='-').and.(i<Glob_YOperatorStringLength))
-      i=i+1
-      c1=YHOpStr(j)(i:i)
-    enddo
-    if (i-p>1) then
-      read(YHOpStr(j)(p:i-1),*) Coeff
-    else
-      if (YHOpStr(j)(i-1:i-1)=='+') then
-        Coeff=1
-	  else
-        Coeff=-1
-	  endif
-    endif
-    Matr1=Glob_Transposit(1:n,1:n,1,1)
-    do while (c1=='P')
-      read(YHOpStr(j)(i+1:i+1),*) p
-      read(YHOpStr(j)(i+2:i+2),*) q
-	  Matr2(1:n,1:n)=Glob_Transposit(1:n,1:n,p,q)
-	  Matr4(1:n,1:n)=Matr1(1:n,1:n)
-	  do ii=1,n
-	    do jj=1,n
-	      w=0
-	      do kk=1,n
-	        w=w+Matr2(ii,kk)*Matr4(kk,jj)
-	      enddo
-	      Matr1(ii,jj)=w
-	    enddo
-	  enddo
-	  i=i+3
-      c1=YHOpStr(j)(i:i)
-    enddo
-    k=k+1
-    p=i
-    if (k==1) then
-	  Matr3(1:n,1:n)=Matr1(1:n,1:n)
-      Cf3=Coeff
-	else
-	  do s=1,t
-        Matr2(1:n,1:n)=TempSymMatr(1:n,1:n,s)
-        q=t*(k-1)+s
-	    do ii=1,n
-	      do jj=1,n
-	          w=0
-	          do kk=1,n
-	            w=w+Matr2(ii,kk)*Matr1(kk,jj)
-	          enddo
-	          TempSymMatr(ii,jj,q)=w
-	      enddo
-	    enddo
-	    TempSymCoeff(q)=Coeff*TempSymCoeff(s)
-	  enddo
-    endif
-  enddo
-  do s=1,t
-    Matr2(1:n,1:n)=TempSymMatr(1:n,1:n,s)
-	do ii=1,n
-	   do jj=1,n
-	      w=0
-	      do kk=1,n
-	        w=w+Matr2(ii,kk)*Matr3(kk,jj)
-	      enddo
-	      TempSymMatr(ii,jj,s)=w
-	   enddo
-	enddo
-	TempSymCoeff(s)=Cf3*TempSymCoeff(s)
-  enddo
-  !mark the identical terms (adding their coefficients
-  !and setting all of them but one to zero)
-  t=CurrNumOfTerms
-  do i=1,CurrNumOfTerms
-    if (TempSymCoeff(i)==0) cycle
-    do s=i+1,CurrNumOfTerms
-      if (TempSymCoeff(s)==0) cycle
-      if (all(TempSymMatr(1:n,1:n,i)==TempSymMatr(1:n,1:n,s))) then
-        TempSymCoeff(i)=TempSymCoeff(i)+TempSymCoeff(s)
-        if (TempSymCoeff(i)==0) t=t-1
-	    TempSymCoeff(s)=0
-	    t=t-1
-	  endif
-    enddo
-  enddo
-  !reallocate arrays containing symmetry terms
-  !to allow for multiplication by the next factor
-  if (j/=1) then
-    allocate(TempSymCoeff1(t))
-    allocate(TempSymMatr1(n,n,t))
-    s=0
-    do i=1,CurrNumOfTerms
-      if (TempSymCoeff(i)/=0) then
-        s=s+1
-        TempSymCoeff1(s)=TempSymCoeff(i)
-        TempSymMatr1(1:n,1:n,s)=TempSymMatr(1:n,1:n,i)
-      endif
-    enddo
-    CurrNumOfTerms=t*NumTermsInYOpFact(NumFactY-j+2)
-    deallocate(TempSymCoeff)
-    deallocate(TempSymMatr)
-    allocate(TempSymCoeff(CurrNumOfTerms))
-    allocate(TempSymMatr(n,n,CurrNumOfTerms))
-    TempSymCoeff(1:t)=TempSymCoeff1(1:t)
-    TempSymMatr(1:n,1:n,1:t)=TempSymMatr1(1:n,1:n,1:t)
-    deallocate(TempSymCoeff1)
-    deallocate(TempSymMatr1)
-  endif
-enddo
-
-NumYHYTerms=t
-allocate(YHYCoeff(NumYHYTerms))
-allocate(YHYMatr(n,n,NumYHYTerms))
-s=0
-do i=1,CurrNumOfTerms
-  if (TempSymCoeff(i)/=0) then
-    s=s+1
-    YHYCoeff(s)=TempSymCoeff(i)
-    YHYMatr(1:n,1:n,s)=TempSymMatr(1:n,1:n,i)
-  endif
-enddo
-deallocate(TempSymCoeff)
-deallocate(TempSymMatr)
-!if (Glob_ProcID==0) then
-!  write(*,*)  'Total number of terms in the simplified Y^{+}Y operator:   ',NumYHYTerms
-!endif
-
-deallocate(Matr4)
-deallocate(Matr3)
-deallocate(Matr2)
-deallocate(Matr1)
-deallocate(NumTermsInYOpFact)
-
-end subroutine getYoungMatrices
 
 end module workproc
