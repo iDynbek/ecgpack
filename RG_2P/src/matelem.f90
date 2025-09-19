@@ -5584,7 +5584,8 @@ endif
 end function ftransaux
 
 subroutine spinPreCalc(n, nFactorial, SziME, parityFactor, SSFmassChargeCoefficient, SSNCmassChargeCoefficient, &
-  SOmassChargeCoefficient, AMMmassChargeCoefficient, AnihMassChargeCoefficient, ketMatrix, spatialYoung, &
+  SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, &
+  AnihMassChargeCoefficient, ketMatrix, spatialYoung, &
   positronPosition, numberOfSpinFunctions, spinFreeME, SiSjME, SSNCspinME)
   use spinStuff
   implicit none
@@ -5593,7 +5594,7 @@ subroutine spinPreCalc(n, nFactorial, SziME, parityFactor, SSFmassChargeCoeffici
   integer, intent(in) :: n, nFactorial
 
   real(dprec), dimension(nFactorial), intent(out) :: parityFactor
-  real(dprec), dimension(n, n, 4), intent(out) :: SOmassChargeCoefficient, AMMmassChargeCoefficient
+  real(dprec), dimension(n, n, 4), intent(out) :: SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinmassChargeCoefficient
   real(dprec), dimension(n, n, nFactorial), intent(out) :: ketMatrix
   real(dprec), dimension(n, n), intent(out) :: SSFmassChargeCoefficient, AnihMassChargeCoefficient, SSNCmassChargeCoefficient
   
@@ -5647,14 +5648,23 @@ subroutine spinPreCalc(n, nFactorial, SziME, parityFactor, SSFmassChargeCoeffici
   enddo
 
   AMMmassChargeCoefficient = ZERO
+  AMMFinmassChargeCoefficient = ZERO
   do i = 1, n
     AMMmassChargeCoefficient(i, i, 1) = -ONEHALF * Glob_PseudoCharge0 * Glob_PseudoCharge(i) / Glob_Mass(i + 1)**TWO
+     AMMFinmassChargeCoefficient(i, i, 1) = -ONEHALF * Glob_PseudoCharge0 * Glob_PseudoCharge(i) / Glob_Mass(i + 1) * &
+	  (ONE / Glob_Mass(1) + ONE / Glob_Mass(i + 1))
   enddo
+
+  do i = 1, n
+		AMMFinmassChargeCoefficient(i, i, 2) = -ONEHALF * Glob_PseudoCharge0 * Glob_PseudoCharge(i) / &
+		(Glob_Mass(i + 1) * Glob_Mass(1))
+	enddo
 
   do i = 1, n
     do j = 1, n
       AMMmassChargeCoefficient(i, j, 3) = -ONEHALF * Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
       (Glob_Mass(i + 1) * Glob_Mass(j + 1))
+      AMMFinmassChargeCoefficient(i, j, 3) = AMMmassChargeCoefficient(i, j, 3)
     enddo
   enddo
 
@@ -5662,6 +5672,7 @@ subroutine spinPreCalc(n, nFactorial, SziME, parityFactor, SSFmassChargeCoeffici
     do j = 1, n
       AMMmassChargeCoefficient(i, j, 4) = -ONEHALF * Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
       (Glob_Mass(i + 1)**TWO)
+      AMMFinmassChargeCoefficient(i, j, 4) = AMMmassChargeCoefficient(i, j, 4)
     enddo
   enddo
 
@@ -5714,8 +5725,8 @@ end subroutine spinPreCalc
 
 subroutine spinDependentMatrixElements(m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pket, &
   SziME, SSNCspinME, SSNCmassChargeCoefficient, SOmassChargeCoefficient, &
-  AMMmassChargeCoefficient, SSNCkl, SO1kl, SO2kl, &
-  AMM1kl, AMM2kl, numberOfSpinFunctions)
+  AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, SSNCkl, SO1kl, SO2kl, &
+  AMM1kl, AMM2kl, AMM1Finkl, AMM2Finkl, numberOfSpinFunctions)
 !This subroutine computes symmetry adapted matrix element
 !with two real L=1 correlated Gaussians. These matrix element
 !is used in calculations of expectation values.
@@ -5738,7 +5749,8 @@ integer,intent(in)       :: m_k, m_l, mm_k, mm_l, numberOfSpinFunctions
 real(dprec),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
 real(dprec),intent(in)   :: Pket(Glob_n,Glob_n)
 
-real(dprec), dimension(numberOfSpinFunctions), intent(out)  :: SO1kl, SO2kl, AMM1kl, AMM2kl, SSNCkl
+real(dprec), dimension(numberOfSpinFunctions), intent(out)  :: SO1kl, SO2kl, AMM1kl, AMM2kl, &
+AMM1Finkl, AMM2Finkl, SSNCkl
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
@@ -5748,6 +5760,7 @@ real(dprec),intent(in)   :: SSNCspinME(Glob_n, Glob_n, numberOfSpinFunctions), &
                            SziME(Glob_n, numberOfSpinFunctions), &
                            SOmassChargeCoefficient(Glob_n, Glob_n, 4), &
                            AMMmassChargeCoefficient(Glob_n, Glob_n, 4), &
+                           AMMFinmassChargeCoefficient(Glob_n, Glob_n, 4), &
                            SSNCmassChargeCoefficient(Glob_n, Glob_n)
 
 !Local variables
@@ -5914,6 +5927,8 @@ SO2kl = ZERO
 
 AMM1kl = ZERO
 AMM2kl = ZERO
+AMM1Finkl = ZERO 
+AMM2Finkl = ZERO
 
 SSNCkl = ZERO
 
@@ -5981,6 +5996,7 @@ do indexI = 1, n
    if (abs(SziME(indexI, k)) < localEps) cycle
    SO1kl(k) = SO1kl(k) + SziME(indexI, k) * SOmassChargeCoefficient(indexI, indexI, 1) * temp1
    AMM1kl(k) = AMM1kl(k) + SziME(indexI, k) * AMMmassChargeCoefficient(indexI, indexI, 1) * temp1
+   AMM1Finkl(k) = AMM1Finkl(k) + SziME(indexI, k) * AMMFinmassChargeCoefficient(indexI, indexI, 1) * temp1
  enddo
 
 
@@ -6040,6 +6056,7 @@ do indexI = 1, n
    do k = 1, numberOfSpinFunctions
      if (abs(SziME(indexI, k)) < localEps) cycle
      SO2kl(k) = SO2kl(k) + SziME(indexI, k) * SOmassChargeCoefficient(indexI, indexI, 2) * temp1
+     AMM2Finkl(k) = AMM2Finkl(k) + SziME(indexI, k) * AMMFinmassChargeCoefficient(indexI, indexI, 2) * temp1
    enddo
    
 
@@ -6073,6 +6090,7 @@ do indexI = 1, n
      if (abs(SziME(indexI, k)) < localEps) cycle
      SO2kl(k) = SO2kl(k) + SziME(indexI, k) * SOmassChargeCoefficient(indexI, indexJ, 3) * temp1
      AMM2kl(k) = AMM2kl(k) + SziME(indexI, k) * AMMmassChargeCoefficient(indexI, indexJ, 3) * temp1
+     AMM2Finkl(k) = AMM2Finkl(k) + SziME(indexI, k) * AMMFinmassChargeCoefficient(indexI, indexJ, 3) * temp1
    enddo
 
 
@@ -6106,6 +6124,7 @@ do indexI = 1, n
      if (abs(SziME(indexI, k)) < localEps) cycle
      SO2kl(k) = SO2kl(k) + SziME(indexI, k) * SOmassChargeCoefficient(indexI, indexJ, 4) * temp1
      AMM2kl(k) = AMM2kl(k) + SziME(indexI, k) * AMMmassChargeCoefficient(indexI, indexJ, 4) * temp1
+     AMM2Finkl(k) = AMM2Finkl(k) + SziME(indexI, k) * AMMFinmassChargeCoefficient(indexI, indexJ, 4) * temp1
   enddo
   
 
@@ -6139,6 +6158,8 @@ SO1kl = SO1kl * commonFactor
 SO2kl = SO2kl * commonFactor
 AMM1kl = AMM1kl * commonFactor
 AMM2kl = AMM2kl * commonFactor
+AMM1Finkl = AMM1Finkl * commonFactor
+AMM2Finkl = AMM2Finkl * commonFactor
 
 
 end subroutine spinDependentMatrixElements

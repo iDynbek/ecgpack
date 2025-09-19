@@ -8890,10 +8890,11 @@ integer :: nFactorial, spinDependentValuesNeeded
 real(dprec) :: Skk
 real(dprec), allocatable, dimension(:, :, :) :: SziME, ketYMatrix, drach_SSFMatrix, &
 drach_AnihMatrix, SSFMatrix, AnihMatrix
-real(dprec), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient
+real(dprec), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinmassChargeCoefficient
 real(dprec), allocatable, dimension(:, :) :: SSFmassChargeCoefficient, SSNCmassChargeCoefficient, AnihMassChargeCoefficient
 real(dprec), allocatable, dimension(:, :, :, :) :: SiSjME, SSNCspinME
-real(dprec), allocatable, dimension(:) :: SO1kl, SO2kl, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, SSNC, SSNCkl, &
+real(dprec), allocatable, dimension(:) :: SO1kl, SO2kl, SO1, SO2, AMM1, AMM2, AMM1Fin, AMM2Fin, &
+AMM1kl, AMM2kl, AMM1Finkl, AMM2Finkl, SSNC, SSNCkl, &
 drach_SSF, drach_SSFe, drach_Anih, SSF, SSFe, Anih
 real(dprec), allocatable, dimension(:) :: parityFactor, diagS
 real(dprec), allocatable, dimension(:) :: spinFreeME
@@ -9309,6 +9310,7 @@ if (spinDependentValuesNeeded == 1) then
   allocate(SSNCmassChargeCoefficient(n, n))
   allocate(AnihMassChargeCoefficient(n, n))  
   allocate(AMMmassChargeCoefficient(n, n, 4))
+  allocate(AMMFinmassChargeCoefficient(n, n, 4))
   allocate(parityFactor(nFactorial))
 
   allocate(ketYMatrix(1 : n, 1 : n, nFactorial))
@@ -9319,7 +9321,7 @@ if (spinDependentValuesNeeded == 1) then
   !allocate(SiSjCoeff(n, n, 2, nFactorial))
 
   call spinPreCalc(n, nFactorial, SziME, parityFactor, SSFmassChargeCoefficient,SSNCmassChargeCoefficient, &
-  SOmassChargeCoefficient, AMMmassChargeCoefficient, AnihMassChargeCoefficient, ketYMatrix, &
+  SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, AnihMassChargeCoefficient, ketYMatrix, &
   Glob_YOperatorString, positronPosition, numberOfSpinFunctions, spinFreeME, SiSjME, SSNCspinME)
 
   
@@ -9856,8 +9858,10 @@ if (spinDependentValuesNeeded == 1) then
 
   allocate(SO1(numberOfSpinFunctions), SO2(numberOfSpinFunctions), SSNC(numberOfSpinFunctions), &
   AMM1(numberOfSpinFunctions), AMM2(numberOfSpinFunctions), &
+  AMM1Fin(numberOfSpinFunctions), AMM2Fin(numberOfSpinFunctions),&
   SO1kl(numberOfSpinFunctions), SO2kl(numberOfSpinFunctions), SSNCkl(numberOfSpinFunctions), &
-  AMM1kl(numberOfSpinFunctions), AMM2kl(numberOfSpinFunctions))
+  AMM1kl(numberOfSpinFunctions), AMM2kl(numberOfSpinFunctions),&
+  AMM1Finkl(numberOfSpinFunctions), AMM2Finkl(numberOfSpinFunctions))
 
   SSNC = ZERO
   
@@ -9866,6 +9870,9 @@ if (spinDependentValuesNeeded == 1) then
 
   AMM1 = ZERO
   AMM2 = ZERO
+
+  AMM1Fin = ZERO 
+  AMM2Fin = ZERO
 
   counter = 0
   do i = 1, cbs
@@ -9888,7 +9895,8 @@ if (spinDependentValuesNeeded == 1) then
          ketYMatrix(1 : n, 1 : n, a), &
          SziME(1 : n, 1 : numberOfSpinFunctions, a), SSNCspinME(1:n, 1:n, 1:numberOfSpinFunctions, a), &
          SSNCmassChargeCoefficient, SOmassChargeCoefficient, AMMmassChargeCoefficient, &
-         SSNCkl, SO1kl, SO2kl, AMM1kl, AMM2kl, numberOfSpinFunctions)
+         AMMFinmassChargeCoefficient,&
+         SSNCkl, SO1kl, SO2kl, AMM1kl, AMM2kl,  AMM1Finkl, AMM2Finkl, numberOfSpinFunctions)
 
          
          SSNC = SSNC + parityFactor(a) * factor * SSNCkl
@@ -9899,6 +9907,9 @@ if (spinDependentValuesNeeded == 1) then
          ! (they are shown in spinData.txt)
          AMM1 = AMM1 + parityFactor(a) * factor * AMM1kl
          AMM2 = AMM2 + parityFactor(a) * factor * AMM2kl
+
+         AMM1Fin = AMM1Fin + parityFactor(a) * factor * AMM1Finkl
+         AMM2Fin = AMM2Fin + parityFactor(a) * factor * AMM2Finkl
 
        enddo ! Permutations from S_n
 
@@ -9925,6 +9936,15 @@ if (spinDependentValuesNeeded == 1) then
    temp1 = AMM2(k)
    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
    AMM2(k) = temp2
+
+   
+   temp1 = AMM1Fin(k)
+   call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+   AMM1Fin(k) = temp2
+
+   temp1 = AMM2Fin(k)
+   call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+   AMM2Fin(k) = temp2
 
    temp1 = SSNC(k)
    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
@@ -9962,6 +9982,8 @@ if (Glob_ProcID==0) then
       write(*,*) '                    SO2=',SO2(1)
       write(*,*) '                   AMM1=',AMM1(1)
       write(*,*) '                   AMM2=',AMM2(1)
+      write(*,*) '                AMM1Fin=',AMM1Fin(1)
+      write(*,*) '                AMM2Fin=',AMM2Fin(1)
       write(*,*) '              drach_SSF=',drach_SSF(1)
       write(*,*) '                    SSF=',SSF(1)
       write(*,*) '                    SSNC=',SSNC(1)
@@ -9976,6 +9998,8 @@ if (Glob_ProcID==0) then
       write(*,*) '                  SO2_h=',SO2(1)
       write(*,*) '                 AMM1_h=',AMM1(1)
       write(*,*) '                 AMM2_h=',AMM2(1)
+      write(*,*) '              AMM1Fin_h=',AMM1Fin(1)
+      write(*,*) '              AMM2Fin_h=',AMM2Fin(1)
       write(*,*) '            drach_SSF_h=',drach_SSF(1)
       write(*,*) '           drach_SSFe_h=',drach_SSFe(1)
       write(*,*) '           drach_Anih_h=',drach_Anih(1)
@@ -9988,6 +10012,8 @@ if (Glob_ProcID==0) then
       write(*,*) '                  SO2_l=',SO2(2)
       write(*,*) '                 AMM1_l=',AMM1(2)
       write(*,*) '                 AMM2_l=',AMM2(2)
+      write(*,*) '              AMM1Fin_l=',AMM1Fin(2)
+      write(*,*) '              AMM2Fin_l=',AMM2Fin(2)
       write(*,*) '            drach_SSF_l=',drach_SSF(2)
       write(*,*) '           drach_SSFe_l=',drach_SSFe(2)
       write(*,*) '           drach_Anih_l=',drach_Anih(2)
