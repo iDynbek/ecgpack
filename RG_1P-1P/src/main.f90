@@ -32,6 +32,7 @@ if (Glob_ProcID==0) then
 	write(*,*)'Young string L=1: ',Glob_YOperatorString1
 endif
 call ComputeSpinDep()
+call ComputeScalar()
 
 
 

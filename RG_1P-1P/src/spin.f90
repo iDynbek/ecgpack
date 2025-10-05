@@ -1000,7 +1000,7 @@ end subroutine
 
   subroutine getSpinOpMeanValues(n, nFactorial, permutationMatrices, spinFunction0, spinFunction1, &
     primitives0, primitives1, numberOfPrimitives0, numberOfPrimitives1, &
-    spinFreeME, SSNCspinME, SiMinusME, SiPlusME, SziME)
+    spinFreeME, SSNCspinME, SiMinusME, SiPlusME, SziME, SiSjME)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! This subroutine calculates the following matrix elements:
@@ -1021,7 +1021,7 @@ end subroutine
 
     !output variables
     real(kind = dprec), dimension(n, nFactorial), intent(out) ::  SiMinusME, SiPlusME, SziME
-    real(kind = dprec), dimension(n, n, nFactorial), intent(out) ::  SSNCspinME
+    real(kind = dprec), dimension(n, n, nFactorial), intent(out) ::  SSNCspinME, SiSjME
     real(kind = dprec), dimension(nFactorial, 2), intent(out) ::  SpinFreeME
 
 
@@ -1031,7 +1031,6 @@ end subroutine
     integer, dimension(:, :, :, :), allocatable :: pairPermutations
     real(kind = dprec), dimension(:), allocatable :: tmpSpinFunctionA0, tmpSpinFunctionB0, tmpSpinFunctionC0, &
     tmpSpinFunctionA1, tmpSpinFunctionB1, tmpspinFunctionC1
-    real(kind = dprec), dimension(n, n, nFactorial) :: SiSjME 
     character(len = maxLen) :: spinFunctionString
     integer :: io
 

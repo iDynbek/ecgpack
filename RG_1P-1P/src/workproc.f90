@@ -1242,9 +1242,9 @@ integer :: i, j, n, a, ptr, k, npt, counter
 integer :: nFactorial
 integer :: selectTransition
 real(dprec) :: Skk, temp1, temp2
-real(dprec), allocatable, dimension(:, :, :) :: ketYMatrix, SSNCspinME
+real(dprec), allocatable, dimension(:, :, :) :: ketYMatrix, SSNCspinME, SiSjME
 real(dprec), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
-real(dprec), allocatable, dimension(:, :) :: SSNCmassChargeCoefficient
+real(dprec), allocatable, dimension(:, :) :: SSNCmassChargeCoefficient, SSFmassChargeCoefficient
 real(dprec), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient, &
 AMMFinmassChargeCoefficient
 real(dprec), allocatable, dimension(:) :: parityFactor, diagS_0, diagS_1, diagS_test_0, diagS_test_1
@@ -1266,12 +1266,14 @@ enddo
 
 allocate(SOmassChargeCoefficient(n, n, 4))
 allocate(SSNCmassChargeCoefficient(n, n))
+allocate(SSFmassChargeCoefficient(n, n))
 allocate(AMMmassChargeCoefficient(n, n, 4))
 allocate(AMMFinmassChargeCoefficient(n, n, 4))
 allocate(parityFactor(nFactorial))
 
 allocate(ketYMatrix(1 : n, 1 : n, nFactorial))
 allocate(SSNCspinME(n, n, nFactorial))
+allocate(SiSjME(n, n, nFactorial))
 allocate(spinFreeME(nFactorial, 2))
 allocate(SziME(n, nFactorial))
 allocate(SiMinusME(n, nFactorial))
@@ -1279,10 +1281,10 @@ allocate(SiPlusME(n, nFactorial))
 allocate(SOspinME(n, nFactorial))
 allocate(spinCoeff(nFactorial, 2))
 
-call spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, SOmassChargeCoefficient,  &
-AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, &
+call spinPreCalc(n, nFactorial, parityFactor, SSFmassChargeCoefficient, SSNCmassChargeCoefficient, &
+SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, &
 ketYMatrix, Glob_YOperatorString0, Glob_YOperatorString1, &
-SSNCspinME, SiMinusME, SiPlusME, SziME, spinFreeME)
+SSNCspinME, SiMinusME, SiPlusME, SziME, spinFreeME, SiSjME)
 
 SOspinME = ZERO
 if (selectTransition == 1) then
@@ -1454,6 +1456,715 @@ endif
 end subroutine ComputeSpinDep
 
 
+
+
+subroutine ComputeScalar()
+!Local variables used to store temporary data
+!associated with certain expectation values
+!Local variables used to store temporary data
+!associated with certain expectation values
+integer                                    :: NumCFGridPoints
+real(dprec),allocatable,dimension(:,:)     :: CFGrid
+real(dprec),allocatable,dimension(:,:)     :: CFkl
+real(dprec),allocatable,dimension(:,:)     :: CF
+integer                                    :: NumDensGridPoints
+real(dprec),allocatable,dimension(:,:)     :: DensGrid
+real(dprec),allocatable,dimension(:,:)     :: Denskl
+real(dprec),allocatable,dimension(:,:)     :: Dens
+integer                                    :: NumOfCFAndDensExpVals
+real(dprec),allocatable,dimension(:)       :: CFDMEkl_s
+real(dprec),allocatable,dimension(:)       :: MEkl,MEkl_s
+real(dprec)                                :: Hkl,Skl,Tkl,Vkl
+real(dprec)                                :: MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
+real(dprec)                                :: H,S,T,V,MV,drach_MV,Darwin,drach_Darwin,OO
+real(dprec),allocatable,dimension(:,:)     :: rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,prvalkl
+real(dprec),allocatable,dimension(:,:)     :: rm2,rm,r,r2,deltar,drach_deltar,prval
+real(dprec),allocatable,dimension(:,:,:,:) :: rmrmkl
+integer 								   :: NumOfExpcVals
+
+! spin-dependent stuff
+integer :: i, j, n, a, a1, b, b1, c, ptr, k, npt, counter
+integer :: nFactorial
+integer :: selectTransition
+real(dprec) :: Skk, temp1, temp2
+real(dprec), allocatable, dimension(:, :, :) :: ketYMatrix
+real(dprec), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
+real(dprec), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient, &
+AMMFinmassChargeCoefficient
+real(dprec), allocatable, dimension(:, :) :: SSNCmassChargeCoefficient, SSFmassChargeCoefficient
+real(dprec), allocatable, dimension(:) :: parityFactor, diagS_0, diagS_1
+real(dprec), allocatable, dimension(:, :) :: spinFreeME, SOspinME, spinCoeff 
+real(dprec), allocatable, dimension(:, :, :) :: SSNCspinME, SiSjME
+real(dprec) :: factor
+real(dprec), allocatable, dimension(:, :) :: drach_SSFMatrix, drach_AnihMatrix, SSFMatrix, AnihMatrix
+real(dprec), allocatable,dimension(:,:)    ::  IdentityPerm
+real(dprec) :: SSFkl, SSF, drach_SSF, RME
+real(dprec) :: beta, mu
+logical :: areFilesTheSame
+
+! One can set this flag to zero to disable everything introduced by DT
+
+!Initialize parameters
+n=Glob_n
+npt=Glob_npt
+NumOfExpcVals=7*n*(n+1)/2+9+(3*n**4+10*n**3+9*n**2+2*n)/12
+
+
+!allocate 
+!allocate just one point to have a valid pointer
+allocate(CFGrid(2,1))
+allocate(CFkl(1,1))
+allocate(DensGrid(2,1))
+allocate(Denskl(1,1))
+
+allocate(MEkl(NumOfExpcVals))
+allocate(MEkl_s(NumOfExpcVals))
+allocate(rm2kl(n,n))
+allocate(rm2(n,n))
+allocate(rmkl(n,n))
+allocate(rm(n,n))
+allocate(rkl(n,n))
+allocate(r(n,n))
+allocate(r2kl(n,n))
+allocate(r2(n,n))
+allocate(deltarkl(n,n))
+allocate(deltar(n,n))
+allocate(drach_deltarkl(n,n))
+allocate(drach_deltar(n,n))
+allocate(prvalkl(n,n))
+allocate(prval(n,n))
+allocate(rmrmkl(n,n,n,n))
+allocate(IdentityPerm(n,n))
+IdentityPerm(1:n,1:n)=ZERO
+do i=1,n
+	IdentityPerm(i,i)=ONE
+enddo
+
+
+!spin-dependent stuff
+nFactorial = 1
+do i = 2, n
+	nFactorial = nFactorial * i
+enddo
+
+allocate(SOmassChargeCoefficient(n, n, 4))
+allocate(SSNCmassChargeCoefficient(n, n))
+allocate(SSFmassChargeCoefficient(n, n))
+allocate(AMMmassChargeCoefficient(n, n, 4))
+allocate(AMMFinmassChargeCoefficient(n, n, 4))
+allocate(parityFactor(nFactorial))
+
+allocate(ketYMatrix(n, n, nFactorial))
+allocate(spinFreeME(nFactorial, 2))
+allocate(SziME(n, nFactorial))
+allocate(SiMinusME(n, nFactorial))
+allocate(SiPlusME(n, nFactorial))
+allocate(SOspinME(n, nFactorial))
+allocate(SSNCspinME(n, n, nFactorial))
+allocate(SiSjME(n, n, nFactorial))
+allocate(spinCoeff(nFactorial, 2))
+
+call spinPreCalc(n, nFactorial, parityFactor, SSFmassChargeCoefficient, SSNCmassChargeCoefficient, &
+SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, &
+ketYMatrix, Glob_YOperatorString0, Glob_YOperatorString1, &
+SSNCspinME, SiMinusME, SiPlusME, SziME, spinFreeME, SiSjME)
+
+
+do i = 1, nFactorial
+	spinCoeff(i,:) = parityFactor(i) * spinFreeME(i,:)
+enddo
+
+
+! we should recalculate mean values of a unity operator here (it should be proportional to the old values)
+allocate(diagS_1(Glob_CurrBasisSize1), diagS_0(Glob_CurrBasisSize0))
+diagS_1 = ZERO
+diagS_0 = ZERO
+
+Skk = ZERO
+do i = 1, Glob_CurrBasisSize0
+	do ptr = 1, nFactorial
+
+		call OverlapMatrixElementsLP(Glob_Index0(i), Glob_NonlinParam0(1:Glob_np, i), ketYMatrix(1 : n, 1 : n, ptr), Skk)
+		diagS_0(i) = diagS_0(i) + spinCoeff(ptr,2) * Skk
+
+	enddo ! Permutations from S_n
+enddo
+
+Skk = ZERO
+do i = 1, Glob_CurrBasisSize1
+	do ptr = 1, nFactorial
+
+	call OverlapMatrixElementsLP(Glob_Index1(i), Glob_NonlinParam1(1:Glob_np, i), ketYMatrix(1 : n, 1 : n, ptr), Skk)
+	diagS_1(i) = diagS_1(i) + spinCoeff(ptr,1) * Skk
+
+	enddo ! Permutations from S_n
+enddo
+
+allocate(drach_SSFMatrix(n, n))
+drach_SSFMatrix = ZERO
+allocate(SSFMatrix(n, n))
+SSFMatrix = ZERO
+
+
+!main loop
+counter=0
+MV = ZERO
+Darwin = ZERO
+OO = ZERO
+SSF = ZERO
+H = ZERO
+T = ZERO
+V = ZERO
+MEkl_s(1:NumOfExpcVals)=ZERO
+
+areFilesTheSame = .false.
+if (abs(Glob_CurrEnergy0-Glob_CurrEnergy1) < 1.d-14) areFilesTheSame = .true.
+
+do i = 1, Glob_CurrBasisSize0
+    do j = 1, Glob_CurrBasisSize1
+		if (areFilesTheSame .and. j>i) cycle
+		counter=counter+1
+		if (mod(counter,Glob_NumOfProcs)==Glob_ProcID) then
+			if (areFilesTheSame) then
+				if (i == j) then 
+					factor = Glob_c0(i)*Glob_c1(j)/sqrt(diagS_0(i)*diagS_1(j)) !1
+				else 
+					factor = 2 * Glob_c0(i)*Glob_c1(j)/sqrt(diagS_0(i)*diagS_1(j))
+				endif
+			else
+				factor=Glob_c0(i)*Glob_c1(j)/sqrt(diagS_0(i)*diagS_1(j))  !2
+			endif
+			!print*, "factor = ", factor
+			do k=1,nFactorial
+					!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
+				call MatrixElementsL1ForExpcVals(Glob_Index0(i),Glob_Index1(j),            &
+				Glob_NonlinParam0(1:npt,i),Glob_NonlinParam1(1:npt,j),                     &
+				IdentityPerm,ketYMatrix(1:n,1:n,k),Hkl,Skl,Tkl,Vkl,                    &
+				rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
+				Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
+				NumDensGridPoints,DensGrid,Denskl,.false.,.false., &
+				.false.,.false.)
+
+				c=0
+				do a=1,n
+					do b=a,n
+						c=c+1; MEkl(c)=rm2kl(b,a)
+					enddo
+				enddo
+					
+				do a=1,n
+					do b=a,n
+						c=c+1; MEkl(c)=rmkl(b,a)
+					enddo
+				enddo
+				
+				do a=1,n
+					do b=a,n
+						c=c+1; MEkl(c)=rkl(b,a)
+					enddo
+				enddo
+				
+				do a=1,n
+					do b=a,n
+						c=c+1; MEkl(c)=r2kl(b,a)
+					enddo
+				enddo
+				
+				do a=1,n
+					do b=a,n
+						c=c+1; MEkl(c)=deltarkl(b,a)
+					enddo
+				enddo
+				
+				do a=1,n
+					do b=a,n
+						c=c+1; MEkl(c)=drach_deltarkl(b,a)
+					enddo
+				enddo
+				
+				do a=1,n
+					do b=a,n
+						c=c+1; MEkl(c)=prvalkl(b,a)
+					enddo
+				enddo
+				
+				c=c+1; MEkl(c)=Hkl
+				c=c+1; MEkl(c)=Skl
+				c=c+1; MEkl(c)=Tkl
+				c=c+1; MEkl(c)=Vkl
+				c=c+1; MEkl(c)=MVkl
+				c=c+1; MEkl(c)=drach_MVkl
+				c=c+1; MEkl(c)=Darwinkl
+				c=c+1; MEkl(c)=drach_Darwinkl
+				c=c+1; MEkl(c)=OOkl
+				do a=1,n
+					do b=a,n
+						do a1=a,n
+							do b1=a1,n
+								c=c+1; MEkl(c)=rmrmkl(a,b,a1,b1)
+							enddo
+						enddo
+					enddo
+				enddo
+
+				do a=1,NumOfExpcVals
+					MEkl_s(a) = MEkl_s(a) + factor * spinCoeff(k,1) * MEkl(a)
+				enddo
+
+
+				! SSF term is special: it needs SiSj mean value with it
+				! not the spin-free value like the other terms here
+				! we build it from drachmanized deltas for each pair b, a
+				do a = 1, n
+					do b = a + 1, n
+						drach_SSFMatrix(a, b) = drach_SSFMatrix(a, b) + factor * parityFactor(k) * SiSjME(a, b, k) * drach_deltarkl(b, a)
+					enddo
+				enddo
+		
+				do a = 1, n
+					do b = a + 1, n
+						SSFMatrix(a, b) = SSFMatrix(a, b) + factor * parityFactor(k) * SiSjME(a, b, k) * deltarkl(b, a)
+					enddo
+				enddo
+
+			enddo !NumYHYTerms
+    	endif !Glob_ProcID
+  enddo !i
+enddo !j
+
+
+!Combining the results of all processes
+do a=1,NumOfExpcVals
+	temp1=MEkl_s(a)
+	call MPI_ALLREDUCE(temp1,temp2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+	MEkl_s(a)=temp2
+enddo
+
+
+do a = 1, n
+	do b = a + 1, n
+    	temp1 = drach_SSFMatrix(a, b)
+    	call MPI_ALLREDUCE(temp1,temp2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+    	drach_SSFMatrix(a, b) = temp2 
+    enddo
+enddo
+
+do a = 1, n
+    do b = a + 1, n
+        temp1 = SSFMatrix(a, b)
+        call MPI_ALLREDUCE(temp1,temp2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+        SSFMatrix(a, b) = temp2 
+    enddo
+enddo
+
+
+
+!Extracting expectation values from arrays MEkl_s and MEkl_e
+c=0
+do a=1,n
+  do b=a,n
+	c=c+1
+	rm2(b,a)=MEkl_s(c); rm2(a,b)=MEkl_s(c)
+  enddo
+enddo
+do a=1,n
+  do b=a,n
+	c=c+1
+	rm(b,a)=MEkl_s(c); rm(a,b)=MEkl_s(c)
+  enddo
+enddo
+do a=1,n
+  do b=a,n
+	c=c+1
+	r(b,a)=MEkl_s(c); r(a,b)=MEkl_s(c)
+  enddo
+enddo
+do a=1,n
+  do b=a,n
+	c=c+1
+	r2(b,a)=MEkl_s(c); r2(a,b)=MEkl_s(c)
+  enddo
+enddo
+do a=1,n
+  do b=a,n
+	c=c+1
+	deltar(b,a)=MEkl_s(c); deltar(a,b)=MEkl_s(c)
+  enddo
+enddo
+do a=1,n
+  do b=a,n
+	c=c+1
+	drach_deltar(b,a)=MEkl_s(c); drach_deltar(a,b)=MEkl_s(c)
+  enddo
+enddo
+do a=1,n
+  do b=a,n
+	c=c+1
+	prval(b,a)=MEkl_s(c); prval(a,b)=MEkl_s(c)
+  enddo
+enddo
+c=c+1; H=MEkl_s(c)
+c=c+1; S=MEkl_s(c)
+c=c+1; T=MEkl_s(c)
+c=c+1; V=MEkl_s(c)
+c=c+1; MV=MEkl_s(c)
+c=c+1; drach_MV=MEkl_s(c)
+c=c+1; Darwin=MEkl_s(c)
+c=c+1; drach_Darwin=MEkl_s(c)
+c=c+1; OO=MEkl_s(c)
+rmrmkl(1:n,1:n,1:n,1:n)=ZERO
+do a=1,n
+  do b=a,n
+    do a1=a,n
+      do b1=a1,n
+        c=c+1; temp1=MEkl_s(c)
+        rmrmkl(a,b,a1,b1)=temp1
+        rmrmkl(a,b,b1,a1)=temp1
+        rmrmkl(b,a,a1,b1)=temp1
+        rmrmkl(b,a,b1,a1)=temp1
+        rmrmkl(a1,b1,a,b)=temp1
+        rmrmkl(a1,b1,b,a)=temp1
+        rmrmkl(b1,a1,a,b)=temp1
+        rmrmkl(b1,a1,b,a)=temp1 
+      enddo 
+    enddo
+  enddo
+enddo
+
+
+! we already have everything needed for SSF term calculation
+drach_SSF = ZERO
+do i = 1, n
+	do j = i + 1, n
+		drach_SSF = drach_SSF + drach_SSFMatrix(i, j) * SSFmassChargeCoefficient(i, j)
+	enddo
+enddo
+
+SSF = ZERO
+do i = 1, n
+	do j = i + 1, n
+		SSF = SSF + SSFMatrix(i, j) * SSFmassChargeCoefficient(i, j)
+	enddo
+enddo
+
+
+
+!Printing results
+if (Glob_ProcID==0) then
+
+	!Opening an additional file where selected expectation values will be saved
+	open(2,file="expvals_scalar.txt",status='replace')
+	write(*,*) 'done'
+	write(*,*)
+	write(*,*) 'Expectation values:'
+	write(*,*)
+	write(*,*) '                      H=',H
+	write(*,*) '                      S=',S
+	write(*,*) '                      T=',T
+	write(*,*) '                      V=',V
+	write(*,*) '                     MV=',MV
+	write(*,*) '               drach_MV=',drach_MV
+	write(*,*) '                 Darwin=',Darwin
+	write(*,*) '           drach_Darwin=',drach_Darwin
+	write(*,*) '                     OO=',OO
+	write(*,*) '                    SSF=',SSF
+	write(*,*) '              drach_SSF=',drach_SSF
+
+ 	write(*,*)
+
+  
+	write(2,'(a)',advance='no') '                      H '
+	call writerealadv(2,H)
+	write(2,'(a)',advance='no') '                      S '
+	call writerealadv(2,S)
+	write(2,'(a)',advance='no') '                      T '
+	call writerealadv(2,T)
+	write(2,'(a)',advance='no') '                      V '
+	call writerealadv(2,V)
+	write(2,'(a)',advance='no') '                     MV '
+	call writerealadv(2,MV)
+	write(2,'(a)',advance='no') '               drach_MV '
+	call writerealadv(2,drach_MV)
+	write(2,'(a)',advance='no') '                 Darwin '
+	call writerealadv(2,Darwin)
+	write(2,'(a)',advance='no') '           drach_Darwin '
+	call writerealadv(2,drach_Darwin)
+	write(2,'(a)',advance='no') '                    SSF '
+	call writerealadv(2,SSF)
+	write(2,'(a)',advance='no') '              drach_SSF '
+	call writerealadv(2,drach_SSF)
+
+  if ((Glob_NumOfIdentPartSets/=Glob_n+1)) then
+    write(*,*) '(Warning! These values do not account for indistinguishability of'
+    write(*,*) 'identical particles and other possible symmetries of the system)'
+    write(*,*)
+  endif
+  do i=1,n
+    write(*,'(1x,a22,i1)',advance='no') '                1/r^2_',i
+    write(*,*) '=',rm2(i,i)
+    do j=i+1,n
+      write(*,'(1x,a21,i1,i1)',advance='no') '               1/r^2_',i,j
+      write(*,*) '=',rm2(i,j)
+    enddo
+  enddo
+  do i=1,n
+    write(*,'(1x,a22,i1)',advance='no') '                  1/r_',i
+    write(*,*) '=',rm(i,i)
+    do j=i+1,n
+      write(*,'(1x,a21,i1,i1)',advance='no') '                 1/r_',i,j
+      write(*,*)'=',rm(i,j)
+    enddo
+  enddo
+  write(*,*)
+  do i=1,n
+    write(*,'(1x,a22,i1)',advance='no') '                    r_',i
+    write(*,*) '=',r(i,i)
+    do j=i+1,n
+      write(*,'(1x,a21,i1,i1)',advance='no') '                   r_',i,j
+      write(*,*) '=',r(i,j)
+    enddo
+  enddo
+  write(*,*)
+  do i=1,n
+    write(*,'(1x,a22,i1)',advance='no') '                  r^2_',i
+    write(*,*) '=',r2(i,i)
+    do j=i+1,n
+      write(*,'(1x,a21,i1,i1)',advance='no') '                 r^2_',i,j
+      write(*,*) '=',r2(i,j)
+    enddo
+  enddo
+  write(*,*)
+  do i=1,n
+    write(*,'(1x,a21,i1,a1)',advance='no') '            delta(r_',i,')'
+    write(*,*) '=',deltar(i,i)
+    do j=i+1,n
+      write(*,'(1x,a20,i1,i1,a1)',advance='no') '            delta(r_',i,j,')'
+      write(*,*) '=',deltar(i,j)
+    enddo
+  enddo
+  write(*,*)
+  do i=1,n
+    write(*,'(1x,a21,i1,a1)',advance='no') '       drach_delta(r_',i,')'
+    write(*,*) '=',drach_deltar(i,i)
+    do j=i+1,n
+      write(*,'(1x,a20,i1,i1,a1)',advance='no') '      drach_delta(r_',i,j,')'
+      write(*,*) '=',drach_deltar(i,j)
+    enddo
+  enddo
+  do i=1,n
+    write(*,'(1x,a21,i1,a1)',advance='no') '             prval(r_',i,')'
+    write(*,*) '=',prval(i,i)
+    do j=i+1,n
+      write(*,'(1x,a20,i1,i1,a1)',advance='no') '            prval(r_',i,j,')'
+      write(*,*) '=',prval(i,j)
+    enddo
+  enddo
+  write(*,*)
+  do i=1,n
+    do j=i,n
+      do a=i,n
+        do b=a,n
+          write(*,'(4x,a,i1)',advance='no') '1/(r_',i
+          if (i/=j) write(*,'(i1)',advance='no') j
+          write(*,'(a)',advance='no') '*'
+          write(*,'(a,i1)',advance='no') 'r_',a
+          if (a/=b) write(*,'(i1)',advance='no') b
+          write(*,'(a)',advance='no') ')'
+          write(*,*) '=',rmrmkl(i,j,a,b)
+        enddo
+      enddo
+    enddo
+  enddo
+  write(*,*)
+  if (Glob_NumOfIdentPartSets/=Glob_n+1) then
+    write(*,*) 'Based on the particle mass and charge values it was determined'
+	write(*,*) 'that the system has the following sets of identical particles:'
+    do i=1,Glob_NumOfIdentPartSets
+	  j=Glob_NumOfPartInIdentPartSet(i)
+      write(*,'(1x,a3,i2,a13)',advance='no') 'set',i,' :  particles'
+      write(*,*) Glob_IdentPartList(1:j,i)
+    enddo
+	write(*,*)
+    write(*,*) 'Properly symmetrized expectation values of two-particle quantities'
+	write(*,*) 'that account for permutational symmetry of the above mentioned sets'
+	write(*,*) 'of identical particles are:'
+	write(*,*) '(Warning! An additional symmetrization might be necessary if the'
+	write(*,*) 'Young operator contains other types of symmetries)'
+	write(*,*)
+    do i=1,Glob_NumOfNoneqvPairSets
+	  beta=ZERO
+	  mu=ZERO
+	  k=Glob_NumOfPairsInEqvPairSet(i)
+	  write(*,'(1x)',advance='no')
+	  do j=1,k
+	    a=Glob_EqvPairList(1,j,i)
+		b=Glob_EqvPairList(2,j,i)
+	    if (a==b) then
+          write(*,'(a6,i1,a3)',advance='no') '1/r^2_',a,' = '
+        else
+          write(*,'(a6,i1,i1,a3)',advance='no') '1/r^2_',a,b,' = '
+		endif
+		beta=beta+rm2(a,b)
+	  enddo
+      call writerealadv(6,beta/k)
+      !write to file
+      a=Glob_EqvPairList(1,1,i)
+      b=Glob_EqvPairList(2,1,i)
+      if (a/=b) write(2,'(a,i1,i1,1x)',advance='no') '               1/r^2_',a,b
+      if (a==b) write(2,'(a,i1,1x)',advance='no')    '                1/r^2_',a
+      call writerealadv(2,beta/k)
+    enddo
+    write(*,*)
+    do i=1,Glob_NumOfNoneqvPairSets
+	  beta=ZERO
+	  mu=ZERO
+	  k=Glob_NumOfPairsInEqvPairSet(i)
+	  write(*,'(1x)',advance='no')
+	  do j=1,k
+	    a=Glob_EqvPairList(1,j,i)
+		b=Glob_EqvPairList(2,j,i)
+	    if (a==b) then
+          write(*,'(a4,i1,a3)',advance='no') '1/r_',a,' = '
+        else
+          write(*,'(a4,i1,i1,a3)',advance='no') '1/r_',a,b,' = '
+		endif
+		beta=beta+rm(a,b)
+	  enddo
+      call writerealadv(6,beta/k)
+      !write to file
+      a=Glob_EqvPairList(1,1,i)
+      b=Glob_EqvPairList(2,1,i)
+      if (a/=b) write(2,'(a,i1,i1,1x)',advance='no') '                 1/r_',a,b
+      if (a==b) write(2,'(a,i1,1x)',advance='no')    '                  1/r_',a
+      call writerealadv(2,beta/k)
+    enddo
+    write(*,*)
+    do i=1,Glob_NumOfNoneqvPairSets
+	  beta=ZERO
+	  mu=ZERO
+	  k=Glob_NumOfPairsInEqvPairSet(i)
+	  write(*,'(1x)',advance='no')
+	  do j=1,k
+	    a=Glob_EqvPairList(1,j,i)
+		b=Glob_EqvPairList(2,j,i)
+	    if (a==b) then
+          write(*,'(a2,i1,a3)',advance='no') 'r_',a,' = '
+        else
+          write(*,'(a2,i1,i1,a3)',advance='no') 'r_',a,b,' = '
+		endif
+		beta=beta+r(a,b)
+	  enddo
+      call writerealadv(6,beta/k)
+      !write to file
+      a=Glob_EqvPairList(1,1,i)
+      b=Glob_EqvPairList(2,1,i)
+      if (a/=b) write(2,'(a,i1,i1,1x)',advance='no') '                   r_',a,b
+      if (a==b) write(2,'(a,i1,1x)',advance='no')    '                    r_',a
+      call writerealadv(2,beta/k)
+    enddo
+    write(*,*)
+    do i=1,Glob_NumOfNoneqvPairSets
+	  beta=ZERO
+	  mu=ZERO
+	  k=Glob_NumOfPairsInEqvPairSet(i)
+	  write(*,'(1x)',advance='no')
+	  do j=1,k
+	    a=Glob_EqvPairList(1,j,i)
+		b=Glob_EqvPairList(2,j,i)
+	    if (a==b) then
+          write(*,'(a4,i1,a3)',advance='no') 'r^2_',a,' = '
+        else
+          write(*,'(a4,i1,i1,a3)',advance='no') 'r^2_',a,b,' = '
+		endif
+		beta=beta+r2(a,b)
+	  enddo
+      call writerealadv(6,beta/k)
+      !write to file
+      a=Glob_EqvPairList(1,1,i)
+      b=Glob_EqvPairList(2,1,i)
+      if (a/=b) write(2,'(a,i1,i1.1x)',advance='no') '                 r^2_',a,b
+      if (a==b) write(2,'(a,i1,1x)',advance='no')    '                  r^2_',a
+      call writerealadv(2,beta/k)
+    enddo
+    write(*,*)
+    do i=1,Glob_NumOfNoneqvPairSets
+	  beta=ZERO
+	  mu=ZERO
+	  k=Glob_NumOfPairsInEqvPairSet(i)
+	  write(*,'(1x)',advance='no')
+	  do j=1,k
+	    a=Glob_EqvPairList(1,j,i)
+		b=Glob_EqvPairList(2,j,i)
+	    if (a==b) then
+          write(*,'(a8,i1,a4)',advance='no') 'delta(r_',a,') = '
+        else
+          write(*,'(a8,i1,i1,a4)',advance='no') 'delta(r_',a,b,') = '
+		endif
+		beta=beta+deltar(a,b)
+	  enddo
+	  call writerealadv(6,beta/k)
+      !write to file
+      a=Glob_EqvPairList(1,1,i)
+      b=Glob_EqvPairList(2,1,i)
+      if (a/=b) write(2,'(a,i1,i1,a1,1x)',advance='no') '            delta(r_',a,b,')'
+      if (a==b) write(2,'(a,i1,a1,1x)',advance='no')    '             delta(r_',a,')'
+      call writerealadv(2,beta/k)
+    enddo
+    write(*,*)
+    do i=1,Glob_NumOfNoneqvPairSets
+	  beta=ZERO
+	  mu=ZERO
+	  k=Glob_NumOfPairsInEqvPairSet(i)
+	  write(*,'(1x)',advance='no')
+	  do j=1,k
+	    a=Glob_EqvPairList(1,j,i)
+		b=Glob_EqvPairList(2,j,i)
+	    if (a==b) then
+          write(*,'(a14,i1,a4)',advance='no') 'drach_delta(r_',a,') = '
+        else
+          write(*,'(a14,i1,i1,a4)',advance='no') 'drach_delta(r_',a,b,') = '
+		endif
+		beta=beta+drach_deltar(a,b)
+	  enddo
+      call writerealadv(6,beta/k)
+      !write to file
+      a=Glob_EqvPairList(1,1,i)
+      b=Glob_EqvPairList(2,1,i)
+      if (a/=b) write(2,'(a,i1,i1,a1,1x)',advance='no') '      drach_delta(r_',a,b,')'
+      if (a==b) write(2,'(a,i1,a1,1x)',advance='no')    '       drach_delta(r_',a,')'
+      call writerealadv(2,beta/k)
+    enddo
+    write(*,*)
+    do i=1,Glob_NumOfNoneqvPairSets
+	  beta=ZERO
+	  mu=ZERO
+	  k=Glob_NumOfPairsInEqvPairSet(i)
+	  write(*,'(1x)',advance='no')
+	  do j=1,k
+	    a=Glob_EqvPairList(1,j,i)
+		b=Glob_EqvPairList(2,j,i)
+	    if (a==b) then
+          write(*,'(a8,i1,a4)',advance='no') 'prval(r_',a,') = '
+        else
+          write(*,'(a8,i1,i1,a4)',advance='no') 'prval(r_',a,b,') = '
+		endif
+		beta=beta+prval(a,b)
+	  enddo
+      call writerealadv(6,beta/k)
+      !write to file
+      a=Glob_EqvPairList(1,1,i)
+      b=Glob_EqvPairList(2,1,i)
+      if (a/=b) write(2,'(a,i1,i1,a1,1x)',advance='no') '            prval(r_',a,b,')'
+      if (a==b) write(2,'(a,i1,a1,1x)',advance='no')    '             prval(r_',a,')'
+      call writerealadv(2,beta/k)
+    enddo
+    write(*,*)
+  endif
+
+  close(2)
+endif
+
+end subroutine ComputeScalar
 end module workproc
 
 
