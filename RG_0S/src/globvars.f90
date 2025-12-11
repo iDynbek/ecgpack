@@ -128,6 +128,7 @@ logical      ::  Glob_RepScalParamSupplied=.false.
 logical      ::  Glob_RepScalParamPlusSupplied=.false.
 logical      ::  Glob_RepScalParamMinusSupplied=.false.
 logical      ::  Glob_AttrScalParamSupplied=.false.
+logical      ::  Glob_ArePseudoParticleMassesTheSame = .true.
 
 !Glob_YOperatorStringLength definess the length of string
 !Glob_YOperatorString

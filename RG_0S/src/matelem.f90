@@ -614,7 +614,7 @@ end subroutine MatrixElements
 
 subroutine MatrixElementsForExpcVals(vechLk, vechLl, Pbra, Pket, &
            Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
-           MVkl, drach_MVkl, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, del2kl, prvalkl, &
+           MVkl, drach_MVkl1, drach_MVkl2, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, del2kl, prvalkl, &
            wf2originkl, NumCFGridPoints, CFGrid, CFkl, NumDensGridPoints, DensGrid, Denskl, &
            AreCorrFuncNeeded, ArePartDensNeeded, AreMCorrFuncNeeded, AreMPartDensNeeded)
 !This subroutine computes symmetry adapted matrix elements 
@@ -663,7 +663,7 @@ subroutine MatrixElementsForExpcVals(vechLk, vechLl, Pbra, Pket, &
 !Arguments
 real(dprec),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
 real(dprec),intent(in)   :: Pbra(Glob_n,Glob_n),Pket(Glob_n,Glob_n)
-real(dprec),intent(out)  :: Hkl,Skl,Tkl,Vkl,MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
+real(dprec),intent(out)  :: Hkl,Skl,Tkl,Vkl,MVkl,drach_MVkl1,drach_MVkl2,Darwinkl,drach_Darwinkl,OOkl
 real(dprec),intent(out)  :: rm2kl(Glob_n,Glob_n),rmkl(Glob_n,Glob_n)
 real(dprec),intent(out)  :: rkl(Glob_n,Glob_n),r2kl(Glob_n,Glob_n)
 real(dprec),intent(out)  :: deltarkl(Glob_n,Glob_n)
@@ -1477,18 +1477,27 @@ enddo
 MVkl=-MVkl/8
 
 !Evaluation of the drachmanized mass-velocity
-drach_MVkl= ME_dXd_dYd(Glob_dmvM,Glob_dmvMB,inv_tAkl,tAk,tAl,Skl) &
- - V2kl - Glob_CurrEnergy*Glob_CurrEnergy*Skl + 2*Glob_CurrEnergy*Vkl &
- + Glob_CurrEnergy*ME_dXd(Glob_dmvB,inv_tAkl,tAl,Skl)
-!W1(i,j) will contain matrix elements <phi_k| (1/r_{ij})(nabla_r'*(M-B)*nabla_r) |phi_l>
-call ME_1_over_rij_dXd_all(Glob_dmvB,inv_tAkl,tAl,rmkl,TrAJ,W1) 
-do i=1,n 
-  drach_MVkl=drach_MVkl-ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*W1(i,i)                       
-  do j=i+1,n
-    drach_MVkl=drach_MVkl-ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*W1(j,i)                        
-  enddo
-enddo 
-drach_MVkl = drach_MVkl*Glob_dmva2 + MVkl
+ drach_MVkl1 = myME_dXd_dYd(Glob_dmvM,Glob_dmvM,inv_tAkl,tAk,tAl,det_tAkl) &
+  - V2kl - Glob_CurrEnergy*Glob_CurrEnergy*Skl + 2*Glob_CurrEnergy*Vkl
+if (Glob_ArePseudoParticleMassesTheSame) then 
+  drach_MVkl2 = drach_MVkl1
+else
+  drach_MVkl2 = myME_dXd_dYd(Glob_dmvM,Glob_dmvMB,inv_tAkl,tAk,tAl,det_tAkl) &
+  - V2kl - Glob_CurrEnergy*Glob_CurrEnergy*Skl + 2*Glob_CurrEnergy*Vkl &
+  +Glob_CurrEnergy*myME_dXd(Glob_dmvB,inv_tAkl,tAl,det_tAkl)
+  do i=1,n     
+    drach_MVkl2=drach_MVkl2-ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*&
+      myME_over_rij_dXd(Glob_dmvB,i,i,inv_tAkl,tAl,det_tAkl)                 
+    do j=i+1,n
+      drach_MVkl2=drach_MVkl2-ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*&
+        myME_over_rij_dXd(Glob_dmvB,i,j,inv_tAkl,tAl,det_tAkl)  
+    enddo
+  enddo 
+endif
+drach_MVkl1 = drach_MVkl1*Glob_dmva2 + MVkl
+drach_MVkl2 = drach_MVkl2*Glob_dmva2 + MVkl
+
+
 
 !Evaluation of the Darwin correction
 Mass_For_Darwin(0)=Glob_Mass(1)
@@ -1900,125 +1909,340 @@ ME_rXr_rYr_over_rij=ME_1_over_rij*(   &
 end function ME_rXr_rYr_over_rij
 
 
-function ME_dXd_dYd(X,Y,inv_tAkl,tAk,tAl,Skl)
-real(dprec) ME_dXd_dYd
+function myME_dXd_dYd(X,Y,inv_tAkl,tAk,tAl,det_tAkl)
+
+real(dprec) myME_dXd_dYd, det_tAkl
 integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
 real(dprec) X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn),tAk(nn,nn),tAl(nn,nn)
-real(dprec) Skl,M1(nn,nn),M2(nn,nn),Z1(nn,nn),Z2(nn,nn)
-integer p,q,k,n
-real(dprec) tr1,tr2,tr3,tr4,tr5,t1,t2
+
+
+!Local variables:
+integer :: i,j,k,n
+real(dprec) :: temp, trAXs, trAYs, trXAl, trYAk, trAYsAXs, commonFactor
+real(dprec) :: XAl(nn,nn), Xs(nn,nn), YAk(nn,nn), Ys(nn,nn),&
+AXs(nn,nn), YsAXs(nn,nn)
+real(dprec) :: term1, term2, term3, term4
+
 n=Glob_n
-!M1(1:n,1:n)=matmul(X(1:n,1:n),tAk(1:n,1:n))
-!tr1=trace(M1)
-!M2(1:n,1:n)=matmul(Y(1:n,1:n),tAl(1:n,1:n))
-!tr2=trace(M2)
-tr1=ZERO
-tr2=ZERO
-do p=1,n
-  do q=1,n
-    t1=ZERO
-    t2=ZERO
-    do k=1,n
-      t1=t1+X(q,k)*tAk(k,p)   
-      t2=t2+Y(q,k)*tAl(k,p)
-    enddo    
-    M1(q,p)=t1
-    M2(q,p)=t2
-  enddo 
-  tr1=tr1+M1(p,p)
-  tr2=tr2+M2(p,p)
-enddo 
-!Z1=tAk*M1
-!Z2=tAl*M2
-do p=1,n
-  do q=1,n
-    t1=ZERO
-    t2=ZERO
-    do k=1,n
-      t1=t1+tAk(q,k)*M1(k,p)  
-      t2=t2+tAl(q,k)*M2(k,p)
-    enddo    
-    Z1(q,p)=t1
-    Z2(q,p)=t2
-  enddo 
-enddo 
-!M1(1:n,1:n)=matmul(inv_tAkl(1:n,1:n),Z1(1:n,1:n))
-!tr3=trace(M1)
-!M2(1:n,1:n)=matmul(inv_tAkl(1:n,1:n),Z2(1:n,1:n))
-!tr4=trace(M2)
-tr3=ZERO
-tr4=ZERO
-do p=1,n
-  do q=1,n
-    t1=ZERO
-    t2=ZERO
-    do k=1,n
-      t1=t1+inv_tAkl(q,k)*Z1(k,p)   
-      t2=t2+inv_tAkl(q,k)*Z2(k,p)
-    enddo    
-    M1(q,p)=t1
-    M2(q,p)=t2
-  enddo 
-  tr3=tr3+M1(p,p)
-  tr4=tr4+M2(p,p)
+!!! Q-part  !!!
+! Build Xs matrix
+XAl = ZERO
+do i=1,n 
+  do j=1,n 
+    temp = ZERO
+    do k=1,n 
+      temp = temp + X(i,k)*tAl(k,j)
+    enddo
+    XAl(i,j) = temp
+  enddo
 enddo
-!tr5=trace(M1*M2)
-tr5=ZERO
-do p=1,n
-  do k=1,n
-    tr5=tr5+M1(p,k)*M2(k,p)   
-  enddo    
+
+Xs = ZERO
+do i=1,n 
+  do j=1,n 
+    temp = ZERO
+    do k=1,n 
+      temp = temp + tAl(i,k) * XAl(k,j)
+    enddo
+    Xs(i,j) = temp
+  enddo
 enddo
-ME_dXd_dYd=(24*tr5+36*(tr3*tr4-tr1*tr4-tr2*tr3+tr1*tr2))*Skl
-end function ME_dXd_dYd
+
+YAk = ZERO
+do i=1,n 
+  do j=1,n 
+    temp = ZERO
+    do k=1,n 
+      temp = temp + Y(i,k)*tAk(k,j)
+    enddo
+    YAk(i,j) = temp
+  enddo
+enddo
+
+Ys = ZERO
+do i=1,n 
+  do j=1,n 
+    temp = ZERO
+    do k=1,n 
+      temp = temp + tAk(i,k) * YAk(k,j)
+    enddo
+    Ys(i,j) = temp
+  enddo
+enddo
 
 
-function ME_dXd(X,inv_tAkl,tAl,Skl)
-real(dprec) ME_dXd
+!Symmetrize
+do i = 1,n
+  do j = i+1,n
+      temp=ONEHALF*(Xs(j,i)+Xs(i,j))
+      Xs(j,i) = temp
+      Xs(i,j) = temp
+  enddo
+enddo
+
+do i = 1,n
+  do j = i+1,n
+      temp=ONEHALF*(Ys(j,i)+Ys(i,j))
+      Ys(j,i) = temp
+      Ys(i,j) = temp
+  enddo
+enddo
+!End Symmetrize
+
+
+AXs = ZERO
+do i=1,n 
+  do j=1,n 
+    temp = ZERO
+    do k=1,n 
+      temp = temp + inv_tAkl(i,k)*Xs(k,j)
+    enddo
+    AXs(i,j) = temp
+  enddo
+enddo
+
+YsAXs = ZERO 
+do i=1,n 
+  do j=1,n 
+    temp = ZERO
+    do k=1,n 
+      temp = temp + Ys(i,k)*AXs(k,j)
+    enddo
+    YsAXs(i,j) = temp
+  enddo
+enddo
+
+
+trAXs = ZERO
+do i=1,n 
+  do j=1,n 
+    trAXs = trAXs + inv_tAkl(i,j)*Xs(j,i)
+  enddo 
+enddo
+
+trAYs = ZERO
+do i=1,n 
+  do j=1,n 
+    trAYs = trAYs + inv_tAkl(i,j)*Ys(j,i)
+  enddo 
+enddo
+
+trXAl = ZERO 
+do i=1,n 
+  trXAl = trXAl + XAl(i,i)
+enddo
+
+trYAk = ZERO 
+do i=1,n 
+  trYAk = trYAk + YAk(i,i)
+enddo
+
+trAYsAXs = ZERO 
+do i=1,n 
+  do j=1,n 
+    trAYsAXs = trAYsAXs + inv_tAkl(i,j)*YsAXs(j,i)
+  enddo 
+enddo
+
+commonFactor = Glob_Piraised3n2/(det_tAkl*sqrt(det_tAkl))
+
+term1 = 16._dprec*commonFactor*(&
+NINE/FOUR*trAXs*trAYs+ THREE/TWO*trAYsAXs)
+term2 = -36._dprec*commonFactor*trXAl*trAYs
+term3 = -36._dprec*commonFactor*trYAk*trAXs
+term4 = 36._dprec*commonFactor*trYAk*trXAl
+
+myME_dXd_dYd = term1 + term2 + term3 + term4
+
+
+end function myME_dXd_dYd
+
+
+function myME_dXd(X,inv_tAkl,tAl,det_tAkl)
+
+real(dprec) myME_dXd, det_tAkl
 integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
-real(dprec) X(nn,nn),inv_tAkl(nn,nn),tAl(nn,nn),Skl,M(nn,nn),Z(nn,nn)
-integer p,q,k,n
-real(dprec) tr1,tr2,t
+real(dprec) X(nn,nn),inv_tAkl(nn,nn),tAl(nn,nn)
+
+
+!Local variables:
+integer :: i,j,k,n
+real(dprec) :: temp, trXAl, trAXs, commonFactor
+real(dprec) :: XAl(nn,nn), Xs(nn,nn)
+
+
 n=Glob_n
-!M(1:n,1:n)=matmul(tAl(1:n,1:n),X(1:n,1:n))
-!tr1=trace(M)
-tr1=ZERO
-do p=1,n
-  do q=1,n
-    t=ZERO  
-    do k=1,n
-      t=t+tAl(q,k)*X(k,p)    
-    enddo    
-    M(q,p)=t
-  enddo 
-  tr1=tr1+M(p,p)
-enddo   
-!Z(1:n,1:n)=matmul(M(1:n,1:n),tAl(1:n,1:n))
-do p=1,n
-  do q=1,n
-    t=ZERO  
-    do k=1,n
-      t=t+M(q,k)*tAl(k,p)    
-    enddo    
-    Z(q,p)=t
-  enddo    
+!!! Q-part  !!!
+  !Build Xs matrix
+XAl = ZERO
+do i=1,n 
+  do j=1,n 
+    temp = ZERO
+    do k=1,n 
+      temp = temp + X(i,k)*tAl(k,j)
+    enddo
+    XAl(i,j) = temp
+  enddo
 enddo
-!M=matmul(inv_tAkl(1:n,1:n),Z(1:n,1:n))
-!tr2=trace(M)
-tr2=ZERO
-do p=1,n
-  do q=1,n
-    t=ZERO  
-    do k=1,n
-      t=t+inv_tAkl(q,k)*Z(k,p)    
-    enddo    
-    M(q,p)=t
+
+Xs = ZERO
+do i=1,n 
+  do j=1,n 
+    temp = ZERO
+    do k=1,n 
+      temp = temp + tAl(i,k) * XAl(k,j)
+    enddo
+    Xs(i,j) = temp
+  enddo
+enddo
+
+
+!Symmetrize
+do i = 1,n
+  do j = i+1,n
+      temp=ONEHALF*(Xs(j,i)+Xs(i,j))
+      Xs(j,i) = temp
+      Xs(i,j) = temp
+  enddo
+enddo
+
+trXAl = ZERO 
+do i=1,n 
+  trXAl = trXAl + XAl(i,i)
+enddo
+
+trAXs = ZERO
+do i=1,n 
+  do j=1,n 
+    trAXs = trAXs + inv_tAkl(i,j)*Xs(j,i)
   enddo 
-  tr2=tr1+M(p,p)
-enddo   
-!Evaluating matrix elements
-ME_dXd=6*(tr2-tr1)*Skl
-end function ME_dXd
+enddo
+
+commonFactor = SIX*Glob_Piraised3n2/(det_tAkl*sqrt(det_tAkl))
+
+myME_dXd = commonFactor*(trAXs - trXAl)
+
+end function myME_dXd
+
+
+function myME_over_rij_dXd(X,p,q,inv_tAkl,tAl,det_tAkl)
+!Function ME_1_over_rij_dXd computes the following
+!matrix element with real L=0 Gaussians phi_k and phi_l:
+!<phi_k| (1/r_{ij})(nabla_r'*X*nabla_r) |phi_l>
+!Here X is arbitrary (i.e. nonsymmetric) real matrix.
+!Index i can be equal to j. In the latter case
+!<phi_k| (1/r_i)(nabla_r'*X*nabla_r) |phi_l>is computed
+!Input:
+!            X  :: n x n real matrix
+!           i,j :: indices denoting i and j.
+!      inv_tAkl :: n x n real matrix where the inverse of Ak+tAl is stored
+! ME_1_over_rij :: the value of <phi_k| 1/r_{ij} |phi_l> matrix element 
+!          TrAJ :: the value of Tr[inv_tAkl Jij]
+!Note that n=Glob_n and nn=Glob_MaxAllowedNumOfPseudoParticles. Although
+!all arrays (both arguments and local ones) are static and have dimension
+!nn x nn, only n x n subarrays are referenced. 
+
+!Input parameters:
+real(dprec) myME_over_rij_dXd, det_tAkl
+integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+real(dprec) :: X(nn,nn),inv_tAkl(nn,nn),tAl(nn,nn)
+integer p,q
+
+!Local variables:
+integer :: i,j,k,n
+real(dprec) :: temp, gamma, trAXs, jijAXsAjij, trXAl, commonFactor
+real(dprec) :: XAl(nn,nn), Xs(nn,nn), XsA(nn,nn), AXsA(nn,nn)
+
+
+n=Glob_n
+!!! Q-part  !!!
+  !Build Xs matrix
+XAl = ZERO
+do i=1,n 
+  do j=1,n 
+    temp = ZERO
+    do k=1,n 
+      temp = temp + X(i,k)*tAl(k,j)
+    enddo
+    XAl(i,j) = temp
+  enddo
+enddo
+
+Xs = ZERO
+do i=1,n 
+  do j=1,n 
+    temp = ZERO
+    do k=1,n 
+      temp = temp + tAl(i,k) * XAl(k,j)
+    enddo
+    Xs(i,j) = temp
+  enddo
+enddo
+
+
+!Symmetrize
+do i = 1,n
+  do j = i+1,n
+      temp=ONEHALF*(Xs(j,i)+Xs(i,j))
+      Xs(j,i) = temp
+      Xs(i,j) = temp
+  enddo
+enddo
+
+
+XsA = ZERO
+do i=1,n 
+  do j=1,n 
+    temp = ZERO
+    do k=1,n 
+      temp = temp + Xs(i,k)*inv_tAkl(k,j)
+    enddo
+    XsA(i,j) = temp
+  enddo
+enddo
+
+AXsA = ZERO 
+do i=1,n 
+  do j=1,n 
+    temp = ZERO
+    do k=1,n 
+      temp = temp + inv_tAkl(i,k)*XsA(k,j)
+    enddo
+    AXsA(i,j) = temp
+  enddo
+enddo
+
+jijAXsAjij = ZERO 
+
+if (p == q) then 
+  jijAXsAjij = AXsA(p,p)
+  gamma = inv_tAkl(p,p)
+  gamma = ONE/sqrt(gamma)
+else 
+  jijAXsAjij = AXsA(p,p) + AXsA(q,q) - AXsA(p,q) - AXsA(q,p)
+  gamma = inv_tAkl(p,p) + inv_tAkl(q,q) - inv_tAkl(p,q) - inv_tAkl(q,p)
+  gamma = ONE/sqrt(gamma)
+endif
+
+
+trAXs = ZERO
+do i=1,n 
+  do j=1,n 
+    trAXs = trAXs + inv_tAkl(i,j)*Xs(j,i)
+  enddo 
+enddo
+
+trXAl = ZERO 
+do i=1,n 
+  trXAl = trXAl + XAl(i,i)
+enddo
+
+commonFactor = SIX*TWO*Glob_Piraised3n2/(SQRTPI*det_tAkl*sqrt(det_tAkl))
+
+myME_over_rij_dXd = commonFactor*(&
+gamma*(trAXs - trXAl) - ONE/THREE*gamma**3*jijAXsAjij)
+
+end function myME_over_rij_dXd
 
 
 function ME_1_over_rij_dXd(X,i,j,inv_tAkl,tAl,ME_1_over_rij,TrAJ)
