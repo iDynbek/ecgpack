@@ -896,7 +896,8 @@ if (abs(ml - mh) > 1.d-14) then
 endif
   
 m0=Glob_Mass(1)
-Glob_dmva2 = (m0**3 + mh**3)/(TWO*m0*mh*(m0+mh)**2) 
+Glob_dmva21 = (m0**3 + ml**3)/(TWO*m0*ml*(m0+ml)**2) 
+Glob_dmva22 = (m0**3 + mh**3)/(TWO*m0*mh*(m0+mh)**2) 
 !Glob_dmva2 = (m0**2)/(TWO*mh*(m0+mh)**2) 
 Glob_dmvB(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
 if (.not. Glob_ArePseudoParticleMassesTheSame) then
@@ -8519,8 +8520,8 @@ integer                                    :: NumOfCFAndDensExpVals
 real(dprec),allocatable,dimension(:)       :: CFDMEkl_s
 real(dprec),allocatable,dimension(:)       :: MEkl,MEkl_s
 real(dprec)                                :: Hkl,Skl,Tkl,Vkl
-real(dprec)                                :: MVkl,drach_MVkl1,drach_MVkl2,Darwinkl,drach_Darwinkl,OOkl
-real(dprec)                                :: H,S,T,V,MV,drach_MV1,drach_MV2,Darwin,drach_Darwin,OO
+real(dprec)                                :: MVkl,drach_MVkl1,drach_MVkl2,drach_MVkl3,Darwinkl,drach_Darwinkl,OOkl
+real(dprec)                                :: H,S,T,V,MV,drach_MV1,drach_MV2,drach_MV3,Darwin,drach_Darwin,OO
 real(dprec)                                :: wf2originkl,wf2origin
 real(dprec),allocatable,dimension(:,:)     :: rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,prvalkl
 real(dprec),allocatable,dimension(:,:)     :: rm2,rm,r,r2,deltar,drach_deltar,prval
@@ -9047,7 +9048,7 @@ do i=1,cbs
 	    do k=1,Glob_NumYHYTerms			    
 	      call MatrixElementsForExpcVals(Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),      &
 		    IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl,Skl,Tkl,Vkl,rm2kl,rmkl,rkl,r2kl,          &
-		    deltarkl,drach_deltarkl,MVkl,drach_MVkl1,drach_MVkl2,Darwinkl,drach_Darwinkl,OOkl,rmrmkl,       &
+		    deltarkl,drach_deltarkl,MVkl,drach_MVkl1,drach_MVkl2,drach_MVkl3,Darwinkl,drach_Darwinkl,OOkl,rmrmkl,   &
                     del2kl,prvalkl,wf2originkl,NumCFGridPoints,CFGrid,CFkl,NumDensGridPoints,DensGrid, &
 		    Denskl,AreCorrFuncNeeded,ArePartDensNeeded,AreMCorrFuncNeeded,AreMPartDensNeeded)	    	            
 	      c=0
@@ -9093,6 +9094,7 @@ do i=1,cbs
               c=c+1; MEkl(c)=MVkl	
               c=c+1; MEkl(c)=drach_MVkl1
               c=c+1; MEkl(c)=drach_MVkl2
+              c=c+1; MEkl(c)=drach_MVkl3
               c=c+1; MEkl(c)=Darwinkl	
               c=c+1; MEkl(c)=drach_Darwinkl          
               c=c+1; MEkl(c)=OOkl
@@ -9187,7 +9189,7 @@ do i=1,cbs
               do kk=1,Glob_NumYTerms
 		call MatrixElementsForExpcVals(Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),     &
 		     Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl,Skl,Tkl,Vkl,rm2kl,rmkl,rkl,r2kl,  &
-		     deltarkl,drach_deltarkl,MVkl,drach_MVkl1,drach_MVkl2,Darwinkl,drach_Darwinkl,OOkl,rmrmkl,       &
+		     deltarkl,drach_deltarkl,MVkl,drach_MVkl1,drach_MVkl2,drach_MVkl3,Darwinkl,drach_Darwinkl,OOkl,rmrmkl,  &
                      del2kl,prvalkl,wf2originkl,NumCFGridPoints,CFGrid,CFkl,NumDensGridPoints,DensGrid, &
                      Denskl,AreCorrFuncNeeded,ArePartDensNeeded,AreMCorrFuncNeeded,AreMPartDensNeeded)
 		c=0
@@ -9233,6 +9235,7 @@ do i=1,cbs
                 c=c+1; MEkl(c)=MVkl	
                 c=c+1; MEkl(c)=drach_MVkl1
                 c=c+1; MEkl(c)=drach_MVkl2
+                c=c+1; MEkl(c)=drach_MVkl3
                 c=c+1; MEkl(c)=Darwinkl	
                 c=c+1; MEkl(c)=drach_Darwinkl          
                 c=c+1; MEkl(c)=OOkl
@@ -9392,6 +9395,7 @@ c=c+1; V=MEkl_s(c)
 c=c+1; MV=MEkl_s(c)
 c=c+1; drach_MV1=MEkl_s(c)
 c=c+1; drach_MV2=MEkl_s(c)
+c=c+1; drach_MV3=MEkl_s(c)
 c=c+1; Darwin=MEkl_s(c)
 c=c+1; drach_Darwin=MEkl_s(c)
 c=c+1; OO=MEkl_s(c)
@@ -9529,8 +9533,9 @@ if (Glob_ProcID==0) then
   if (Glob_ArePseudoParticleMassesTheSame) then
   write(*,*) '               drach_MV=',drach_MV1
   else
-  write(*,*) '             drach_MV_1=',drach_MV1
-  write(*,*) '             drach_MV_2=',drach_MV2
+  write(*,*) '             drach_MV_l=',drach_MV1
+  write(*,*) '             drach_MV_h=',drach_MV2
+  write(*,*) '            drach_MV_hh=',drach_MV3
   endif
   write(*,*) '                 Darwin=',Darwin
   write(*,*) '           drach_Darwin=',drach_Darwin
@@ -9565,8 +9570,9 @@ if (Glob_ProcID==0) then
   if (Glob_ArePseudoParticleMassesTheSame) then
   write(*,*) '     (alpha^2)*drach_MV=',drach_MV1*(Glob_FineStructConst**2)
   else
-  write(*,*) '   (alpha^2)*drach_MV_1=',drach_MV1*(Glob_FineStructConst**2)
-  write(*,*) '   (alpha^2)*drach_MV_2=',drach_MV2*(Glob_FineStructConst**2)
+  write(*,*) '   (alpha^2)*drach_MV_l=',drach_MV1*(Glob_FineStructConst**2)
+  write(*,*) '   (alpha^2)*drach_MV_h=',drach_MV2*(Glob_FineStructConst**2)
+  write(*,*) '  (alpha^2)*drach_MV_hh=',drach_MV3*(Glob_FineStructConst**2)
   endif
   write(*,*) '       (alpha^2)*Darwin=',Darwin*(Glob_FineStructConst**2)
   write(*,*) ' (alpha^2)*drach_Darwin=',drach_Darwin*(Glob_FineStructConst**2)
@@ -9619,10 +9625,12 @@ if (Glob_ProcID==0) then
   write(2,'(a)',advance='no') '               drach_MV '
   call writerealadv(2,drach_MV1)
   else
-  write(2,'(a)',advance='no') '             drach_MV_1 '
+  write(2,'(a)',advance='no') '             drach_MV_l '
   call writerealadv(2,drach_MV1)
-  write(2,'(a)',advance='no') '             drach_MV_2 '
+  write(2,'(a)',advance='no') '             drach_MV_h '
   call writerealadv(2,drach_MV2)
+  write(2,'(a)',advance='no') '            drach_MV_hh '
+  call writerealadv(2,drach_MV3)
   endif
 
 
@@ -9639,10 +9647,12 @@ if (Glob_ProcID==0) then
   write(2,'(a)',advance='no') '     (alpha^2)*drach_MV '
   call writerealadv(2,drach_MV1*(Glob_FineStructConst**2))
   else
-  write(2,'(a)',advance='no') '   (alpha^2)*drach_MV_1 '
+  write(2,'(a)',advance='no') '   (alpha^2)*drach_MV_l '
   call writerealadv(2,drach_MV1*(Glob_FineStructConst**2))
-  write(2,'(a)',advance='no') '   (alpha^2)*drach_MV_2 '
+  write(2,'(a)',advance='no') '   (alpha^2)*drach_MV_h '
   call writerealadv(2,drach_MV2*(Glob_FineStructConst**2))
+  write(2,'(a)',advance='no') '   (alpha^2)*drach_MV_hh '
+  call writerealadv(2,drach_MV3*(Glob_FineStructConst**2))
   endif
 
   write(2,'(a)',advance='no') '       (alpha^2)*Darwin '

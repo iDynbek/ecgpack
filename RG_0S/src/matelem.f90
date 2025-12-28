@@ -614,7 +614,7 @@ end subroutine MatrixElements
 
 subroutine MatrixElementsForExpcVals(vechLk, vechLl, Pbra, Pket, &
            Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
-           MVkl, drach_MVkl1, drach_MVkl2, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, del2kl, prvalkl, &
+           MVkl, drach_MVkl1, drach_MVkl2, drach_MVkl3, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, del2kl, prvalkl, &
            wf2originkl, NumCFGridPoints, CFGrid, CFkl, NumDensGridPoints, DensGrid, Denskl, &
            AreCorrFuncNeeded, ArePartDensNeeded, AreMCorrFuncNeeded, AreMPartDensNeeded)
 !This subroutine computes symmetry adapted matrix elements 
@@ -663,7 +663,7 @@ subroutine MatrixElementsForExpcVals(vechLk, vechLl, Pbra, Pket, &
 !Arguments
 real(dprec),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
 real(dprec),intent(in)   :: Pbra(Glob_n,Glob_n),Pket(Glob_n,Glob_n)
-real(dprec),intent(out)  :: Hkl,Skl,Tkl,Vkl,MVkl,drach_MVkl1,drach_MVkl2,Darwinkl,drach_Darwinkl,OOkl
+real(dprec),intent(out)  :: Hkl,Skl,Tkl,Vkl,MVkl,drach_MVkl1,drach_MVkl2,drach_MVkl3,Darwinkl,drach_Darwinkl,OOkl
 real(dprec),intent(out)  :: rm2kl(Glob_n,Glob_n),rmkl(Glob_n,Glob_n)
 real(dprec),intent(out)  :: rkl(Glob_n,Glob_n),r2kl(Glob_n,Glob_n)
 real(dprec),intent(out)  :: deltarkl(Glob_n,Glob_n)
@@ -1477,25 +1477,24 @@ enddo
 MVkl=-MVkl/8
 
 !Evaluation of the drachmanized mass-velocity
- drach_MVkl1 = myME_dXd_dYd(Glob_dmvM,Glob_dmvM,inv_tAkl,tAk,tAl,det_tAkl) &
+ temp1 = myME_dXd_dYd(Glob_dmvM,Glob_dmvM,inv_tAkl,tAk,tAl,det_tAkl) &
   - V2kl - Glob_CurrEnergy*Glob_CurrEnergy*Skl + 2*Glob_CurrEnergy*Vkl
-if (Glob_ArePseudoParticleMassesTheSame) then 
-  drach_MVkl2 = drach_MVkl1
-else
-  drach_MVkl2 = myME_dXd_dYd(Glob_dmvM,Glob_dmvMB,inv_tAkl,tAk,tAl,det_tAkl) &
+if (.not. Glob_ArePseudoParticleMassesTheSame) then
+  temp2 = myME_dXd_dYd(Glob_dmvM,Glob_dmvMB,inv_tAkl,tAk,tAl,det_tAkl) &
   - V2kl - Glob_CurrEnergy*Glob_CurrEnergy*Skl + 2*Glob_CurrEnergy*Vkl &
   +Glob_CurrEnergy*myME_dXd(Glob_dmvB,inv_tAkl,tAl,det_tAkl)
   do i=1,n     
-    drach_MVkl2=drach_MVkl2-ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*&
+    temp2=temp2-ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*&
       myME_over_rij_dXd(Glob_dmvB,i,i,inv_tAkl,tAl,det_tAkl)                 
     do j=i+1,n
-      drach_MVkl2=drach_MVkl2-ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*&
+      temp2=temp2-ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*&
         myME_over_rij_dXd(Glob_dmvB,i,j,inv_tAkl,tAl,det_tAkl)  
     enddo
   enddo 
 endif
-drach_MVkl1 = drach_MVkl1*Glob_dmva2 + MVkl
-drach_MVkl2 = drach_MVkl2*Glob_dmva2 + MVkl
+drach_MVkl1 = temp1*Glob_dmva21 + MVkl
+drach_MVkl2 = temp1*Glob_dmva22 + MVkl
+drach_MVkl3 = temp2*Glob_dmva22 + MVkl
 
 
 

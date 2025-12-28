@@ -100,7 +100,7 @@ real(dprec)   Glob_MassTotal
 
 !Glob_dmva2 is a constant depending on the masses of particles,
 !which is used in the evaluation of drachmanized mass-velocity correction
-real(dprec)   Glob_dmva2
+real(dprec)   Glob_dmva21, Glob_dmva22
 
 !Glob_dmvB, Glob_dmvM, and Glob_dmvMB are constant diagonal matrices used in 
 !the evaluation of drachmanized mass-velocity correction. their elements depend 
@@ -130,6 +130,8 @@ logical      ::  Glob_RepScalParamPlusSupplied=.false.
 logical      ::  Glob_RepScalParamMinusSupplied=.false.
 logical      ::  Glob_AttrScalParamSupplied=.false.
 logical      ::  Glob_AreParticleMassesTheSame = .true.
+logical      ::  Glob_ArePseudoParticleMassesTheSame = .true.
+
 
 !Glob_YOperatorStringLength definess the length of string
 !Glob_YOperatorString

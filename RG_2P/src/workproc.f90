@@ -809,7 +809,7 @@ subroutine ProgramDataInit()
 !calculations. It should be called at the start of the program,
 !right after reading input/output file.
 
-integer       n,npart
+integer       n,npart,indexh
 integer       i,j,k,p,q,t,s,w,ii,jj,kk
 character(1)  c1,cc1
 integer       StrLen,NumFactY
@@ -824,7 +824,7 @@ integer       pi,pj,pt,ps
 logical       AreTermsIdentical
 integer,allocatable,dimension(:)      :: IdentParticleSet
 integer,allocatable,dimension(:,:)    :: IdentPseudoPartPairSet
-real(dprec)   mk,mi,m0,mh
+real(dprec)   mk,mi,m0,mh,ml
 
 if (Glob_ProcID==0) write(*,*) 'Initializing program data'
 
@@ -852,40 +852,48 @@ do i=2,npart
   Glob_bvc(i-1,i)=Glob_bvc(i-1,i)+ONE
 enddo
 
-!Determine the mass and the index of the the lightest particle 
+!Determine the mass and the index of the the lightest and heaviest particle 
 !(reference particle excluded). 
-!and its index
-k=0
-mk=2*Glob_MassTotal
+!and the index if heaviest
+indexh=0
 mh=0
+ml=2*Glob_MassTotal
 do i=1,n
-  if (Glob_Mass(i+1)<mk) then
-    k=i
-    mk=Glob_Mass(i+1)
+  if (Glob_Mass(i+1)<ml) then
+    ml=Glob_Mass(i+1)
   endif    
   if (Glob_Mass(i+1)>mh) then
     mh=Glob_Mass(i+1)
-  endif 
+    indexh=i
+  endif   
 enddo  
-  
-if (abs(mk - mh) > 1.d-14) then
-  Glob_AreParticleMassesTheSame = .false.
-endif
 
+if (abs(ml - mh) > 1.d-14) then
+  Glob_ArePseudoParticleMassesTheSame = .false.
+endif
+  
 m0=Glob_Mass(1)
-!alpha = sqrt( 0.5 * (m_0^3 + m_k^3)/(m_0*m_k*(m_0 + m_k)^2) )
-Glob_dmva2 = (m0**3 + mk**3)/(TWO*m0*mk*(m0+mk)**2) 
-!Glob_dmvB(i,i) = (beta^2 + gamma_i^2)/(alpha^2 * M_ii) - M_ii
+Glob_dmva21 = (m0**3 + ml**3)/(TWO*m0*ml*(m0+ml)**2) 
+Glob_dmva22 = (m0**3 + mh**3)/(TWO*m0*mh*(m0+mh)**2) 
+!Glob_dmva2 = (m0**2)/(TWO*mh*(m0+mh)**2) 
 Glob_dmvB(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
-if (.not. Glob_AreParticleMassesTheSame) then 
-  do i=1,n
-    mi=Glob_Mass(i+1)
-    Glob_dmvB(i,i)=( (m0**3+mi**3)*mk*(m0+mk)**2 - (m0**3+mk**3)*mi*(m0+mi)**2 ) / ( TWO*(m0+mi)*(m0**3+mk**3)*m0*mi**2 )
-  enddo 
-endif    
+!if (.not. Glob_ArePseudoParticleMassesTheSame) then
+!  do i=1,n
+!    if (i == indexh) cycle
+!    mi=Glob_Mass(i+1)
+!    mui = m0*mi/(m0+mi)
+!    Glob_dmvB(i,i) = -ONE/mui
+!  enddo  
+!  do i=1,n 
+!    do j=i+1,n 
+!      Glob_dmvB(i,j) = -ONE/m0
+!      Glob_dmvB(j,i) = Glob_dmvB(i,j)
+!    enddo
+!  enddo
+!endif
 Glob_dmvM(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
 Glob_dmvM(1:n,1:n)=Glob_MassMatrix(1:n,1:n)
-Glob_dmvMB=Glob_dmvM+Glob_dmvB
+!Glob_dmvMB=Glob_dmvM+Glob_dmvB
 
 !Constructing all Pij transposition matrices 
 !
@@ -8888,7 +8896,7 @@ real(dprec)                                :: Hkl2,Skl2,Tkl2,Vkl2
 real(dprec)                                :: MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
 real(dprec)                                :: MVkl1,drach_MVkl1,Darwinkl1,drach_Darwinkl1,OOkl1
 real(dprec)                                :: MVkl2,drach_MVkl2,Darwinkl2,drach_Darwinkl2,OOkl2
-real(dprec)                                :: H,S,T,V,MV,drach_MV,Darwin,drach_Darwin,OO
+real(dprec)                                :: H,S,T,V,MV,drach_MV1,drach_MV2,Darwin,drach_Darwin,OO
 real(dprec),allocatable,dimension(:,:)     :: rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,prvalkl
 real(dprec),allocatable,dimension(:,:)     :: rm2kl1,rmkl1,rkl1,r2kl1,deltarkl1,drach_deltarkl1,prvalkl1
 real(dprec),allocatable,dimension(:,:)     :: rm2kl2,rmkl2,rkl2,r2kl2,deltarkl2,drach_deltarkl2,prvalkl2
@@ -9435,7 +9443,7 @@ do i=1,cbs
 	      call MatrixElementsL1ForExpcValsP(Glob_Index(i,1),Glob_Index(j,1),Glob_Index(i,2),Glob_Index(j,2),  &
 	        Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
 	        IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl,Skl,Tkl,Vkl,                    &
-                rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
+                rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl1,drach_MVkl2,   &
                 Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
                 NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
                !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!     
@@ -9487,7 +9495,8 @@ do i=1,cbs
               c=c+1; MEkl(c)=Tkl!1-Tkl2
               c=c+1; MEkl(c)=Vkl!1-Vkl2
               c=c+1; MEkl(c)=MVkl!1-MVkl2	
-              c=c+1; MEkl(c)=drach_MVkl!1-drach_MVkl2         
+              c=c+1; MEkl(c)=drach_MVkl1!1-drach_MVkl2      
+              c=c+1; MEkl(c)=drach_MVkl2!1-drach_MVkl2     
               c=c+1; MEkl(c)=Darwinkl!1-Darwinkl2
               c=c+1; MEkl(c)=drach_Darwinkl!1-drach_Darwinkl2       
               c=c+1; MEkl(c)=OOkl!1-OOkl2	
@@ -9572,7 +9581,7 @@ do i=1,cbs
 	        call MatrixElementsL1ForExpcValsP(Glob_Index(i,1),Glob_Index(j,1),Glob_Index(i,2), Glob_Index(j,2),  &
 	          Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
 	          Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl,Skl,Tkl,Vkl,            &
-                  rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &
+                  rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl1,drach_MVkl2,     &
                   Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
                   NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
 !		call MatrixElementsL1ForExpcVals(Glob_Index(i,1),Glob_Index(j,2),Glob_Index(i,2), Glob_Index(j,1),  &
@@ -9622,7 +9631,8 @@ do i=1,cbs
               c=c+1; MEkl(c)=Tkl!1-Tkl2
               c=c+1; MEkl(c)=Vkl!1-Vkl2
               c=c+1; MEkl(c)=MVkl!1-MVkl2	
-              c=c+1; MEkl(c)=drach_MVkl!1-drach_MVkl2         
+              c=c+1; MEkl(c)=drach_MVkl1!1-drach_MVkl2         
+              c=c+1; MEkl(c)=drach_MVkl2!1-drach_MVkl2   
               c=c+1; MEkl(c)=Darwinkl!1-Darwinkl2
               c=c+1; MEkl(c)=drach_Darwinkl!1-drach_Darwinkl2       
               c=c+1; MEkl(c)=OOkl!1-OOkl2	  
@@ -9770,7 +9780,8 @@ c=c+1; S=MEkl_s(c)
 c=c+1; T=MEkl_s(c)
 c=c+1; V=MEkl_s(c)
 c=c+1; MV=MEkl_s(c)
-c=c+1; drach_MV=MEkl_s(c)
+c=c+1; drach_MV1=MEkl_s(c)
+c=c+1; drach_MV2=MEkl_s(c)
 c=c+1; Darwin=MEkl_s(c)
 c=c+1; drach_Darwin=MEkl_s(c)
 c=c+1; OO=MEkl_s(c)
@@ -9983,7 +9994,12 @@ if (Glob_ProcID==0) then
   write(*,*) '                      T=',T
   write(*,*) '                      V=',V
   write(*,*) '                     MV=',MV
-  write(*,*) '               drach_MV=',drach_MV
+  if (Glob_ArePseudoParticleMassesTheSame) then
+  write(*,*) '               drach_MV=',drach_MV1
+  else
+  write(*,*) '             drach_MV_l=',drach_MV1
+  write(*,*) '             drach_MV_h=',drach_MV2
+  endif
   write(*,*) '                 Darwin=',Darwin
   write(*,*) '           drach_Darwin=',drach_Darwin
   write(*,*) '                     OO=',OO
@@ -10039,7 +10055,12 @@ if (Glob_ProcID==0) then
   write(*,*)
   
   write(*,*) '           (alpha^2)*MV=',MV*(Glob_FineStructConst**2)
-  write(*,*) '     (alpha^2)*drach_MV=',drach_MV*(Glob_FineStructConst**2)
+  if (Glob_ArePseudoParticleMassesTheSame) then
+  write(*,*) '     (alpha^2)*drach_MV=',drach_MV1*(Glob_FineStructConst**2)
+  else
+  write(*,*) '   (alpha^2)*drach_MV_l=',drach_MV1*(Glob_FineStructConst**2)
+  write(*,*) '   (alpha^2)*drach_MV_h=',drach_MV2*(Glob_FineStructConst**2)
+  endif
   write(*,*) '       (alpha^2)*Darwin=',Darwin*(Glob_FineStructConst**2)
   write(*,*) ' (alpha^2)*drach_Darwin=',drach_Darwin*(Glob_FineStructConst**2)
   write(*,*) '           (alpha^2)*OO=',OO*(Glob_FineStructConst**2)
@@ -10103,8 +10124,15 @@ if (Glob_ProcID==0) then
   call writerealadv(2,V)
   write(2,'(a)',advance='no') '                     MV '
   call writerealadv(2,MV)
+  if (Glob_ArePseudoParticleMassesTheSame) then 
   write(2,'(a)',advance='no') '               drach_MV '
-  call writerealadv(2,drach_MV)
+  call writerealadv(2,drach_MV1)
+  else
+  write(2,'(a)',advance='no') '             drach_MV_l '
+  call writerealadv(2,drach_MV1)
+  write(2,'(a)',advance='no') '             drach_MV_h '
+  call writerealadv(2,drach_MV2)
+  endif
   write(2,'(a)',advance='no') '                 Darwin '
   call writerealadv(2,Darwin)
   write(2,'(a)',advance='no') '           drach_Darwin '
@@ -10113,8 +10141,15 @@ if (Glob_ProcID==0) then
   call writerealadv(2,OO)
   write(2,'(a)',advance='no') '           (alpha^2)*MV '
   call writerealadv(2,MV*(Glob_FineStructConst**2))
+  if (Glob_ArePseudoParticleMassesTheSame) then 
   write(2,'(a)',advance='no') '     (alpha^2)*drach_MV '
-  call writerealadv(2,drach_MV*(Glob_FineStructConst**2))
+  call writerealadv(2,drach_MV1*(Glob_FineStructConst**2))
+  else
+  write(2,'(a)',advance='no') '   (alpha^2)*drach_MV_l '
+  call writerealadv(2,drach_MV1*(Glob_FineStructConst**2))
+  write(2,'(a)',advance='no') '   (alpha^2)*drach_MV_h '
+  call writerealadv(2,drach_MV2*(Glob_FineStructConst**2))
+  endif
   write(2,'(a)',advance='no') '       (alpha^2)*Darwin '
   call writerealadv(2,Darwin*(Glob_FineStructConst**2))
   write(2,'(a)',advance='no') ' (alpha^2)*drach_Darwin '

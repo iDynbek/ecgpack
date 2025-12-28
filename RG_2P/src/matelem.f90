@@ -819,7 +819,7 @@ end subroutine MatrixElementsLP
 
 subroutine MatrixElementsL1ForExpcValsP(m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pbra, Pket, &
            Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
-           MVkl, drach_MVkl, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, prvalkl, &
+           MVkl, drach_MVkl1, drach_MVkl2, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, prvalkl, &
            NumCFGridPoints, CFGrid, &
            CFkl, NumDensGridPoints, DensGrid, Denskl, AreCorrFuncNeeded, ArePartDensNeeded)
 
@@ -828,7 +828,7 @@ subroutine MatrixElementsL1ForExpcValsP(m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pb
 integer,intent(in)       :: m_k,m_l,mm_k,mm_l
 real(dprec),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
 real(dprec),intent(in)   :: Pbra(Glob_n,Glob_n),Pket(Glob_n,Glob_n)
-real(dprec),intent(out)  :: Hkl,Skl,Tkl,Vkl,MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
+real(dprec),intent(out)  :: Hkl,Skl,Tkl,Vkl,MVkl,drach_MVkl1,drach_MVkl2,Darwinkl,drach_Darwinkl,OOkl
 real(dprec),intent(out)  :: rm2kl(Glob_n,Glob_n),rmkl(Glob_n,Glob_n)
 real(dprec),intent(out)  :: rkl(Glob_n,Glob_n),r2kl(Glob_n,Glob_n)
 real(dprec),intent(out)  :: deltarkl(Glob_n,Glob_n)
@@ -1677,30 +1677,11 @@ enddo
 MVkl=-MVkl/8
 
    
-drach_MVkl=ZERO		   
-drach_MVkl=dXddYd(Glob_dmvM,Glob_dmvMB,tvk,tbk,tvl,tbl,tAl,tAk,inv_tAkl,det_tAkl,tau3,tau33,tau333,tau334,inv_tAkltAl,inv_tAkltAk)&
-  -V2kl-Glob_CurrEnergy*Glob_CurrEnergy*Skl+2*Glob_CurrEnergy*Vkl
+temp1=dXddYd(Glob_dmvM,Glob_dmvM,tvk,tbk,tvl,tbl,tAl,tAk,inv_tAkl,det_tAkl,tau3,tau33,tau333,tau334,inv_tAkltAl,inv_tAkltAk)&
+    -V2kl-Glob_CurrEnergy*Glob_CurrEnergy*Skl+2*Glob_CurrEnergy*Vkl
 
-if (.not. Glob_AreParticleMassesTheSame) then
-  drach_MVkl = drach_MVkl - &
-  Glob_CurrEnergy*ME_dXd(Glob_dmvB,tvk,tvl,tbk,tbl,det_tAkl,tAl,inv_tAkl)
-endif
-do i=1,n                                        
-  drach_MVkl=drach_MVkl-ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i)) &
-  *ME_d_X_over_rij_d(i,i,Glob_dmvB,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl,&
-  tvkinv_tAkl, tbkinv_tAkl, inv_tAkltvl, inv_tAkltbl) 
-                        !*ME_d_X_over_rij_d(i,i,Glob_dmvB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl, &
-                         !          tvkinv_tAkl,trAJ(i,i),tau3,eta2(i,i),Skl)
-                                   
-  do j=i+1,n                                                                  
-  drach_MVkl=drach_MVkl-ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j)) &
-  *ME_d_X_over_rij_d(i,j,Glob_dmvB,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl,&
-  tvkinv_tAkl, tbkinv_tAkl, inv_tAkltvl, inv_tAkltbl) 
-                       ! *ME_d_X_over_rij_d(i,j,Glob_dmvB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl, &
-                       !            tvkinv_tAkl,trAJ(i,j),tau3,eta2(i,j),Skl)                        
-  enddo                
-enddo
-drach_MVkl = drach_MVkl*Glob_dmva2 + MVkl
+drach_MVkl1 = temp1*Glob_dmva21 + MVkl
+drach_MVkl2 = temp1*Glob_dmva22 + MVkl
 
 
 OOkl = ZERO

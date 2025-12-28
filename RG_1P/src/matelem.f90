@@ -757,7 +757,7 @@ end subroutine MatrixElementsL1
 
 subroutine MatrixElementsL1ForExpcVals(m_k, m_l, vechLk, vechLl, Pbra, Pket, &
            Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
-           MVkl, drach_MVkl, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, prvalkl, &
+           MVkl, drach_MVkl1, drach_MVkl2, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, prvalkl, &
            NumCFGridPoints, CFGrid, CFkl, NumDensGridPoints, DensGrid, Denskl, &
            AreCorrFuncNeeded, ArePartDensNeeded, AreMCorrFuncNeeded, AreMPartDensNeeded)
 !This subroutine computes symmetry adapted matrix elements
@@ -810,7 +810,7 @@ subroutine MatrixElementsL1ForExpcVals(m_k, m_l, vechLk, vechLl, Pbra, Pket, &
 integer,intent(in)       :: m_k,m_l
 real(dprec),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
 real(dprec),intent(in)   :: Pbra(Glob_n,Glob_n),Pket(Glob_n,Glob_n)
-real(dprec),intent(out)  :: Hkl,Skl,Tkl,Vkl,MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
+real(dprec),intent(out)  :: Hkl,Skl,Tkl,Vkl,MVkl,drach_MVkl1,drach_MVkl2,Darwinkl,drach_Darwinkl,OOkl
 real(dprec),intent(out)  :: rm2kl(Glob_n,Glob_n),rmkl(Glob_n,Glob_n)
 real(dprec),intent(out)  :: rkl(Glob_n,Glob_n),r2kl(Glob_n,Glob_n)
 real(dprec),intent(out)  :: deltarkl(Glob_n,Glob_n)
@@ -1664,23 +1664,13 @@ do i=1,n
   W1(i,i)=ZERO
 enddo
 MVkl=-MVkl/8
-drach_MVkl=ZERO
-drach_MVkl=ME_dWd21(Glob_dmvM,Glob_dmvMB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,inv_tau3,Skl) &
-  -V2kl-Glob_CurrEnergy*Glob_CurrEnergy*Skl+2*Glob_CurrEnergy*Vkl+ &
-  Glob_CurrEnergy*ME_dXd(Glob_dmvB,tvk,tvl,inv_tAkltvl,inv_tAkl,tAk,tAl,inv_tAkltAl,Skl,tau3)!+&
-do i=1,n
-  drach_MVkl=drach_MVkl-ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i)) &
-                        *ME_d_X_over_rij_d(i,i,Glob_dmvB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl, &
-                                   tvkinv_tAkl,trAJ(i,i),tau3,eta2(i,i),Skl)
-  do j=i+1,n
-  drach_MVkl=drach_MVkl-ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j)) &
-                        *ME_d_X_over_rij_d(i,j,Glob_dmvB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl, &
-                                   tvkinv_tAkl,trAJ(i,j),tau3,eta2(i,j),Skl)
-  enddo
-enddo
-drach_MVkl = drach_MVkl*Glob_dmva2 + MVkl
+drach_MVkl1=ZERO
+drach_MVkl2=ZERO
 
-
+temp1=ME_dWd2(Glob_dmvM,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,inv_tau3,Skl) &
+  -V2kl-Glob_CurrEnergy*Glob_CurrEnergy*Skl+2*Glob_CurrEnergy*Vkl
+drach_MVkl1 = temp1*Glob_dmva21 + MVkl
+drach_MVkl2 = temp1*Glob_dmva22 + MVkl
 
 
 !Evaluating Orbit-Orbit (OO) matrix element (without the factor of alpha**2)
