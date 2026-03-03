@@ -23,21 +23,13 @@ if (Glob_ProcID==0) then
 	write (*,*) ' Number of parallel processes running ',Glob_NumOfProcs
 	write (*,*)
     WRITE(*,*) ' Transition dipole moment integral calculations are starting for:'
-    WRITE(*,*) '   L = 1, M_L = 0  ==>  L = 2, M_L = 0'
+    WRITE(*,*) '     L = 1, M_L = 0  ==>  L = 2, M_L = 0'
     WRITE(*,*) ' transition.'
 endif
 
 
 call Readwf0wf1()
 call ProgramDataInit()
-
-
-if (Glob_ProcID==0) then
-	write(*,*)
-	write(*,*)'Symmetry of the initial state, L=1: ', Glob_YOperatorString1
-	write(*,*)'Symmetry of the  final  state, L=2: ', Glob_YOperatorString2
-    write(*,*) 
- endif
 
 
 

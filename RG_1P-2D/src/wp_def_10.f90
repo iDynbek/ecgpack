@@ -15,7 +15,7 @@ integer,parameter    :: MPI_DPREC=MPI_REAL16
 !This is the maximal allowed number of particles in the system. If needed,
 !this number can be increased. However it is not recommended to use a number 
 !that is larger than necessary as it may affect the performance of the program.
-integer,parameter :: Glob_MaxAllowedNumOfParticles=5
+integer,parameter :: Glob_MaxAllowedNumOfParticles=7
 
 contains
 
@@ -82,5 +82,25 @@ do i=1,k-1
 enddo
 write(u,'(a1)') s(k:k)
 end subroutine writestringadv
+
+
+subroutine write_2vectors(u, vec1, vec2, n)
+  implicit none
+  integer, intent(in)        :: u         ! output unit
+  integer, intent(in)        :: n         ! number of particles
+  real(dprec), intent(in)    :: vec1(n) ! mass array
+  real(dprec), intent(in)    :: vec2(n)! charge array
+  integer :: i
+
+  ! Write header
+  write(u,'(A10,7X,A10,25X,A6)') 'PARTICLE', 'MASS', 'CHARGE'
+
+  ! Write particle data in tabular format
+  do i = 1, n
+      write(u,'(I5,8X,E23.16,8X,E23.16)') i, vec1(i), vec2(i)
+  end do
+end subroutine write_2vectors
+
+
 
 end module wp_def

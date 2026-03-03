@@ -34,7 +34,10 @@ Glob_EulerConst=0.57721566490153286060651209008240E0_dprec
  INTEGER, parameter   ::  Verbose = 1
  ! 0   just the result
  ! 1   some additional information about the program progress
- ! 2   detailed information about the program progress for debugging purposes
+ ! 2   more information about the program progress for debugging purposes
+ ! 3   very detailed information about the program progress for debugging purposes
+ !     It generates huge amount of output and is not recommended to be used 
+ !     unless you are debugging the program.
 
 !=============================================================
 ! Global parameters

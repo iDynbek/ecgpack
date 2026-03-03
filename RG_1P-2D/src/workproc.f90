@@ -9,6 +9,7 @@ CONTAINS
 
 
 
+
 SUBROUTINE READwf0wf1()
 ! SUBROUTINE READwf0wf1 READs data (number of particle,
 ! mass, charge, nonlinear variational
@@ -326,30 +327,18 @@ IF (Glob_ProcID==0) THEN
 
    IF(ErrorInDataFILE .eqv. .FALSE.) THEN
 
-      DO i=1,Glob_n+1
-   
-         IF (i==1)THEN
-   
-            Glob_PseudoCharge0=PseudoCharge1(1)
-        
-         ELSE
-     
-            Glob_PseudoCharge(i+1)=PseudoCharge1(i)
-   
-         ENDIF
-   
-   	  ENDDO
-   
+      Glob_PseudoCharge0=PseudoCharge1(1)
+      DO i=1,Glob_n
+            Glob_PseudoCharge(i)=PseudoCharge1(i+1)
+   	ENDDO
+
    ENDIF
    
 	! WRITE(*,'(1x,a7)',advance='no') readchar(1:7)
 	! CALL writereal(6,Glob_PseudoCharge0)
 	! CALL writerealarradv(6,Glob_PseudoCharge,Glob_n)
-
-
-   
-
    CALL write_2vectors(6,Glob_Mass,PseudoCharge1,Glob_n+1)      
+
 ENDIF
 
 
@@ -533,7 +522,7 @@ ENDIF
 ALLOCATE(Glob_c1(Glob_CurrBasisSize1))
 ALLOCATE(Glob_FuncNum1(Glob_CurrBasisSize1))
 ALLOCATE(Glob_NonlinParam1(Glob_npt,Glob_CurrBasisSize1))
-ALLOCATE(Glob_Index1(Glob_CurrBasisSize2))
+ALLOCATE(Glob_Index1(Glob_CurrBasisSize1))
 
 ALLOCATE(Glob_c2(Glob_CurrBasisSize2))
 ALLOCATE(Glob_FuncNum2(Glob_CurrBasisSize2))
@@ -607,7 +596,6 @@ character(Glob_YOperatorStringLength),allocatable,dimension(:) :: YOpStr,YHOpStr
 IF (Glob_ProcID==0) Then
 
 	WRITE(*,*)
-   IF(YOpInput==2) WRITE(*,*) 
 	WRITE(*,'(A,I0)') ' Initializing Young operator for L= ',YOpInput
    WRITE(*,*)
 
@@ -1885,6 +1873,8 @@ END SUBROUTINE ProgramDataInit
 
 
 
+
+
 SUBROUTINE ComputeTranDipoL1L2()
 
 ! SUBROUTINE ComputeTranDipoL1L2 computes expectation value of 
@@ -1966,38 +1956,22 @@ Skk=ZERO
 
 IF(Glob_ProcID==0) THEN
    WRITE(*,*)
-   WRITE(*,'(4X,A)')'Computing digoal elements of overlap matrix: '
-   WRITE(*,'(16X,A)',advance='no')'L=1...'
+   WRITE(*,'(2X,A)')'Computing digoal elements of overlap matrix: '
+   WRITE(*,'(8X,A)',advance='no')'L=1...'
 ENDIF
+
 
 DO k=1+Glob_ProcID,Glob_CurrBasisSize1,Glob_NumOfProcs
    
    temp0=ZERO
 
-   ! If(k==1)THEN
-      ! DO i=1,Glob_NumYHYTerms1
-         ! WRITE(*,*)'Glob_YHYMatr1=',Glob_YHYMatr1(1:n,1:n,i)
-      ! ENDDO
-
-      ! DO i=1,Glob_NumYHYTerms1
-         ! WRITE(*,*)'Glob_YHYCoeff1=',Glob_YHYCoeff1(i)
-      ! ENDDO
-   ! endif
-
     DO i=1,Glob_NumYHYTerms1
       CALL OverLapElementS1(Glob_Index1(k), Glob_NonlinParam1(1:np,k),Glob_YHYMatr1(1:n,1:n,i), Skk)
       temp0=temp0+Glob_YHYCoeff1(i)*Skk
-      ! If(k==1)THEN
-      !    WRITE(*,*)'Glob_YHYCoeff1= ',Glob_YHYCoeff1(i)
-      !    WRITE(*,*)'Skk= ',Skk
-      !    ENDIF
    ENDDO
+
    temp1(k)=temp0
 
-   ! If(k==1)THEN
-   !    WRITE(*,*)'k=',k,'temp1= ',temp1(k)
-   !    WRITE(*,*) '----------'
-   !    ENDIF
 ENDDO
 
 CALL MPI_ALLREDUCE(temp1,diagS1,Glob_CurrBasisSize1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -2015,7 +1989,7 @@ ENDIF
 
 
 IF(Glob_ProcID==0) THEN
-   WRITE(*,'(16X,A)',advance='no')'L=2...'
+   WRITE(*,'(8X,A)',advance='no')'L=2...'
 ENDIF
 
 ALLOCATE(diagS2(Glob_CurrBasisSize2))
@@ -2024,36 +1998,22 @@ diagS2=ZERO
 temp1=ZERO
 Sll=ZERO
 
-! Write(*,*)'npt= ',npt
-! write(*,*)'np= ',np
+
 
 DO l=1+Glob_ProcID,Glob_CurrBasisSize2,Glob_NumOfProcs
    
    temp0=ZERO
-
-   ! If(l==1)THEN
-   ! write(*,*)
-   ! Write(*,*)'Glob_Index2(l,1)= ',Glob_Index2(1,1)
-   ! Write(*,*)'Glob_Index2(l,2)= ',Glob_Index2(1,2)
-   ! Write(*,*)'Glob_NonlinParam2= ',Glob_NonlinParam2(1:npt,1)
-   ! endif
 
   
    DO i=1,Glob_NumYHYTerms2
 
       CALL OverLapElementS2(Glob_Index2(l,1), Glob_Index2(l,2), Glob_NonlinParam2(1:npt, l), Glob_YHYMatr2(1:n, 1:n, i), Sll)
       temp0=temp0+Glob_YHYCoeff2(i)*Sll
-      ! If(l==1)THEN
-      ! WRITE(*,*)'Sll= ',Sll
-      ! ENDIF
       
    ENDDO
 
    temp1(l)=temp0
-   ! If(l==1)THEN
-   ! WRITE(*,*)'l=',l,'temp1= ',temp1(l)
-   ! WRITE(*,*) '----------'
-   ! ENDIF
+
 ENDDO
 
 
@@ -2073,7 +2033,8 @@ ENDIF
 
 IF(Glob_ProcID==0) THEN
    WRITE(*,*)
-   WRITE(*,'(4X,A)',advance='no')'Computing Oscillator Strenght...'
+   WRITE(*,'(2X,A)',advance='no')'Computing Oscillator Strenght...'
+   WRITE(*,*)
 ENDIF
 
 indx = ZERO
@@ -2095,17 +2056,15 @@ DO k=1,Glob_CurrBasisSize1
 			TranDipolLength_kl   = ZERO
 			TranDipolVelocity_kl = ZERO
 
-
 			DO i=1,Glob_NumYTerms1
 				DO j=1,Glob_NumYTerms2
-
-               
-               CALL MatrixElemenTranDipoleMoment(   &
-                                Glob_Index1(k), Glob_NonlinParam1(1:np,k), & 
+              
+                   CALL MatrixElemenTranDipoleMoment(   &
+                                     Glob_Index1(k), Glob_NonlinParam1(1:np,k), & 
 					                 Glob_YMatr1(1:n, 1:n, i),  &
-                                Glob_Index2(l,1), Glob_Index2(l,2), &
+                                     Glob_Index2(l,1), Glob_Index2(l,2), &
 					                 Glob_NonlinParam2(1:np, l), Glob_YMatr2(1:n, 1:n, j), &
-                                TranDipolLength_kl_element,TranDipolVelocity_kl_element )
+                                     TranDipolLength_kl_element,TranDipolVelocity_kl_element )
 					
                     TranDipolLength_kl_Loc = TranDipolLength_kl_Loc + &
 					        Glob_YCoeff1(i) * TranDipolLength_kl_element * Glob_YCoeff2(j)
@@ -2113,23 +2072,45 @@ DO k=1,Glob_CurrBasisSize1
                     TranDipolVelocity_kl_Loc = TranDipolVelocity_kl_Loc + &
 					        Glob_YCoeff1(i) * TranDipolVelocity_kl_element * Glob_YCoeff2(j)
 
-
+               
 				ENDDO
 			ENDDO
 
-			TranDipolLength_kl = TranDipolLength_kl_Loc / sqrt(diagS1(k)*diagS2(l))
-			ExpValLoc1 = ExpValLoc1 + Glob_c1(k) * TranDipolLength_kl * Glob_c2(l)
+         IF(diagS1(k)*diagS2(l) <= ZERO) THEN
+                WRITE(*,'(4X,A,I4,A,I4)') 'ERROR: negative product at k=',k,' l=',l
+                WRITE(*,'(4X,A,ES22.10)') 'diagS1(k) = ', diagS1(k)
+                WRITE(*,'(4X,A,ES22.10)') 'diagS2(l) = ', diagS2(l)
+                ERROR STOP
+         ENDIF
 
+         TranDipolLength_kl = TranDipolLength_kl_Loc / sqrt(diagS1(k)*diagS2(l))
+			ExpValLoc1 = ExpValLoc1 + Glob_c1(k) * TranDipolLength_kl * Glob_c2(l)
 
 			TranDipolVelocity_kl = TranDipolVelocity_kl_Loc / sqrt(diagS1(k)*diagS2(l))
 			ExpValLoc2 = ExpValLoc2 + Glob_c1(k) * TranDipolVelocity_kl * Glob_c2(l)
 
+         IF(Verbose==2 .OR. Verbose==3)THEN
+            WRITE(*,*)
+            WRITE(*,'(4X,A2,I4,2X,A3,I4,2X,A18,ES14.6)') &
+                 'k=', k, ',l=', l, 'S1(kk)=', diagS1(k)
+            WRITE(*,'(19X,A20,ES14.6)') &
+                 'S2(ll)=', diagS2(l)              
+            WRITE(*,'(19X,A20,ES14.6,6X,A11,ES14.6)') &
+                 'TranDipolLength_kl=', TranDipolLength_kl, 'ExpValLoc1=', ExpValLoc1
+            WRITE(*,'(18X,A21,ES14.6,6X,A11,ES14.6)') &
+                 'TranDipolVelocity_kl=', TranDipolVelocity_kl, 'ExpValLoc2=', ExpValLoc2
+         ENDIF
 
 		ENDIF
 	ENDDO
 ENDDO
 
-
+IF(Verbose==2 .OR. Verbose==3)THEN
+   WRITE(*,*)'------------------------------'
+   WRITE(*,'(4X,A11,ES16.8)') 'ExpValLoc1=', ExpValLoc1
+   WRITE(*,'(4X,A11,ES16.8)') 'ExpValLoc2=', ExpValLoc2
+   WRITE(*,*)'------------------------------'   
+ENDIF
 
 CALL MPI_ALLREDUCE(ExpValLoc1,ExpVal1,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
 Glob_ExpVals1 = ExpVal1
@@ -2138,18 +2119,22 @@ CALL MPI_ALLREDUCE(ExpValLoc2,ExpVal2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MP
 Glob_ExpVals2 = ExpVal2
 
 
-
 DEALLOCATE(diagS1)
 DEALLOCATE(diagS2)
 
-WRITE(*,'(4X,A)')'Finished '
-WRITE(*,*)
-
 
 IF(Glob_ProcID==0)THEN
+   WRITE(*,'(4X,A)')'Finished '
+   WRITE(*,*)
    WRITE(*,*) '  DONE! '
    WRITE(*,*)
+   IF(Verbose==2 .OR. Verbose==3)THEN
+      WRITE(*,*)
+      WRITE(*,'(4X,A11,ES16.8)') 'Glob_ExpVals1=', Glob_ExpVals1
+      WRITE(*,'(4X,A11,ES16.8)') 'Glob_ExpVals2=', Glob_ExpVals2
+   ENDIF
 ENDIF
+
 
 
 CALL SYSTEM_CLOCK(count2, rate)

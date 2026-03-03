@@ -158,6 +158,12 @@ SUBROUTINE OverLapElementS1(m_k, vechLk, P, Skk)
          END DO
          IF (i == j) THEN
              W1(i, i) = SQRT(temp1)
+
+              IF (temp1 <= 0.0_dprec) THEN
+                 WRITE(*,*) 'ERROR: tAkk not SPD at i=',i
+                 ERROR STOP
+              END IF      
+
              det_tAkk = det_tAkk * temp1
          ELSE
              W1(j, i) = temp1 / W1(i, i)
@@ -215,6 +221,7 @@ SUBROUTINE OverLapElementS1(m_k, vechLk, P, Skk)
 
 
 END SUBROUTINE OverLapElementS1
+
 
 
 
@@ -354,37 +361,31 @@ SUBROUTINE OverLapElementS2(ml_1, ml_2, vechLl, P, Sll)
  END DO
 
  !---------------------------------------------------------------------------
- ! 4. Apply Permutations to Matrix Al
- !    Calculate tAll = P' * Al * P + P' * Al * P (Sum of Bra and Ket matrices)
+ ! 4. Apply symmetry permutation and form tAll = Al + P' * Al * P
  !---------------------------------------------------------------------------
- 
- ! Step A: Compute W1 = P' * Al  and  W2 = Al * P
+ ! W1 = P' * Al
  DO i = 1, n
      DO j = 1, n
          temp1 = ZERO
-         temp2 = ZERO
          DO k = 1, n
              temp1 = temp1 + P(k, j) * tAl(k, i)
-             temp2 = temp2 + tAl(j, k) * P(k, i)
          END DO
          W1(j, i) = temp1
-         W2(j, i) = temp2
      END DO
  END DO
 
- ! Step B: Compute tAll = W1 * P + P' * W2
- DO i = 1, n  
+ ! tAll = Al + P' * Al * P
+ DO i = 1, n
      DO j = i, n
          temp1 = ZERO
-         temp2 = ZERO
          DO k = 1, n
-             temp1 = temp1 + W1(j, k) * P(k, i)
-             temp2 = temp2 + P(k, j) * W2(k, i)
+             temp1 = temp1 + W1(i, k) * P(k, j)
          END DO
-         tAll(j, i) = temp1 + temp2
-         tAll(i, j) = temp1 + temp2
+         tAll(i, j) = tAl(i, j) + temp1
+         tAll(j, i) = tAll(i, j)
      END DO
  END DO
+
 
  !---------------------------------------------------------------------------
  ! 5. Determinants and Inversion of tAll
@@ -408,6 +409,12 @@ SUBROUTINE OverLapElementS2(ml_1, ml_2, vechLl, P, Sll)
          
          IF (i == j) THEN
              W1(i, i) = SQRT(temp1)
+
+              IF (temp1 <= 0.0_dprec) THEN
+                 WRITE(*,*) 'ERROR: tAll not SPD at i=',i
+                 ERROR STOP
+              END IF       
+
              det_tAll = det_tAll * temp1
          ELSE
              W1(j, i) = temp1 / W1(i, i)
@@ -450,17 +457,17 @@ SUBROUTINE OverLapElementS2(ml_1, ml_2, vechLl, P, Sll)
      twl(i) = P(ml_2, i)  ! "w" vector
  END DO
 
- ! Calculate Matrix-Vector Products: vector' * inv_tAll
- DO i = 1, n
-     temp1 = ZERO
-     temp2 = ZERO
-     DO j = 1, n
-         temp1 = temp1 + tvl(j) * inv_tAll(j, i)
-         temp2 = temp2 + twl(j) * inv_tAll(j, i)
-     END DO
-     tvl_inv_tAll(i) = temp1
-     twl_inv_tAll(i) = temp2
- END DO
+!  ! Calculate Matrix-Vector Products: vector' * inv_tAll
+!  DO i = 1, n
+!      temp1 = ZERO
+!      temp2 = ZERO
+!      DO j = 1, n
+!          temp1 = temp1 + tvl(j) * inv_tAll(j, i)
+!          temp2 = temp2 + twl(j) * inv_tAll(j, i)
+!      END DO
+!      tvl_inv_tAll(i) = temp1
+!      twl_inv_tAll(i) = temp2
+!  END DO
 
  ! Calculate Numerator Gammas (tgamma)
  ! Note: Since k=l, Bra = Ket. 
@@ -471,10 +478,18 @@ SUBROUTINE OverLapElementS2(ml_1, ml_2, vechLl, P, Sll)
  tgamma5 = ZERO
  tgamma6 = ZERO
  DO i = 1, n
-    tgamma1 = tgamma1 + tvl_inv_tAll(i) * tvl(i)
-    tgamma2 = tgamma2 + twl_inv_tAll(i) * twl(i)
-    tgamma5 = tgamma5 + tvl_inv_tAll(i) * twl(i)
-    tgamma6 = tgamma6 + twl_inv_tAll(i) * tvl(i)
+   ! tgamma1 = e_{ml1}' * inv_tAll * P'*e_{ml1}
+   !         = (unpermuted bra)  *  (permuted ket)
+   tgamma1 = tgamma1 + inv_tAll(ml_1, i) * tvl(i)
+   
+   ! tgamma2 = e_{ml2}' * inv_tAll * P'*e_{ml2}
+   tgamma2 = tgamma2 + inv_tAll(ml_2, i) * twl(i)
+   
+   ! tgamma5 = e_{ml1}' * inv_tAll * P'*e_{ml2}
+   tgamma5 = tgamma5 + inv_tAll(ml_1, i) * twl(i)
+   
+   ! tgamma6 = e_{ml2}' * inv_tAll * P'*e_{ml1}
+   tgamma6 = tgamma6 + inv_tAll(ml_2, i) * tvl(i)
  END DO
 
  ! Calculate Denominator Gammas (from inv_All direct access)
@@ -712,6 +727,12 @@ SUBROUTINE MatrixElemenTranDipoleMoment(mk, vechLk, Pk, ml_1, ml_2, vechLl, Pl, 
           END DO
           IF (i == j) THEN
               W1(i, i) = SQRT(temp1)
+
+              IF (temp1 <= 0.0_dprec) THEN
+                 WRITE(*,*) 'ERROR: tAkl not SPD at i=',i,' temp1=',temp1,' mk=',mk,' ml1=',ml_1,' ml2=',ml_2
+                 ERROR STOP
+              END IF
+
               det_tAkl = det_tAkl * temp1
           ELSE
               W1(j, i) = temp1 / W1(i, i)
@@ -793,16 +814,44 @@ SUBROUTINE MatrixElemenTranDipoleMoment(mk, vechLk, Pk, ml_1, ml_2, vechLl, Pl, 
   gamma5 = inv_All(ml_1, ml_2)    ! v_l * inv_All * w_l
   gamma6 = inv_All(ml_2, ml_1)    ! w_l * inv_All * v_l
 
-      m1 = gamma1 * gamma2
-      m3 = gamma5 * gamma6
-   m_den = SQRT(m1 + m3) 
+  m1 = gamma1 * gamma2
+  m3 = gamma5 * gamma6
+  m_den = SQRT(m1 + m3) 
+
+  IF(Verbose==2 .OR. Verbose==3) THEN
+
+     IF (m_den /= m_den) THEN
+        WRITE(*,*)
+        WRITE(*,*) 'WARNING: m_den is NaN'
+        ERROR STOP
+     END IF
+
+     IF(Verbose==3) THEN
+        WRITE(*,*)
+        WRITE(*,'(4X,A31,ES22.10)') 'Denominator (m_den): ', m_den
+     END IF
+     
+   END IF
 
   !---------------------------------------------------------------------------
   ! 8. Calculate Constant Prefactor
   !---------------------------------------------------------------------------
   ! Determinant part: |Lk|^1.5 * |Ll|^1.5 / |Akl|^1.5
-  temp1 = det_Ll * det_Lk / det_tAkl
-  temp1 = temp1 * SQRT(ABS(temp1))
+  temp1 = ABS(det_Ll * det_Lk) / det_tAkl
+
+  IF(Verbose==2 .OR. Verbose==3) THEN
+
+     IF (temp1 /= temp1) THEN
+        WRITE(*,*) 'WARNING: |Lk|^1.5*|Ll|^1.5 / |Akl|^1.5 is NaN'
+        ERROR STOP
+     END IF
+
+     IF(Verbose==3) &
+        WRITE(*,'(4X,A31,ES22.10)') '|Lk|^1.5*|Ll|^1.5 / |Akl|^1.5: ', temp1
+
+  END IF
+
+  temp1 = temp1 * SQRT(temp1)
 
   ! Constants: 2^(3n/2) / sqrt(3)
   temp1 = temp1 * Glob_2raised3n2
@@ -813,6 +862,17 @@ SUBROUTINE MatrixElemenTranDipoleMoment(mk, vechLk, Pk, ml_1, ml_2, vechLl, Pl, 
   temp1 = temp1 / SQRT(inv_Akk(mk, mk))
   TranDipolLength_kl = temp1 / m_den
 
+      IF(Verbose==2 .OR. Verbose==3) THEN
+
+         IF (SQRT(inv_Akk(mk, mk)) /= SQRT(inv_Akk(mk, mk))) THEN
+            WRITE(*,*) 'WARNING: SQRT(inv_Akk(mk, mk)) is NaN'
+            ERROR STOP
+         END IF
+
+         IF(Verbose==3) &
+            WRITE(*,'(4X,A31,ES22.10)') 'SQRT(inv_Akk(mk, mk)): ', SQRT(inv_Akk(mk, mk))
+
+       END IF
   !---------------------------------------------------------------------------
   ! 9. PRE-CALCULATION FOR DIPOLE SUMMATION
   !---------------------------------------------------------------------------
@@ -871,10 +931,21 @@ SUBROUTINE MatrixElemenTranDipoleMoment(mk, vechLk, Pk, ml_1, ml_2, vechLl, Pl, 
       tm1 = tgamma1 * tgamma2
       tm3 = tgamma5 * tgamma6
       tm_num = (tm1 + tm3) 
-   
+      
+         IF(Verbose==2 .OR. Verbose==3) THEN
+  
+            IF (tm_num /= tm_num) THEN
+               WRITE(*,*) 'WARNING: tm_num is NaN'
+               ERROR STOP
+            END IF
+  
+            IF(Verbose==3) &
+               WRITE(*,'(4X,A31,ES22.10)') 'tm_num: ', tm_num
+  
+          END IF
+      
       ! Charge and Mass term: (q_i - Q_tot * m_i / m_0)
       temp02 = Glob_PseudoCharge(i) - Qtotal * Glob_Mass(i + 1) / Glob_MassTotal
-      
       ! Accumulate
       temp01 = temp01 + temp02 * tm_num     
   END DO
@@ -882,10 +953,26 @@ SUBROUTINE MatrixElemenTranDipoleMoment(mk, vechLk, Pk, ml_1, ml_2, vechLl, Pl, 
   !---------------------------------------------------------------------------
   ! 11. Final Result
   !---------------------------------------------------------------------------
-  TranDipolLength_kl   = TranDipolLength_kl * temp01
+  TranDipolLength_kl   = - TranDipolLength_kl * temp01
   TranDipolVelocity_kl = TranDipolLength_kl
 
-  
+
+    IF(Verbose==2 .OR. Verbose==3) THEN
+
+       IF (TranDipolLength_kl /= TranDipolLength_kl) THEN
+          WRITE(*,*) 'WARNING: TranDipolLength_kl is NaN'
+          ERROR STOP
+       END IF
+
+       IF(Verbose==3) THEN
+          WRITE(*,'(4X,A31,ES22.10)') 'TranDipolLength_kl: ', TranDipolLength_kl
+          WRITE(*,*)
+       END IF
+
+     END IF
+
+
+     
 END SUBROUTINE MatrixElemenTranDipoleMoment
 
 
