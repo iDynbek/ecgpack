@@ -1,7 +1,8 @@
-program main
 
+program main
 use workproc
 implicit none
+
 
 !Local variables
 integer        :: i,j
@@ -18,66 +19,72 @@ call MPI_COMM_SIZE(MPI_COMM_WORLD,Glob_NumOfProcs,Glob_MPIErrCode)
 
 
 if (Glob_ProcID==0) then
-	write (*,*)
-	write (*,*) ' Program Expilitly Correlated Real Gaussians has started'
-	write (*,*) ' Number of parallel processes running ',Glob_NumOfProcs
-	write (*,*)
-    WRITE(*,*) ' Transition dipole moment integral calculations are starting for:'
-    WRITE(*,*) '     L = 1, M_L = 0  ==>  L = 2, M_L = 0'
-    WRITE(*,*) ' transition.'
+    write(*,*)
+    write(*,'(A)') '  +----------------------------------------------------------------+'
+    write(*,'(A)') '  |                                                                |'
+    write(*,'(A)') '  |       Explicitly Correlated Real Gaussians has started         |'
+    write(*,'(A)') '  |              Transition Dipole Moment Integral                 |'
+    write(*,'(A)') '  |                                                                |'
+    write(*,'(A)') '  +----------------------------------------------------------------+'
+    write(*,*)
+    write(*,'(4X,A,I4)') 'Number of parallel processes:  ', Glob_NumOfProcs
+    write(*,*)
+    write(*,'(4X,A)')    'Transition under consideration:'
+    write(*,'(8X,A)')    'L = 1, M_L = 0   --->   L = 2, M_L = 0'
+    write(*,*)
 endif
 
 
-call Readwf0wf1()
+call READwf1wf2()
 call ProgramDataInit()
 
 
-
 DeltaE = Glob_CurrEnergy1-Glob_CurrEnergy2
-
-
 call ComputeTranDipoL1L2()
-
 	
+
 if (Glob_ProcID==0) then
+    write(*,*)
+    write(*,*)
+    write(*,'(A)') '   Energy difference:     '
+    write(*,'(A)') '  ------------------------'
+    write(*,*)
+    write(*,'(4X,A)',advance='no') '    E(P) - E(D)  = '
+    call writereal(6,abs(DeltaE))
+    write(*,'(A)') '   Hartree'
 
-        write (*,*)
-        write(*,'(a30)',advance='no') ' E{initial} - E{final}  =     '
-        call writereal(6,abs(DeltaE))
-        write(*,'(a10)') '   Hartree'
-		
+    write(*,*)
+    write(*,*)
+    write(*,'(A)') '   Length Gauge:          '
+    write(*,'(A)') '  ------------------------'
+    write(*,*)
+    write(*,'(4X,A)') ' <L=1| x |L=2>   =   0.0'
+    write(*,'(4X,A)') ' <L=1| y |L=2>   =   0.0'
+    write(*,'(4X,A)',advance='no') ' <L=1| z |L=2>   = '
+    call writerealadv(6,Glob_ExpVals1)
 
-        write(*,*) 
-		write(*,*) 
-		write(*,*) 'Transition Dipole Moment Integral in Length Gauge:  '
-		write(*,*) 
-        write(*,'(a35)') ' <L=0|x|L=1>    =       0.0'
-        write(*,'(a35)') ' <L=0|y|L=1>    =       0.0'
-        write(*,'(a30)',advance='no') ' <L=0|z|L=1>    =     '
-        call writerealadv(6,Glob_ExpVals1)
+    write(*,*)
+    write(*,*)
+    write(*,'(A)') '   Velocity Gauge:        '
+    write(*,'(A)') '  ------------------------'
+    write(*,*)
+    write(*,'(4X,A)') '<L=1| P(x) |L=2>  =  0.0'
+    write(*,'(4X,A)') '<L=1| P(y) |L=2>  =  0.0'
+    write(*,'(4X,A)',advance='no') '<L=1| P(z) |L=2>  ='
+    call writerealadv(6,Glob_ExpVals2)
 
-        write(*,*) 
-		write(*,*) 
-		write(*,*) 'Transition Dipole Moment Integral in Velocity Gauge:  '
-		write(*,*) '  '
-        write(*,'(a30)') ' <L=0|P(x)|L=1>    =     0.0'
-        write(*,'(a30)') ' <L=0|P(y)|L=1>    =     0.0'		
-        write(*,'(a30)',advance='no') ' <L=0|P(z)|L=1>    = -i *'
-        call writerealadv(6,Glob_ExpVals2)
+    write(*,*)
+    write(*,*)
+    write(*,*)
+    write(*,*)
+    write(*,'(A)') ' Program completed successfully.      '
+    write(*,*)
 
-        write(*,*) 
-        write(*,*) 
-        write(*,*) 
-        write(*,*) 'Data Reader and Matrix Calculator Program is completed'
-        write(*,*) 'Program has stopped'
-        write(*,*) 
 endif
-
 
 
 call MPI_FINALIZE(Glob_MPIErrCode)
 
 
+
 end program main
-
-
