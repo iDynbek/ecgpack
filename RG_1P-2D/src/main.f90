@@ -20,17 +20,17 @@ call MPI_COMM_SIZE(MPI_COMM_WORLD,Glob_NumOfProcs,Glob_MPIErrCode)
 
 if (Glob_ProcID==0) then
     write(*,*)
-    write(*,'(A)') '  +----------------------------------------------------------------+'
-    write(*,'(A)') '  |                                                                |'
-    write(*,'(A)') '  |       Explicitly Correlated Real Gaussians has started         |'
-    write(*,'(A)') '  |              Transition Dipole Moment Integral                 |'
-    write(*,'(A)') '  |                                                                |'
-    write(*,'(A)') '  +----------------------------------------------------------------+'
+    write(*,'(2X,A)') '+----------------------------------------------------------------+'
+    write(*,'(2X,A)') '|                                                                |'
+    write(*,'(2X,A)') '|     Explicitly Correlated Real Gaussians code has started      |'
+    write(*,'(2X,A)') '|       calculating the transition Dipole Moment Integral        |'
+    write(*,'(2X,A)') '|                                                                |'
+    write(*,'(2X,A)') '+----------------------------------------------------------------+'
     write(*,*)
-    write(*,'(4X,A,I4)') 'Number of parallel processes:  ', Glob_NumOfProcs
+    write(*,'(2X,A,I4)') 'Number of parallel processes:  ', Glob_NumOfProcs
     write(*,*)
-    write(*,'(4X,A)')    'Transition under consideration:'
-    write(*,'(8X,A)')    'L = 1, M_L = 0   --->   L = 2, M_L = 0'
+    write(*,'(2X,A)')'Transition under consideration:'
+    write(*,'(4X,A)')'Po(z)  --->  De(z)'
     write(*,*)
 endif
 
@@ -48,8 +48,7 @@ if (Glob_ProcID==0) then
     write(*,*)
     write(*,'(A)') '   Energy difference:     '
     write(*,'(A)') '  ------------------------'
-    write(*,*)
-    write(*,'(4X,A)',advance='no') '    E(P) - E(D)  = '
+    write(*,'(12X,A)',advance='no') 'E(Po) - E(De)    = '
     call writereal(6,abs(DeltaE))
     write(*,'(A)') '   Hartree'
 
@@ -57,20 +56,18 @@ if (Glob_ProcID==0) then
     write(*,*)
     write(*,'(A)') '   Length Gauge:          '
     write(*,'(A)') '  ------------------------'
-    write(*,*)
-    write(*,'(4X,A)') ' <L=1| x |L=2>   =   0.0'
-    write(*,'(4X,A)') ' <L=1| y |L=2>   =   0.0'
-    write(*,'(4X,A)',advance='no') ' <L=1| z |L=2>   = '
+    write(*,'(4X,A)') '< Po(x) | x | De(x) >    =  0.0'
+    write(*,'(4X,A)') '< Po(y) | y | De(y) >    =  0.0'
+    write(*,'(4X,A)',advance='no') '< Po(z) | z | De(z) >    ='
     call writerealadv(6,Glob_ExpVals1)
 
     write(*,*)
     write(*,*)
     write(*,'(A)') '   Velocity Gauge:        '
     write(*,'(A)') '  ------------------------'
-    write(*,*)
-    write(*,'(4X,A)') '<L=1| P(x) |L=2>  =  0.0'
-    write(*,'(4X,A)') '<L=1| P(y) |L=2>  =  0.0'
-    write(*,'(4X,A)',advance='no') '<L=1| P(z) |L=2>  ='
+    write(*,'(4X,A)') '< Po(x) | P(x) | De(x) > =  0.0'
+    write(*,'(4X,A)') '< Po(y) | P(y) | De(y) > =  0.0'
+    write(*,'(4X,A)',advance='no') '< Po(z) | P(z) | De(z) > ='
     call writerealadv(6,Glob_ExpVals2)
 
     write(*,*)

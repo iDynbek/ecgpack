@@ -91,12 +91,12 @@ IF (Glob_ProcID==0) THEN
 
 !   initial state
    READ(1,*) readchar(1:30)
-   WRITE(*,*) '  Reading " ',readchar(1:5) ,'" of the initial state from :    ', Glob_WFFILE1
+   WRITE(*,*) '  Reading " ',readchar(1:5) ,'" of the first state (Po) from :    ', Glob_WFFILE1
    Line1=Line1+1
  
 !   final state
    READ(2,*) readchar(1:30)
-   WRITE(*,*) '  Reading " ',readchar(1:5) ,'" of the final   state from :    ', Glob_WFFILE2
+   WRITE(*,*) '  Reading " ',readchar(1:5) ,'" of the final state (De) from :    ', Glob_WFFILE2
    Line2=Line2+1
    WRITE (*,*)
    WRITE(*,*)
@@ -386,8 +386,8 @@ IF (Glob_ProcID==0) THEN
    IF (Glob_ProcID==0) then
       WRITE(*,*)
       WRITE(*,*) 
-      WRITE(*,'(6X,A,A)') 'The Young Operator for L=1:  ', TRIM(Glob_YOperatorString1)
-      WRITE(*,'(6X,A,A)') 'The Young Operator for L=2:  ', TRIM(Glob_YOperatorString2)
+      WRITE(*,'(4X,A,A)') 'The Young Operator for L=1:  ', TRIM(Glob_YOperatorString1)
+      WRITE(*,'(4X,A,A)') 'The Young Operator for L=2:  ', TRIM(Glob_YOperatorString2)
    ENDIF
 
 ! !   comparing Young opertators of the two FILEs
@@ -435,7 +435,7 @@ IF (Glob_ProcID==0) THEN
    ENDIF
 
    WRITE(*,*)
-   WRITE(*,'(8X,A,I6)') 'INITIAL STATE BASIS SIZE:  ', Glob_CurrBasisSize1
+   WRITE(*,'(4X,A,I6)') 'FIRST STATE BASIS SIZE:  ', Glob_CurrBasisSize1
 
 
 !    final state
@@ -448,7 +448,7 @@ IF (Glob_ProcID==0) THEN
       WRITE(*,*)
    ENDIF
 
-   WRITE(*,'(8X,A,I6)') 'FINAL   STATE BASIS SIZE:  ', Glob_CurrBasisSize2
+   WRITE(*,'(4X,A,I6)') 'FINAL STATE BASIS SIZE:  ', Glob_CurrBasisSize2
 
 
 ENDIF
@@ -477,7 +477,7 @@ IF (Glob_ProcID==0) THEN
    ENDIF
 
    WRITE(*,*)
-   WRITE(*,'(4X,A)',advance='no')  'INITIAL STATE CURRENT_ENERGY:  ' 
+   WRITE(*,'(4X,A)',advance='no')  'FIRST STATE CURRENT_ENERGY:  ' 
    CALL WRITErealadv(6,Glob_CurrEnergy1)
 
 
@@ -1948,21 +1948,21 @@ IF(Glob_ProcID==0) THEN
    WRITE(*,*)
    WRITE(*,*)
    WRITE(*,'(A)') '   Transition Dipole Moment calculation for            '
-   WRITE(*,'(A)') '      < L=1 | D_z | L=2 > has started     '
+   WRITE(*,'(A)') '     < Po(z) | D(z) | De(z) > has started     '
    WRITE(*,'(A)') '  ============================================'
 
    IF(Verbose >= 1) THEN
       WRITE(*,*)
       WRITE(*,'(A)')          '   Run configuration:  '
       WRITE(*,'(A)')          '  ----------------------------'
-      WRITE(*,'(4X,A,I10)')    'Number of particles (n)  = ', n
-      WRITE(*,'(4X,A,I10)')    'Nonlinear parameters (np)= ', np
-      WRITE(*,'(4X,A,I10)')    'Total parameters (npt)   = ', npt
-      WRITE(*,'(4X,A,I10)')    'Basis size  L=1          = ', Glob_CurrBasisSize1
-      WRITE(*,'(4X,A,I10)')    'Basis size  L=2          = ', Glob_CurrBasisSize2
-      WRITE(*,'(4X,A,I10)')    'Total (k,l) pairs        = ', Glob_CurrBasisSize1 * Glob_CurrBasisSize2
-      WRITE(*,'(4X,A,I10)')    'Y-coefficient terms(L=1) = ', Glob_NumYTerms1
-      WRITE(*,'(4X,A,I10)')    'Y-coefficient terms(L=2) = ', Glob_NumYTerms2
+      WRITE(*,'(4X,A,I10)')    'Number of particles     = ', n
+      WRITE(*,'(4X,A,I10)')    'Nonlinear parameters    = ', np
+      WRITE(*,'(4X,A,I10)')    'Total parameters (npt)  = ', npt
+      WRITE(*,'(4X,A,I10)')    'Basis size first state  = ', Glob_CurrBasisSize1
+      WRITE(*,'(4X,A,I10)')    'Basis size final state  = ', Glob_CurrBasisSize2
+      WRITE(*,'(4X,A,I10)')    'Total (k,l) pairs       = ', Glob_CurrBasisSize1 * Glob_CurrBasisSize2
+      WRITE(*,'(4X,A,I10)')    'Y-coefficient terms(Po) = ', Glob_NumYTerms1
+      WRITE(*,'(4X,A,I10)')    'Y-coefficient terms(De) = ', Glob_NumYTerms2
       WRITE(*,*)
    ENDIF
 
@@ -1983,7 +1983,7 @@ IF(Glob_ProcID==0) THEN
 
    WRITE(*,*)
    WRITE(*,'(A)') '   Section 1:'
-   WRITE(*,'(A)') '    Diagonal overlap [L=1]'
+   WRITE(*,'(A)') '    Diagonal overlap (Po)'
    WRITE(*,'(A)') '  ----------------------------'
 
    IF(Verbose >= 1)THEN
@@ -2062,7 +2062,7 @@ IF(Glob_ProcID==0) THEN
 
    WRITE(*,*)
    WRITE(*,'(A)') '   Section 2:'
-   WRITE(*,'(A)') '    Diagonal overlap [L=2]'
+   WRITE(*,'(A)') '    Diagonal overlap (De)'
    WRITE(*,'(A)') '  ----------------------------'
 
    IF(Verbose >= 1)THEN
@@ -2153,7 +2153,6 @@ IF(Glob_ProcID==0) THEN
    WRITE(*,'(A)') '   Section 3:'
    WRITE(*,'(A)') '    Oscillator Strength'
    WRITE(*,'(A)') '  ----------------------------'
-   WRITE(*,*) 
 ENDIF
 
 indx = ZERO

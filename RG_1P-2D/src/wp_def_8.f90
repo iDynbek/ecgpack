@@ -39,7 +39,7 @@ subroutine write_2vectors(u, vec1, vec2, n)
 
   ! Write particle data in tabular format
   do i = 1, n
-      write(u,'(I5,8X,E23.16,8X,E23.16)') i, vec1(i), vec2(i)
+      write(u,'(I5,8X,ES23.16,8X,ES23.16)') i, vec1(i), vec2(i)
   end do
 end subroutine write_2vectors
 
@@ -48,13 +48,13 @@ end subroutine write_2vectors
 subroutine writereal(u,r)
 integer u          !i/o unit
 real(dprec) r      !real number that needs to be written
-write(u,'(1x,e23.16)',advance='no') r    
+write(u,'(1x,ES23.16)',advance='no') r    
 end subroutine writereal
 
 subroutine writerealadv(u,r)
 integer u          !i/o unit
 real(dprec) r      !real number that needs to be written
-write(u,'(1x,e23.16)') r    
+write(u,'(1x,ES23.16)') r    
 end subroutine writerealadv
 
 subroutine writerealarr(u,r,k)
@@ -63,7 +63,7 @@ real(dprec) r(k)   !real array that needs to be written
 integer k          !the number of elements to write (writing begins with element 1)  
 integer i        
 do i=1,k
-  write(u,'(1x,e23.16)',advance='no') r(i)
+  write(u,'(1x,ES23.16)',advance='no') r(i)
 enddo      
 end subroutine writerealarr
 
@@ -73,9 +73,9 @@ real(dprec) r(k)   !real array that needs to be written
 integer k          !the number of elements to write (writing begins with element 1)
 integer i        
 do i=1,k-1
-  write(u,'(1x,e23.16)',advance='no') r(i)
+  write(u,'(1x,ES23.16)',advance='no') r(i)
 enddo 
-write(u,'(1x,e23.16)') r(k) 
+write(u,'(1x,ES23.16)') r(k) 
 end subroutine writerealarradv
 
 !Subroutines writestring and writestringadv realize nonadvanced (advanced)

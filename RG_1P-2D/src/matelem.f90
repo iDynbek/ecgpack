@@ -535,8 +535,8 @@ END SUBROUTINE OverLapElementS2
 SUBROUTINE MatrixElemenTranDipoleMoment(mk, vechLk, Pk, ml_1, ml_2, vechLl, Pl, &
                                         TranDipolLength_kl, TranDipolVelocity_kl)
 
-                                       !This subroutine computes symmetry adapted matrix element with
- !a real L=1 and a real L=2 correlated Gaussians:
+ ! This subroutine computes symmetry adapted matrix element with
+ ! a real L=1 and a real L=2 correlated Gaussians:
  !
  !fk = z_{mk} exp[-r'(Lk*Lk')r] 
  !
@@ -570,7 +570,7 @@ SUBROUTINE MatrixElemenTranDipoleMoment(mk, vechLk, Pk, ml_1, ml_2, vechLl, Pl, 
  !
  !
  !====================================================================
- !Transition dipole integral in Lenght form
+ ! Transition dipole integral in Lenght form
  !====================================================================
  !                               
  !                      ---  
@@ -595,6 +595,233 @@ SUBROUTINE MatrixElemenTranDipoleMoment(mk, vechLk, Pk, ml_1, ml_2, vechLl, Pl, 
  !
  !______________________________________________________________________________________________
  
+ 
+ 
+ 
+ 
+  !==============================================================================================
+ ! This subroutine computes one symmetry adapted primitive-pair contribution
+ ! to the transition dipole matrix element for
+ !
+ !                         P^o  --->  D^e     (l_i = l_j = 1)
+ !
+ ! with
+ !
+ !                         L_i = 1,  M_i = 0
+ !                         L_f = 2,  M_f = 0
+ !
+ ! The bra function is a real L=1 correlated Gaussian:
+ !
+ !     f_k = z_{m_k} exp[-r' A_k r]
+ !
+ ! and the ket function is a real L=2 correlated Gaussian of the form
+ !
+ ! 
+ !           /    x_{m_l1} x_{m_l2}  \
+ !   f_l =  |  +  y_{m_l1} y_{m_l2}   |  exp[-r' A_l r]
+ !           \ -2 z_{m_l1} z_{m_l2}  /  
+ !
+ ! Here mk determines the z-component in the P^o bra premultiplier, and
+ ! ml_1 and ml_2 determine the two pseudoparticle labels in the D^e ket
+ ! premultiplier. 
+ ! All three indices are between 1 and n, where n is the
+ ! number of pseudoparticles.
+ !
+ ! The primitive functions used in the integral are symmetry adapted. The
+ ! permutation matrix Pk is applied to the bra, and the permutation matrix
+ ! Pl is applied to the ket. Therefore, the exponent matrices used in the
+ ! mixed integral are
+ !
+ !     tAk  = Pk' * Ak * Pk ,
+ !     tAl  = Pl' * Al * Pl ,
+ !     tAkl = tAk + tAl .
+ !
+ ! The corresponding transformed selector vectors are
+ !
+ !     tvk = Pk' * v_{m_k}       :  z-vector of the P^o bra,
+ !     tvl = Pl' * v_{m_l1}      :  first  vector of the D^e ket,
+ !     twl = Pl' * v_{m_l2}      :  second vector of the D^e ket.
+ !
+ ! In the code these vectors are formed from the rows of Pk and Pl:
+ !
+ !     tvk(i) = Pk(mk,   i)
+ !     tvl(i) = Pl(ml_1, i)
+ !     twl(i) = Pl(ml_2, i)
+ !
+ !==============================================================================================
+ ! Transition dipole integral in LENGTH gauge
+ !==============================================================================================
+ !
+ ! This part evaluates the normalized primitive contribution
+ !
+ !                         ---                      
+ !                         \                 m_i          < Pk*f_k | z_i | Pl*f_l >           
+ ! TranDipolLength_kl =    /   (q_i - Q_tot -----) * -------------------------------------             
+ !                         ---               m0        Sqrt(<f_k|f_k>) * Sqrt(<f_l|f_l>)          
+ !                          i                          
+ !
+ !       
+ ! where
+ !
+ !     Pk*f_k = (tvk' r) exp[-r' tAk r]
+ !
+ ! and
+ !
+ !    
+ !                /    (tvl_x' r)(twl_x' r)  \
+ !     Pl*f_l =  |  +  (tvl_y' r)(twl_y' r)   |  exp[-r' A_l r]
+ !                \ -2 (tvl_z' r)(twl_z' r)  /  
+ !
+ !
+ ! The basic primitive integral is
+ !
+ !
+ !                                     1       pi^(3n/2)
+ !     < Pk*f_k | z_i | Pl*f_l > =  - --- * --------------- *  (tgamma1*tgamma2 + tgamma5*tgamma6)
+ !                                     2      |tAkl|^(3/2)
+ !
+ !
+ ! In this expression
+ !
+ !     tgamma1 = tvk' * tAkl^(-1) * tvl ,
+ !     tgamma5 = tvk' * tAkl^(-1) * twl ,
+ !
+ ! while, inside the summation over the dipole coordinate i,
+ !
+ !     tgamma2 = v_i' * tAkl^(-1) * twl ,
+ !     tgamma6 = v_i' * tAkl^(-1) * tvl .
+ !
+ ! Therefore,
+ !
+ !     tm_num = tgamma1*tgamma2 + tgamma5*tgamma6 .
+ !
+ ! After normalization with the P^o and D^e primitive norms, the common
+ ! prefactor becomes
+ !
+ !               2^(3n/2)        |Lk|^(3/2) |Ll|^(3/2)
+ !     pref = --------------- * --------------------------
+ !               sqrt(3)             |tAkl|^(3/2)
+ !
+ !                                       1
+ !            * ------------------------------------------------------------
+ !              sqrt(vk' Akk^(-1) vk) * sqrt(gamma1*gamma2 + gamma5*gamma6)
+ !          
+ !
+ ! where the D^e norm contains
+ !
+ !     gamma1 = vl' * All^(-1) * vl ,
+ !     gamma2 = wl' * All^(-1) * wl ,
+ !     gamma5 = vl' * All^(-1) * wl ,
+ !     gamma6 = wl' * All^(-1) * vl .
+ !
+ ! In the code,
+ !
+ !     sqrt(vk' Akk^(-1) vk) = SQRT(inv_Akk(mk, mk))
+ !
+ ! and
+ !
+ !     sqrt(gamma1*gamma2 + gamma5*gamma6) = m_den .
+ !
+ ! Thus the final length-gauge primitive-pair contribution is
+ !
+ !                          
+ !                             
+ !     TranDipolLength_kl = 
+ !                                    ---                                               
+ !                                    \                                                   
+ !                          - pref *  /   (q_i - Q_tot*m_i/m0)* (tgamma1*tgamma2 + tgamma5*tgamma6) .      
+ !                                    ---                     
+ !                                     i                        
+ !                              
+ !==============================================================================================
+ ! Transition dipole integral in VELOCITY gauge
+ !==============================================================================================
+ !
+ ! The velocity-gauge operator acts on the P^o bra function. For the
+ ! z-component one has
+ !
+ !     mu_z^V = -i d/dz_i .
+ !
+ ! Applying the derivative to the bra gives
+ !
+ !     d/dz_i [ (tvk' r) exp(-r' tAk r) ] =
+ !
+ !            [ tvk' v_i - 2(tvk' r)(v_i' tAk r) ] exp(-r' tAk r) .
+ !
+ ! For the present P^o(z) ---> D^e(M=0) component, the first term gives
+ ! zero after contraction with the D^e angular factor. Hence only the
+ ! second term contributes.
+ !
+ ! We define
+ !
+ !     u_i = tAk * v_i ,
+ !
+ ! which is implemented in the code by using the i-th column of tAk:
+ !
+ !     u_i(j) = tAk(j,i) .
+ !
+ ! Therefore, inside the summation over i,
+ !
+ !     tgamma2_v = u_i' * tAkl^(-1) * twl ,
+ !     tgamma6_v = u_i' * tAkl^(-1) * tvl ,
+ !
+ ! and
+ !
+ !     tm_num_v = tgamma1*tgamma2_v + tgamma5*tgamma6_v .
+ !
+ !
+ ! The velocity-gauge mass-charge factor is
+ !
+ !      q_0     q_i
+ !      ---  -  ---    
+ !      m_0     m_i
+ !
+ ! In the code this is written as
+ !
+ !     charge_mass0 - Glob_PseudoCharge(i)/Glob_Mass(i+1) .
+ !
+ ! The normalized velocity-gauge contribution has the same normalization
+ ! prefactor as the length-gauge expression, but the derivative of the
+ ! Gaussian produces the additional factor 2. Therefore,
+ !
+ !                                        ---
+ !                                        \     / q_0     q_i \
+ !     TranDipolVelocity_kl = 2*pref *    /    | ----- - ----- |
+ !                                        ---   \ m_0     m_i /
+ !                                         i
+ !
+ !
+ ! The explicit imaginary unit i from the momentum operator is not stored
+ ! in TranDipolVelocity_kl because the output variable is REAL(dprec).
+ ! The routine returns the real coefficient used for the velocity-gauge
+ ! oscillator-strength calculation.
+ !
+ !==============================================================================================
+ ! INPUT:
+ !
+ ! mk                 :: Index of the z-component in the P^o bra premultiplier.
+ ! ml_1, ml_2         :: Indices of the two vectors in the D^e ket premultiplier.
+ ! vechLk             :: Vector storage of the lower-triangular matrix Lk.
+ ! vechLl             :: Vector storage of the lower-triangular matrix Ll.
+ ! Pk                 :: Symmetry permutation matrix applied to the P^o bra.
+ ! Pl                 :: Symmetry permutation matrix applied to the D^e ket.
+ !
+ ! OUTPUT:
+ !
+ ! TranDipolLength_kl   :: Normalized primitive-pair transition dipole
+ !                         matrix element in length gauge.
+ !
+ ! TranDipolVelocity_kl :: Normalized primitive-pair transition dipole
+ !                         matrix element in velocity gauge, without the
+ !                         explicit imaginary unit.
+ !
+ !==============================================================================================
+ 
+ 
+ 
+ 
+ 
+ 
  !Input:     
  !m_l    :: integer that determine which z-component is in the premultiplier of the Gaussian
  !vechLk, vechLl     :: Arrays of length (n(n+1)/2) of exponential parameters. 
@@ -615,21 +842,17 @@ SUBROUTINE MatrixElemenTranDipoleMoment(mk, vechLk, Pk, ml_1, ml_2, vechLl, Pl, 
   REAL(dprec), INTENT(IN)  :: vechLk(Glob_np), vechLl(Glob_np)
   REAL(dprec), INTENT(IN)  :: Pk(Glob_n, Glob_n), Pl(Glob_n, Glob_n)
   REAL(dprec), INTENT(OUT) :: TranDipolLength_kl, TranDipolVelocity_kl
-  !---------------------------------------------------------------------------
-  ! PARAMETERS
-  !---------------------------------------------------------------------------
-  INTEGER, PARAMETER       :: nn  = Glob_MaxAllowedNumOfPseudoParticles
-  INTEGER, PARAMETER       :: nnp = nn * (nn + 1) / 2
+
   !---------------------------------------------------------------------------
   ! LOCAL VARIABLES
   !---------------------------------------------------------------------------
   INTEGER                  :: n, np, Qtotal
   INTEGER                  :: i, j, k, indx
-  REAL(dprec)              :: Lk(nn, nn), Ll(nn, nn)
-  REAL(dprec)              :: tAk(nn, nn), tAl(nn, nn), tAkl(nn, nn)
-  REAL(dprec)              :: W1(nn, nn), W2(nn, nn)
+  REAL(dprec)              :: Lk(Glob_n, Glob_n), Ll(Glob_n, Glob_n)
+  REAL(dprec)              :: tAk(Glob_n, Glob_n), tAl(Glob_n, Glob_n), tAkl(Glob_n, Glob_n)
+  REAL(dprec)              :: W1(Glob_n, Glob_n), W2(Glob_n, Glob_n)
   
-  REAL(dprec)              :: inv_Akk(nn, nn), inv_All(nn, nn), inv_tAkl(nn, nn)
+  REAL(dprec)              :: inv_Akk(Glob_n, Glob_n), inv_All(Glob_n, Glob_n), inv_tAkl(Glob_n, Glob_n)
   REAL(dprec)              :: tvk(Glob_np)               ! Transformed Bra vector v
   REAL(dprec)              :: tvl(Glob_np), twl(Glob_np)      ! Transformed Ket vectors v, w
   
