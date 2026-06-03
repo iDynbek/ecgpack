@@ -15,11 +15,11 @@ usage_print() {
     echo "DESCRIPTION OF ARGUMENTS:"
     echo "<machinename> is the name of the machine. Only a single value may be specified. It could be ubuntu-generic (default), linux-generic, shabyt, muon, puma, ocelote, elgato."
     echo "<toolchainnames> are the names of the toolchains. Supported values for different machines are"
-    echo "  ubuntu-generic  ::  foss-2025a, foss-2024a, foss-2023b, intel-2025a, intel-2023b, systemdefault (default)"
-    echo "  linux-generic   ::  foss-2025a, foss-2024a, foss-2023b, intel-2025a, intel-2023b, systemdefault (default)"
-    echo "  irgetas         ::  foss-2025a, foss-2024a, foss-2023b, intel-2025a, intel-2023b, systemdefault (default)"    
-    echo "  shabyt          ::  foss-2025a, foss-2024a, foss-2023b, intel-2025a, intel-2023b, systemdefault (default)"
-    echo "  muon            ::  foss-2025a, foss-2024a, foss-2023b, intel-2025a, intel-2023b, systemdefault (default)"
+    echo "  ubuntu-generic  ::  foss-2025b, foss-2025a, foss-2024a, foss-2023b, intel-2025b, intel-2025a, intel-2023b, systemdefault (default)"
+    echo "  linux-generic   ::  foss-2025b, foss-2025a, foss-2024a, foss-2023b, intel-2025b, intel-2025a, intel-2023b, systemdefault (default)"
+    echo "  irgetas         ::  foss-2025b, foss-2025a, foss-2024a, foss-2023b, intel-2025b, intel-2025a, intel-2023b, systemdefault (default)"    
+    echo "  shabyt          ::  foss-2025b, foss-2025a, foss-2024a, foss-2023b, intel-2025b, intel-2025a, intel-2023b, systemdefault (default)"
+    echo "  muon            ::  foss-2025b, foss-2025a, foss-2024a, foss-2023b, intel-2025b, intel-2025a, intel-2023b, systemdefault (default)"
     echo "  puma            ::  gnu8-8.3.0, intel-2020.4, systemdefault (default)"
     echo "  ocelote         ::  gnu8-8.3.0, intel-2020.4, systemdefault (default)"
     echo "  elgato          ::  gnu8-8.3.0, intel-2020.4, systemdefault (default)"
@@ -30,9 +30,9 @@ usage_print() {
     echo "<yesnoflag> is a flag that specifies whether to use optimized LAPACK libraries (yes) or use nonoptimized LAPACK from source (no). The default value is yes for precision=8. For precision=10 and precision=16 the value is always no, regardless how the flag is set because optimized LAPACK for these two cases is unavailable."
     echo ""
     echo "EXECUTION EXAMPLES:"
-    echo "$0 machine=ubuntu-generic toolchain=foss-2025a config=release code=RG_0S,RG_1P,RG_2D,RG_2P nparticles=3,4,5,6,7,8 precision=8,10,16 use_optimized_lapack=no"
+    echo "$0 machine=ubuntu-generic toolchain=foss-2025b config=release code=RG_0S,RG_1P,RG_2D,RG_2P nparticles=3,4,5,6,7,8 precision=8,10,16 use_optimized_lapack=no"
     echo "$0 machine=ubuntu-generic toolchain=foss-2025a config=release code=RG_0S,RG_1P,RG_2D,RG_2P nparticles=3,4,5,6,7,8 precision=8 use_optimized_lapack=yes"
-    echo "$0 machine=ubuntu-generic toolchain=foss-2023b config=release code=RG_0S,RG_1P,RG_2D,RG_2P nparticles=3,4,5,6 precision=8,10,16 use_optimized_lapack=no"
+    echo "$0 machine=ubuntu-generic toolchain=foss-2023b config=release code=RG_0S,RG_1P nparticles=3,4,5,6 precision=8,10,16 use_optimized_lapack=no"
     echo "$0 machine=muon toolchain=foss-2023b,intel-2023b config=debug,release code=RG_0S nparticles=4,5 precision=8,16 use_optimized_lapack=yes,no"
     echo "$0 machine=shabyt nparticles=4,5 precision=10"
     echo "$0 nparticles=7"
@@ -43,8 +43,8 @@ usage_print() {
 machine="ubuntu-generic"
 toolchain="systemdefault"
 config="debug,release"
-# code="CG_0S,RG_0S,RG_1P,RG_2D,RG_2P,RG_0S-1P,RG_0S-2D,RG_0S-2P,RG_1P-1P,RG_1P-2D,RG_2D-2D,RG_2P-2D,RG_2P-2P"
-code="RG_0S,RG_1P,RG_2D,RG_2P,RG_0S-1P,RG_0S-2D,RG_0S-2P,RG_1P-1P,RG_2D-2D,RG_2P-2D,RG_2P-2P"
+# code="CG_0S, RG_0S, RG_1P, RG_2D, RG_2P, RG_0S-1P, RG_1P-2D, RG_1P-2P, RG_0S-2D, RG_0S-2P, RG_1P-1P, RG_2D-2D, RG_2P-2D, RG_2P-2P"
+code="CG_0S, RG_0S, RG_1P, RG_2D, RG_2P, RG_0S-1P, RG_1P-2D, RG_1P-2P, RG_0S-2D, RG_0S-2P, RG_1P-1P, RG_2D-2D, RG_2P-2D, RG_2P-2P"
 nparticles=""
 precision="8"
 use_optimized_lapack="yes"
@@ -153,7 +153,29 @@ for toolchain_value in ${toolchain_list[@]}; do
     if [ "$machine" = "ubuntu-generic" ] || [ "$machine" = "linux-generic" ] || [ "$machine" = "irgetas" ] || [ "$machine" = "shabyt" ] || [ "$machine" = "muon" ]; then
         # Possibly insert $machine in the path given by $bindirname (this can be left empty)
         machinedirname=""
-        if [ "$toolchain_value" = "foss-2025a" ]; then
+        if [ "$toolchain_value" = "foss-2025b" ]; then
+            module_for_toolchain="foss/2025b"
+            module load $module_for_toolchain
+            compiler_type=gnu
+            if module load $module_for_toolchain 2>&1 | grep -qi "error"; then
+                echo "Module" $module_for_toolchain " for toolchain" $toolchain_value "could not be loaded"
+                echo "Either the machine argument you use is incorrect or the lmod configuration has been changed."
+                echo "Skipping this toolchain."
+                continue
+            fi
+            if ! which gfortran 2>&1 | grep -qi "software/GCCcore/14.3.0/bin/gfortran"; then
+                echo "gfortran compiler matching toolchain" $toolchain_value" is not accessible."
+                echo "Check that module" $module_for_toolchain " is properly configured."
+                echo "Skipping this toolchain."
+                continue
+            fi
+            if ! which mpif90 2>&1 | grep -qi "software/OpenMPI/5.0.8-GCC-14.3.0/bin/mpif90"; then
+                echo "mpif90 compiler matching toolchain" $toolchain_value" is not accessible."
+                echo "Check that module" $module_for_toolchain " is properly configured."
+                echo "Skipping this toolchain."
+                continue
+            fi
+        elif [ "$toolchain_value" = "foss-2025a" ]; then
             module_for_toolchain="foss/2025a"
             module load $module_for_toolchain
             compiler_type=gnu
@@ -174,7 +196,7 @@ for toolchain_value in ${toolchain_list[@]}; do
                 echo "Check that module" $module_for_toolchain " is properly configured."
                 echo "Skipping this toolchain."
                 continue
-            fi
+            fi			
         elif [ "$toolchain_value" = "foss-2024a" ]; then
             module_for_toolchain="foss/2024a"
             module load $module_for_toolchain
@@ -219,6 +241,28 @@ for toolchain_value in ${toolchain_list[@]}; do
                 echo "Skipping this toolchain."
                 continue
             fi
+        elif [ "$toolchain_value" = "intel-2025b" ]; then
+            module_for_toolchain="intel/2025b"
+            compiler_type=intel
+            module load $module_for_toolchain
+            if module load $module_for_toolchain 2>&1 | grep -qi "error"; then
+                echo "Module" $module_for_toolchain " for toolchain" $toolchain_value "could not be loaded"
+                echo "Either the machine argument you use is incorrect or the lmod configuration has been changed."
+                echo "Skipping this toolchain."
+                continue
+            fi
+            if ! which ifx 2>&1 | grep -qi "software/intel-compilers/2025.2.0/compiler/2025.2/bin/ifx"; then
+                echo "ifort compiler matching toolchain" $toolchain_value" is not accessible."
+                echo "Check that module" $module_for_toolchain " is properly configured."
+                echo "Skipping this toolchain."
+                continue
+            fi
+            if ! which mpiifort 2>&1 | grep -qi "software/impi/2021.16.1-intel-compilers-2025.2.0/mpi/2021.16/bin/mpiifort"; then
+                echo "mpiifort compiler matching toolchain" $toolchain_value" is not accessible."
+                echo "Check that module" $module_for_toolchain " is properly configured."
+                echo "Skipping this toolchain."
+                continue
+            fi			
         elif [ "$toolchain_value" = "intel-2025a" ]; then
             module_for_toolchain="intel/2025a"
             compiler_type=intel

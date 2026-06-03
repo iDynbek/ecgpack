@@ -131,9 +131,9 @@ MASSES = args.masses
 CHARGES = args.charges
 YOUNGOPERATORFORMAT = args.youngoperatorformat
 
-RANDOM_TRIALS = 100*PARTICLES  #Number of stochastic trials in BASIS_ENL
-OPT_LIMIT_EXPAND = 50*PARTICLES  #Max number of energy evaluations when optimizing a newly selected basis function in BASIS_ENL
-OPT_LIMIT_CYCLE = 30*PARTICLES #Max number of energy evaluations when optimizing a function in OPT_CYCLE
+RANDOM_TRIALS = 500  #Number of stochastic trials in BASIS_ENL
+OPT_LIMIT_EXPAND = 200  #Max number of energy evaluations when optimizing a newly selected basis function in BASIS_ENL
+OPT_LIMIT_CYCLE = 130 #Max number of energy evaluations when optimizing a function in OPT_CYCLE
 LIN_COEFF_THRESHOLD = 3.0 #Maximum allowed magnitude of linear coefficients
 
 #If permutational symmetry was supplied through a keyword
