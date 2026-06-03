@@ -2,7 +2,7 @@
 
 ## Short description
 
-ECG is a collection of closely related computer codes for performing variational calculations of quantum few-body systems (few-electron atoms and molecules) using all-particle explicitly correlated Gaussian (ECG) basis functions that have been developed by the research group of Sergiy Bubin (Physics Department, Nazarbayev University) and collaborators.
+ECG is a collection of closely related parallel computer codes for performing variational calculations of quantum few-body systems (few-electron atoms and molecules) using all-particle explicitly correlated Gaussian (ECG) basis functions that have been developed by the research group of Sergiy Bubin (Physics Department, Nazarbayev University) and collaborators. The codes are written in Fortran and use MPI for parallelism.
 
 ## Notations
 
