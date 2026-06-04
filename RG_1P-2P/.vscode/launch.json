@@ -1,0 +1,101 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "run_debug_gcc_8",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/debug/ecg_debug_gcc_8",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build_debug_gcc_8"
+        },
+        {
+            "name": "run_debug_gcc_8_optlapack",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/debug/ecg_debug_gcc_8_optlapack",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build_debug_gcc_8_optlapack"
+        },
+        {
+            "name": "run_debug_gcc_10",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/debug/ecg_debug_gcc_10",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build_debug_gcc_10"
+        },
+        {
+            "name": "run_debug_gcc_16",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/debug/ecg_debug_gcc_16",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build_debug_gcc_16"
+        },
+        {
+            "name": "run_release_gcc_8",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/release/ecg_release_gcc_8",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build_release_gcc_8"
+        },
+        {
+            "name": "run_release_gcc_8_optlapack",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/release/ecg_release_gcc_8_optlapack",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build_release_gcc_8_optlapack"
+        },
+        {
+            "name": "run_release_gcc_10",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/release/ecg_release_gcc_10",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build_release_gcc_10"
+        },
+        {
+            "name": "run_release_gcc_16",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/release/ecg_release_gcc_16",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build_release_gcc_16"
+        }
+    ]
+}

@@ -1,0 +1,154 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build_debug_gcc_8",
+            "type": "shell",
+            "command": "make debug COMPILER_TYPE=gnu MACHINE=ubuntu-generic PREC=8 OPTLPKBLS=no EXEFILE=ecg_debug_gcc_8",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build"
+        },
+        {
+            "label": "build_release_gcc_8",
+            "type": "shell",
+            "command": "make release COMPILER_TYPE=gnu MACHINE=ubuntu-generic PREC=8 OPTLPKBLS=no EXEFILE=ecg_release_gcc_8",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build"
+        },
+        {
+            "label": "build_debug_gcc_8_optlapack",
+            "type": "shell",
+            "command": "make debug COMPILER_TYPE=gnu MACHINE=ubuntu-generic PREC=8 OPTLPKBLS=yes EXEFILE=ecg_debug_gcc_8_optlapack",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build"
+        },
+        {
+            "label": "build_release_gcc_8_optlapack",
+            "type": "shell",
+            "command": "make release COMPILER_TYPE=gnu MACHINE=ubuntu-generic PREC=8 OPTLPKBLS=yes EXEFILE=ecg_release_gcc_8_optlapack",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build"
+        },
+        {
+            "label": "build_debug_gcc_10",
+            "type": "shell",
+            "command": "make debug COMPILER_TYPE=gnu MACHINE=ubuntu-generic PREC=10 OPTLPKBLS=no EXEFILE=ecg_debug_gcc_10",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build"
+        },
+        {
+            "label": "build_release_gcc_10",
+            "type": "shell",
+            "command": "make release COMPILER_TYPE=gnu MACHINE=ubuntu-generic PREC=10 OPTLPKBLS=no EXEFILE=ecg_release_gcc_10",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build"
+        },
+        {
+            "label": "build_debug_gcc_16",
+            "type": "shell",
+            "command": "make debug COMPILER_TYPE=gnu MACHINE=ubuntu-generic PREC=16 OPTLPKBLS=no EXEFILE=ecg_debug_gcc_16",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build"
+        },
+        {
+            "label": "build_release_gcc_16",
+            "type": "shell",
+            "command": "make release COMPILER_TYPE=gnu MACHINE=ubuntu-generic PREC=16 OPTLPKBLS=no EXEFILE=ecg_release_gcc_16",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build"
+        },
+        {
+            "label": "clean_debug",
+            "type": "shell",
+            "command": "make cleandebug",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build"
+        },
+        {
+            "label": "clean_release",
+            "type": "shell",
+            "command": "make cleanrelease",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build"
+        },
+        {
+            "label": "clean_everything",
+            "type": "shell",
+            "command": "make cleanest",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build"
+        },
+
+        {
+            "//": "---- Composite clean -> build tasks (use as preLaunchTask when switching precision) ----",
+            "label": "rebuild_debug_gcc_8",
+            "dependsOrder": "sequence",
+            "dependsOn": ["clean_debug", "build_debug_gcc_8"],
+            "group": "build"
+        },
+        {
+            "label": "rebuild_debug_gcc_8_optlapack",
+            "dependsOrder": "sequence",
+            "dependsOn": ["clean_debug", "build_debug_gcc_8_optlapack"],
+            "group": "build"
+        },
+        {
+            "label": "rebuild_debug_gcc_10",
+            "dependsOrder": "sequence",
+            "dependsOn": ["clean_debug", "build_debug_gcc_10"],
+            "group": "build"
+        },
+        {
+            "label": "rebuild_debug_gcc_16",
+            "dependsOrder": "sequence",
+            "dependsOn": ["clean_debug", "build_debug_gcc_16"],
+            "group": "build"
+        },
+        {
+            "label": "rebuild_release_gcc_8",
+            "dependsOrder": "sequence",
+            "dependsOn": ["clean_release", "build_release_gcc_8"],
+            "group": "build"
+        },
+        {
+            "label": "rebuild_release_gcc_8_optlapack",
+            "dependsOrder": "sequence",
+            "dependsOn": ["clean_release", "build_release_gcc_8_optlapack"],
+            "group": "build"
+        },
+        {
+            "label": "rebuild_release_gcc_10",
+            "dependsOrder": "sequence",
+            "dependsOn": ["clean_release", "build_release_gcc_10"],
+            "group": "build"
+        },
+        {
+            "label": "rebuild_release_gcc_16",
+            "dependsOrder": "sequence",
+            "dependsOn": ["clean_release", "build_release_gcc_16"],
+            "group": "build"
+        }
+    ]
+}
