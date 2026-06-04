@@ -25,18 +25,18 @@ module spinStuff
 contains
 
   subroutine getSpinFunction(n, nFactorial, spatialYoung, permutationMatrices, parities, finalSpinFunction, &
-    primitives, numberOfPrimitives)
+                             primitives, numberOfPrimitives)
     implicit none
 
     integer, intent(in) :: n, nFactorial
     character(len = *), intent(in) :: spatialYoung
-    integer, dimension(n, n, nFactorial), intent(in) :: permutationMatrices 
+    integer, dimension(n, n, nFactorial), intent(in) :: permutationMatrices
 
     integer, dimension(n), intent(out) :: parities
     integer, dimension(:, :), allocatable, intent(out) :: primitives
     real(kind = dprec), dimension(:), allocatable, intent(out) :: finalSpinFunction
     integer, intent(out) :: numberOfPrimitives
-    	
+
     ! local variables
     integer :: Cnk, ptr, NumYTerms
     integer :: i, j, youngLen, k, kFactorial, found
@@ -56,10 +56,8 @@ contains
     character(len = maxLen) :: spinFunctionString
     real(kind = dprec) :: test, norm1, norm2
 
-
     logical :: success, exist
 
-    
     allocate(particles(n))
     youngLen = len(spatialYoung)
 
@@ -81,7 +79,7 @@ contains
     ! we should get the value of k from the spatial Young operator
     ! k = n - b, where b is the number of electrons in the 2nd column
     ! it can be calculated as a number of '+' signs before the 'Pij)'
-    ! BUT NOT ALWAYS (smth weird can appear in A part of Young operator)
+    ! BUT NOT ALWAYS (something weird can appear in A part of Young operator)
     ! note that we assume S = S_z
 
     numberOfAs = n
@@ -91,7 +89,7 @@ contains
         if ((spatialYoung(i - 1:i - 1) == '+') .and. (spatialYoung(i + 3:i + 3) == ')')) numberOfAs = numberOfAs - 1
       endif
     enddo
-    
+
     SeDoubled = 2 * numberOfAs - n
 
     ! we generate spin function chi:
@@ -99,7 +97,6 @@ contains
     ! S_z chi_{S, S} = S chi_{S, S}
     ! we will need a complete "dictionary" of primitives
     numberOfPrimitives = 0
-
 
     kFactorial = 1
     do i = 1, numberOfAs
@@ -132,9 +129,8 @@ contains
 
     call generateSpinYoungFromSpatialString(spatialYoung, n, nFactorial, NumYTerms, YCoeff, YMatr)
 
-
     ! fill in the 1st primitive string
-     do i = 1, numberOfAs
+    do i = 1, numberOfAs
       primitives(i, 1) = 1
     enddo
 
@@ -178,7 +174,7 @@ contains
       if (j > numberOfPrimitives) stop "unable to build the spin function"
 
       spinFunction(j) = 1
-      success = .true.      
+      success = .true.
 
       ! call showSpinFunction(spinFunction, primitives, n, numberOfPrimitives, spinFunctionString)
       ! write(*, '(a)') trim(adjustl(spinFunctionString))
@@ -196,7 +192,7 @@ contains
       spinFunction = intSpinfunctionA
 
       if (all(spinFunction(1 : numberOfPrimitives) == 0)) success = .false.
-      j = j + 1 
+      j = j + 1
 
     enddo
 
@@ -207,11 +203,9 @@ contains
     ! write(*, '(a)') trim(adjustl(spinFunctionString))
     ! print *, '====================================='
 
-
     ! spinFunctionsArray(:, 1) = chi_{S, S} chi_{1/2, 1/2}
     ! spinFunctionsArray(:, 2) = chi_{S, S} chi_{1/2, -1/2}
     ! spinFunctionsArray(:, 3) = chi_{S, S - 1} chi_{1/2, 1/2}
-
 
     allocate(finalSpinFunction(numberOfPrimitives))
     finalSpinFunction = ZERO
@@ -228,17 +222,13 @@ contains
     norm1 = spinFunctionsScalarProductReal(tmpSpinFunctionA, tmpSpinFunctionA, numberOfPrimitives)
     finalSpinFunction(:) = tmpSpinFunctionA / sqrt(norm1)
 
-
-
-     ! we want to calculate some mean values with our spin function(s)
+    ! we want to calculate some mean values with our spin function(s)
     ! note that for any operator O commuting with all P_{a} from the group S_{n electrons}
     ! <O> = <chi phi | O | A^{el}[chi phi]> = <chi phi | O | sum_{a} parity(P_{a}) P_{a} chi phi>
 
     ! usually for the operators we need spin and spatial parts can be factorized
     ! in a following way:
     ! <O> = sum_{a} parity(P_{a}) <chi | O^s | P^s_{a} chi> <phi | O^s | P^r_{a} phi>
-
-
 
     ! so, we store the following:
     ! 1. spin function(s) as string
@@ -254,7 +244,7 @@ contains
 
     ! 5. <chi |s_z_i | P^s_{a} chi> for all P^s_{a} from the group S_{n electrons}
     ! (needed as coeffs for SO and AMM operators)
-	
+
     ! 6. <chi | 3 s_z_i s_z_j - s_i s_j | P^s_{a} chi> for all P^s_{a} from the group S_{n electrons}
     ! (coeffs for SSNC operator)
 
@@ -284,7 +274,6 @@ contains
       enddo
     enddo
 
-
     allocate(tmpSpinFunctionB(numberOfPrimitives))
     allocate(tmpSpinFunctionC(numberOfPrimitives))
 
@@ -292,16 +281,15 @@ contains
     if (Glob_ProcID == 0) then
       inquire(file="spinData.txt", exist=exist)
       if (exist) then
-         open(newunit=io, file="spinData.txt", status="old", position="append", action="write")
+        open(newunit=io, file="spinData.txt", status="old", position="append", action="write")
       else
-         open(newunit=io, file="spinData.txt", status="new", action="write")
+        open(newunit=io, file="spinData.txt", status="new", action="write")
       end if
       write(io, '("Se from Young string =" , 1x, f6.3)') real(SeDoubled, kind=dprec) * 0.5
       close(io)
     endif
 
     tmpSpinFunctionA = finalSpinFunction(:)
-
 
     call showSpinFunction(spinFunctionsArray(:, 1), primitives, n, numberOfPrimitives, spinFunctionString)
 
@@ -311,7 +299,7 @@ contains
       do j = i + 1, n
 
         call permuteSpinFunctionReal(primitives, tmpSpinFunctionA, tmpSpinFunctionB, &
-        pairPermutations(:, :, i, j), n, numberOfPrimitives)
+                                     pairPermutations(:, :, i, j), n, numberOfPrimitives)
 
         ! call showSpinFunctionReal(tmpSpinFunctionB, primitives, n, numberOfPrimitives, spinFunctionString)
         ! write(*, '(a)') trim(adjustl(spinFunctionString))
@@ -322,44 +310,41 @@ contains
     enddo
 
     test = (sqrt(FOUR * test + ONE) - ONE) * ONEHALF
-      
+
     if (Glob_ProcID == 0) then
 
       open(newunit=io, file="spinData.txt", status="old", action="write", position = "append")
       write(io, '(a)') '==========================================='
-      write(io, '(a, a)') "chi = ", trim(adjustl(spinFunctionString))      
+      write(io, '(a, a)') "chi = ", trim(adjustl(spinFunctionString))
       write(io, '("S calculated         =" , 1x, f6.3)') test
       write(io, '(a)') "C_SO_J, C_SS_J:"
       do k = nint(TWO * abs(ONE - test)), nint(TWO * abs(ONE + test)), 2
         if (mod(k, 2) == 0) then
           write(io, '("C_SO_", i1, " = ", f6.3)') k / 2, soAngularCoeff(nint(TWO * test), k)
         else
-           write(io, '("C_SO_", i1, "/2 = ", f6.3)') k, soAngularCoeff(nint(TWO * test), k)
+          write(io, '("C_SO_", i1, "/2 = ", f6.3)') k, soAngularCoeff(nint(TWO * test), k)
         endif
       enddo
-       
+
       write(io,*) ''
 
       do k = nint(TWO * abs(ONE - test)), nint(TWO * abs(ONE + test)), 2
         if (mod(k, 2) == 0) then
           write(io, '("C_SS_", i1, " = ", f6.3)') k / 2, ssAngularCoeff(nint(TWO * test), k)
-       else
+        else
           write(io, '("C_SS_", i1, "/2 = ", f6.3)') k, ssAngularCoeff(nint(TWO * test), k)
-       endif
+        endif
       enddo
-    
+
       write(io,*) ''
       write(io,*) ''
       close(io)
     endif
 
-    
-
   end subroutine getSpinFunction
 
-
   subroutine getSpinOpMeanValues(n, nFactorial, permutationMatrices, spinFunction0, spinFunction1, &
-    primitives0, primitives1, numberOfPrimitives0, numberOfPrimitives1, spinFreeME, SiMinusME, SiPlusME, SziME)
+                         primitives0, primitives1, numberOfPrimitives0, numberOfPrimitives1, spinFreeME, SiMinusME, SiPlusME, SziME)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! This subroutine calculates the following matrix elements:
@@ -386,15 +371,14 @@ contains
     integer :: ptr, i, j, k, opCase
     real(kind = dprec) :: ans, Sz1, Sz0, Sz10
     real(kind = dprec), dimension(:), allocatable :: tmpSpinFunctionA0, tmpSpinFunctionB0, tmpSpinFunctionC0, &
-    tmpSpinFunctionA1, tmpSpinFunctionB1, tmpspinFunctionC1
+                                                     tmpSpinFunctionA1, tmpSpinFunctionB1, tmpspinFunctionC1
     character(len = maxLen) :: spinFunctionString
     integer :: io
 
-
     allocate(tmpSpinFunctionA0(numberOfPrimitives0), tmpSpinFunctionB0(numberOfPrimitives0), &
-    tmpSpinFunctionC0(numberOfPrimitives0))
+             tmpSpinFunctionC0(numberOfPrimitives0))
     allocate(tmpSpinFunctionA1(numberOfPrimitives1), tmpSpinFunctionB1(numberOfPrimitives1), &
-    tmpSpinFunctionC1(numberOfPrimitives1))
+             tmpSpinFunctionC1(numberOfPrimitives1))
 
     Sz0 = getSzTotal(primitives0, spinFunction0, n, numberOfPrimitives0)
     Sz1 = getSzTotal(primitives1, spinFunction1, n, numberOfPrimitives1)
@@ -421,106 +405,97 @@ contains
 
       !Permute spin function 0 (-> tmpSpinFunctionB0)
       call permuteSpinFunctionReal(primitives0, tmpSpinFunctionA0, tmpSpinFunctionB0, &
-      permutationMatrices(:, :, ptr), n, numberOfPrimitives0)
+                                   permutationMatrices(:, :, ptr), n, numberOfPrimitives0)
 
       !Permute spin function 1  (-> tmpSpinFunctionB1)
       call permuteSpinFunctionReal(primitives1, tmpSpinFunctionA1, tmpSpinFunctionB1, &
-      permutationMatrices(:, :, ptr), n, numberOfPrimitives1)
+                                   permutationMatrices(:, :, ptr), n, numberOfPrimitives1)
 
       spinFreeME(ptr, 1) = spinFunctionsScalarProductReal(tmpSpinFunctionA0, tmpSpinFunctionB0, numberOfPrimitives0)
       spinFreeME(ptr, 2) = spinFunctionsScalarProductReal(tmpSpinFunctionA1, tmpSpinFunctionB1, numberOfPrimitives1)
 
       select case (opCase)
-        case (1) 
-          do k = 1, n
+      case (1)
+        do k = 1, n
             !! <Chi_1 | Sk+  * Pj| Chi_0>
-            call actOnSpinFunctionWithSPlusiReal(primitives1, primitives0, &
-            numberOfPrimitives1, numberOfPrimitives0, k, n, tmpSpinFunctionB0, tmpSpinFunctionC1)
-            SiPlusME(k, ptr) = spinFunctionsScalarProductReal(tmpSpinFunctionA1, tmpSpinFunctionC1, numberOfPrimitives1)
-          enddo
-        case (0)
-          do k = 1, n
-            tmpSpinFunctionC0 = tmpSpinFunctionB0
-            call actOnSpinFunctionWithSzi(primitives0, tmpSpinFunctionC0, k, n, numberOfPrimitives0)
-            SziME(k, ptr) = ONEHALF * spinFunctionsScalarProductReal(tmpSpinFunctionA1, tmpSpinFunctionC0, numberOfPrimitives1)
-          enddo
-        case (-1)
-          do k = 1, n
+          call actOnSpinFunctionWithSPlusiReal(primitives1, primitives0, &
+                                               numberOfPrimitives1, numberOfPrimitives0, k, n, tmpSpinFunctionB0, tmpSpinFunctionC1)
+          SiPlusME(k, ptr) = spinFunctionsScalarProductReal(tmpSpinFunctionA1, tmpSpinFunctionC1, numberOfPrimitives1)
+        enddo
+      case (0)
+        do k = 1, n
+          tmpSpinFunctionC0 = tmpSpinFunctionB0
+          call actOnSpinFunctionWithSzi(primitives0, tmpSpinFunctionC0, k, n, numberOfPrimitives0)
+          SziME(k, ptr) = ONEHALF * spinFunctionsScalarProductReal(tmpSpinFunctionA1, tmpSpinFunctionC0, numberOfPrimitives1)
+        enddo
+      case (-1)
+        do k = 1, n
             !! <Chi_1 | Sk-  * Pj| Chi_0>
-            call actOnSpinFunctionWithSMinusiReal(primitives1, primitives0, &
-            numberOfPrimitives1, numberOfPrimitives0, k, n, tmpSpinFunctionB0, tmpSpinFunctionC1)
-            SiMinusME(k, ptr) = spinFunctionsScalarProductReal(tmpSpinFunctionA1, tmpSpinFunctionC1, numberOfPrimitives1)
-          enddo
+          call actOnSpinFunctionWithSMinusiReal(primitives1, primitives0, &
+                                               numberOfPrimitives1, numberOfPrimitives0, k, n, tmpSpinFunctionB0, tmpSpinFunctionC1)
+          SiMinusME(k, ptr) = spinFunctionsScalarProductReal(tmpSpinFunctionA1, tmpSpinFunctionC1, numberOfPrimitives1)
+        enddo
       end select
-     
+
     enddo ! all permutations
 
+    !Output some quantities for test purposes:
 
-    !Output some qunatities for test purposes:
+    if (Glob_ProcID == 0) then
 
-      if (Glob_ProcID == 0) then
-        
+      open(newunit=io, file="spinData.txt", status="old", action="write", position = "append")
 
-         open(newunit=io, file="spinData.txt", status="old", action="write", position = "append")
+      !permutation matrices
+      write(io, *) "permutationMatrices"
+      do ptr=1,nFactorial
+        write(io, *) 'ptr = ', ptr
+        do i=1,n
+          write(io, *) permutationMatrices(i, :, ptr)
+        enddo
+        write(io, *) ''
+      enddo
 
-        !permutation matrices
-         write(io, *) "permutationMatrices"
-         do ptr=1,nFactorial
-            write(io, *) 'ptr = ', ptr
-            do i=1,n
-               write(io, *) permutationMatrices(i, :, ptr)
-            enddo
-            write(io, *) ''
-         enddo
-            
-         
-         ! spin free 0
-         write(io, '("<chi0 | 1 | P^s_{a} chi0>:")')
-         write(io, *) 'ptr  ', 'spinFreeME  '
-         do ptr = 1, nFactorial
-           write(io, '(i3, 2x, f6.3)') ptr, spinFreeME(ptr, 1)
-         enddo
-         write(io,*) ''
+      ! spin free 0
+      write(io, '("<chi0 | 1 | P^s_{a} chi0>:")')
+      write(io, *) 'ptr  ', 'spinFreeME  '
+      do ptr = 1, nFactorial
+        write(io, '(i3, 2x, f6.3)') ptr, spinFreeME(ptr, 1)
+      enddo
+      write(io,*) ''
 
-        ! spin free 1
-        ! write(io, '("<chi1 | 1 | P^s_{a} chi1>:")')
-        ! write(io, *) 'ptr  ', 'spinFreeME  '
-        ! do ptr = 1, nFactorial
-        !   write(io, '(i3, 2x, f6.3)') ptr, spinFreeME(ptr, 2)
-        ! enddo
-        ! write(io,*) ''
-          
-        ! S+
-         !write(io, '("<chi1 | S+ | P^s_{a} chi0>:")')
-         !do ptr = 1, nFactorial
-         !    write(io, *) 'ptr  '
-         !   do k = 1, n
-         !     write(io, '(i3, 2x, f6.3)') ptr, SiPlusME(k, ptr)
-         !   enddo
-         ! enddo
-         !write(io,*) ''
+      ! spin free 1
+      ! write(io, '("<chi1 | 1 | P^s_{a} chi1>:")')
+      ! write(io, *) 'ptr  ', 'spinFreeME  '
+      ! do ptr = 1, nFactorial
+      !   write(io, '(i3, 2x, f6.3)') ptr, spinFreeME(ptr, 2)
+      ! enddo
+      ! write(io,*) ''
 
+      ! S+
+      !write(io, '("<chi1 | S+ | P^s_{a} chi0>:")')
+      !do ptr = 1, nFactorial
+      !    write(io, *) 'ptr  '
+      !   do k = 1, n
+      !     write(io, '(i3, 2x, f6.3)') ptr, SiPlusME(k, ptr)
+      !   enddo
+      ! enddo
+      !write(io,*) ''
 
+      !  Sz
+      write(io, '("<chi1 | Sz | P^s_{a} chi0>:")')
+      do ptr = 1, nFactorial
+        write(io, *) 'ptr  '
+        do k = 1, n
+          write(io, '(i3, 2x, f6.3)') ptr, SziME(k, ptr)
+        enddo
+      enddo
+      write(io,*) ''
 
-         !  Sz
-         write(io, '("<chi1 | Sz | P^s_{a} chi0>:")')
-         do ptr = 1, nFactorial
-             write(io, *) 'ptr  '
-            do k = 1, n
-              write(io, '(i3, 2x, f6.3)') ptr, SziME(k, ptr)
-            enddo
-          enddo
-         write(io,*) ''
-          
-         
-       close(io)
+      close(io)
 
-      endif
-      
-
+    endif
 
   end subroutine getSpinOpMeanValues
-  
 
   subroutine permute(p, x, y, n)
     implicit none
@@ -589,12 +564,11 @@ contains
       enddo
       ans = ans + spinFunctionsScalarProductReal(spinFunction, tmpSpinFunction, numberOfPrimitives)
     enddo
-    
+
     ans = ans / TWO
   end function getSzTotal
 
-
-    subroutine actOnSpinFunctionWithSziSzj(primitives, spinFunction, i1, i2, n, numberOfPrimitives)
+  subroutine actOnSpinFunctionWithSziSzj(primitives, spinFunction, i1, i2, n, numberOfPrimitives)
     implicit none
 
     ! returns 4 s_z(i1) s_z(i2) \Chi from i1, i2 and \Chi
@@ -611,10 +585,10 @@ contains
     integer :: j
 
     do j = 1, numberOfPrimitives
-       
-       if (abs(spinFunction(j)) < localEps) cycle   
-       if (primitives(i1, j) /= primitives(i2, j) ) spinFunction(j) = -spinFunction(j)
-    
+
+      if (abs(spinFunction(j)) < localEps) cycle
+      if (primitives(i1, j) /= primitives(i2, j) ) spinFunction(j) = -spinFunction(j)
+
     enddo
 
   end subroutine actOnSpinFunctionWithSziSzj
@@ -642,11 +616,11 @@ contains
 
     do j = 1, numberOfPrimitives
       if (spinFunction(j) == 0) cycle
-      
+
       if (primitives(i, j) == 1) then
         primitiveA = primitives(:, j)
         primitiveA(i) = 0
-        
+
         ! now we are looking for the string in our "library"
 
         found = 0
@@ -673,10 +647,8 @@ contains
 
   end subroutine
 
-
-
   subroutine actOnSpinFunctionWithSMinusiReal(primitivesA, primitivesB, &
-    numberOfPrimitivesA, numberOfPrimitivesB, i, n, spinFunctionB, spinFunctionA)
+                                              numberOfPrimitivesA, numberOfPrimitivesB, i, n, spinFunctionB, spinFunctionA)
     implicit none
 
     ! returns S_{-}(i) \Chi from i and \Chi
@@ -685,8 +657,8 @@ contains
     ! S_{-}(i) (.....a.....) = (.....b.....)
     ! S_{-}(i) (.....b.....) = 0
     !                ^i'th place
-    
-    !note that after the action of S_{-} operator, new w.f. is written in another basis 
+
+    !note that after the action of S_{-} operator, new w.f. is written in another basis
 
     !input variables
     integer, dimension(n, numberOfPrimitivesA), intent(in) :: primitivesA !primitive set for <..|
@@ -706,11 +678,11 @@ contains
 
     do j = 1, numberOfPrimitivesB
       if (abs(spinFunctionB(j)) < localEPs) cycle
-      
+
       if (primitivesB(i, j) == 1) then
         tmp_primitive = primitivesB(:, j)
         tmp_primitive(i) = 0
-        
+
         ! now we are looking for the string in our "library" for spinFunctionA
         found = 0
         do l = 1, numberOfPrimitivesA
@@ -735,9 +707,8 @@ contains
 
   end subroutine
 
-
   subroutine actOnSpinFunctionWithSPlusiReal(primitivesA, primitivesB, &
-    numberOfPrimitivesA, numberOfPrimitivesB, i, n, spinFunctionB, spinFunctionA)
+                                             numberOfPrimitivesA, numberOfPrimitivesB, i, n, spinFunctionB, spinFunctionA)
     implicit none
 
     ! returns S_{-}(i) \Chi from i and \Chi
@@ -764,11 +735,11 @@ contains
     newSpinFunction = ZERO
     do j = 1, numberOfPrimitivesB
       if (abs(spinFunctionB(j)) < localEPs) cycle
-      
+
       if (primitivesB(i, j) == 0) then
         tmp_primitive = primitivesB(:, j)
         tmp_primitive(i) = 1
-        
+
         ! now we are looking for the string in our "library"
         found = 0
         do l = 1, numberOfPrimitivesA
@@ -793,8 +764,6 @@ contains
 
   end subroutine actOnSpinFunctionWithSPlusiReal
 
-
-
   function intPairGcd(a, b) result(gcd)
     implicit none
 
@@ -812,7 +781,7 @@ contains
     do while (la > 0 .and. lb > 0)
       if (la > lb) then
         la = mod(la, lb)
-      else 
+      else
         lb = mod(lb, la)
       endif
     enddo
@@ -825,13 +794,12 @@ contains
       return
     endif
 
-
   end function
 
   subroutine beautifySpinFunction(spinFunction, numberOfPrimitives)
     implicit none
 
-    ! returns spin function integer coefficients 
+    ! returns spin function integer coefficients
     ! divided by their GCD
     ! it is only needed for a pretty resulting string
 
@@ -847,14 +815,14 @@ contains
 
     do l = 1, numberOfPrimitives
       if (spinFunction(l) == 0) cycle
-      
+
       gcd = abs(spinFunction(l))
       exit
     enddo
 
     do l = 1, numberOfPrimitives
       if (spinFunction(l) == 0) cycle
-      
+
       gcd = intPairGcd(abs(spinFunction(l)), gcd)
 
       if (gcd == 1) then
@@ -919,8 +887,8 @@ contains
       do j = 1, R
         k = 0
         i = i + 1
-          c1 = spatialYoung(i:i)
-          do while (c1 /= '(')
+        c1 = spatialYoung(i:i)
+        do while (c1 /= '(')
           if (c1 /= '*') k = 1
           i = i + 1
           c1 = spatialYoung(i:i)
@@ -1000,7 +968,7 @@ contains
           YOpStr(k)(2:i + 1 - p) = spatialYoung(p:i - 1)
           k = k + 1
         endif
-       enddo
+      enddo
     endif
 
     ! print *, '.'
@@ -1019,7 +987,6 @@ contains
     ! it can be shown that (SA)_{table 1} = (AS)_{table 2} if the tables
     ! 1 and 2 correspond to the same mean value of S^2 operator
     ! (transition between tables of the same shape is a simple renaming of particles)
-
 
     ! we check the 1st factor in Young operator
     j = 0
@@ -1060,7 +1027,6 @@ contains
       if (p < NumFactY + 1) exit
     enddo
 
-
     q = 1
     do k = p, NumFactY
       TempYOpStr(q) = YOpStr(k)
@@ -1084,7 +1050,6 @@ contains
         endif
       enddo
     enddo
-
 
     ! !Print all factors in the Young operator
     ! j = StrLen + 1
@@ -1149,8 +1114,6 @@ contains
       enddo
     enddo
 
-
-
     CurrNumOfTerms=NumTermsInYOpFact(NumFactY)
     allocate(TempSymCoeff(CurrNumOfTerms))
     allocate(TempSymMatr(n,n,CurrNumOfTerms))
@@ -1172,51 +1135,51 @@ contains
         else
           if (YOpStr(j)(i-1:i-1)=='+') then
             Coeff=1
-    	  else
+          else
             Coeff=-1
-    	  endif
+          endif
         endif
         Matr1=pairPermutations(1:n,1:n,1,1)
         do while (c1=='P')
           read(YOpStr(j)(i+1:i+1),*) p
           read(YOpStr(j)(i+2:i+2),*) q
-    	  Matr2(1:n,1:n)=pairPermutations(1:n,1:n,p,q)
-    	  Matr4(1:n,1:n)=Matr1(1:n,1:n)
-    	  do ii=1,n
-    	    do jj=1,n
-    	      w=0
-    	      do kk=1,n
-    	        w=w+Matr2(ii,kk)*Matr4(kk,jj)
-    	      enddo
-    	      Matr1(ii,jj)=w
-    	    enddo
-    	  enddo
-    	  i=i+3
+          Matr2(1:n,1:n)=pairPermutations(1:n,1:n,p,q)
+          Matr4(1:n,1:n)=Matr1(1:n,1:n)
+          do ii=1,n
+            do jj=1,n
+              w=0
+              do kk=1,n
+                w=w+Matr2(ii,kk)*Matr4(kk,jj)
+              enddo
+              Matr1(ii,jj)=w
+            enddo
+          enddo
+          i=i+3
           c1=YOpStr(j)(i:i)
         enddo
         k=k+1
         p=i
         if (j/=NumFactY) then
           if (k==1) then
-    	    Matr3(1:n,1:n)=Matr1(1:n,1:n)
+            Matr3(1:n,1:n)=Matr1(1:n,1:n)
             Cf3=Coeff
-    	  else
-    	    do s=1,t
+          else
+            do s=1,t
               Matr2(1:n,1:n)=TempSymMatr(1:n,1:n,s)
               q=t*(k-1)+s
-    	      do ii=1,n
-    	        do jj=1,n
-    	          w=0
-    	          do kk=1,n
-    	            w=w+Matr2(ii,kk)*Matr1(kk,jj)
-    	          enddo
-    	          TempSymMatr(ii,jj,q)=w
-    	        enddo
-    	      enddo
-    	      TempSymCoeff(q)=Coeff*TempSymCoeff(s)
-    	    enddo
+              do ii=1,n
+                do jj=1,n
+                  w=0
+                  do kk=1,n
+                    w=w+Matr2(ii,kk)*Matr1(kk,jj)
+                  enddo
+                  TempSymMatr(ii,jj,q)=w
+                enddo
+              enddo
+              TempSymCoeff(q)=Coeff*TempSymCoeff(s)
+            enddo
           endif
-    	else
+        else
           TempSymMatr(1:n,1:n,k)=Matr1(1:n,1:n)
           TempSymCoeff(k)=Coeff
         endif
@@ -1224,16 +1187,16 @@ contains
       if (j/=NumFactY) then
         do s=1,t
           Matr2(1:n,1:n)=TempSymMatr(1:n,1:n,s)
-    	  do ii=1,n
-    	     do jj=1,n
-    	        w=0
-    	        do kk=1,n
-    	          w=w+Matr2(ii,kk)*Matr3(kk,jj)
-    	        enddo
-    	        TempSymMatr(ii,jj,s)=w
-    	     enddo
-    	  enddo
-    	  TempSymCoeff(s)=Cf3*TempSymCoeff(s)
+          do ii=1,n
+            do jj=1,n
+              w=0
+              do kk=1,n
+                w=w+Matr2(ii,kk)*Matr3(kk,jj)
+              enddo
+              TempSymMatr(ii,jj,s)=w
+            enddo
+          enddo
+          TempSymCoeff(s)=Cf3*TempSymCoeff(s)
         enddo
       endif
       !mark the identical terms (adding their coefficients
@@ -1246,9 +1209,9 @@ contains
           if (all(TempSymMatr(1:n,1:n,i)==TempSymMatr(1:n,1:n,s))) then
             TempSymCoeff(i)=TempSymCoeff(i)+TempSymCoeff(s)
             if (TempSymCoeff(i)==0) t=t-1
-    	    TempSymCoeff(s)=0
-    	    t=t-1
-    	  endif
+            TempSymCoeff(s)=0
+            t=t-1
+          endif
         enddo
       enddo
       !reallocate arrays containing symmetry terms
@@ -1303,7 +1266,7 @@ contains
     ! P (aba) = aab with
     ! P = P13 * P12 = (001 / 100 / 010)
     ! for spatial function P13 P12 f(x1, x2, x3) = f (x2, x3, x1)
-    ! it is convinient to act on the coordinate vector
+    ! it is convenient to act on the coordinate vector
     ! P (x1, x2, x3) = (x2, x3, x1) with
     ! P = (010 / 001 / 100)
     ! then for the same particle permutation
@@ -1330,7 +1293,6 @@ contains
     ! enddo
 
   end subroutine
-
 
   subroutine showSpinFunction(spinFunction, primitives, n, numberOfPrimitives, outString)
     implicit none
@@ -1402,7 +1364,6 @@ contains
     if (norm > 1) then
       finalString = trim(adjustl(finalString)) // ')'
     endif
-
 
     !write(*, '(a)') trim(adjustl(finalString))
     write(outString, '(a)') trim(adjustl(finalString))
@@ -1483,12 +1444,10 @@ contains
       finalString = trim(adjustl(finalString)) // ')'
     endif
 
-
     !write(*, '(a)') trim(adjustl(finalString))
     write(outString, '(a)') trim(adjustl(finalString))
 
   end subroutine
-
 
   subroutine permuteSpinFunction(primitives, oldSpinFunction, newSpinFunction, permutation, n, numberOfPrimitives)
     implicit none
@@ -1506,7 +1465,6 @@ contains
     ! local variables
     integer :: i, j, l, found
     integer, dimension(n) :: permutedString
-
 
     newSpinFunction = 0
 
@@ -1551,7 +1509,6 @@ contains
     integer :: i, j, l, found
     integer, dimension(n) :: permutedString
 
-
     newSpinFunction = ZERO
 
     do i = 1, numberOfPrimitives
@@ -1578,7 +1535,6 @@ contains
 
   end subroutine
 
-
   function primitivesScalarProduct(x, y, n) result(ans)
     implicit none
 
@@ -1599,9 +1555,6 @@ contains
     enddo
 
   end function
-
-
-
 
   function spinFunctionsScalarProductReal(functionA, functionB, numberOfPrimitives) result(ans)
     implicit none
@@ -1624,7 +1577,7 @@ contains
   end function
 
   function spinFunctionsScalarProductReal_general(functionA, functionB, numberOfPrimitivesA, numberOfPrimitivesB, &
-    primitivesA, primitivesB, n) result(ans)
+                                                  primitivesA, primitivesB, n) result(ans)
     implicit none
     ! all the primitives are unique, so <f|g> is an ordinary scalar product
     ! of numberOfPrimitives-dimensional integer vectors
@@ -1649,12 +1602,10 @@ contains
             ans = ans + functionA(j) * functionB(i)
           endif
         enddo
-      endif 
+      endif
     enddo
 
-
   end function
-
 
   subroutine generatePermutationMatrices(matrices, n, nFactorial, parities)
     implicit none
@@ -1662,7 +1613,6 @@ contains
     integer, intent(in) :: n, nFactorial
     integer, dimension(n, n, nFactorial), intent(out) :: matrices
     integer, dimension(nFactorial), intent(out) :: parities
-
 
     ! local variables
     integer :: i, ptr, tmp, j
@@ -1680,7 +1630,7 @@ contains
     enddo
 
     ptr = 2
-    ! we generate the arrays with Heap's algotithm
+    ! we generate the arrays with Heap's algorithm
     ! https://en.wikipedia.org/wiki/Heap's_algorithm
 
     elements = permutedStrings(:, 1)
@@ -1731,7 +1681,7 @@ contains
     !   print *, '================='
     ! enddo
 
-    ! straiforward inefficient way of determining the permutations' parity
+    ! straightforward inefficient way of determining the permutations' parity
     ! n^2 for each permutation
     ! in principle, non-recursive Heap's algorithm naturally generates parities -1 1 -1 1 -1 1 ...
 
@@ -1779,8 +1729,6 @@ contains
     table(2, 2, 0, 0) = -ONE / sqrt(THREE)
     table(2, 2, 0, 2) = ONE / sqrt(THREE)
 
-
-
     ! S = 1/2
     table(0, 1, 1, 1) = ONE
     table(1, 0, 1, 0) = ONE
@@ -1807,12 +1755,9 @@ contains
     ! S = 2
     table(2, 2, 4, 2) = ONE
 
-
     ans = table(SeDoubled, SpDoubled, SDoubled, mpDoubled)
 
-
   end function
-
 
   function soAngularCoeff(sDoubled, jDoubled) result(ans)
     implicit none
@@ -1825,7 +1770,6 @@ contains
 
     integer, intent(in) :: sDoubled, jDoubled
     real(kind = dprec) :: ans
-
 
     select case(sDoubled)
     case(1)
@@ -1890,8 +1834,8 @@ contains
 
     !if triangle rules are not satisfied return zero
     if (sDoubled < 2 .or. sDoubled + 2 < jDoubled .or. sDoubled + jDoubled < 2 .or. jDoubled + 2 < sDoubled) then
-       ans = ZERO
-       return
+      ans = ZERO
+      return
     endif
 
     select case(sDoubled)
@@ -1936,5 +1880,4 @@ contains
 
   end function
 
-  
 end module

@@ -1,24 +1,21 @@
 
 program main
-use workproc
-implicit none
-
+  use workproc
+  implicit none
 
 !Local variables
-integer        :: i,j
-character(70)  :: ReadChar
-real(dprec)    :: LineStrength
-real(dprec)    :: OscillatorStrength
-real(dprec)    :: DeltaE
-
+  integer        :: i,j
+  character(70)  :: ReadChar
+  real(dprec)    :: LineStrength
+  real(dprec)    :: OscillatorStrength
+  real(dprec)    :: DeltaE
 
 !Initialize MPI
-call MPI_INIT(Glob_MPIErrCode)
-call MPI_COMM_RANK(MPI_COMM_WORLD,Glob_ProcID,Glob_MPIErrCode)
-call MPI_COMM_SIZE(MPI_COMM_WORLD,Glob_NumOfProcs,Glob_MPIErrCode)
+  call MPI_INIT(Glob_MPIErrCode)
+  call MPI_COMM_RANK(MPI_COMM_WORLD,Glob_ProcID,Glob_MPIErrCode)
+  call MPI_COMM_SIZE(MPI_COMM_WORLD,Glob_NumOfProcs,Glob_MPIErrCode)
 
-
-if (Glob_ProcID==0) then
+  if (Glob_ProcID==0) then
     write(*,*)
     write(*,'(A)') '  +----------------------------------------------------------------+'
     write(*,'(A)') '  |                                                                |'
@@ -32,18 +29,15 @@ if (Glob_ProcID==0) then
     write(*,*)
     write(*,'(4X,A,I4)') 'Number of parallel processes:  ', Glob_NumOfProcs
     write(*,*)
-endif
+  endif
 
+  call READwf1wf2()
+  call ProgramDataInit()
 
-call READwf1wf2()
-call ProgramDataInit()
+  DeltaE = Glob_CurrEnergy1-Glob_CurrEnergy2
+  call ComputeTranDipoL1L2()
 
-
-DeltaE = Glob_CurrEnergy1-Glob_CurrEnergy2
-call ComputeTranDipoL1L2()
-	
-
-if (Glob_ProcID==0) then
+  if (Glob_ProcID==0) then
     write(*,*)
     write(*,*)
     write(*,'(A)') '   Energy difference:     '
@@ -57,12 +51,11 @@ if (Glob_ProcID==0) then
     write(*,*)
     write(*,'(A)') '   Length Gauge:          '
     write(*,'(A)') '  ------------------------'
-    write(*,*)    
+    write(*,*)
     write(*,'(4X,A)',advance='no') ' < Po | x | Pe >   = '
-    call writerealadv(6,Glob_ExpVals1)                   
+    call writerealadv(6,Glob_ExpVals1)
     write(*,'(4X,A)') ' < Po | y | Pe >   =   0.0'
     write(*,'(4X,A)') ' < Po | z | Pe >   =   0.0'
-
 
     write(*,*)
     write(*,*)
@@ -74,7 +67,6 @@ if (Glob_ProcID==0) then
     write(*,'(4X,A)') '< Po | P(y) | Pe >  =  0.0'
     write(*,'(4X,A)') '< Po | P(x) | Pe >  =  0.0'
 
-
     write(*,*)
     write(*,*)
     write(*,*)
@@ -82,11 +74,8 @@ if (Glob_ProcID==0) then
     write(*,'(A)') ' Program completed successfully.      '
     write(*,*)
 
-endif
+  endif
 
-
-call MPI_FINALIZE(Glob_MPIErrCode)
-
-
+  call MPI_FINALIZE(Glob_MPIErrCode)
 
 end program main

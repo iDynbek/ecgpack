@@ -4,11 +4,11 @@
 !DECK I1MACH
       INTEGER FUNCTION I1MACH (I)
 !get the definition of wp parameter from module wp_def
-      use wp_def
-      IMPLICIT NONE
-      INTEGER :: I
-      REAL :: X
-      REAL(wp) :: XX
+        use wp_def
+        IMPLICIT NONE
+        INTEGER :: I
+        REAL :: X
+        REAL(wp) :: XX
 !***BEGIN PROLOGUE  I1MACH
 !***PURPOSE  Return integer machine dependent constants.
 !***LIBRARY   SLATEC
@@ -80,14 +80,14 @@
 !***ROUTINES CALLED  (NONE)
 !***REVISION HISTORY  (YYMMDD)
 !   750101  DATE WRITTEN
-!   960411  Modified for Fortran 90 (BE after suggestions by EHG).   
-!   980727  Modified value of I1MACH(6) (BE after suggestion by EHG).   
+!   960411  Modified for Fortran 90 (BE after suggestions by EHG).
+!   980727  Modified value of I1MACH(6) (BE after suggestion by EHG).
 !***END PROLOGUE  I1MACH
 !
-      X  = 1.0      
-      XX = 1.0_wp
+        X  = 1.0
+        XX = 1.0_wp
 
-      SELECT CASE (I)
+        SELECT CASE (I)
         CASE (1)
           I1MACH = 5 ! Input unit
         CASE (2)
@@ -100,9 +100,9 @@
           I1MACH = BIT_SIZE(I)
         CASE (6)
           I1MACH = 4            ! Characters per integer is hopefully no
-                                ! longer used. 
-                                ! If it is used it has to be set manually.
-                                ! The value 4 is correct on IEEE-machines.
+          ! longer used.
+          ! If it is used it has to be set manually.
+          ! The value 4 is correct on IEEE-machines.
         CASE (7)
           I1MACH = RADIX(1)
         CASE (8)
@@ -122,28 +122,23 @@
         CASE (15)
           I1MACH = MINEXPONENT(XX)
         CASE (16)
-          I1MACH = MAXEXPONENT(XX) 
+          I1MACH = MAXEXPONENT(XX)
         CASE DEFAULT
           WRITE (*, FMT = 9000)
- 9000     FORMAT ('1ERROR    1 IN I1MACH - I OUT OF BOUNDS')
+9000      FORMAT ('1ERROR    1 IN I1MACH - I OUT OF BOUNDS')
           STOP
         END SELECT
-      RETURN
+        RETURN
       END
-
-
-
-
-
 
 !DECK D1MACH
       FUNCTION D1MACH (I)
 !get the definition of wp parameter from module wp_def
-      use wp_def
-      IMPLICIT NONE
-      real(wp) :: D1MACH
-      INTEGER :: I
-      REAL(wp) :: B, X
+        use wp_def
+        IMPLICIT NONE
+        real(wp) :: D1MACH
+        INTEGER :: I
+        REAL(wp) :: B, X
 !***BEGIN PROLOGUE  D1MACH
 !***PURPOSE  Return floating point machine dependent constants.
 !***LIBRARY   SLATEC
@@ -193,12 +188,12 @@
 !***ROUTINES CALLED  XERMSG
 !***REVISION HISTORY  (YYMMDD)
 !   790101  DATE WRITTEN
-!   960329  Modified for Fortran 90 (BE after suggestions by EHG)      
+!   960329  Modified for Fortran 90 (BE after suggestions by EHG)
 !***END PROLOGUE  D1MACH
-!      
-      X = 1.0_wp
-      B = RADIX(X)
-      SELECT CASE (I)
+!
+        X = 1.0_wp
+        B = RADIX(X)
+        SELECT CASE (I)
         CASE (1)
           D1MACH = B**(MINEXPONENT(X)-1) ! the smallest positive magnitude.
         CASE (2)
@@ -211,8 +206,8 @@
           D1MACH = LOG10(B)
         CASE DEFAULT
           WRITE (*, FMT = 9000)
- 9000     FORMAT ('1ERROR    1 IN D1MACH - I OUT OF BOUNDS')
+9000      FORMAT ('1ERROR    1 IN D1MACH - I OUT OF BOUNDS')
           STOP
-      END SELECT
-      RETURN
+        END SELECT
+        RETURN
       END
