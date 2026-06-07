@@ -25,7 +25,7 @@ module globvars
     THREEHALF=THREE/TWO, &
     PI=3.1415926535897932384626433832795029E0_dprec,     &
     SQRTPI=1.7724538509055160272981674833411452E0_dprec, &
-    Glob_FineStructConst=7.2973525693E-03_dprec, &  !CODATA 2018
+    Glob_FineStructConst=7.2973525643E-03_dprec,         &  !CODATA 2022 value 0.0072973525643(11)
     Glob_EulerConst=0.57721566490153286060651209008240E0_dprec
 
 !=============================================================
