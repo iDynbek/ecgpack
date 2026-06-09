@@ -1,3 +1,5 @@
+#!/usr/bin/env gnuplot
+#
 # Gnuplot script: plot correlation functions from cf.dat
 # Column 1: r, columns 2..N: g-functions named in the header line,
 # e.g.  g1, g2, g3, g12, g13, g23  (g<i> one-particle, g<ij> pair).

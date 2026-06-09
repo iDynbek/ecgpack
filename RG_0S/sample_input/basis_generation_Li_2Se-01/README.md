@@ -8,4 +8,5 @@ Sample file `inout.txt` in this directory provides input for generating ECG basi
 `inout_Li_2Se-01-00100.txt`  
 The calculation with this input file should take roughly 1-2 minutes on a single CPU core when double precision is used (gfortran compiler / AMD Ryzen 7 7800X3D).
 At the end of the calculation the energy should reproduce four decimal figures in the exact value of -7.4774519307.
-  
+
+Note that the end value of the energy may differ slightly from one execution to another because each execution involves stochastic selection of the basis functions.  

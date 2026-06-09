@@ -1,3 +1,5 @@
+#!/usr/bin/env gnuplot
+#
 # Gnuplot script: plot radial densities from dens.dat
 # Column 1: r, columns 2..N: rho1(r), rho2(r), ...
 # Works for an arbitrary number of density columns.
