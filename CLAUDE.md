@@ -8,12 +8,14 @@ ECG is a collection of closely related parallel Fortran codes for variational ca
 
 ## Repository layout
 
-Each code lives in its own top-level directory with an identical structure: a `Makefile` plus a `src/` subdirectory. The codes fall into two groups:
+Each code lives in its own top-level directory with an identical structure: a `Makefile`, a `src/` subdirectory, and a `.vscode/` subdirectory (identical, user-independent JSON configs for building/debugging the code in VSCode). The codes fall into two groups:
 
 - **Energy/wavefunction codes** — `RG_0S`, `RG_1P`, `RG_2D`, `RG_2P` (real Gaussians for different angular-momentum/parity symmetries) and `CG_0S` (complex Gaussians, L=0; work in progress, lags behind `RG_0S`).
 - **Matrix-element codes** — `RG_0S-1P`, `RG_0S-2D`, `RG_0S-2P`, `RG_1P-1P`, `RG_1P-2D`, `RG_1P-2P`, `RG_2D-2D`, `RG_2P-2D`, `RG_2P-2P` (offdiagonal elements between two bases: transition dipole moments, spin–orbit, spin–spin).
 
-`RG_0S` is the most complete reference implementation; other codes share much of its source and Makefile. Non-code directories: `archive/` (old versions, do not touch), `utilities/`, and `bin/` + `jobs/` (created by the user, not in git).
+The four energy codes (`RG_0S`, `RG_1P`, `RG_2D`, `RG_2P`) also ship a `sample_input/` subdirectory of worked examples — see the Running section below.
+
+`RG_0S` is the most complete reference implementation; other codes share much of its source and Makefile. Non-code directories: `archive/` (old versions, do not touch), `utilities/`, and `bin/` + `jobs/` (created by the user, not in git). The root also holds `README.md` (the repository manual) and `.code-workspace` (a VSCode multi-folder workspace grouping all the code directories).
 
 ## Building
 
@@ -49,7 +51,7 @@ Each binary is an MPI program. It reads a single input/output file named **`inou
 mpirun -np <N> /path/to/bin/.../RG_0S_N4_P8_optlapack
 ```
 
-There is no automated test suite; validation is done by running physical test cases and comparing computed energies/expectation values against published reference values.
+There is no automated test suite; validation is done by running physical test cases and comparing computed energies/expectation values against published reference values. The four energy codes ship ready-to-run cases under `<CODE>/sample_input/`, each in its own directory with an `inout.txt` and a `README.md` describing it, expected runtime, and the reference energy/values to reproduce. Three kinds recur: `basis_generation_*` (build an ECG basis from scratch up to a target size), `expected_values_*` (compute expectation values from a saved 100-function basis), and `densities_*` (compute densities and pair correlation functions, with grid-builder Bash scripts, gnuplot plotting scripts, and sample output plots).
 
 ## Source architecture
 
