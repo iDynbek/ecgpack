@@ -137,10 +137,10 @@ CONTAINS
 
       ELSE
 
-        IF (Glob_n>Glob_MAXAllowedNumOfPseuDOParticles) THEN
+        IF (Glob_n/=Glob_MAXAllowedNumOfPseuDOParticles) THEN
           WRITE(*,*)
           WRITE(*,*)'  The version of the code you are running was compiled for the case'
-          WRITE(*,*)'  when the number of particles in the system is smaller or equal to', Glob_MAXAllowedNumOfParticles
+          WRITE(*,*)'  when the number of particles in the system is equal to', Glob_MAXAllowedNumOfParticles
           WRITE(*,*)'  while the number of particles specIFied in the wave function FILEs is',Glob_n+1
           WRITE(*,*)'  Please make appropriate changes. Program will now STOP.'
           WRITE(*,*)

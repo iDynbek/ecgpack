@@ -5,7 +5,7 @@
 Sergiy Bubin
 
 ## Contributors
-List of individuals (in alphabetical order) who have made direct contibutions to the code base of the project since its inception around 2006-2007:
+List of individuals (in alphabetical order) who have made direct contibutions to the code base of the ECGPACK project since its inception around 2006-2007:
 
 * [Amir Bralin](https://orcid.org/0009-0008-0675-2824)
 
@@ -31,7 +31,7 @@ The following individuals have made conceptual contributions and their ideas abo
 
 ## Collaborators
 
-Over the past two decades, a number of colleagues and students have collaborated with the contributors on ECG-related projects, mostly in the context of publications. Interactions with these individuals have significantly influenced the development of this code project:  
+Over the past twenty years, numerous colleagues and students have collaborated on various ECG research initiatives, yielding multiple publications. Their insights have profoundly shaped the evolution of this codebase. These individuals are:
 
 Eugeniusz Bednarz,
 Mauricio Cafiero,
@@ -44,4 +44,5 @@ Nikita Kirnosov,
 Michele Pavanello,
 Keeper Sharkey,
 Monika Stanke,
+Wei-Cheng Tung,
 Kalman Varga

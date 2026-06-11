@@ -116,10 +116,10 @@ contains
         write(*,*) ' '
         ErrorInDataFile=.true.
       Else
-        IF (Glob_n>Glob_MaxAllowedNumOfPseudoParticles) then
+        IF (Glob_n/=Glob_MaxAllowedNumOfPseudoParticles) then
           write(*,*) ' '
           write (*,*) 'The version of the code you are running was compiled for the case'
-          write (*,*) 'when the number of particles in the system is smaller or equal to', &
+          write (*,*) 'when the number of particles in the system is equal to', &
             Glob_MaxAllowedNumOfParticles
           write (*,*) 'while the number of particles specIFied in the wave function files is',Glob_n+1
           write (*,*) 'Please make appropriate changes. Program will now stop.'

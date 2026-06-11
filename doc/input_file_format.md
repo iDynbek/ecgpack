@@ -4,7 +4,7 @@
 
 The input file `inout.txt` consists of four sections: header, command list, history, and basis functions:
 
-| Section | Description |
+| Section | Short Description |
 | --- | --- |
 | Header | Defines the quantum system - number of particles, their charges, masses, permutational symmetry. Also contains the current size of the basis, current energy, parameters for the eigensolver and its statistics, as well as parameters of the distribution used in stochastic selection of variatioal parameters. |
 | Command List | Contains a list of actions that need to be performed. |

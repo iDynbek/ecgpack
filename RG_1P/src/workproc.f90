@@ -53,10 +53,10 @@ contains
         ErrorInDataFile=.true.
       endif
     endif
-    if (Glob_n>Glob_MaxAllowedNumOfPseudoParticles) then
+    if (Glob_n/=Glob_MaxAllowedNumOfPseudoParticles) then
       if (Glob_ProcID==0) then
         write (*,*) 'The version of the code you are running was compiled for the case'
-        write (*,*) 'when the number of particles in the system is smaller or equal to', &
+        write (*,*) 'when the number of particles in the system is equal to', &
           Glob_MaxAllowedNumOfParticles
         write (*,*) 'while the number of particles specified in the input file is',Glob_n+1
         write (*,*) 'Please make appropriate changes. Program will now stop.'
