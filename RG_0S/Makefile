@@ -22,23 +22,25 @@ PREC=8
 # of these routines will be used.
 OPTLPKBLS=yes
 
-# CUDA backend (USE_CUDA=yes requires nvcc, PREC=8, and an NVIDIA GPU).
-# Set CUDA_ARCH to match your GPU's compute capability (sm_86 = RTX 3060 Ti / A100).
-# Set CUDA_HOME to the CUDA toolkit installation prefix.
+# GPU backends. BOTH require COMPILER_TYPE=nvhpc (the NVIDIA HPC SDK): the host
+# Fortran is compiled by nvfortran for either backend, so there is a single GPU
+# toolchain (nvfortran + nvcc + HPC-X MPI). Load the nvhpc module first. GPU builds
+# are PREC=8 only; use OPTLPKBLS=no so the bundled reference BLAS/LAPACK are compiled
+# by nvfortran (avoids linking a system optimized library against nvfortran).
+#
+#   make release COMPILER_TYPE=nvhpc USE_CUDA=yes    CUDA_ARCH=sm_70 OPTLPKBLS=no
+#   make release COMPILER_TYPE=nvhpc USE_OPENACC=yes OPENACC_ARCH=cc70 OPTLPKBLS=no
+#
+# USE_CUDA: the energy/gradient kernels in matelem_cuda.cu are compiled by nvcc
+# (CUDA_ARCH = sm_70 V100 / sm_80 A100 / sm_86 RTX 3060 Ti) and linked into the
+# nvfortran-built program.
 USE_CUDA=no
 NVCC=nvcc
 CUDA_ARCH=sm_86
-CUDA_HOME=/usr/local/cuda
 
-# OpenACC backend (USE_OPENACC=yes requires the NVIDIA HPC SDK / nvfortran and an
-# NVIDIA GPU). Unlike CUDA, the ENTIRE program is compiled with nvfortran -acc; the
-# device routine lives in matelem_acc.f90. GPU/PREC=8 only. Build with OPTLPKBLS=no so
-# the bundled reference BLAS/LAPACK are compiled by nvfortran (avoids linking a system
-# optimized library against nvfortran). Set OPENACC_ARCH to your GPU's compute
-# capability (cc70 = V100, cc80 = A100, cc86 = RTX 3060 Ti). Requires the nvhpc module
-# to be loaded so mpif90 resolves to the HPC SDK wrapper around nvfortran.
+# USE_OPENACC: the whole program is compiled with nvfortran -acc; the device routine
+# lives in matelem_acc.f90. OPENACC_ARCH = cc70 V100 / cc80 A100 / cc86 RTX 3060 Ti.
 USE_OPENACC=no
-OPENACC_FC=mpif90
 OPENACC_ARCH=cc70
 
 # Set the default name for the generated executable file
@@ -183,6 +185,35 @@ ifeq ($(shell [ "$(MACHINE)" = "puma" ] || [ "$(MACHINE)" = "ocelote" ] || [ "$(
   endif  
 endif
 
+# NVHPC (nvfortran) toolchain - used for ALL GPU builds, both the CUDA host code
+# and OpenACC. Machine-independent (the HPC SDK provides nvfortran + HPC-X MPI), so it
+# is handled here rather than per-MACHINE. Load the nvhpc module first so that mpif90
+# resolves to the HPC SDK wrapper around nvfortran. The USE_CUDA / USE_OPENACC blocks
+# below add their backend-specific flags on top of this base.
+ifeq ($(COMPILER_TYPE), nvhpc)
+  FC=mpif90
+  export MPICOMPFLAGS=
+  export MPILINKFLAGS=
+  export FCFLAGS=-module $(CONFIG) -Mpreprocess -Kieee
+  export LINKFLAGS=-module $(CONFIG) -Kieee
+  ifeq ($(CONFIG), debug)
+    export FCFLAGS+=-O0 -g -Mbounds -traceback
+    export LINKFLAGS+=-O0 -g -Mbounds -traceback
+  endif
+  ifeq ($(CONFIG), release)
+    export FCFLAGS+=-O3
+    export LINKFLAGS+=-O3
+  endif
+  ifeq ($(PREC), 8)
+    COMPILER_SUPPORTED=yes
+    ifeq ($(OPTLPKBLS),yes)
+      # Linking a system optimized LAPACK/BLAS against nvfortran is untested;
+      # OPTLPKBLS=no (bundled reference BLAS/LAPACK, compiled by nvfortran) is advised.
+      export LINKFLAGS+=-llapack -lblas
+    endif
+  endif
+endif
+
 # Creating lists of objects for convenience
 
 ifeq ($(OPTLPKBLS), yes)
@@ -197,45 +228,46 @@ export BARE_OBJS=wp_def_$(PREC).o X1MACH.o dmng.o globvars.o misc.o linalg.o \
 export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS))
 export OBJS+=$(OBJS_LPKBLS)
 
-# CUDA object files and flags (only when USE_CUDA=yes and PREC=8)
+# Guard: the two GPU backends are mutually exclusive.
+ifeq ($(USE_CUDA)$(USE_OPENACC), yesyes)
+  $(error USE_CUDA=yes and USE_OPENACC=yes are mutually exclusive - pick one)
+endif
+
+# CUDA backend (USE_CUDA=yes). The nvfortran-built program links the nvcc-compiled
+# kernel object; -cuda pulls in the CUDA runtime and -c++libs the C++ runtime that
+# the nvcc object needs. Requires COMPILER_TYPE=nvhpc and PREC=8.
 export CUDA_OBJS=
 GPU_DEP=
 ifeq ($(USE_CUDA), yes)
-  ifeq ($(PREC), 8)
-    export FCFLAGS+=-DUSE_CUDA
-    export LINKFLAGS+=-L$(CUDA_HOME)/lib64 -lcudart -lstdc++
-    export CUDA_OBJS=$(CONFIG)/matelem_cuda.o
-    export BARE_OBJS+=matelem_gpu.o
-    export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
-    GPU_DEP=$(CONFIG)/matelem_gpu.o
-  else
+  ifneq ($(COMPILER_TYPE), nvhpc)
+    $(error USE_CUDA=yes requires COMPILER_TYPE=nvhpc)
+  endif
+  ifneq ($(PREC), 8)
     $(error USE_CUDA=yes is only supported with PREC=8)
   endif
+  export FCFLAGS+=-DUSE_CUDA
+  export LINKFLAGS+=-cuda -c++libs
+  export CUDA_OBJS=$(CONFIG)/matelem_cuda.o
+  export BARE_OBJS+=matelem_gpu.o
+  export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
+  GPU_DEP=$(CONFIG)/matelem_gpu.o
 endif
 
-# OpenACC backend (only when USE_OPENACC=yes and PREC=8). The whole program is
-# rebuilt with nvfortran -acc, so FC and the compile/link flags are OVERRIDDEN here
-# (replacing the gfortran/-march=native settings from the machine block above).
+# OpenACC backend (USE_OPENACC=yes). Adds the -acc directives on top of the nvhpc
+# base; the device routine lives in matelem_acc.o. Requires COMPILER_TYPE=nvhpc and PREC=8.
 ACC_DEP=
 ifeq ($(USE_OPENACC), yes)
-  ifeq ($(PREC), 8)
-    FC=$(OPENACC_FC)
-    export FCFLAGS=-module $(CONFIG) -Mpreprocess -DUSE_OPENACC -acc -gpu=$(OPENACC_ARCH) -Kieee
-    export LINKFLAGS=-module $(CONFIG) -acc -gpu=$(OPENACC_ARCH) -Kieee
-    ifeq ($(CONFIG), release)
-      export FCFLAGS+=-O3
-      export LINKFLAGS+=-O3
-    endif
-    ifeq ($(CONFIG), debug)
-      export FCFLAGS+=-O0 -g -Mbounds -traceback
-      export LINKFLAGS+=-O0 -g -Mbounds -traceback
-    endif
-    export BARE_OBJS+=matelem_acc.o
-    export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
-    ACC_DEP=$(CONFIG)/matelem_acc.o
-  else
+  ifneq ($(COMPILER_TYPE), nvhpc)
+    $(error USE_OPENACC=yes requires COMPILER_TYPE=nvhpc)
+  endif
+  ifneq ($(PREC), 8)
     $(error USE_OPENACC=yes is only supported with PREC=8)
   endif
+  export FCFLAGS+=-DUSE_OPENACC -acc -gpu=$(OPENACC_ARCH)
+  export LINKFLAGS+=-acc -gpu=$(OPENACC_ARCH)
+  export BARE_OBJS+=matelem_acc.o
+  export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
+  ACC_DEP=$(CONFIG)/matelem_acc.o
 endif
 
 
