@@ -75,8 +75,8 @@ For example, when the three folders are located in the same parent directory:
 
 ```bash
 cd transition_dipole_moment
-cp ../intial_state_Li-^2S^e/wavefunction.txt wf_state0.txt
-cp ../final_state_Li-^2P^o/wavefunction.txt wf_state1.txt
+cp ../intial_state_Li-2Se/wavefunction.txt wf_state0.txt
+cp ../final_state_Li-2Po/wavefunction.txt wf_state1.txt
 ```
 
 ## 4. Prepare the working directory
