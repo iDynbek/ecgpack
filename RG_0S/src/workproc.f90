@@ -236,6 +236,19 @@ contains
     call MPI_BCAST(Glob_RG_s2,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
+      read(1,*,iostat=ReadErr) ReadChar(1:7)
+      if ((ReadErr/=0).or.(ReadChar(1:7)/='USE_GPU')) then
+        Glob_UseGPU=.false.
+        backspace 1
+      else
+        Glob_UseGPU=.true.
+        write(*,'(1x,a7)') ReadChar(1:7)
+        Line=Line+1
+      endif
+    endif
+    call MPI_BCAST(Glob_UseGPU,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+
+    if (Glob_ProcID==0) then
       read(1,'(a70)')   ReadChar(1:70)
       write(*,'(a70)')  ReadChar(1:70)
       read(1,'(a70)')   ReadChar(1:70)
@@ -605,6 +618,7 @@ contains
       call writereal(1,Glob_RG_p1)
       call writereal(1,Glob_RG_s1)
       call writerealadv(1,Glob_RG_s2)
+      if (Glob_UseGPU) write(1,'(1x,a7)') 'USE_GPU'
       write(1,*) '=============================='
       i=Glob_CurrBasisSize
       write(1,'(1x,i6)',advance='no')  i
@@ -2007,8 +2021,11 @@ contains
     real(dprec)    Z(1)
     integer        NumOfEigvalsFound
     integer        IFAIL(1)
+    integer(8)     tprof0
 
-    if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
+    if (AreMatElemNeeded) then
+      call system_clock(tprof0); call ComputeMatElem(Nmin,Nmax); call ProfAccum(tprof0,.false.)
+    endif
     if (Nmax==1) then
       EnergyGA=Glob_diagH(1)
       ErrorCode=0
@@ -2029,10 +2046,12 @@ contains
         Glob_S(i,i)=ONE
       enddo
       if (Glob_ProcID==0) then
+        call system_clock(tprof0)
         call DSYGVX(1,'N','I','U',Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,   &
                     ZERO,ZERO,Glob_WhichEigenvalue,Glob_WhichEigenvalue,Glob_AbsTolForDSYGVX, &
                     NumOfEigvalsFound,EVs,Z,Nmax,Glob_WorkForDSYGVX,  &
                     Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
+        call ProfAccum(tprof0,.true.)
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
 !$      LWORK, IWORK, IFAIL, INFO )
@@ -2069,8 +2088,11 @@ contains
     real(dprec)    Evalue, EVs(1)
     integer        NumOfEigvalsFound
     integer        IFAIL(1)
+    integer(8)     tprof0
 
-    if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
+    if (AreMatElemNeeded) then
+      call system_clock(tprof0); call ComputeMatElem(Nmin,Nmax); call ProfAccum(tprof0,.false.)
+    endif
     if (Nmax==1) then
       EnergyGAM=Glob_diagH(1)
       Glob_c(1)=ONE
@@ -2092,10 +2114,12 @@ contains
         Glob_S(i,i)=ONE
       enddo
       if (Glob_ProcID==0) then
+        call system_clock(tprof0)
         call   DSYGVX(1,'V','I','U',Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,   &
                       ZERO,ZERO,Glob_WhichEigenvalue,Glob_WhichEigenvalue,Glob_AbsTolForDSYGVX, &
                       NumOfEigvalsFound,EVs,Glob_c,Nmax,Glob_WorkForDSYGVX,  &
                       Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
+        call ProfAccum(tprof0,.true.)
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
 !$      LWORK, IWORK, IFAIL, INFO )
@@ -2155,13 +2179,16 @@ contains
     real(dprec)    EVs(1)
     real(dprec)    W(Glob_npt_MaxAllowed),t,t2
     real(dprec)    pen_coeff
+    integer(8)     tprof0
 
     nfo=Glob_nfo
     nfa=Glob_nfa
     npt=Glob_npt
     nfru=Glob_nfru
 
-    if (AreMatElemNeeded) call ComputeMatElemAndDeriv(nfru+1,nfa)
+    if (AreMatElemNeeded) then
+      call system_clock(tprof0); call ComputeMatElemAndDeriv(nfru+1,nfa); call ProfAccum(tprof0,.false.)
+    endif
 
     if (nfa==1) then
       Evalue=Glob_diagH(1)/Glob_diagS(1)
@@ -2185,10 +2212,12 @@ contains
       enddo
 
       if (Glob_ProcID==0) then
+        call system_clock(tprof0)
         call   DSYGVX(1,'V','I','U',nfa,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,   &
                       ZERO,ZERO,Glob_WhichEigenvalue,Glob_WhichEigenvalue,Glob_AbsTolForDSYGVX, &
                       NumOfEigvalsFound,EVs,Glob_c,nfa,Glob_WorkForDSYGVX,  &
                       Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
+        call ProfAccum(tprof0,.true.)
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
 !$      LWORK, IWORK, IFAIL, INFO )

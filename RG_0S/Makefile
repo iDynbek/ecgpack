@@ -22,6 +22,14 @@ PREC=8
 # of these routines will be used.
 OPTLPKBLS=yes
 
+# CUDA backend (USE_CUDA=yes requires nvcc, PREC=8, and an NVIDIA GPU).
+# Set CUDA_ARCH to match your GPU's compute capability (sm_86 = RTX 3060 Ti / A100).
+# Set CUDA_HOME to the CUDA toolkit installation prefix.
+USE_CUDA=no
+NVCC=nvcc
+CUDA_ARCH=sm_86
+CUDA_HOME=/usr/local/cuda
+
 # Set the default name for the generated executable file
 EXEFILE=ecg
 
@@ -37,7 +45,7 @@ ifeq ($(shell [ "$(MACHINE)" = "ubuntu-generic" ] || [ "$(MACHINE)" = "linux-gen
     FC=mpif90
     export MPICOMPFLAGS=
     export MPILINKFLAGS=
-    export FCFLAGS=-J$(CONFIG)
+    export FCFLAGS=-J$(CONFIG) -cpp
     export LINKFLAGS=-J$(CONFIG)
     ifeq ($(CONFIG), debug)
       export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
@@ -104,7 +112,7 @@ ifeq ($(shell [ "$(MACHINE)" = "puma" ] || [ "$(MACHINE)" = "ocelote" ] || [ "$(
     FC=mpif90
     export MPICOMPFLAGS=
     export MPILINKFLAGS=
-    export FCFLAGS=-J$(CONFIG)
+    export FCFLAGS=-J$(CONFIG) -cpp
     export LINKFLAGS=-J$(CONFIG)
     ifeq ($(CONFIG), debug)
       export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
@@ -178,6 +186,22 @@ export BARE_OBJS=wp_def_$(PREC).o X1MACH.o dmng.o globvars.o misc.o linalg.o \
 export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS))
 export OBJS+=$(OBJS_LPKBLS)
 
+# CUDA object files and flags (only when USE_CUDA=yes and PREC=8)
+export CUDA_OBJS=
+GPU_DEP=
+ifeq ($(USE_CUDA), yes)
+  ifeq ($(PREC), 8)
+    export FCFLAGS+=-DUSE_CUDA
+    export LINKFLAGS+=-L$(CUDA_HOME)/lib64 -lcudart -lstdc++
+    export CUDA_OBJS=$(CONFIG)/matelem_cuda.o
+    export BARE_OBJS+=matelem_gpu.o
+    export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
+    GPU_DEP=$(CONFIG)/matelem_gpu.o
+  else
+    $(error USE_CUDA=yes is only supported with PREC=8)
+  endif
+endif
+
 
 .PHONY: release debug all clean cleaner cleanest cleandebug cleanrelease ptarg
 
@@ -223,8 +247,8 @@ endif
 
 # The real targets
 
-$(CONFIG)/$(EXEFILE): ptarg $(OBJS)
-	$(FC) $(OBJS) -o $(CONFIG)/$(EXEFILE) $(LINKFLAGS) $(MPILINKFLAGS)
+$(CONFIG)/$(EXEFILE): ptarg $(OBJS) $(CUDA_OBJS)
+	$(FC) $(OBJS) $(CUDA_OBJS) -o $(CONFIG)/$(EXEFILE) $(LINKFLAGS) $(MPILINKFLAGS)
 
 $(CONFIG)/wp_def_$(PREC).o: $(SRC_DIR)/wp_def_$(PREC).f90
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/wp_def_$(PREC).f90 -o $(CONFIG)/wp_def_$(PREC).o
@@ -256,12 +280,19 @@ $(CONFIG)/misc.o: $(SRC_DIR)/misc.f90 $(CONFIG)/globvars.o
 $(CONFIG)/matelem.o: $(SRC_DIR)/matelem.f90 $(CONFIG)/globvars.o $(CONFIG)/spin.o
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem.f90 -o $(CONFIG)/matelem.o
 
-$(CONFIG)/matform.o: $(SRC_DIR)/matform.f90 $(CONFIG)/matelem.o
+$(CONFIG)/matelem_gpu.o: $(SRC_DIR)/matelem_gpu.f90
+	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem_gpu.f90 -o $(CONFIG)/matelem_gpu.o
+
+$(CONFIG)/matelem_cuda.o: $(SRC_DIR)/matelem_cuda.cu
+	$(NVCC) -c $(SRC_DIR)/matelem_cuda.cu -o $(CONFIG)/matelem_cuda.o \
+	  -O3 -arch=$(CUDA_ARCH) --compiler-options '-fPIC'
+
+$(CONFIG)/matform.o: $(SRC_DIR)/matform.f90 $(CONFIG)/matelem.o $(GPU_DEP)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matform.f90 -o $(CONFIG)/matform.o
 
 $(CONFIG)/workproc.o: $(SRC_DIR)/workproc.f90 $(CONFIG)/misc.o $(CONFIG)/linalg.o $(CONFIG)/matform.o $(CONFIG)/matelem.o $(CONFIG)/dmng.o $(OBJS_LPKBLS)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/workproc.f90 -o $(CONFIG)/workproc.o
 
-$(CONFIG)/main.o: $(SRC_DIR)/main.f90 $(CONFIG)/workproc.o
+$(CONFIG)/main.o: $(SRC_DIR)/main.f90 $(CONFIG)/workproc.o $(GPU_DEP)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/main.f90 -o $(CONFIG)/main.o
 
