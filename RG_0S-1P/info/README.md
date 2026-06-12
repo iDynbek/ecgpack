@@ -26,14 +26,14 @@ The wave functions must be calculated for the same isotope and with consistent p
 The calculation files are organized in the following three folders:
 
 ```text
-intial_state_Li-2Se/
+initial_state_Li-2Se/
 final_state_Li-2Po/
 transition_dipole_moment/
 ```
 
 The folder contents are organized as follows:
 
-- `intial_state_Li-2Se` contains the input files for generating initial-state wave function ($^2S^e$).
+- `initial_state_Li-2Se` contains the input files for generating initial-state wave function ($^2S^e$).
 - `final_state_Li-2Po` contains the input files for generating the final-state wave function ($^2P^o$).
 - `transition_dipole_moment` contains the wave-function files required by the transition code and the resultant output file.
 
@@ -75,7 +75,7 @@ For example, when the three folders are located in the same parent directory:
 
 ```bash
 cd transition_dipole_moment
-cp ../intial_state_Li-2Se/wavefunction.txt wf_state0.txt
+cp ../initial_state_Li-2Se/wavefunction.txt wf_state0.txt
 cp ../final_state_Li-2Po/wavefunction.txt wf_state1.txt
 ```
 
@@ -142,7 +142,7 @@ For example, these calculations may be carried out in an Excel worksheet using:
 
 ```text
 Calculate the initial S-state wave function in
-intial_state_Li-2Se
+initial_state_Li-2Se
                          +
 Calculate the final P-state wave function in
 final_state_Li-2Po
