@@ -142,11 +142,9 @@ For example, these calculations may be carried out in an Excel worksheet using:
 
 ```text
 
-Calculate the initial S-state wave function in initial_state_Li-2Se                             
+Save the initial S-state wave function in initial_state_Li-2Se                             
                          +
-Calculate the final P-state wave function in final_state_Li-2Po
-                         ↓
-Save both wave functions using SAVE_HSWF
+Save the final P-state wave function in final_state_Li-2Po
                          ↓
 Copy and rename the initial S-state wave function as
 transition_dipole_moment/wf_state0.txt
