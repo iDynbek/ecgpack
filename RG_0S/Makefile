@@ -30,6 +30,17 @@ NVCC=nvcc
 CUDA_ARCH=sm_86
 CUDA_HOME=/usr/local/cuda
 
+# OpenACC backend (USE_OPENACC=yes requires the NVIDIA HPC SDK / nvfortran and an
+# NVIDIA GPU). Unlike CUDA, the ENTIRE program is compiled with nvfortran -acc; the
+# device routine lives in matelem_acc.f90. GPU/PREC=8 only. Build with OPTLPKBLS=no so
+# the bundled reference BLAS/LAPACK are compiled by nvfortran (avoids linking a system
+# optimized library against nvfortran). Set OPENACC_ARCH to your GPU's compute
+# capability (cc70 = V100, cc80 = A100, cc86 = RTX 3060 Ti). Requires the nvhpc module
+# to be loaded so mpif90 resolves to the HPC SDK wrapper around nvfortran.
+USE_OPENACC=no
+OPENACC_FC=mpif90
+OPENACC_ARCH=cc70
+
 # Set the default name for the generated executable file
 EXEFILE=ecg
 
@@ -202,6 +213,31 @@ ifeq ($(USE_CUDA), yes)
   endif
 endif
 
+# OpenACC backend (only when USE_OPENACC=yes and PREC=8). The whole program is
+# rebuilt with nvfortran -acc, so FC and the compile/link flags are OVERRIDDEN here
+# (replacing the gfortran/-march=native settings from the machine block above).
+ACC_DEP=
+ifeq ($(USE_OPENACC), yes)
+  ifeq ($(PREC), 8)
+    FC=$(OPENACC_FC)
+    export FCFLAGS=-module $(CONFIG) -Mpreprocess -DUSE_OPENACC -acc -gpu=$(OPENACC_ARCH) -Kieee
+    export LINKFLAGS=-module $(CONFIG) -acc -gpu=$(OPENACC_ARCH) -Kieee
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3
+      export LINKFLAGS+=-O3
+    endif
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-O0 -g -Mbounds -traceback
+      export LINKFLAGS+=-O0 -g -Mbounds -traceback
+    endif
+    export BARE_OBJS+=matelem_acc.o
+    export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
+    ACC_DEP=$(CONFIG)/matelem_acc.o
+  else
+    $(error USE_OPENACC=yes is only supported with PREC=8)
+  endif
+endif
+
 
 .PHONY: release debug all clean cleaner cleanest cleandebug cleanrelease ptarg
 
@@ -287,7 +323,10 @@ $(CONFIG)/matelem_cuda.o: $(SRC_DIR)/matelem_cuda.cu
 	$(NVCC) -c $(SRC_DIR)/matelem_cuda.cu -o $(CONFIG)/matelem_cuda.o \
 	  -O3 -arch=$(CUDA_ARCH) --compiler-options '-fPIC'
 
-$(CONFIG)/matform.o: $(SRC_DIR)/matform.f90 $(CONFIG)/matelem.o $(GPU_DEP)
+$(CONFIG)/matelem_acc.o: $(SRC_DIR)/matelem_acc.f90 $(CONFIG)/globvars.o
+	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem_acc.f90 -o $(CONFIG)/matelem_acc.o
+
+$(CONFIG)/matform.o: $(SRC_DIR)/matform.f90 $(CONFIG)/matelem.o $(GPU_DEP) $(ACC_DEP)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matform.f90 -o $(CONFIG)/matform.o
 
 $(CONFIG)/workproc.o: $(SRC_DIR)/workproc.f90 $(CONFIG)/misc.o $(CONFIG)/linalg.o $(CONFIG)/matform.o $(CONFIG)/matelem.o $(CONFIG)/dmng.o $(OBJS_LPKBLS)
