@@ -183,7 +183,7 @@ contains
       call gpu_compute_matelem_batch( &
           Glob_NonlinParam(1:np,1:Nmax), Nmax, &
           k_list_gpu, l_list_gpu, npairs_gpu, &
-          Glob_YHYMatr(1:n,1:n,1), Glob_YHYCoeff, Glob_NumYHYTerms, &
+          Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &  !pass by element ref (whole array); a (1:n,1:n,1) section makes nvfortran copy only term 1
           n, np, Glob_NumOfProcs, Glob_ProcID, &
           Glob_Piraised3n2, Glob_MassMatrix(1:n,1:n), &
           Glob_PseudoCharge(1:n), Glob_PseudoCharge0, &
@@ -430,7 +430,7 @@ contains
       call gpu_compute_matelem_and_deriv_batch( &
           Glob_NonlinParam(1:np,1:Nmax), Nmax, &
           k_list_gpu, l_list_gpu, grad_l_gpu, npairs_gpu, &
-          Glob_YHYMatr(1:n,1:n,1), Glob_YHYCoeff, Glob_NumYHYTerms, &
+          Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &  !pass by element ref (whole array); a (1:n,1:n,1) section makes nvfortran copy only term 1
           n, np, Glob_NumOfProcs, Glob_ProcID, &
           Glob_Piraised3n2, Glob_MassMatrix(1:n,1:n), &
           Glob_PseudoCharge(1:n), Glob_PseudoCharge0, &
