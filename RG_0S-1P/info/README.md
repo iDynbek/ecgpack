@@ -4,7 +4,7 @@
 
 This calculation evaluates the **electric-dipole transition matrix element** between an initial $S^e$ state and a final $P^o$ state using the ECG transition code.
 
-The ECG code calculates only the **transition dipole moment**. It does **not** calculate the line strength or oscillator strength directly.
+The RG_0S-1P code calculates only the **transition dipole moment**. It does **not** calculate the line strength or oscillator strength directly.
 
 The line strength and oscillator strength are calculated afterward in a separate post-processing step, for example in an Excel worksheet, using the calculated transition dipole moment, transition energy, and the required angular-momentum factors.
 
