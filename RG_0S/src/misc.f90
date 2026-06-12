@@ -38,7 +38,7 @@ contains
 !       WRITE(*,'(1X,D20.15)') Z
 ! 1  CONTINUE
 !    END
-    real(8)  DRNOR,DRNOR_START
+    real(8)  DRNOR,DRNOR_START_RES
     real(8)  AA,B,C,C1,C2,PC,X,Y,XN
     real(8)  V(65),DSTART,U(17),S,T,UN,VNI
     integer  J,IA,IB,IC,II,JJ,ID,III,JJJ,L
@@ -216,7 +216,7 @@ contains
     return
 
 !FILL
-    entry DRNOR_START(ISEED)
+    entry DRNOR_START(ISEED) result(DRNOR_START_RES)
     if (ISEED.NE.0) then
 
       !SET UP ...
@@ -248,7 +248,7 @@ contains
       enddo
     endif
 !RETURN FLOATING ECHO OF ISEED
-    DRNOR_START=dfloat(ISEED)
+    DRNOR_START_RES=dfloat(ISEED)
     return
 
   end function drnor
