@@ -8,7 +8,7 @@ The RG_0S-1P code calculates only the **transition dipole moment**. It does **no
 
 The line strength and oscillator strength are calculated afterward in a separate post-processing step, for example in an Excel worksheet, using the calculated transition dipole moment, transition energy, and the required angular-momentum factors.
 
-Only the wave-function files of the initial and final states are required when the transition code is executed. No input file such as `inout.txt` is required at that stage.
+Only the wave-function files of the initial ($^2S^e$) and final ($^2P^o$) states are required when the transition code is executed. No input file such as `inout.txt` is required at that stage.
 
 The initial and final wave functions must correspond to the **same isotope** and must use the same particle masses and particle ordering. Otherwise, the transition dipole moment calculation will fail or the resulting matrix element will not be physically meaningful.
 
