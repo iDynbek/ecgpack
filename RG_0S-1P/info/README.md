@@ -26,15 +26,15 @@ The wave functions must be calculated for the same isotope and with consistent p
 The calculation files are organized in the following three folders:
 
 ```text
-intial_state_Li-^2S^e/
-final_state_Li-^2P^o/
+intial_state_Li-2Se/
+final_state_Li-2Po/
 transition_dipole_moment/
 ```
 
 The folder contents are organized as follows:
 
-- `intial_state_Li-^2S^e` contains the input files for the initial $S^e$-state calculation and the generated initial-state wave function.
-- `final_state_Li-^2P^o` contains the input files for the final $P^o$-state calculation and the generated final-state wave function.
+- `intial_state_Li-2Se` contains the input files for the initial $S^e$-state calculation and the generated initial-state wave function.
+- `final_state_Li-2Po` contains the input files for the final $P^o$-state calculation and the generated final-state wave function.
 - `transition_dipole_moment` contains the wave-function files required by the transition code and the resultant output file.
 
 ## 2. Save each wave function
