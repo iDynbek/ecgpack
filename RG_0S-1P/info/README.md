@@ -28,7 +28,7 @@ The wave functions must be calculated for the same isotope and with consistent p
 Add the following instruction to the corresponding `inout.txt` file used in each ECG state calculation:
 
 ```text
-SAVE_HSWF I 2000 none none none wavefunction.txt
+SAVE_HSWF I 100 none none none wavefunction.txt
 ```
 
 The relevant arguments are:
