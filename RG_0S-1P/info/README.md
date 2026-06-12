@@ -143,7 +143,7 @@ For example, these calculations may be carried out in an Excel worksheet using:
 ```text
 
 Calculate the initial S-state wave function in initial_state_Li-2Se                             
-                              + 
+                         +
 Calculate the final P-state wave function in final_state_Li-2Po
                          ↓
 Save both wave functions using SAVE_HSWF
