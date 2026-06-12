@@ -33,8 +33,8 @@ transition_dipole_moment/
 
 The folder contents are organized as follows:
 
-- `intial_state_Li-2Se` contains the input files for the initial $S^e$-state calculation and the generated initial-state wave function.
-- `final_state_Li-2Po` contains the input files for the final $P^o$-state calculation and the generated final-state wave function.
+- `intial_state_Li-2Se` contains the input files for generating initial-state wave function ($^2S^e$).
+- `final_state_Li-2Po` contains the input files for generating the final-state wave function ($^2P^o$).
 - `transition_dipole_moment` contains the wave-function files required by the transition code and the resultant output file.
 
 ## 2. Save each wave function
