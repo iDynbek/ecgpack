@@ -2,6 +2,9 @@ module matform
 !Module matform contains procedures that form Hamiltonian
 !and overlap matrices and related routines
   use matelem
+#ifdef USE_CUDA
+  use matelem_gpu
+#endif
   implicit none
 
 contains
@@ -135,12 +138,60 @@ contains
 !of subroutine MatrixElements. Thus, one can set some small size
 !for them
     real(dprec)  Dk(2),Dl(2)
+#ifdef USE_CUDA
+!GPU batch temporaries (allocated only when Glob_UseGPU)
+    integer              :: npairs_gpu, ipair_gpu
+    integer, allocatable :: k_list_gpu(:), l_list_gpu(:)
+    real(dprec), allocatable :: Hout_gpu(:), Sout_gpu(:)
+    real(dprec), allocatable :: Hout_gpu_r(:), Sout_gpu_r(:)
+#endif
 
     n=Glob_n
     np=Glob_np
     np1=np+1
     npt=Glob_npt
     nb=Glob_HSBuffLen
+
+#ifdef USE_CUDA
+    if (Glob_UseGPU) then
+      !One GPU call covers the entire [Nmin,Nmax] range.
+      npairs_gpu = Nmax*(Nmax+1)/2 - (Nmin-1)*Nmin/2
+      allocate(k_list_gpu(npairs_gpu), l_list_gpu(npairs_gpu))
+      allocate(Hout_gpu(npairs_gpu), Sout_gpu(npairs_gpu))
+      allocate(Hout_gpu_r(npairs_gpu), Sout_gpu_r(npairs_gpu))
+      ipair_gpu = 0
+      do k=Nmin,Nmax
+        do l=k,1,-1
+          ipair_gpu = ipair_gpu + 1
+          k_list_gpu(ipair_gpu) = k
+          l_list_gpu(ipair_gpu) = l
+        enddo
+      enddo
+      call gpu_compute_matelem_batch( &
+          Glob_NonlinParam(1:np,1:Nmax), Nmax, &
+          k_list_gpu, l_list_gpu, npairs_gpu, &
+          Glob_YHYMatr(1:n,1:n,1), Glob_YHYCoeff, Glob_NumYHYTerms, &
+          n, np, Glob_NumOfProcs, Glob_ProcID, &
+          Glob_Piraised3n2, Glob_MassMatrix(1:n,1:n), &
+          Glob_PseudoCharge(1:n), Glob_PseudoCharge0, &
+          Glob_AttractionScalingParam, Glob_RepulsionScalingParam, &
+          Glob_RepulsionScalingParamPlus, Glob_RepulsionScalingParamMinus, &
+          Hout_gpu, Sout_gpu)
+      call MPI_ALLREDUCE(Hout_gpu, Hout_gpu_r, npairs_gpu, &
+          MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+      call MPI_ALLREDUCE(Sout_gpu, Sout_gpu_r, npairs_gpu, &
+          MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+      ipair_gpu = 0
+      do k=Nmin,Nmax
+        do l=k,1,-1
+          ipair_gpu = ipair_gpu + 1
+          call StoreHS(k, l, Hout_gpu_r(ipair_gpu), Sout_gpu_r(ipair_gpu))
+        enddo
+      enddo
+      deallocate(k_list_gpu, l_list_gpu, Hout_gpu, Sout_gpu, Hout_gpu_r, Sout_gpu_r)
+    else
+#endif
+
     Glob_HklBuff1(1:nb)=ZERO
     Glob_SklBuff1(1:nb)=ZERO
     i=0
@@ -215,6 +266,10 @@ contains
       enddo
     endif
 
+#ifdef USE_CUDA
+    endif  !Glob_UseGPU
+#endif
+
   end subroutine ComputeMatElem
 
   subroutine ComputeMatElemAndDeriv(Nmin,Nmax)
@@ -248,12 +303,75 @@ contains
     real(dprec) Dksum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
     real(dprec) Dlsum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
     logical     grad_l
+#ifdef USE_CUDA
+    integer              :: npairs_gpu, ipair_gpu
+    integer, allocatable :: k_list_gpu(:), l_list_gpu(:), grad_l_gpu(:)
+    real(dprec), allocatable :: Hout_gpu(:), Sout_gpu(:)
+    real(dprec), allocatable :: Hout_gpu_r(:), Sout_gpu_r(:)
+    real(dprec), allocatable :: Dkout_gpu(:,:), Dlout_gpu(:,:)
+    real(dprec), allocatable :: Dkout_gpu_r(:,:), Dlout_gpu_r(:,:)
+#endif
 
     n=Glob_n
     np=Glob_np
     npt=Glob_npt
     npt2=np*2
     nb=Glob_HSBuffLen
+
+#ifdef USE_CUDA
+    if (Glob_UseGPU) then
+      npairs_gpu = Nmax*(Nmax+1)/2 - (Nmin-1)*Nmin/2
+      allocate(k_list_gpu(npairs_gpu), l_list_gpu(npairs_gpu), grad_l_gpu(npairs_gpu))
+      allocate(Hout_gpu(npairs_gpu), Sout_gpu(npairs_gpu))
+      allocate(Hout_gpu_r(npairs_gpu), Sout_gpu_r(npairs_gpu))
+      allocate(Dkout_gpu(npt2,npairs_gpu), Dlout_gpu(npt2,npairs_gpu))
+      allocate(Dkout_gpu_r(npt2,npairs_gpu), Dlout_gpu_r(npt2,npairs_gpu))
+      ipair_gpu = 0
+      do k=Nmin,Nmax
+        do l=k,1,-1
+          ipair_gpu = ipair_gpu + 1
+          k_list_gpu(ipair_gpu) = k
+          l_list_gpu(ipair_gpu) = l
+          if ((l>Glob_nfru).and.(l/=k)) then
+            grad_l_gpu(ipair_gpu) = 1
+          else
+            grad_l_gpu(ipair_gpu) = 0
+          endif
+        enddo
+      enddo
+      Dkout_gpu = ZERO; Dlout_gpu = ZERO
+      call gpu_compute_matelem_and_deriv_batch( &
+          Glob_NonlinParam(1:np,1:Nmax), Nmax, &
+          k_list_gpu, l_list_gpu, grad_l_gpu, npairs_gpu, &
+          Glob_YHYMatr(1:n,1:n,1), Glob_YHYCoeff, Glob_NumYHYTerms, &
+          n, np, Glob_NumOfProcs, Glob_ProcID, &
+          Glob_Piraised3n2, Glob_MassMatrix(1:n,1:n), &
+          Glob_PseudoCharge(1:n), Glob_PseudoCharge0, &
+          Glob_AttractionScalingParam, Glob_RepulsionScalingParam, &
+          Glob_RepulsionScalingParamPlus, Glob_RepulsionScalingParamMinus, &
+          Hout_gpu, Sout_gpu, Dkout_gpu, Dlout_gpu)
+      call MPI_ALLREDUCE(Hout_gpu,  Hout_gpu_r,  npairs_gpu, &
+          MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+      call MPI_ALLREDUCE(Sout_gpu,  Sout_gpu_r,  npairs_gpu, &
+          MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+      call MPI_ALLREDUCE(Dkout_gpu, Dkout_gpu_r, npairs_gpu*npt2, &
+          MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+      if (Glob_nfo>1) &
+      call MPI_ALLREDUCE(Dlout_gpu, Dlout_gpu_r, npairs_gpu*npt2, &
+          MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+      ipair_gpu = 0
+      do k=Nmin,Nmax
+        do l=k,1,-1
+          ipair_gpu = ipair_gpu + 1
+          call StoreHSD(k, l, Hout_gpu_r(ipair_gpu), Sout_gpu_r(ipair_gpu), &
+              Dkout_gpu_r(1:npt2,ipair_gpu), Dlout_gpu_r(1:npt2,ipair_gpu))
+        enddo
+      enddo
+      deallocate(k_list_gpu, l_list_gpu, grad_l_gpu)
+      deallocate(Hout_gpu, Sout_gpu, Hout_gpu_r, Sout_gpu_r)
+      deallocate(Dkout_gpu, Dlout_gpu, Dkout_gpu_r, Dlout_gpu_r)
+    else
+#endif
 
     Glob_HklBuff1(1:nb)=ZERO
     Glob_SklBuff1(1:nb)=ZERO
@@ -354,6 +472,10 @@ contains
         enddo
       enddo
     endif
+
+#ifdef USE_CUDA
+    endif  !Glob_UseGPU
+#endif
 
   end subroutine ComputeMatElemAndDeriv
 

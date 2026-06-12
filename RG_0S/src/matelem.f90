@@ -61,9 +61,11 @@ contains
     real(dprec)       det_Lk, det_Ll, det_tAkl
     real(dprec)       Tkl, Vkl
     integer           i, j, k, kk, kkk, q, t, indx
+    integer(8)        tk0, tk1   !PROFILING: phase timers (raw clock ticks)
 
     n=Glob_n
     np=Glob_np
+    call system_clock(tk0)   !PROFILING: start of energy phase
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
     indx=0
     do i=1,n
@@ -234,6 +236,8 @@ contains
     enddo
 
     Hkl=Tkl+Vkl
+
+    call system_clock(tk1); Glob_TkE=Glob_TkE+(tk1-tk0); tk0=tk1  !PROFILING: energy phase done
 
 !Now we start computing the gradient of Skl
 
@@ -476,6 +480,8 @@ contains
       enddo
     endif !end if (grad_k)
 
+    call system_clock(tk1); Glob_TkSTg=Glob_TkSTg+(tk1-tk0); tk0=tk1  !PROFILING: S/T-gradient phase done
+
 !Gradient of Vkl
 
     if (grad_l.OR.grad_k) then
@@ -593,6 +599,8 @@ contains
       if (grad_k) dHkldvechLk(1:np)=dHkldvechLk(1:np)+(Vkl/Skl)*dSkldvechLk(1:np)+temp1*WVcLk(1:np)
       if (grad_l) dHkldvechLl(1:np)=dHkldvechLl(1:np)+(Vkl/Skl)*dSkldvechLl(1:np)+temp1*WVcLl(1:np)
     endif
+
+    call system_clock(tk1,Glob_ProfRate); Glob_TkVg=Glob_TkVg+(tk1-tk0)  !PROFILING: Vkl-gradient phase done
 
 !Packing derivatives into the output array
     if (grad_k) then
