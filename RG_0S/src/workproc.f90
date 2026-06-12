@@ -236,6 +236,19 @@ contains
     call MPI_BCAST(Glob_RG_s2,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
+      read(1,*,iostat=ReadErr) ReadChar(1:7)
+      if ((ReadErr/=0).or.(ReadChar(1:7)/='USE_GPU')) then
+        Glob_UseGPU=.false.
+        backspace 1
+      else
+        Glob_UseGPU=.true.
+        write(*,'(1x,a7)') ReadChar(1:7)
+        Line=Line+1
+      endif
+    endif
+    call MPI_BCAST(Glob_UseGPU,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+
+    if (Glob_ProcID==0) then
       read(1,'(a70)')   ReadChar(1:70)
       write(*,'(a70)')  ReadChar(1:70)
       read(1,'(a70)')   ReadChar(1:70)
@@ -605,6 +618,7 @@ contains
       call writereal(1,Glob_RG_p1)
       call writereal(1,Glob_RG_s1)
       call writerealadv(1,Glob_RG_s2)
+      if (Glob_UseGPU) write(1,'(1x,a7)') 'USE_GPU'
       write(1,*) '=============================='
       i=Glob_CurrBasisSize
       write(1,'(1x,i6)',advance='no')  i

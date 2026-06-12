@@ -382,6 +382,12 @@ module globvars
   integer     :: Glob_EnergyGBCounter=0
   integer     :: Glob_EnergyIACounter=0
   integer     :: Glob_EnergyIBCounter=0
+!=============================================================
+!GPU backend enable flag (set at run time by the USE_GPU keyword)
+  logical :: Glob_UseGPU=.false.
+!OpenACC: tracks whether constant device data (YHYMatr/coeff) is resident
+  logical :: Glob_AccConstLoaded=.false.
+!=============================================================
 !Glob_InvItTempCounter1 and Glob_InvItTempCounter1 are used
 !for calculating the average number of inverse iterations
 !in certain cycles (when Glob_GSEPSolutionMethod='I')
