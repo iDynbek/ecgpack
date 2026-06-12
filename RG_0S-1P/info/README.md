@@ -23,6 +23,20 @@ Two independently optimized ECG wave functions are required:
 
 The wave functions must be calculated for the same isotope and with consistent physical parameters.
 
+The calculation files are organized in the following three folders:
+
+```text
+intial_state_Li-^2S^e/
+final_state_Li-^2P^o/
+transition_dipole_moment/
+```
+
+The folder contents are organized as follows:
+
+- `intial_state_Li-^2S^e` contains the input files for the initial $S^e$-state calculation and the generated initial-state wave function.
+- `final_state_Li-^2P^o` contains the input files for the final $P^o$-state calculation and the generated final-state wave function.
+- `transition_dipole_moment` contains the wave-function files required by the transition code and the resultant output file.
+
 ## 2. Save each wave function
 
 Add the following instruction to the corresponding `inout.txt` file used in each ECG state calculation:
@@ -55,16 +69,19 @@ The `RG_0S-1P` transition code expects the following file names:
 
 Rename or copy the saved wave functions accordingly.
 
-For example:
+Copy the generated wave functions from the initial- and final-state folders to the `transition_dipole_moment` folder and rename them accordingly.
+
+For example, when the three folders are located in the same parent directory:
 
 ```bash
-cp S_state_wavefunction.txt wf_state0.txt
-cp P_state_wavefunction.txt wf_state1.txt
+cd transition_dipole_moment
+cp ../intial_state_Li-^2S^e/wavefunction.txt wf_state0.txt
+cp ../final_state_Li-^2P^o/wavefunction.txt wf_state1.txt
 ```
 
 ## 4. Prepare the working directory
 
-Place the following files in the same working directory:
+The `transition_dipole_moment` folder is the working directory for the transition calculation. Place the following files in this folder:
 
 ```text
 RG_0S-1P
@@ -74,18 +91,20 @@ wf_state1.txt
 
 An `inout.txt` file is not required in this directory because the transition code reads the two wave-function files directly.
 
-The directory should therefore contain at least:
+Before the calculation, the directory should therefore contain at least:
 
 ```text
-working_directory/
+transition_dipole_moment/
 ├── RG_0S-1P
 ├── wf_state0.txt
 └── wf_state1.txt
 ```
 
+After the calculation, the resultant output file is also generated in the `transition_dipole_moment` folder.
+
 ## 5. Run the transition calculation
 
-Run the `RG_0S-1P` executable from the working directory.
+Run the `RG_0S-1P` executable from the `transition_dipole_moment` working directory.
 
 For example:
 
@@ -122,21 +141,24 @@ For example, these calculations may be carried out in an Excel worksheet using:
 ## Calculation workflow
 
 ```text
-Calculate the initial S-state wave function
+Calculate the initial S-state wave function in
+intial_state_Li-^2S^e
                          +
-Calculate the final P-state wave function
+Calculate the final P-state wave function in
+final_state_Li-^2P^o
                          ↓
 Save both wave functions using SAVE_HSWF
                          ↓
-Rename the initial S-state file as wf_state0.txt
+Copy and rename the initial S-state wave function as
+transition_dipole_moment/wf_state0.txt
                          ↓
-Rename the final P-state file as wf_state1.txt
+Copy and rename the final P-state wave function as
+transition_dipole_moment/wf_state1.txt
                          ↓
-Place both files beside the RG_0S-1P executable
+Run RG_0S-1P in the transition_dipole_moment folder
                          ↓
-Run RG_0S-1P
-                         ↓
-Obtain the transition dipole moment
+Generate the resultant output file and obtain
+the transition dipole moment
                          ↓
 Calculate the line strength and oscillator strength separately,
 for example in Excel
