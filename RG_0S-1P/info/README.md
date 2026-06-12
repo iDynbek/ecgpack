@@ -12,7 +12,7 @@ Only the wave-function files of the initial ($^2S^e$) and final ($^2P^o$) states
 
 The initial and final wave functions must correspond to the **same isotope** and must use the same particle masses and particle ordering. Otherwise, the transition dipole moment calculation will fail or the resulting matrix element will not be physically meaningful.
 
-## 1. Prepare the initial and final wave functions
+## 1. Reqiured files 
 
 Two independently optimized ECG wave functions are required:
 
