@@ -383,8 +383,10 @@ module globvars
   integer     :: Glob_EnergyIACounter=0
   integer     :: Glob_EnergyIBCounter=0
 !=============================================================
-!CUDA backend flag
+!GPU backend enable flag (set at run time by the USE_GPU keyword)
   logical :: Glob_UseGPU=.false.
+!OpenACC: tracks whether constant device data (YHYMatr/coeff) is resident
+  logical :: Glob_AccConstLoaded=.false.
 !=============================================================
 !PROFILING accumulators (added for CUDA-acceleration study).
 !Glob_TimeME / Glob_TimeEIG  = cumulative wall time (seconds)
