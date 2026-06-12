@@ -23,7 +23,7 @@ Two independently optimized ECG wave functions are required:
 
 The wave functions must be calculated for the same isotope and with consistent physical parameters.
 
-The calculation files are organized in the following three folders:
+The example files are organized in the following three folders:
 
 ```text
 initial_state_Li-2Se/
