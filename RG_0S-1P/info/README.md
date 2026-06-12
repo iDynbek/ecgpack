@@ -37,7 +37,7 @@ The relevant arguments are:
 |---|---|
 | `SAVE_HSWF` | Keyword for writing the wave function |
 | `I` | Eigensolver type |
-| `2000` | Number of ECG basis functions |
+| `100` | Number of ECG basis functions |
 | `wavefunction.txt` | Name of the saved wave-function file |
 
 The basis-set size specified in the `SAVE_HSWF` instruction must be consistent with the wave function being saved.
