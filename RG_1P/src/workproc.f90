@@ -8921,7 +8921,7 @@ contains
 !drach_Darwin ME(7*n*(n+1)/2+8)
 !OO           ME(7*n*(n+1)/2+9)
 !rmrmkl       ME( 7*n*(n+1)/2+10 + (3*n**4+10*n**3+9*n**2+2*n)/24 : 6*n*(n+1)/2+9 + (3*n**4+10*n**3+9*n**2+2*n)/12 )
-    NumOfExpcVals=7*n*(n+1)/2+10+(3*n**4+10*n**3+9*n**2+2*n)/12
+    NumOfExpcVals = 10 + 7*n*(n+1)/2 + (3*n**4+10*n**3+9*n**2+2*n)/12
 
     allocate(MEkl(NumOfExpcVals))
     allocate(MEkl_s(NumOfExpcVals))

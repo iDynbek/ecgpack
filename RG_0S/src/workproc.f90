@@ -8714,7 +8714,7 @@ contains
 !wf2origin    ME(7*n*(n+1)/2+10)
 !del2kl       ME(7*n*(n+1)/2+11 : 7*n*(n+1)/2+10 + (3*n**4+10*n**3+9*n**2+2*n)/24 )
 !rmrmkl       ME( 7*n*(n+1)/2+11 + (3*n**4+10*n**3+9*n**2+2*n)/24 : 6*n*(n+1)/2+10 + (3*n**4+10*n**3+9*n**2+2*n)/12 )
-    NumOfExpcVals=7*n*(n+1)/2+11+(3*n**4+10*n**3+9*n**2+2*n)/12
+    NumOfExpcVals = 12 + 7*n*(n+1)/2 + (3*n**4+10*n**3+9*n**2+2*n)/12
 
     allocate(MEkl(NumOfExpcVals))
     allocate(MEkl_s(NumOfExpcVals))

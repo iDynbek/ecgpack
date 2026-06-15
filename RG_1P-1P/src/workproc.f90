@@ -1472,9 +1472,9 @@ contains
 ! One can set this flag to zero to disable everything introduced by DT
 
 !Initialize parameters
-    n=Glob_n
-    npt=Glob_npt
-    NumOfExpcVals=7*n*(n+1)/2+9+(3*n**4+10*n**3+9*n**2+2*n)/12
+    n = Glob_n
+    npt = Glob_npt
+    NumOfExpcVals = 9 + 7*n*(n+1)/2 + (3*n**4+10*n**3+9*n**2+2*n)/12
 
 !allocate
 !allocate just one point to have a valid pointer

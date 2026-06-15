@@ -8312,7 +8312,6 @@ contains
       IdentityPerm(i,i)=1
     enddo
 
-    NumOfExpcVals=6*n*(n+1)/2+9
 !rm2          ME(1:n*(n+1)/2)
 !rm           ME(n*(n+1)/2+1:2*n*(n+1)/2)
 !r            ME(2*n*(n+1)/2+1:3*n*(n+1)/2)
@@ -8328,6 +8327,7 @@ contains
 !Darwin       ME(6*n*(n+1)/2+7)
 !drach_Darwin ME(6*n*(n+1)/2+8)
 !OO           ME(6*n*(n+1)/2+9)
+    NumOfExpcVals = 9 + 6*n*(n+1)/2
 
     allocate(MEkl(NumOfExpcVals))
     allocate(MEkl_s(NumOfExpcVals))

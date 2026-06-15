@@ -1270,7 +1270,7 @@ contains
     !Initialize parameters
     n = Glob_n
     npt = Glob_npt
-    NumOfExpcVals=7*n*(n+1)/2+9+(3*n**4+10*n**3+9*n**2+2*n)/12
+    NumOfExpcVals = 9 + 7*n*(n+1)/2 + (3*n**4+10*n**3+9*n**2+2*n)/12
 
     !Allocate arrays needed for matrix elements subroutine
     NumOfCFAndDensExpVals=0
