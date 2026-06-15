@@ -108,7 +108,7 @@ CONTAINS
 
       IF ((particle_n1<1).or.(readchar(1:9)/='PARTICLES')) THEN
         WRITE(*,*)
-        WRITE(*,*) '  Error in reading the number of particle of initial state, line: ',Line1
+        WRITE(*,*) '  Error in reading the number of particles of the initial state, line: ',Line1
         WRITE(*,*)
         ErrorInDataFILE=.true.
       ENDIF
@@ -121,7 +121,7 @@ CONTAINS
 
       IF ((particle_n2<1).or.(readchar(1:9)/='PARTICLES')) THEN
         WRITE(*,*)
-        WRITE(*,*) '  Error in reading the number of particle of final state, line: ',Line2
+        WRITE(*,*) '  Error in reading the number of particles of the final state, line: ',Line2
         WRITE(*,*)
         ErrorInDataFILE=.true.
       ENDIF
@@ -154,6 +154,7 @@ CONTAINS
 
     ENDIF
 
+    CALL MPI_BCAST(ErrorInDataFILE,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFILE) STOP
 
     CALL MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -230,6 +231,7 @@ CONTAINS
 
     ENDIF
 
+    CALL MPI_BCAST(ErrorInDataFILE,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFILE) STOP
 
     CALL MPI_BCAST(Glob_Mass,Glob_n+1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -300,6 +302,7 @@ CONTAINS
 
     ENDIF
 
+    CALL MPI_BCAST(ErrorInDataFILE,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFILE) STOP
 
     CALL MPI_BCAST(Glob_PseudoCharge0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -365,6 +368,7 @@ CONTAINS
 
     ENDIF
 
+    CALL MPI_BCAST(ErrorInDataFILE,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFILE) STOP
 
     CALL MPI_BCAST(WorkInt1,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)

@@ -117,6 +117,7 @@ contains
         ErrorInDataFile=.true.
       endif
     endif
+    call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     if (Glob_n/=Glob_MaxAllowedNumOfPseudoParticles) then
       if (Glob_ProcID==0) then
         write (*,*) 'The version of the code you are running was compiled for the case'
@@ -127,8 +128,8 @@ contains
       endif
       ErrorInDataFile=.true.
     endif
+    call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     if (ErrorInDataFile) stop
-    call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     Glob_np=Glob_n*(Glob_n+1)/2
     Glob_npt=Glob_np+Glob_np
     Glob_2raised3n2=TWO**((3*Glob_n)/TWO)

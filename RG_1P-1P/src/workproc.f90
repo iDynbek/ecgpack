@@ -91,7 +91,7 @@ contains
       particle_n0=ReadInt-1
       IF ((particle_n0<1).or.(ReadChar(1:9)/='PARTICLES')) then
         write(*,*) ' '
-        write(*,*) 'Error in reading thee number of particle of initial state, line: ',Line0
+        write(*,*) 'Error in reading the number of particles of the initial state, line: ',Line0
         write(*,*) ' '
         ErrorInDataFile=.true.
       EndIF
@@ -103,7 +103,7 @@ contains
       particle_n1=ReadInt-1
       IF ((particle_n1<1).or.(ReadChar(1:9)/='PARTICLES')) then
         write(*,*) ' '
-        write(*,*) 'Error in reading the number of particle of final state, line: ',Line1
+        write(*,*) 'Error in reading the number of particles of the final state, line: ',Line1
         write(*,*) ' '
         ErrorInDataFile=.true.
       EndIF
@@ -130,6 +130,7 @@ contains
       EndIF
 
     EndIF
+    call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFile) stop
     call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     Glob_2raised3n2=TWO**((3*Glob_n)/TWO)
@@ -175,6 +176,7 @@ contains
       call writerealarradv(6,Glob_Mass,Glob_n+1)
 
     EndIF
+    call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFile) stop
     call MPI_BCAST(Glob_Mass,Glob_n+1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
@@ -229,6 +231,7 @@ contains
       call writerealarradv(6,Glob_PseudoCharge,Glob_n)
     EndIF
 
+    call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFile) stop
     call MPI_BCAST(Glob_PseudoCharge0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     call MPI_BCAST(Glob_PseudoCharge,Glob_n,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
