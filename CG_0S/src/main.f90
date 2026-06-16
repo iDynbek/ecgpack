@@ -17,7 +17,7 @@ program main
   call MPI_COMM_SIZE(MPI_COMM_WORLD,Glob_NumOfProcs,Glob_MPIErrCode)
 
   if (Glob_ProcID==0) then
-    write (*,*) 'Program Expilitly Correlated Complex Gaussians has started'
+    write (*,*) 'Program ',Glob_BasisType,' has started'
     write (*,*) 'Number of parallel processes running',Glob_NumOfProcs
     write (*,*)
   endif

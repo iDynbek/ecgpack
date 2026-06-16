@@ -25,6 +25,7 @@ contains
     integer,allocatable,dimension(:)     :: WorkBuffInt
     integer        i,j,Line,j1,j2,j3,j4
     character(70)  ReadChar
+    character(5)   ReadBasisType  !Basis type specifier from the optional BASIS_TYPE line
     character(256) ReadLine
     integer        ReadLineErr
     logical        ErrorInDataFile,IsBBOPStep
@@ -46,6 +47,24 @@ contains
     if (Glob_ProcID==0) Line=0
     if (Glob_ProcID==0) then
       write(*,*) 'Reading initial conditions from data file ',trim(adjustl(Glob_DataFileName))
+!Read the optional BASIS_TYPE line that may precede the PARTICLES line. The whole
+!record is read into a buffer first and parsed internally so that backspace 1
+!reliably pushes the line back if it turns out not to be a BASIS_TYPE line.
+      read(1,'(A)',iostat=ReadLineErr) ReadLine
+      if (ReadLineErr==0) read(ReadLine,*,iostat=ReadErr) ReadChar(1:10),ReadBasisType
+      if ((ReadLineErr==0).and.(ReadErr==0).and.(ReadChar(1:10)=='BASIS_TYPE')) then
+        if (ReadBasisType/=Glob_BasisType) then
+          write(*,*) 'Error in data file: basis type specifier "',ReadBasisType, &
+            '" does not match the basis type of this code "',Glob_BasisType,'"'
+          ErrorInDataFile=.true.
+        else
+          write(*,'(1x,a10,1x,a5)') ReadChar(1:10),ReadBasisType
+          Glob_BasisTypeSupplied=.true.
+          Line=Line+1
+        endif
+      else
+        if (ReadLineErr==0) backspace 1
+      endif
       read(1,*) ReadChar(1:9),ReadInt
       write(*,'(1x,a9,1x,i6)') ReadChar(1:9),ReadInt
       Line=Line+1
@@ -56,6 +75,7 @@ contains
       endif
     endif
     call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_BasisTypeSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     if (Glob_n/=Glob_MaxAllowedNumOfPseudoParticles) then
       if (Glob_ProcID==0) then
         write (*,*) 'The version of the code you are running was compiled for the case'
@@ -571,6 +591,7 @@ contains
       else
         open(1,file=Glob_DataFileName,status='replace')
       endif
+      if (Glob_BasisTypeSupplied) write(1,'(1x,a10,1x,a5)') 'BASIS_TYPE',Glob_BasisType
       write(1,'(1x,a9,1x,i6)') 'PARTICLES',Glob_n+1
       write(1,'(1x,a6)',advance='no') 'MASSES'
       call writerealarradv(1,Glob_Mass,Glob_n+1)

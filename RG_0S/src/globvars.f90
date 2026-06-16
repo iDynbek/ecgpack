@@ -41,6 +41,9 @@ module globvars
 !These should be set when the program starts
 !=============================================================
 
+  character(5),parameter   :: Glob_BasisType='RG_0S'  !Short name for the type of basis used
+  logical                  ::  Glob_BasisTypeSupplied=.false.
+
   integer       Glob_n          !Number of pseudoparticles
 
 !np=n(n+1)/2 - number of independent parameters in a
