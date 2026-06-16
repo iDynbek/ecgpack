@@ -96,7 +96,7 @@ contains
     if (Glob_ProcID==0) then
       open(1,file=Glob_DataFileName,status='old',iostat=OpenFileErr)
       if (OpenFileErr/=0) then
-        write (*,*) 'Error in DataFileInit: data file not found - ',Glob_DataFileName
+        write (*,*) 'Error in DataFileInit: data file not found - ',trim(adjustl(Glob_DataFileName))
         ErrorInDataFile=.true.
       endif
     endif
@@ -107,7 +107,7 @@ contains
 !Reading information
     if (Glob_ProcID==0) Line=0
     if (Glob_ProcID==0) then
-      write(*,*) 'Reading initial conditions from data file ',Glob_DataFileName
+      write(*,*) 'Reading initial conditions from data file ',trim(adjustl(Glob_DataFileName))
       read(1,*) ReadChar(1:9),ReadInt
       write(*,'(1x,a9,1x,i6)') ReadChar(1:9),ReadInt
       Line=Line+1

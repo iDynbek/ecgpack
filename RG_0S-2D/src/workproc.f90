@@ -45,7 +45,7 @@ contains
       IF (OpenFileErr/=0) then
         write(*,*) ' '
         write (*,*) ' Error in opening wave function of inital state, '
-        write (*,*) ' "',Glob_WFfile0, '"  file not found !!!'
+        write (*,*) ' "',trim(adjustl(Glob_WFfile0)), '"  file not found !!!'
         write(*,*) ' '
         ErrorInDataFile=.true.
       EndIF
@@ -55,7 +55,7 @@ contains
       IF (OpenFileErr/=0) then
         write(*,*) ' '
         write (*,*) ' Error in opening wave function of final state, '
-        write (*,*) ' "',Glob_WFfile1, '" file not found !!!'
+        write (*,*) ' "',trim(adjustl(Glob_WFfile1)), '" file not found !!!'
         write(*,*) ' '
         ErrorInDataFile=.true.
       EndIF
@@ -71,12 +71,12 @@ contains
     IF (Glob_ProcID==0) then
 !        initial state
       read(1,*) ReadChar(1:30)
-      write(*,*) 'Reading " ',ReadChar(1:5) ,'" of the initial state from :    ', Glob_WFfile0
+      write(*,*) 'Reading " ',ReadChar(1:5) ,'" of the initial state from :    ', trim(adjustl(Glob_WFfile0))
       Line0=Line0+1
 
 !        final state
       read(2,*) ReadChar(1:30)
-      write(*,*) 'Reading " ',ReadChar(1:5) ,'" of the final   state from :    ', Glob_WFfile1
+      write(*,*) 'Reading " ',ReadChar(1:5) ,'" of the final   state from :    ', trim(adjustl(Glob_WFfile1))
       Line1=Line1+1
       write (*,*)
 

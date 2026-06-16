@@ -25,6 +25,8 @@ contains
     integer,allocatable,dimension(:)     :: WorkBuffInt
     integer        i,j,Line,j1,j2,j3,j4
     character(70)  ReadChar
+    character(256) ReadLine
+    integer        ReadLineErr
     logical        ErrorInDataFile,IsBBOPStep
 
     ErrorInDataFile=.false.
@@ -32,7 +34,7 @@ contains
     if (Glob_ProcID==0) then
       open(1,file=Glob_DataFileName,status='old',iostat=OpenFileErr)
       if (OpenFileErr/=0) then
-        write (*,*) 'Error in DataFileInit: data file not found - ',Glob_DataFileName
+        write (*,*) 'Error in DataFileInit: data file not found - ',trim(adjustl(Glob_DataFileName))
         ErrorInDataFile=.true.
       endif
     endif
@@ -43,7 +45,7 @@ contains
 !Reading information
     if (Glob_ProcID==0) Line=0
     if (Glob_ProcID==0) then
-      write(*,*) 'Reading initial conditions from data file ',Glob_DataFileName
+      write(*,*) 'Reading initial conditions from data file ',trim(adjustl(Glob_DataFileName))
       read(1,*) ReadChar(1:9),ReadInt
       write(*,'(1x,a9,1x,i6)') ReadChar(1:9),ReadInt
       Line=Line+1
@@ -99,7 +101,14 @@ contains
       Glob_RepulsionScalingParamMinus=1.0_dprec
       Glob_RepScalParamMinusSupplied=.false.
       do i=1,3
-        read(1,*,iostat=ReadErr) ReadChar(1:29),ReadRealA
+        !Read exactly one record into a character buffer first, then parse it
+        !with an internal read. This keeps unit 1 advancing by a single record
+        !so that backspace 1 reliably pushes the line back on all compilers
+        !(list-directed reads from unit 1 may span several records, which makes
+        !backspace behave differently in gfortran vs ifort).
+        read(1,'(A)',iostat=ReadLineErr) ReadLine
+        if (ReadLineErr/=0) exit
+        read(ReadLine,*,iostat=ReadErr) ReadChar(1:29),ReadRealA
         if ((ReadErr/=0).or.(ReadChar(1:23)/='REPULSION_SCALING_PARAM')) then
           backspace 1
         else
@@ -131,11 +140,14 @@ contains
     call MPI_BCAST(Glob_RepulsionScalingParamMinus,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
-      read(1,*,iostat=ReadErr) ReadChar(1:24),Glob_AttractionScalingParam
-      if ((ReadErr/=0).or.(ReadChar(1:24)/='ATTRACTION_SCALING_PARAM')) then
+      !Read one record into a buffer and parse it internally (see the comment in
+      !the repulsion-scaling block above) so that backspace 1 is portable.
+      read(1,'(A)',iostat=ReadLineErr) ReadLine
+      if (ReadLineErr==0) read(ReadLine,*,iostat=ReadErr) ReadChar(1:24),Glob_AttractionScalingParam
+      if ((ReadLineErr/=0).or.(ReadErr/=0).or.(ReadChar(1:24)/='ATTRACTION_SCALING_PARAM')) then
         Glob_AttractionScalingParam=1.0_dprec
         Glob_AttrScalParamSupplied=.false.
-        backspace 1
+        if (ReadLineErr==0) backspace 1
       else
         Glob_AttrScalParamSupplied=.true.
         write(*,'(1x,a24)',advance='no') ReadChar(1:24)

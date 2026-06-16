@@ -49,7 +49,7 @@ CONTAINS
       IF (OPENFILEErr/=0) THEN
         WRITE(*,*)
         WRITE(*,*) '  Error in opening wave function of inital state, '
-        WRITE(*,*) '   "',Glob_WFFILE1, '"  FILE not found !!!'
+        WRITE(*,*) '   "',trim(adjustl(Glob_WFFILE1)), '"  FILE not found !!!'
         WRITE(*,*)
         ErrorInDataFILE=.true.
       ENDIF
@@ -60,7 +60,7 @@ CONTAINS
       IF (OPENFILEErr/=0) THEN
         WRITE(*,*)
         WRITE(*,*) '  Error in opening wave function of final state, '
-        WRITE(*,*) ' "',Glob_WFFILE2, '" FILE not found !!!'
+        WRITE(*,*) ' "',trim(adjustl(Glob_WFFILE2)), '" FILE not found !!!'
         WRITE(*,*)
         ErrorInDataFILE=.true.
       ENDIF
@@ -81,12 +81,12 @@ CONTAINS
 
 !   initial state
       READ(1,*) readchar(1:30)
-      WRITE(*,*) '  Reading " ',readchar(1:5) ,'" of the first state (Po) from :    ', Glob_WFFILE1
+      WRITE(*,*) '  Reading " ',readchar(1:5) ,'" of the first state (Po) from :    ', trim(adjustl(Glob_WFFILE1))
       Line1=Line1+1
 
 !   final state
       READ(2,*) readchar(1:30)
-      WRITE(*,*) '  Reading " ',readchar(1:5) ,'" of the final state (De) from :    ', Glob_WFFILE2
+      WRITE(*,*) '  Reading " ',readchar(1:5) ,'" of the final state (De) from :    ', trim(adjustl(Glob_WFFILE2))
       Line2=Line2+1
       WRITE (*,*)
       WRITE(*,*)
