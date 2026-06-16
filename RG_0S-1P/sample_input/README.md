@@ -7,10 +7,15 @@ This calculation evaluates the **electric-dipole transition matrix element** bet
 The RG_0S-1P code calculates only the **transition dipole moment**. It does **not** calculate the line strength or oscillator strength directly.
 
 The line strength and oscillator strength are calculated afterward in a separate post-processing step, for example in an Excel worksheet, using the calculated transition dipole moment, transition energy, and the required angular-momentum factors.
+For more information, see the folloinwg paper:
+https://doi.org/10.1103/qrtf-56np
 
-Only the wave-function files of the initial ($^2S^e$) and final ($^2P^o$) states are required when the transition code is executed. No input file such as `inout.txt` is required at that stage.
+Only the wave-function files of the initial ($^2S^e$) and final ($^2P^o$) states are required when the transition code is executed. 
+No input file such as `inout.txt` is required at that stage.
 
-The initial and final wave functions must correspond to the **same isotope** and must use the same particle masses and particle ordering. Otherwise, the transition dipole moment calculation will fail or the resulting matrix element will not be physically meaningful.
+The initial and final wave functions must correspond to the **same isotope** and must use the same particle masses and particle ordering.
+Otherwise, the transition dipole moment calculation will fail or the resulting matrix element will not be physically meaningful.
+
 
 ## 1. Reqiured files 
 
@@ -37,6 +42,7 @@ The folder contents are organized as follows:
 - `final_state_Li-2Po` contains the input files for generating the final-state wave function ($^2P^o$).
 - `transition_dipole_moment` contains the wave-function files required by the transition code and the resultant output file.
 
+
 ## 2. Save each wave function
 
 Add the following instruction to the corresponding `inout.txt` file used in each ECG state calculation:
@@ -55,8 +61,8 @@ The relevant arguments are:
 | `wavefunction.txt` | Name of the saved wave-function file |
 
 The basis-set size specified in the `SAVE_HSWF` instruction must be consistent with the wave function being saved.
-
 Run the $S^e$-state and $P^o$-state calculations separately and save both wave functions.
+
 
 ## 3. Rename the wave-function files
 
@@ -79,9 +85,11 @@ cp ../initial_state_Li-2Se/wavefunction.txt wf_state0.txt
 cp ../final_state_Li-2Po/wavefunction.txt wf_state1.txt
 ```
 
+
 ## 4. Prepare the working directory
 
-The `transition_dipole_moment` folder is the working directory for the transition calculation. Place the following files in this folder:
+The `transition_dipole_moment` folder is the working directory for the transition calculation. 
+Place the following files in this folder:
 
 ```text
 RG_0S-1P
@@ -102,6 +110,7 @@ transition_dipole_moment/
 
 After the calculation, the resultant output file is also generated in the `transition_dipole_moment` folder.
 
+
 ## 5. Run the transition calculation
 
 Run the `RG_0S-1P` executable from the `transition_dipole_moment` working directory.
@@ -121,6 +130,7 @@ wf_state1.txt
 
 and calculates the transition dipole moment for the $S^e\rightarrow P^o$ transition.
 
+
 ## 6. Use the calculated transition dipole moment
 
 The result obtained from `RG_0S-1P` is the transition dipole moment associated with the selected component of the electric-dipole operator.
@@ -137,6 +147,7 @@ For example, these calculations may be carried out in an Excel worksheet using:
 - the required $3j$-symbol factor;
 - the required $6j$-symbol factor; and
 - the length- or velocity-gauge oscillator-strength expression.
+
 
 ## Calculation workflow
 
@@ -160,13 +171,3 @@ the transition dipole moment
 Calculate the line strength and oscillator strength separately,
 for example in Excel
 ```
-
-## Important notes
-
-1. `RG_0S-1P` calculates the transition dipole moment, not the oscillator strength.
-2. The initial state must be the $S^e$ state stored in `wf_state0.txt`.
-3. The final state must be the $P^o$ state stored in `wf_state1.txt`.
-4. Both wave functions must correspond to the same isotope.
-5. Both wave functions must use the same particle ordering and masses.
-6. No `inout.txt` file is needed when `RG_0S-1P` is executed.
-7. The oscillator strength must be calculated afterward in a separate post-processing step.
