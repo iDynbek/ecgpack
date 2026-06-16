@@ -35,9 +35,9 @@ contains
     ! ARGUMENTS
     !---------------------------------------------------------------------------
     INTEGER, INTENT(IN)      :: m_k
-    REAL(dprec), INTENT(IN)  :: vechLk(Glob_np)
-    REAL(dprec), INTENT(IN)  :: P(Glob_n, Glob_n)
-    REAL(dprec), INTENT(OUT) :: Skk
+    REAL(wp), INTENT(IN)  :: vechLk(Glob_np)
+    REAL(wp), INTENT(IN)  :: P(Glob_n, Glob_n)
+    REAL(wp), INTENT(OUT) :: Skk
 
     !---------------------------------------------------------------------------
     ! LOCAL VARIABLES
@@ -45,15 +45,15 @@ contains
     INTEGER                  :: n
     INTEGER                  :: i, j, k, indx
 
-    REAL(dprec)              :: Lk(Glob_n, Glob_n)
-    REAL(dprec)              :: tAk(Glob_n, Glob_n), tAkk(Glob_n, Glob_n)
-    REAL(dprec)              :: inv_tAkk(Glob_n, Glob_n), inv_Akk(Glob_n, Glob_n)
-    REAL(dprec)              :: W1(Glob_n, Glob_n)
+    REAL(wp)              :: Lk(Glob_n, Glob_n)
+    REAL(wp)              :: tAk(Glob_n, Glob_n), tAkk(Glob_n, Glob_n)
+    REAL(wp)              :: inv_tAkk(Glob_n, Glob_n), inv_Akk(Glob_n, Glob_n)
+    REAL(wp)              :: W1(Glob_n, Glob_n)
 
-    REAL(dprec)              :: tvk(Glob_n)
+    REAL(wp)              :: tvk(Glob_n)
 
-    REAL(dprec)              :: temp1
-    REAL(dprec)              :: det_Lk, det_tAkk, tau3
+    REAL(wp)              :: temp1
+    REAL(wp)              :: det_Lk, det_tAkk, tau3
 
     !===========================================================================
     n = Glob_n
@@ -162,7 +162,7 @@ contains
         IF (i == j) THEN
           W1(i,i) = SQRT(temp1)
 
-          IF (temp1 <= 0.0_dprec) THEN
+          IF (temp1 <= 0.0_wp) THEN
             WRITE(*,*) 'ERROR: tAkk not SPD at i=',i
             ERROR STOP
           END IF
@@ -220,7 +220,7 @@ contains
     temp1 = (det_Lk * det_Lk) / det_tAkk
     temp1 = ABS(temp1) * SQRT(ABS(temp1))
 
-    Skk = Glob_2raised3n2 * temp1 * tau3 / inv_Akk(m_k, m_k)
+    Skk = Glob_2Raised3n2 * temp1 * tau3 / inv_Akk(m_k, m_k)
 
   END SUBROUTINE OverLapElementS1
 
@@ -276,9 +276,9 @@ contains
     ! ARGUMENTS
     !---------------------------------------------------------------------------
     INTEGER, INTENT(IN)      :: ml_1, ml_2
-    REAL(dprec), INTENT(IN)  :: vechLl(Glob_np)
-    REAL(dprec), INTENT(IN)  :: P(Glob_n, Glob_n)
-    REAL(dprec), INTENT(OUT) :: Sll
+    REAL(wp), INTENT(IN)  :: vechLl(Glob_np)
+    REAL(wp), INTENT(IN)  :: P(Glob_n, Glob_n)
+    REAL(wp), INTENT(OUT) :: Sll
 
     !---------------------------------------------------------------------------
     ! LOCAL VARIABLES
@@ -286,19 +286,19 @@ contains
     INTEGER                  :: i, j, k, indx
     INTEGER                  :: n
     ! Vectors for Bra/Ket components
-    REAL(dprec)              :: tvl(Glob_n), twl(Glob_n)
-    REAL(dprec)              :: vl_inv_tAll(Glob_n), wl_inv_tAll(Glob_n)
+    REAL(wp)              :: tvl(Glob_n), twl(Glob_n)
+    REAL(wp)              :: vl_inv_tAll(Glob_n), wl_inv_tAll(Glob_n)
     ! Matrices
-    REAL(dprec)              :: Ll(Glob_n, Glob_n)
-    REAL(dprec)              :: Al(Glob_n, Glob_n), tAll(Glob_n, Glob_n)
-    REAL(dprec)              :: inv_tAll(Glob_n, Glob_n), inv_All(Glob_n, Glob_n)
-    REAL(dprec)              :: W1(Glob_n, Glob_n)
+    REAL(wp)              :: Ll(Glob_n, Glob_n)
+    REAL(wp)              :: Al(Glob_n, Glob_n), tAll(Glob_n, Glob_n)
+    REAL(wp)              :: inv_tAll(Glob_n, Glob_n), inv_All(Glob_n, Glob_n)
+    REAL(wp)              :: W1(Glob_n, Glob_n)
     ! Scalars
-    REAL(dprec)              :: temp1, temp2
-    REAL(dprec)              :: det_tAll, det_Ll
-    REAL(dprec)              :: tgamma1, tgamma2, tgamma5, tgamma6
-    REAL(dprec)              :: gamma1, gamma2, gamma5, gamma6
-    REAL(dprec)              :: tm, m
+    REAL(wp)              :: temp1, temp2
+    REAL(wp)              :: det_tAll, det_Ll
+    REAL(wp)              :: tgamma1, tgamma2, tgamma5, tgamma6
+    REAL(wp)              :: gamma1, gamma2, gamma5, gamma6
+    REAL(wp)              :: tm, m
 
     !===========================================================================
     ! INITIALIZATION
@@ -415,7 +415,7 @@ contains
         IF (i == j) THEN
           W1(i,i) = SQRT(temp1)
 
-          IF (temp1 <= 0.0_dprec) THEN
+          IF (temp1 <= 0.0_wp) THEN
             WRITE(*,*) 'ERROR: tAll not SPD at i=',i
             ERROR STOP
           END IF
@@ -510,7 +510,7 @@ contains
     temp1 = ABS(temp1) * SQRT(ABS(temp1))
 
     ! Final Result
-    Sll = Glob_2raised3n2 * temp1 * tm / m
+    Sll = Glob_2Raised3n2 * temp1 * tm / m
 
   END SUBROUTINE OverLapElementS2
 
@@ -770,7 +770,7 @@ contains
     !
     !
     ! The explicit imaginary unit i from the momentum operator is not stored
-    ! in TranDipolVelocity_kl because the output variable is REAL(dprec).
+    ! in TranDipolVelocity_kl because the output variable is REAL(wp).
     ! The routine returns the real coefficient used for the velocity-gauge
     ! oscillator-strength calculation.
     !
@@ -810,35 +810,35 @@ contains
     ! ARGUMENTS
     !---------------------------------------------------------------------------
     INTEGER, INTENT(IN)      :: mk, ml_1, ml_2
-    REAL(dprec), INTENT(IN)  :: vechLk(Glob_np), vechLl(Glob_np)
-    REAL(dprec), INTENT(IN)  :: Pk(Glob_n, Glob_n), Pl(Glob_n, Glob_n)
-    REAL(dprec), INTENT(OUT) :: TranDipolLength_kl, TranDipolVelocity_kl
+    REAL(wp), INTENT(IN)  :: vechLk(Glob_np), vechLl(Glob_np)
+    REAL(wp), INTENT(IN)  :: Pk(Glob_n, Glob_n), Pl(Glob_n, Glob_n)
+    REAL(wp), INTENT(OUT) :: TranDipolLength_kl, TranDipolVelocity_kl
 
     !---------------------------------------------------------------------------
     ! LOCAL VARIABLES
     !---------------------------------------------------------------------------
     INTEGER                  :: n, np, Qtotal
     INTEGER                  :: i, j, k, indx
-    REAL(dprec)              :: Lk(Glob_n, Glob_n), Ll(Glob_n, Glob_n)
-    REAL(dprec)              :: tAk(Glob_n, Glob_n), tAl(Glob_n, Glob_n), tAkl(Glob_n, Glob_n)
-    REAL(dprec)              :: W1(Glob_n, Glob_n), W2(Glob_n, Glob_n)
+    REAL(wp)              :: Lk(Glob_n, Glob_n), Ll(Glob_n, Glob_n)
+    REAL(wp)              :: tAk(Glob_n, Glob_n), tAl(Glob_n, Glob_n), tAkl(Glob_n, Glob_n)
+    REAL(wp)              :: W1(Glob_n, Glob_n), W2(Glob_n, Glob_n)
 
-    REAL(dprec)              :: inv_Akk(Glob_n, Glob_n), inv_All(Glob_n, Glob_n), inv_tAkl(Glob_n, Glob_n)
-    REAL(dprec)              :: tvk(Glob_np)               ! Transformed Bra vector v
-    REAL(dprec)              :: tvl(Glob_np), twl(Glob_np)      ! Transformed Ket vectors v, w
+    REAL(wp)              :: inv_Akk(Glob_n, Glob_n), inv_All(Glob_n, Glob_n), inv_tAkl(Glob_n, Glob_n)
+    REAL(wp)              :: tvk(Glob_np)               ! Transformed Bra vector v
+    REAL(wp)              :: tvl(Glob_np), twl(Glob_np)      ! Transformed Ket vectors v, w
 
-    REAL(dprec)              :: tvk_inv_tAkl(Glob_np)       ! v_k' * A^-1
-    REAL(dprec)              :: inv_tAkl_twl(Glob_np)      ! A^-1 * w_l
-    REAL(dprec)              :: inv_tAkl_tvl(Glob_np)      ! A^-1 * v_l
-    REAL(dprec)              :: det_Lk, det_Ll, det_tAkl
-    REAL(dprec)              :: temp01, temp02, temp03, temp1, temp2
-    REAL(dprec)              :: charge_mass0
+    REAL(wp)              :: tvk_inv_tAkl(Glob_np)       ! v_k' * A^-1
+    REAL(wp)              :: inv_tAkl_twl(Glob_np)      ! A^-1 * w_l
+    REAL(wp)              :: inv_tAkl_tvl(Glob_np)      ! A^-1 * v_l
+    REAL(wp)              :: det_Lk, det_Ll, det_tAkl
+    REAL(wp)              :: temp01, temp02, temp03, temp1, temp2
+    REAL(wp)              :: charge_mass0
 
-    REAL(dprec)              :: tgamma1, tgamma5, tgamma2, tgamma6     ! Length-gauge gammas
-    REAL(dprec)              :: tgamma2_v, tgamma6_v                   ! Velocity-gauge gammas (u_i-based)
-    REAL(dprec)              :: gamma1, gamma2, gamma5, gamma6         ! For normalization
-    REAL(dprec)              :: tm1, tm3, tm_num, m_den, m1, m3
-    REAL(dprec)              :: tm1_v, tm3_v, tm_num_v
+    REAL(wp)              :: tgamma1, tgamma5, tgamma2, tgamma6     ! Length-gauge gammas
+    REAL(wp)              :: tgamma2_v, tgamma6_v                   ! Velocity-gauge gammas (u_i-based)
+    REAL(wp)              :: gamma1, gamma2, gamma5, gamma6         ! For normalization
+    REAL(wp)              :: tm1, tm3, tm_num, m_den, m1, m3
+    REAL(wp)              :: tm1_v, tm3_v, tm_num_v
     !===========================================================================
     ! INITIALIZATION
     !===========================================================================
@@ -947,7 +947,7 @@ contains
         END DO
 
         IF (i == j) THEN
-          IF (temp1 <= 0.0_dprec) THEN
+          IF (temp1 <= 0.0_wp) THEN
             WRITE(*,*) 'ERROR: tAkl not SPD at i=',i,' temp1=',temp1,' mk=',mk,' ml1=',ml_1,' ml2=',ml_2
             ERROR STOP
           END IF
@@ -1082,7 +1082,7 @@ contains
     temp1 = temp1 * SQRT(temp1)
 
     ! Constants: 2^(3n/2) / sqrt(3)
-    temp1 = temp1 * Glob_2raised3n2
+    temp1 = temp1 * Glob_2Raised3n2
     temp1 = temp1 / SQRT(Three)
 
     IF(Verbose==2 .OR. Verbose==3) THEN

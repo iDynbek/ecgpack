@@ -16,9 +16,9 @@ CONTAINS
     INTEGER        :: OPENFILEErr
     INTEGER        :: READInt,READErr
     INTEGER        :: particle_n1,particle_n2
-    REAL(dprec)    :: Mass1(Glob_MAXAllowedNumOfParticles),Mass2(Glob_MAXAllowedNumOfParticles)
-    REAL(dprec)    :: PseudoCharge1(Glob_MAXAllowedNumOfParticles),PseudoCharge2(Glob_MAXAllowedNumOfParticles)
-    REAL(dprec)    :: READReal1,READReal2
+    REAL(wp)    :: Mass1(Glob_MAXAllowedNumOfParticles),Mass2(Glob_MAXAllowedNumOfParticles)
+    REAL(wp)    :: PseudoCharge1(Glob_MAXAllowedNumOfParticles),PseudoCharge2(Glob_MAXAllowedNumOfParticles)
+    REAL(wp)    :: READReal1,READReal2
     INTEGER        :: WorkInt(MAX(MAX(Glob_YOperatorStringLength,20),Glob_FILENameLength))
     INTEGER        :: WorkInt1(MAX(MAX(Glob_YOperatorStringLength,20),Glob_FILENameLength))
     INTEGER        :: WorkInt2(MAX(MAX(Glob_YOperatorStringLength,20),Glob_FILENameLength))
@@ -159,8 +159,8 @@ CONTAINS
 
     CALL MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
-    Glob_2raised3n2=TWO**((3*Glob_n)/TWO)
-    Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+    Glob_2Raised3n2=TWO**((3*Glob_n)/TWO)
+    Glob_PiRaised3n2=Glob_Pi**((3*Glob_n)/TWO)
     Glob_np=Glob_n*(Glob_n+1)/2
     Glob_npt=Glob_np
 
@@ -234,7 +234,7 @@ CONTAINS
     CALL MPI_BCAST(ErrorInDataFILE,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFILE) STOP
 
-    CALL MPI_BCAST(Glob_Mass,Glob_n+1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    CALL MPI_BCAST(Glob_Mass,Glob_n+1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 !-------------------------------------------------------------------
 ! reading the charges of particles from the wave function FILEs
@@ -305,8 +305,8 @@ CONTAINS
     CALL MPI_BCAST(ErrorInDataFILE,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFILE) STOP
 
-    CALL MPI_BCAST(Glob_PseudoCharge0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    CALL MPI_BCAST(Glob_PseudoCharge,Glob_n,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    CALL MPI_BCAST(Glob_PseudoCharge0,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    CALL MPI_BCAST(Glob_PseudoCharge,Glob_n,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 !-------------------------------------------------------------------
 ! reading Young operators
@@ -452,8 +452,8 @@ CONTAINS
 
     ENDIF
 
-    CALL MPI_BCAST(Glob_CurrEnergy1,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    CALL MPI_BCAST(Glob_CurrEnergy2,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    CALL MPI_BCAST(Glob_CurrEnergy1,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    CALL MPI_BCAST(Glob_CurrEnergy2,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     IF (Glob_ProcID==0) THEN
       READ(1,*) readchar
@@ -485,11 +485,11 @@ CONTAINS
 
     ENDIF
 
-    CALL MPI_BCAST(Glob_c1,Glob_CurrBasisSize1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    CALL MPI_BCAST(Glob_c2,Glob_CurrBasisSize2,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    CALL MPI_BCAST(Glob_c1,Glob_CurrBasisSize1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    CALL MPI_BCAST(Glob_c2,Glob_CurrBasisSize2,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
-    CALL MPI_BCAST(Glob_NonlinParam1,Glob_npt*Glob_CurrBasisSize1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    CALL MPI_BCAST(Glob_NonlinParam2,Glob_npt*Glob_CurrBasisSize2,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    CALL MPI_BCAST(Glob_NonlinParam1,Glob_npt*Glob_CurrBasisSize1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    CALL MPI_BCAST(Glob_NonlinParam2,Glob_npt*Glob_CurrBasisSize2,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     CALL MPI_BCAST(Glob_FuncNum1,Glob_CurrBasisSize1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     CALL MPI_BCAST(Glob_FuncNum2,Glob_CurrBasisSize2,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -1385,7 +1385,7 @@ CONTAINS
     INTEGER                               :: i,j,k,p,q,t,s,w
     INTEGER                               :: pi,pj,pt,ps
     logical                               :: AreYsIdentical
-    REAL(dprec)                           :: mk,mi,m0
+    REAL(wp)                           :: mk,mi,m0
     INTEGER,allocatable,dimension(:)      :: IdentParticleSet
     INTEGER,allocatable,dimension(:,:)    :: IdentPseuDOPartPairSet
 !==============================================================================================
@@ -1768,13 +1768,13 @@ CONTAINS
     INTEGER        ::  count1, count2, count_sec, time_TranDipoL, rate
     INTEGER        ::  n,np,npt
     INTEGER        ::  k,l,i,j,indx
-    REAL(dprec)    ::  ExpVal1, ExpVal2, ExpValLoc1, ExpValLoc2
-    REAL(dprec)    ::  temp0
-    REAL(dprec)    ::  Skk, Sll
-    REAL(dprec)    ::  TranDipolLength_kl_element, TranDipolLength_kl_Loc, TranDipolLength_kl
-    REAL(dprec)    ::  TranDipolVelocity_kl_element, TranDipolVelocity_kl_Loc, TranDipolVelocity_kl
+    REAL(wp)    ::  ExpVal1, ExpVal2, ExpValLoc1, ExpValLoc2
+    REAL(wp)    ::  temp0
+    REAL(wp)    ::  Skk, Sll
+    REAL(wp)    ::  TranDipolLength_kl_element, TranDipolLength_kl_Loc, TranDipolLength_kl
+    REAL(wp)    ::  TranDipolVelocity_kl_element, TranDipolVelocity_kl_Loc, TranDipolVelocity_kl
 
-    REAL(dprec),allocatable,dimension(:)  ::  diagS1, diagS2, temp1
+    REAL(wp),allocatable,dimension(:)  ::  diagS1, diagS2, temp1
 
 !==============================================================================================
     CALL SYSTEM_CLOCK(count1, rate)
@@ -1857,7 +1857,7 @@ CONTAINS
 
     ENDDO
 
-    CALL MPI_ALLREDUCE(temp1,diagS1,Glob_CurrBasisSize1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+    CALL MPI_ALLREDUCE(temp1,diagS1,Glob_CurrBasisSize1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     DEALLOCATE(temp1)
 
     CALL SYSTEM_CLOCK(count2)
@@ -1938,7 +1938,7 @@ CONTAINS
 
     ENDDO
 
-    CALL MPI_ALLREDUCE(temp1,diagS2,Glob_CurrBasisSize2,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+    CALL MPI_ALLREDUCE(temp1,diagS2,Glob_CurrBasisSize2,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     DEALLOCATE(temp1)
 
     CALL SYSTEM_CLOCK(count2)
@@ -2088,10 +2088,10 @@ CONTAINS
       WRITE(*,'(4X,A,ES16.8)') 'ExpValLoc2 (Velocity) = ', ExpValLoc2
     ENDIF
 
-    CALL MPI_ALLREDUCE(ExpValLoc1,ExpVal1,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+    CALL MPI_ALLREDUCE(ExpValLoc1,ExpVal1,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     Glob_ExpVals1 = ExpVal1
 
-    CALL MPI_ALLREDUCE(ExpValLoc2,ExpVal2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+    CALL MPI_ALLREDUCE(ExpValLoc2,ExpVal2,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     Glob_ExpVals2 = ExpVal2
 
     DEALLOCATE(diagS1)

@@ -23,9 +23,9 @@ contains
 !   Skk         ::        Overlap matrix element
 
 !Arguments
-    real(dprec),intent(in)      :: vechLk(Glob_np)
-    real(dprec),intent(in)      :: P(Glob_n,Glob_n)
-    real(dprec),intent(out)     :: Skk
+    real(wp),intent(in)      :: vechLk(Glob_np)
+    real(wp),intent(in)      :: P(Glob_n,Glob_n)
+    real(wp),intent(out)     :: Skk
 
     !Parameters (These are needed to declare static arrays. Using static
     !arrays makes the function call a little faster in comparison with
@@ -35,12 +35,12 @@ contains
 
     !Local variables
     integer           n, np
-    real(dprec)       Lk(nn,nn), Ll(nn,nn), inv_Lk(nn,nn), inv_Ll(nn,nn)
-    real(dprec)       Ak(nn,nn), tAl(nn,nn), tAkl(nn,nn)
-    real(dprec)       inv_tAkl(nn,nn)
-    real(dprec)       W1(nn,nn)
-    real(dprec)       temp1
-    real(dprec)       det_Lk, det_Ll, det_tAkl
+    real(wp)       Lk(nn,nn), Ll(nn,nn), inv_Lk(nn,nn), inv_Ll(nn,nn)
+    real(wp)       Ak(nn,nn), tAl(nn,nn), tAkl(nn,nn)
+    real(wp)       inv_tAkl(nn,nn)
+    real(wp)       W1(nn,nn)
+    real(wp)       temp1
+    real(wp)       det_Lk, det_Ll, det_tAkl
     integer           i, j, k, kk, kkk, q, t, indx
 
     n=Glob_n
@@ -145,7 +145,7 @@ contains
     enddo
 
     !Evaluating overlap
-    Skk=Glob_Piraised3n2/(det_tAkl*sqrt(det_tAkl))  !new line
+    Skk=Glob_PiRaised3n2/(det_tAkl*sqrt(det_tAkl))  !new line
 
   end subroutine OverlapMatrixElementsLS
 
@@ -169,9 +169,9 @@ contains
 
     !Arguments
     integer,intent(in)          :: m_k, mm_k
-    real(dprec),intent(in)      :: vechLk(Glob_np)
-    real(dprec),intent(in)      :: P(Glob_n,Glob_n)
-    real(dprec),intent(out)     :: Skk
+    real(wp),intent(in)      :: vechLk(Glob_np)
+    real(wp),intent(in)      :: P(Glob_n,Glob_n)
+    real(wp),intent(out)     :: Skk
 
     !Parameters (These are needed to declare static arrays. Using static
     !arrays makes the function call a little faster in comparison with
@@ -181,14 +181,14 @@ contains
 
     !Local variables
     integer           n, np
-    real(dprec)       vl(nn), bl(nn), vkinv_tAkl(nn), bkinv_tAkl(nn)
-    real(dprec)       Lk(nn,nn),Ll(nn,nn)
-    real(dprec)       Ak(nn,nn),tAl(nn,nn),tAkl(nn,nn)
-    real(dprec)       inv_tAkl(nn,nn)
-    real(dprec)       W1(nn,nn)
-    real(dprec)       temp1, temp2
-    real(dprec)       det_tAkl
-    real(dprec)       tau3, tau33, tau333, tau334, m, m1, m3
+    real(wp)       vl(nn), bl(nn), vkinv_tAkl(nn), bkinv_tAkl(nn)
+    real(wp)       Lk(nn,nn),Ll(nn,nn)
+    real(wp)       Ak(nn,nn),tAl(nn,nn),tAkl(nn,nn)
+    real(wp)       inv_tAkl(nn,nn)
+    real(wp)       W1(nn,nn)
+    real(wp)       temp1, temp2
+    real(wp)       det_tAkl
+    real(wp)       tau3, tau33, tau333, tau334, m, m1, m3
     integer           i,j,k,q,t,indx
     n=Glob_n
     np=Glob_np
@@ -322,7 +322,7 @@ contains
     !Evaluating overlap
     !temp1=ZERO
     temp1=FOUR*det_tAkl*sqrt(det_tAkl)
-    Skk=Glob_Piraised3n2*m/temp1
+    Skk=Glob_PiRaised3n2*m/temp1
 
   end subroutine overlapMatrixElementsLP
 
@@ -336,18 +336,18 @@ contains
     integer, intent(in) :: n, nFactorial
 
     !output vars:
-    real(dprec), dimension(nFactorial), intent(out) :: parityFactor
-    real(dprec), dimension(n, n, 4), intent(out) :: SOmassChargeCoefficient, AMMmassChargeCoefficient
-    real(dprec), dimension(n, n, nFactorial), intent(out) :: ketMatrix
-    real(dprec), dimension(nFactorial, 2), intent(out) :: spinFreeME
-    real(kind = dprec), dimension(n, nFactorial), intent(out) :: SiMinusME, SiPlusME, SziME
+    real(wp), dimension(nFactorial), intent(out) :: parityFactor
+    real(wp), dimension(n, n, 4), intent(out) :: SOmassChargeCoefficient, AMMmassChargeCoefficient
+    real(wp), dimension(n, n, nFactorial), intent(out) :: ketMatrix
+    real(wp), dimension(nFactorial, 2), intent(out) :: spinFreeME
+    real(kind = wp), dimension(n, nFactorial), intent(out) :: SiMinusME, SiPlusME, SziME
 
     ! local variables
     integer :: i, j, k, l, m
     character(len = maxLen) :: mySpatialYoung0, mySpatialYoung1
     integer, dimension(nFactorial) :: parities
     integer, dimension(n, n, nFactorial) :: allPermutations
-    real(kind = dprec), dimension(:), allocatable :: finalSpinFunction0, finalSpinFunction1
+    real(kind = wp), dimension(:), allocatable :: finalSpinFunction0, finalSpinFunction1
     integer, dimension(:, :), allocatable :: primitives0, primitives1
     integer :: numberOfPrimitives0, numberOfPrimitives1
 
@@ -433,14 +433,14 @@ contains
       do k = 1, n
         do l = 1, n
           ! note the transposition here
-          ketMatrix(k, l, i) = real(allPermutations(l, k, i), kind=dprec)
+          ketMatrix(k, l, i) = real(allPermutations(l, k, i), kind=wp)
         enddo
       enddo
 
     enddo
 
     do i = 1, nFactorial
-      parityFactor(i) = real(parities(i), kind=dprec)
+      parityFactor(i) = real(parities(i), kind=wp)
     enddo
 
   end subroutine spinPreCalc
@@ -466,13 +466,13 @@ contains
 
     !Input vars:
     integer,intent(in)       :: m_k, mm_k, selectTransition
-    real(dprec),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
-    real(dprec),intent(in)   :: Pket(Glob_n,Glob_n)
-    real(dprec),intent(in)   :: SOspinME(Glob_n), &
+    real(wp),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
+    real(wp),intent(in)   :: Pket(Glob_n,Glob_n)
+    real(wp),intent(in)   :: SOspinME(Glob_n), &
                                 SOmassChargeCoefficient(Glob_n, Glob_n, 4), AMMmassChargeCoefficient(Glob_n, Glob_n, 4)
 
     !Output vars:
-    real(dprec), intent(out)  :: SO1kl, SO2kl, AMM1kl, AMM2kl
+    real(wp), intent(out)  :: SO1kl, SO2kl, AMM1kl, AMM2kl
 
     !Parameters (These are needed to declare static arrays. Using static
     !arrays makes the function call a little faster in comparison with
@@ -483,22 +483,22 @@ contains
     !Local variables
     integer           n, np
     integer           tvk(nn),tvl(nn)
-    real(dprec)       Lk(nn,nn),Ll(nn,nn),inv_Lk(nn,nn),inv_Ll(nn,nn)
-    real(dprec)       tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn)
-    real(dprec)       inv_tAkl(nn,nn)
+    real(wp)       Lk(nn,nn),Ll(nn,nn),inv_Lk(nn,nn),inv_Ll(nn,nn)
+    real(wp)       tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn)
+    real(wp)       inv_tAkl(nn,nn)
 
-    real(dprec)       W1(nn,nn)
-    real(dprec)       temp1, temp2, det_tAkl
+    real(wp)       W1(nn,nn)
+    real(wp)       temp1, temp2, det_tAkl
     integer :: i, j, k, indx
 
     integer :: pm_k, pmm_k ! new non-zero components of v_k and v_l
-    real(dprec) :: commonFactor, gamma, gamma_diag, localEps
+    real(wp) :: commonFactor, gamma, gamma_diag, localEps
 
     ! V-quantities
-    real(dprec) :: jiAlAklinvVk, jiAklinvVk, jjAlAklinvVk, jjAklinvVk
+    real(wp) :: jiAlAklinvVk, jiAklinvVk, jjAlAklinvVk, jjAklinvVk
 
     ! W-quantities
-    real(dprec) :: jiAklinvWk, jiAlAklinvWk, jjAlAklinvWk, jjAklinvWk
+    real(wp) :: jiAklinvWk, jiAlAklinvWk, jjAlAklinvWk, jjAklinvWk
 
     integer :: indexI, indexJ ! indices enumerating particles from H_SO and AMM operators
 
@@ -618,9 +618,9 @@ contains
     pm_k = m_k
     pmm_k = mm_k
     !common factor (sqrt(ONEHALF) - for consistent normalization with Skl)
-    if (selectTransition == 1) commonFactor = TWO * sqrt(THREE) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
-    if (selectTransition == 2) commonFactor = FOUR * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
-    if (selectTransition == 3) commonFactor = TWO * SQRT(TWO) * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
+    if (selectTransition == 1) commonFactor = TWO * sqrt(THREE) * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
+    if (selectTransition == 2) commonFactor = FOUR * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
+    if (selectTransition == 3) commonFactor = TWO * SQRT(TWO) * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
 
     SO1kl = ZERO
     SO2kl = ZERO

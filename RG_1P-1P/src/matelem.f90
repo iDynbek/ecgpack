@@ -27,9 +27,9 @@ contains
 
     !Arguments
     integer,intent(in)          :: m_k
-    real(dprec),intent(in)      :: vechLk(Glob_np)
-    real(dprec),intent(in)      :: P(Glob_n,Glob_n)
-    real(dprec),intent(out)     :: Skk
+    real(wp),intent(in)      :: vechLk(Glob_np)
+    real(wp),intent(in)      :: P(Glob_n,Glob_n)
+    real(wp),intent(out)     :: Skk
 
     !Parameters (These are needed to declare static arrays. Using static
     !arrays makes the function call a little faster in comparison with
@@ -40,14 +40,14 @@ contains
     !Local variables
     integer           n, np
     integer           tvl(nn)
-    real(dprec)       Lk(nn,nn),Ll(nn,nn)
-    real(dprec)       Ak(nn,nn),tAl(nn,nn),tAkl(nn,nn)
-    real(dprec)       inv_tAkl(nn,nn)
-    real(dprec)       W1(nn,nn)
-    real(dprec)       inv_tAkltvl(nn),vkinv_tAkl(nn)
-    real(dprec)       temp1
-    real(dprec)       det_tAkl
-    real(dprec)       tau3
+    real(wp)       Lk(nn,nn),Ll(nn,nn)
+    real(wp)       Ak(nn,nn),tAl(nn,nn),tAkl(nn,nn)
+    real(wp)       inv_tAkl(nn,nn)
+    real(wp)       W1(nn,nn)
+    real(wp)       inv_tAkltvl(nn),vkinv_tAkl(nn)
+    real(wp)       temp1
+    real(wp)       det_tAkl
+    real(wp)       tau3
     integer           i,j,k,q,t,indx
 
     n=Glob_n
@@ -179,8 +179,8 @@ contains
     !Evaluating overlap
     !temp1=abs(det_Ll*det_Lk)/det_tAkl
     temp1=det_tAkl*sqrt(det_tAkl)
-    !Skl=Glob_2raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
-    Skk=Glob_Piraised3n2*tau3/(TWO*temp1)
+    !Skl=Glob_2Raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
+    Skk=Glob_PiRaised3n2*tau3/(TWO*temp1)
 
   end subroutine overlapMatrixElementsLP
 
@@ -196,21 +196,21 @@ contains
     integer, intent(in) :: n, nFactorial
 
     !output vars:
-    real(dprec), dimension(n, n), intent(out) :: SSNCmassChargeCoefficient, SSFmassChargeCoefficient
+    real(wp), dimension(n, n), intent(out) :: SSNCmassChargeCoefficient, SSFmassChargeCoefficient
 
-    real(dprec), dimension(nFactorial), intent(out) :: parityFactor
-    real(dprec), dimension(n, n, 4), intent(out) :: SOmassChargeCoefficient, AMMmassChargeCoefficient, &
+    real(wp), dimension(nFactorial), intent(out) :: parityFactor
+    real(wp), dimension(n, n, 4), intent(out) :: SOmassChargeCoefficient, AMMmassChargeCoefficient, &
                                                     AMMFinmassChargeCoefficient
-    real(dprec), dimension(n, n, nFactorial), intent(out) :: ketMatrix, SSNCspinME, SiSjME
-    real(dprec), dimension(nFactorial, 2), intent(out) :: spinFreeME
-    real(kind = dprec), dimension(n, nFactorial), intent(out) :: SiMinusME, SiPlusME, SziME
+    real(wp), dimension(n, n, nFactorial), intent(out) :: ketMatrix, SSNCspinME, SiSjME
+    real(wp), dimension(nFactorial, 2), intent(out) :: spinFreeME
+    real(kind = wp), dimension(n, nFactorial), intent(out) :: SiMinusME, SiPlusME, SziME
 
     ! local variables
     integer :: i, j, k, l, m
     character(len = maxLen) :: mySpatialYoung0, mySpatialYoung1
     integer, dimension(nFactorial) :: parities
     integer, dimension(n, n, nFactorial) :: allPermutations
-    real(kind = dprec), dimension(:), allocatable :: finalSpinFunction0, finalSpinFunction1
+    real(kind = wp), dimension(:), allocatable :: finalSpinFunction0, finalSpinFunction1
     integer, dimension(:, :), allocatable :: primitives0, primitives1
     integer :: numberOfPrimitives0, numberOfPrimitives1
 
@@ -233,7 +233,7 @@ contains
         SSNCmassChargeCoefficient(i, j) = Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
                                           (Glob_Mass(i + 1) * Glob_Mass(j + 1))
         SSFmassChargeCoefficient(i, j) = -Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
-                                         (Glob_Mass(i + 1) * Glob_Mass(j + 1)) * EIGHT * PI / THREE
+                                         (Glob_Mass(i + 1) * Glob_Mass(j + 1)) * EIGHT * Glob_Pi / THREE
       enddo
     enddo
 
@@ -314,14 +314,14 @@ contains
       do k = 1, n
         do l = 1, n
           ! note the transposition here
-          ketMatrix(k, l, i) = real(allPermutations(l, k, i), kind=dprec)
+          ketMatrix(k, l, i) = real(allPermutations(l, k, i), kind=wp)
         enddo
       enddo
 
     enddo
 
     do i = 1, nFactorial
-      parityFactor(i) = real(parities(i), kind=dprec)
+      parityFactor(i) = real(parities(i), kind=wp)
     enddo
 
   end subroutine spinPreCalc
@@ -350,16 +350,16 @@ contains
     !Arguments
     integer,intent(in)              :: selectTransition
     integer,intent(in)       :: m_k, m_l
-    real(dprec),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
-    real(dprec),intent(in)   :: Pket(Glob_n,Glob_n)
+    real(wp),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
+    real(wp),intent(in)   :: Pket(Glob_n,Glob_n)
 
-    real(dprec), intent(out)  :: SO1kl, SO2kl, AMM1kl, AMM2kl, AMM1finkl, AMM2finkl, SSNCkl
+    real(wp), intent(out)  :: SO1kl, SO2kl, AMM1kl, AMM2kl, AMM1finkl, AMM2finkl, SSNCkl
     !Parameters (These are needed to declare static arrays. Using static
     !arrays makes the function call a little faster in comparison with
     !the case when arrays are dynamically allocated in stack)
     integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
     integer,parameter :: nnp=nn*(nn+1)/2
-    real(dprec),intent(in)   :: SSNCspinME(Glob_n, Glob_n), &
+    real(wp),intent(in)   :: SSNCspinME(Glob_n, Glob_n), &
                                 SOspinME(Glob_n), &
                                 SOmassChargeCoefficient(Glob_n, Glob_n, 4), &
                                 AMMmassChargeCoefficient(Glob_n, Glob_n, 4), &
@@ -369,16 +369,16 @@ contains
     !Local variables
     integer           n, np
     integer           tvk(nn),tvl(nn)
-    real(dprec)       Lk(nn,nn),Ll(nn,nn),inv_Lk(nn,nn),inv_Ll(nn,nn)
-    real(dprec)       tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn)
-    real(dprec)       inv_tAkl(nn,nn)
+    real(wp)       Lk(nn,nn),Ll(nn,nn),inv_Lk(nn,nn),inv_Ll(nn,nn)
+    real(wp)       tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn)
+    real(wp)       inv_tAkl(nn,nn)
 
-    real(dprec)       W1(nn,nn)
-    real(dprec)       temp1, temp2, det_tAkl
+    real(wp)       W1(nn,nn)
+    real(wp)       temp1, temp2, det_tAkl
     integer :: i, j, k, indx
 
     integer :: pm_k, pm_l ! new non-zero components of v_k and v_l
-    real(dprec) :: commonFactorSO, commonFactorSS, gamma, gamma_diag, &
+    real(wp) :: commonFactorSO, commonFactorSS, gamma, gamma_diag, &
                    jiVl, jiAlAklinvVk, jiAlAklinvVl, jiAklinvVk, jiAklinvVl, &
                    jjAlAklinvVl, jjAlAklinvVk, jjAklinvVk, jjAklinvVl, jjVl, localEps
 
@@ -512,10 +512,10 @@ contains
     commonFactorSO = ZERO
     commonFactorSS = ZERO
     if (selectTransition == 1) then
-      commonFactorSO = TWO * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
-      commonFactorSS = TWO * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
+      commonFactorSO = TWO * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
+      commonFactorSS = TWO * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
     else if (selectTransition == 2) then
-      commonFactorSO = -TWO * Glob_Piraised3n2 / (SQRTPI * det_tAkl * sqrt(det_tAkl))
+      commonFactorSO = -TWO * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
     endif
 
     SO1kl = ZERO
@@ -646,7 +646,7 @@ contains
         jiAklinvVk = inv_tAkl(indexI, pm_k)
 
         temp1 = &
-          (gamma**5 / 15._dprec) * ( jiAklinvVk * (jiAklinvVl  - jjAklinvVl) + &
+          (gamma**5 / 15._wp) * ( jiAklinvVk * (jiAklinvVl  - jjAklinvVl) + &
                                     jjAklinvVk * (jjAklinvVl - jiAklinvVl) ) !additional factor of 1/sqrt(6) is taken from spin part
 
         SSNCkl = SSNCkl + SSNCspinME(indexI, indexJ) * SSNCmassChargeCoefficient(indexI, indexJ) * temp1
@@ -717,19 +717,19 @@ contains
 
 !Arguments
     integer,intent(in)       :: m_k,m_l
-    real(dprec),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
-    real(dprec),intent(in)   :: Pbra(Glob_n,Glob_n),Pket(Glob_n,Glob_n)
-    real(dprec),intent(out)  :: Hkl,Skl,Tkl,Vkl,MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
-    real(dprec),intent(out)  :: rm2kl(Glob_n,Glob_n),rmkl(Glob_n,Glob_n)
-    real(dprec),intent(out)  :: rkl(Glob_n,Glob_n),r2kl(Glob_n,Glob_n)
-    real(dprec),intent(out)  :: deltarkl(Glob_n,Glob_n)
-    real(dprec),intent(out)  :: drach_deltarkl(Glob_n,Glob_n)
-    real(dprec),intent(out)  :: prvalkl(Glob_n,Glob_n)
-    real(dprec),intent(out)  :: rmrmkl(Glob_n,Glob_n,Glob_n,Glob_n)
+    real(wp),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
+    real(wp),intent(in)   :: Pbra(Glob_n,Glob_n),Pket(Glob_n,Glob_n)
+    real(wp),intent(out)  :: Hkl,Skl,Tkl,Vkl,MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
+    real(wp),intent(out)  :: rm2kl(Glob_n,Glob_n),rmkl(Glob_n,Glob_n)
+    real(wp),intent(out)  :: rkl(Glob_n,Glob_n),r2kl(Glob_n,Glob_n)
+    real(wp),intent(out)  :: deltarkl(Glob_n,Glob_n)
+    real(wp),intent(out)  :: drach_deltarkl(Glob_n,Glob_n)
+    real(wp),intent(out)  :: prvalkl(Glob_n,Glob_n)
+    real(wp),intent(out)  :: rmrmkl(Glob_n,Glob_n,Glob_n,Glob_n)
     integer,intent(in)       :: NumCFGridPoints,NumDensGridPoints
-    real(dprec),intent(in)   :: CFGrid(2,NumCFGridPoints),DensGrid(2,NumDensGridPoints)
-    real(dprec),intent(out)  :: CFkl(Glob_n*(Glob_n+1)/2,NumCFGridPoints)
-    real(dprec),intent(out)  :: Denskl(Glob_n+1,NumDensGridPoints)
+    real(wp),intent(in)   :: CFGrid(2,NumCFGridPoints),DensGrid(2,NumDensGridPoints)
+    real(wp),intent(out)  :: CFkl(Glob_n*(Glob_n+1)/2,NumCFGridPoints)
+    real(wp),intent(out)  :: Denskl(Glob_n+1,NumDensGridPoints)
     logical,intent(in)       :: AreCorrFuncNeeded,ArePartDensNeeded,AreMCorrFuncNeeded,AreMPartDensNeeded
 
 !Parameters (These are needed to declare static arrays. Using static
@@ -741,22 +741,22 @@ contains
 !Local variables
     integer           n,np
     integer           tvk(nn),tvl(nn)
-    real(dprec)       Lk(nn,nn),Ll(nn,nn),inv_Lk(nn,nn),inv_Ll(nn,nn)
-    real(dprec)       inv_tAk(nn,nn),inv_tAl(nn,nn),tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn)
-    real(dprec)       inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn), inv_tAkltAl(nn,nn)
-    real(dprec)       inv_invtAkinvtAl(nn,nn),tvkinv_tAk(nn),inv_tAltvl(nn)
-    real(dprec)       eta2(nn,nn),meta2(nn,nn),inv_tAkltAlM(nn,nn)
-    real(dprec)       W1(nn,nn),W2(nn,nn),W3(nn,nn),W4(nn,nn),W5(nn,nn),W6(nn,nn),W7(nn,nn)
-    real(dprec)       inv_tAkltvl(nn),tvkinv_tAkl(nn),tvkinv_tAkltAlM(nn),u1(nn)
-    real(dprec)       tvkinv_tAkinv_invtAkinvtAl(nn),inv_invtAkinvtAlinv_tAltvl(nn)
-    real(dprec)       temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8,temp9
-    real(dprec)       temp10,temp11,temp12,temp13,temp14,threshold,tr1, tr2, tr3, tr4
-    real(dprec)       det_Lk, det_Ll, det_tAkl, det_tAk, det_tAl, det_invtAkinvtAl
-    real(dprec)       tau1,tau2,tau3,inv_tau3 ,V2kl, tau4, MSkl
+    real(wp)       Lk(nn,nn),Ll(nn,nn),inv_Lk(nn,nn),inv_Ll(nn,nn)
+    real(wp)       inv_tAk(nn,nn),inv_tAl(nn,nn),tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn)
+    real(wp)       inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn), inv_tAkltAl(nn,nn)
+    real(wp)       inv_invtAkinvtAl(nn,nn),tvkinv_tAk(nn),inv_tAltvl(nn)
+    real(wp)       eta2(nn,nn),meta2(nn,nn),inv_tAkltAlM(nn,nn)
+    real(wp)       W1(nn,nn),W2(nn,nn),W3(nn,nn),W4(nn,nn),W5(nn,nn),W6(nn,nn),W7(nn,nn)
+    real(wp)       inv_tAkltvl(nn),tvkinv_tAkl(nn),tvkinv_tAkltAlM(nn),u1(nn)
+    real(wp)       tvkinv_tAkinv_invtAkinvtAl(nn),inv_invtAkinvtAlinv_tAltvl(nn)
+    real(wp)       temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8,temp9
+    real(wp)       temp10,temp11,temp12,temp13,temp14,threshold,tr1, tr2, tr3, tr4
+    real(wp)       det_Lk, det_Ll, det_tAkl, det_tAk, det_tAl, det_invtAkinvtAl
+    real(wp)       tau1,tau2,tau3,inv_tau3 ,V2kl, tau4, MSkl
     integer           i,j,k,t,indx,p,q
-    real(dprec)       TrAJ(nn,nn),sqrtTrAJ(nn,nn),TrAJAJ(nn,nn,nn,nn),MTrAJ(nn,nn),sqrtMTrAJ(nn,nn)
-    real(dprec)       jAj(nn,nn,nn,nn),jAtvl(nn,nn),tvkAj(nn,nn),Mass_For_Darwin(0:nn)
-    real(dprec)       E_mean
+    real(wp)       TrAJ(nn,nn),sqrtTrAJ(nn,nn),TrAJAJ(nn,nn,nn,nn),MTrAJ(nn,nn),sqrtMTrAJ(nn,nn)
+    real(wp)       jAj(nn,nn,nn,nn),jAtvl(nn,nn),tvkAj(nn,nn),Mass_For_Darwin(0:nn)
+    real(wp)       E_mean
 
     n=Glob_n
     np=Glob_np
@@ -1091,14 +1091,14 @@ contains
 
 !Evaluating overlap
 !temp1=abs(det_Ll*det_Lk)/det_tAkl
-!Skl=Glob_2raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
+!Skl=Glob_2Raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
     temp1=det_tAkl*sqrt(det_tAkl)
-    Skl=Glob_Piraised3n2*tau3/(TWO*temp1)
+    Skl=Glob_PiRaised3n2*tau3/(TWO*temp1)
 
     if(AreMCorrFuncNeeded.or.AreMPartDensNeeded) then
       temp1=det_tAk*det_tAl*det_invtAkinvtAl
       temp2=temp1*sqrt(temp1)
-      MSkl=Glob_Piraised3n2*tau4/(TWO*temp2)
+      MSkl=Glob_PiRaised3n2*tau4/(TWO*temp2)
     endif
 
 !Doing multiplication inv_tAkltAl=inv_tAkl*tAl, inv_tAkltAk=inv_tAkl*tAk
@@ -1165,8 +1165,8 @@ contains
 !and delta(r_{ij})_kl
     Vkl=ZERO
     temp5=Skl*TWO
-    temp1=temp5/SQRTPI
-    temp8=Skl/(PI*SQRTPI)
+    temp1=temp5/Glob_SqrtPi
+    temp8=Skl/(Glob_Pi*Glob_SqrtPi)
     do i=1,n
       temp2=inv_tAkl(i,i)
       TrAJ(i,i)=temp2
@@ -1196,9 +1196,9 @@ contains
       r2kl(i,i)=Skl*THREEHALF*(ONE+2*temp6)*temp2
       temp10=temp8/(temp2*temp3)
       deltarkl(i,i)=temp10*temp9
-      prvalkl(i,i)=PI*temp10*( TWO*temp9*(Glob_EulerConst+log(temp2)) + temp7*FOUR/THREE )
+      prvalkl(i,i)=Glob_Pi*temp10*( TWO*temp9*(Glob_EulerConst+log(temp2)) + temp7*FOUR/THREE )
       !prvalkl(i,i)=(temp1/(temp2*temp3))*temp9*(Glob_EulerConst+log(temp2))+(FOUR*Skl/3)*temp7/(temp2*temp3)
-      !prvalkl(i,i)=(temp9*(Glob_EulerConst+log(temp2))/SQRTPI+temp7*TWO/THREE)*temp5/(temp2*temp3)
+      !prvalkl(i,i)=(temp9*(Glob_EulerConst+log(temp2))/Glob_SqrtPi+temp7*TWO/THREE)*temp5/(temp2*temp3)
       !prvalkl(i,i)=(temp1/(temp2*temp3))*(1-temp7)*(Glob_EulerConst+log(temp2))
       !prvalkl(i,i)=TWO*PI*(Glob_EulerConst+log(temp2))*deltarkl(i,i)
     enddo
@@ -1240,9 +1240,9 @@ contains
         temp10=temp8/(temp2*temp3)
         deltarkl(j,i)=temp10*temp9
         deltarkl(i,j)=deltarkl(j,i)
-        prvalkl(j,i)=PI*temp10*( TWO*temp9*(Glob_EulerConst+log(temp2)) + temp7*FOUR/THREE )
+        prvalkl(j,i)=Glob_Pi*temp10*( TWO*temp9*(Glob_EulerConst+log(temp2)) + temp7*FOUR/THREE )
         !prvalkl(j,i)=(temp1/(temp2*temp3))*temp9*(Glob_EulerConst+log(temp2))+(FOUR*Skl/3)*temp7/(temp2*temp3)
-        !prvalkl(j,i)=(temp9*(Glob_EulerConst+log(temp2))/SQRTPI+temp7*TWO/THREE)*temp5/(temp2*temp3)
+        !prvalkl(j,i)=(temp9*(Glob_EulerConst+log(temp2))/Glob_SqrtPi+temp7*TWO/THREE)*temp5/(temp2*temp3)
         !prvalkl(j,i)=(temp1/(temp2*temp3))*(1-temp7)*(Glob_EulerConst+log(temp2))
         !prvalkl(j,i)=TWO*PI*(Glob_EulerConst+log(temp2))*deltarkl(j,i)
         prvalkl(i,j)=prvalkl(j,i)
@@ -1380,7 +1380,7 @@ contains
 !enddo
 
 !Evaluation of (1/r_{ij}*1/r_{pq}))_kl is not implemented yet
-    temp1=4*Skl/(3*PI)
+    temp1=4*Skl/(3*Glob_Pi)
     do i=1,n
       do j=i,n
         do p=i,n
@@ -1500,10 +1500,10 @@ contains
         temp4=ZERO
         temp5=ZERO
         if (p==q) then
-          temp4=2*PI*Glob_MassMatrix(p,p)
+          temp4=2*Glob_Pi*Glob_MassMatrix(p,p)
           temp5=ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(p))
         else
-          temp4=2*PI*(Glob_MassMatrix(p,p)+Glob_MassMatrix(q,q) &
+          temp4=2*Glob_Pi*(Glob_MassMatrix(p,p)+Glob_MassMatrix(q,q) &
                       -Glob_MassMatrix(p,q)-Glob_MassMatrix(p,q))
           temp5=ScaledChargeProd(Glob_PseudoCharge(p),Glob_PseudoCharge(q))
         endif
@@ -1538,7 +1538,7 @@ contains
         endif
       enddo
     enddo
-    Darwinkl=-Darwinkl*PI/2
+    Darwinkl=-Darwinkl*Glob_Pi/2
 !Evaluation of the drachmanized Darwin correction
     drach_Darwinkl=ZERO
     do i=1,n
@@ -1556,7 +1556,7 @@ contains
         endif
       enddo
     enddo
-    drach_Darwinkl=-drach_Darwinkl*PI/2
+    drach_Darwinkl=-drach_Darwinkl*Glob_Pi/2
 
 !Mass-velocity correction
     inv_tau3=1/tau3
@@ -1777,7 +1777,7 @@ contains
 
 !Evaluation of correlation functions
     if (AreCorrFuncNeeded) then
-      temp1=Skl/(PI*SQRTPI)
+      temp1=Skl/(Glob_Pi*Glob_SqrtPi)
       p=0
       do i=1,n
         do j=i,n
@@ -1797,7 +1797,7 @@ contains
     endif
 
     if (ArePartDensNeeded) then
-      temp1=Skl/(PI*SQRTPI)
+      temp1=Skl/(Glob_Pi*Glob_SqrtPi)
       do i=1,n+1
         temp2=ZERO
         do p=1,n
@@ -1826,7 +1826,7 @@ contains
     endif
 
     if (AreMCorrFuncNeeded) then
-      temp1=MSkl/(PI*SQRTPI)
+      temp1=MSkl/(Glob_Pi*Glob_SqrtPi)
       p=0
       do i=1,n
         do j=i,n
@@ -1846,7 +1846,7 @@ contains
     endif
 
     if (AreMPartDensNeeded) then
-      temp1=MSkl/(PI*SQRTPI)
+      temp1=MSkl/(Glob_Pi*Glob_SqrtPi)
       do i=1,n+1
         temp2=ZERO
         do p=1,n
@@ -1884,7 +1884,7 @@ contains
 !   W :: n x n real matrix
 
     integer, parameter :: nn = Glob_MaxAllowedNumOfPseudoParticles
-    real(dprec)           W(nn, nn), t
+    real(wp)           W(nn, nn), t
     integer               i,j,n
 
     n = Glob_n
@@ -1900,12 +1900,12 @@ contains
   end subroutine symmetrize_matrix
 
   function ScaledChargeProd(q1,q2)
-    real(dprec) ScaledChargeProd,q1,q2,x
+    real(wp) ScaledChargeProd,q1,q2,x
     x=q1*q2
-    if (x<0.0_dprec) then
+    if (x<0.0_wp) then
       ScaledChargeProd=x*Glob_AttractionScalingParam
     else
-      if ((q1>0.0_dprec).and.(q2>0.0_dprec)) then
+      if ((q1>0.0_wp).and.(q2>0.0_wp)) then
         ScaledChargeProd=x*Glob_RepulsionScalingParam*Glob_RepulsionScalingParamPlus
       else
         ScaledChargeProd=x*Glob_RepulsionScalingParam*Glob_RepulsionScalingParamMinus
@@ -1925,13 +1925,13 @@ contains
 !   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
 !      inv_tau3 :: scalar, inv_tau3 = 1/tau3 = 1/tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
-    real(dprec)   ME_rXr
+    real(wp)   ME_rXr
     integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
 !Arguments:
-    real(dprec)   X(nn,nn),inv_tAkl(nn,nn),inv_tAkltvl(nn),tvkinv_tAkl(nn),inv_tau3,Skl
+    real(wp)   X(nn,nn),inv_tAkl(nn,nn),inv_tAkltvl(nn),tvkinv_tAkl(nn),inv_tau3,Skl
 !Local variables:
     integer       i,j,n
-    real(dprec)   trAX,trAXAtvltvk,temp1,workvec1(nn)
+    real(wp)   trAX,trAXAtvltvk,temp1,workvec1(nn)
 
     n=Glob_n
     trAX=ZERO
@@ -1969,16 +1969,16 @@ contains
 !   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
 !      inv_tau3 :: scalar, inv_tau3 = 1/tau3 = 1/tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
-    real(dprec)   ME_rXr_rYr
+    real(wp)   ME_rXr_rYr
     integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
 !Arguments:
-    real(dprec)   X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn),inv_tAkltvl(nn),tvkinv_tAkl(nn),inv_tau3,Skl
+    real(wp)   X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn),inv_tAkltvl(nn),tvkinv_tAkl(nn),inv_tau3,Skl
 !Local variables:
     integer       i,j,k,n
-    real(dprec)   trAX,trAY,trAXAY,temp1,temp2
-    real(dprec)   trAXAtvltvk,trAYAtvltvk,trAXAYAtvltvk,trAYAXAtvltvk
-    real(dprec)   workvec1(nn),workvec2(nn),workvec3(nn),workvec4(nn)
-    real(dprec)   AX(nn,nn),AY(nn,nn)
+    real(wp)   trAX,trAY,trAXAY,temp1,temp2
+    real(wp)   trAXAtvltvk,trAYAtvltvk,trAXAYAtvltvk,trAYAXAtvltvk
+    real(wp)   workvec1(nn),workvec2(nn),workvec3(nn),workvec4(nn)
+    real(wp)   AX(nn,nn),AY(nn,nn)
 
     n=Glob_n
     trAX=ZERO
@@ -2057,19 +2057,19 @@ contains
 !   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
 !      inv_tau3 :: scalar, inv_tau3 = 1/tau3 = 1/tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
-    real(dprec)   ME_dWd2
+    real(wp)   ME_dWd2
     integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
 !Arguments:
-    real(dprec)   W(nn,nn),tAk(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn)
+    real(wp)   W(nn,nn),tAk(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn)
     integer       tvk(nn),tvl(nn)
-    real(dprec)   inv_tAkltvl(nn),tvkinv_tAkl(nn),inv_tau3,Skl
+    real(wp)   inv_tAkltvl(nn),tvkinv_tAkl(nn),inv_tau3,Skl
 !Local variables:
     integer       i,j,k,n
-    real(dprec)   temp1,temp2,tuk(nn),tul(nn),tAkWtAk(nn,nn),tAlWtAl(nn,nn)
-    real(dprec)   WorkMat1(nn,nn),WorkMat2(nn,nn)
-    real(dprec)   workvec1(nn),workvec2(nn),workvec3(nn),workvec4(nn)
-    real(dprec)   trWorkMat1,trWorkMat2,trAtAkWtAk,trAtAlWtAl,trAtvltuk,trAtultvk
-    real(dprec)   trAtAkWtAkAtultvk,trAtAlWtAlAtvltuk,trAtultuk,temp3
+    real(wp)   temp1,temp2,tuk(nn),tul(nn),tAkWtAk(nn,nn),tAlWtAl(nn,nn)
+    real(wp)   WorkMat1(nn,nn),WorkMat2(nn,nn)
+    real(wp)   workvec1(nn),workvec2(nn),workvec3(nn),workvec4(nn)
+    real(wp)   trWorkMat1,trWorkMat2,trAtAkWtAk,trAtAlWtAl,trAtvltuk,trAtultvk
+    real(wp)   trAtAkWtAkAtultvk,trAtAlWtAlAtvltuk,trAtultuk,temp3
 
     n=Glob_n
 
@@ -2196,19 +2196,19 @@ contains
 !   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
 !      inv_tau3 :: scalar, inv_tau3 = 1/tau3 = 1/tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
-    real(dprec)   ME_dWd21
+    real(wp)   ME_dWd21
     integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
 !Arguments:
-    real(dprec)   X(nn,nn),Glob_B(nn,nn),tAk(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn)
+    real(wp)   X(nn,nn),Glob_B(nn,nn),tAk(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn)
     integer       tvk(nn),tvl(nn)
-    real(dprec)   inv_tAkltvl(nn),tvkinv_tAkl(nn),inv_tau3,Skl
+    real(wp)   inv_tAkltvl(nn),tvkinv_tAkl(nn),inv_tau3,Skl
 !Local variables:
     integer       i,j,k,n
-    real(dprec)   temp1,temp2,tuk(nn),tul(nn),tAkXtAk(nn,nn),tAlXtAl(nn,nn)
-    real(dprec)   WorkMat1(nn,nn),WorkMat2(nn,nn)
-    real(dprec)   workvec1(nn),workvec2(nn),workvec3(nn),workvec4(nn)
-    real(dprec)   trWorkMat1,trWorkMat2,trAtAkXtAk,trAtAlXtAl,trAtvltuk,trAtultvk
-    real(dprec)   trAtAkXtAkAtultvk,trAtAlXtAlAtvltuk,trAtultuk,temp3
+    real(wp)   temp1,temp2,tuk(nn),tul(nn),tAkXtAk(nn,nn),tAlXtAl(nn,nn)
+    real(wp)   WorkMat1(nn,nn),WorkMat2(nn,nn)
+    real(wp)   workvec1(nn),workvec2(nn),workvec3(nn),workvec4(nn)
+    real(wp)   trWorkMat1,trWorkMat2,trAtAkXtAk,trAtAlXtAl,trAtvltuk,trAtultvk
+    real(wp)   trAtAkXtAkAtultvk,trAtAlXtAlAtvltuk,trAtultuk,temp3
 
     n=Glob_n
 
@@ -2322,12 +2322,12 @@ contains
   end function ME_dWd21
 
   function ME_dXd(X,tvk,tvl,inv_tAkltvl,inv_tAkl,tAk,tAl,inv_tAkltAl,Skl,tau3)
-    real(dprec)   ME_dXd
+    real(wp)   ME_dXd
     integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
-    real(dprec)   X(nn,nn),tAk(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn),inv_tAkltAl(nn,nn)
+    real(wp)   X(nn,nn),tAk(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn),inv_tAkltAl(nn,nn)
     integer       i,j,n,k,tvk(nn),tvl(nn)
-    real(dprec)   inv_tAkltAlX(nn,nn),inv_tAkltAlXtAk(nn,nn),tvkinv_tAkltAlX(nn),inv_tAkltvl(nn)
-    real(dprec)   temp1, Skl,tau,tau1,tau2,tau3
+    real(wp)   inv_tAkltAlX(nn,nn),inv_tAkltAlXtAk(nn,nn),tvkinv_tAkltAlX(nn),inv_tAkltvl(nn)
+    real(wp)   temp1, Skl,tau,tau1,tau2,tau3
     n=Glob_n
     do i=1,n
       do j=1,n
@@ -2375,17 +2375,17 @@ contains
 !      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
 !           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
-    real(dprec)   SG_ME_rXr_over_rij
+    real(wp)   SG_ME_rXr_over_rij
     integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
 !Arguments:
-    real(dprec)   X(nn,nn),inv_tAkl(nn,nn)
+    real(wp)   X(nn,nn),inv_tAkl(nn,nn)
     integer       i,j
-    real(dprec)   t_V,Skl
+    real(wp)   t_V,Skl
 !Local variables:
     integer       p,q,n
-    real(dprec)   temp1,temp2,temp3
-    real(dprec)   Aj(nn),AjX(nn)
-    real(dprec)   t_J,t_X,t_XJ
+    real(wp)   temp1,temp2,temp3
+    real(wp)   Aj(nn),AjX(nn)
+    real(wp)   t_J,t_X,t_XJ
 
     n=Glob_n
 
@@ -2432,7 +2432,7 @@ contains
       enddo
     enddo
 
-    temp1=(TWO/SQRTPI)*Skl
+    temp1=(TWO/Glob_SqrtPi)*Skl
     temp2=1/t_V
     temp3=1/t_J
     SG_ME_rXr_over_rij=temp1*temp2*temp3*sqrt(temp3)*(THREE*t_J*t_X - t_XJ)
@@ -2450,20 +2450,20 @@ contains
 !      inv_tAkl :: n x n real matrix where the inverse of tAk+tAl is stored
 !           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
-    real(dprec)   SG_ME_rXr_rYr_over_rij
+    real(wp)   SG_ME_rXr_rYr_over_rij
     integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
 !Arguments:
-    real(dprec)   X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn)
+    real(wp)   X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn)
     integer       i,j
-    real(dprec)   t_V,Skl
+    real(wp)   t_V,Skl
 !Local variables:
     integer       p,q,s,n
-    real(dprec)   temp1,temp2,temp3,temp4,temp5,temp6
-    real(dprec)   AX(nn,nn),AY(nn,nn)
-    real(dprec)   Aj(nn),AjX(nn),AjY(nn),AXAj(nn),AYAj(nn)
-    real(dprec)   t_J,t_X,t_Y
-    real(dprec)   t_XJ,t_YJ,t_XY
-    real(dprec)   t_XYJ,t_YXJ
+    real(wp)   temp1,temp2,temp3,temp4,temp5,temp6
+    real(wp)   AX(nn,nn),AY(nn,nn)
+    real(wp)   Aj(nn),AjX(nn),AjY(nn),AXAj(nn),AYAj(nn)
+    real(wp)   t_J,t_X,t_Y
+    real(wp)   t_XJ,t_YJ,t_XY
+    real(wp)   t_XYJ,t_YXJ
 
     n=Glob_n
 
@@ -2553,7 +2553,7 @@ contains
 !Compute t_YXJ=tr[inv_tAkl*Y*inv_tAkl*X*inv_tAkl*Jij]
     t_YXJ=t_XYJ
 
-    temp1=(TWO/SQRTPI)*Skl
+    temp1=(TWO/Glob_SqrtPi)*Skl
     temp2=1/t_V
     temp3=1/t_J
     SG_ME_rXr_rYr_over_rij=THREE*temp1*temp2*temp3*sqrt(temp3)*(  &
@@ -2575,17 +2575,17 @@ contains
 !   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
 !           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
-    real(dprec)   ME_rXr_over_rij
+    real(wp)   ME_rXr_over_rij
     integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
 !Arguments:
-    real(dprec)   X(nn,nn),inv_tAkl(nn,nn)
+    real(wp)   X(nn,nn),inv_tAkl(nn,nn)
     integer       i,j,tvk(nn),tvl(nn)
-    real(dprec)   inv_tAkltvl(nn),tvkinv_tAkl(nn),t_V,Skl
+    real(wp)   inv_tAkltvl(nn),tvkinv_tAkl(nn),t_V,Skl
 !Local variables:
     integer       p,q,n
-    real(dprec)   Ajtvl,temp1,temp2,temp3
-    real(dprec)   Aj(nn),AjX(nn)
-    real(dprec)   t_J,t_X,t_JV,t_XJ,t_XV,t_JXV,t_XJV
+    real(wp)   Ajtvl,temp1,temp2,temp3
+    real(wp)   Aj(nn),AjX(nn)
+    real(wp)   t_J,t_X,t_JV,t_XJ,t_XV,t_JXV,t_XJV
 
     n=Glob_n
 
@@ -2652,7 +2652,7 @@ contains
     enddo
     t_XJV=temp2*Ajtvl
 
-    temp1=(TWO/SQRTPI)*Skl
+    temp1=(TWO/Glob_SqrtPi)*Skl
     temp2=1/t_V
     temp3=1/t_J
     ME_rXr_over_rij=temp1*temp2*temp3*sqrt(temp3)*( &
@@ -2674,23 +2674,23 @@ contains
 !   inv_tAkltvl :: n-component vector where inv_tAkl*tvl is stored
 !           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
-    real(dprec)   ME_rXr_rYr_over_rij
+    real(wp)   ME_rXr_rYr_over_rij
     integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
 !Arguments:
-    real(dprec)   X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn)
+    real(wp)   X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn)
     integer       i,j,tvk(nn),tvl(nn)
-    real(dprec)   inv_tAkltvl(nn),tvkinv_tAkl(nn),t_V,Skl
+    real(wp)   inv_tAkltvl(nn),tvkinv_tAkl(nn),t_V,Skl
 !Local variables:
     integer       p,q,s,n
-    real(dprec)   temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8,temp9
-    real(dprec)   AX(nn,nn),AY(nn,nn)
-    real(dprec)   Aj(nn),AjX(nn),AjY(nn),AXAj(nn),AYAj(nn)
-    real(dprec)   AXinv_tAkltvl(nn),AYinv_tAkltvl(nn),tvkinv_tAklX(nn),tvkinv_tAklY(nn)
-    real(dprec)   Ajtvl,tvkAj
-    real(dprec)   t_J,t_X,t_Y
-    real(dprec)   t_JV,t_XJ,t_YJ,t_XV,t_YV,t_XY
-    real(dprec)   t_JXV,t_JYV,t_XJV,t_YJV,t_XYV,t_YXV,t_XYJ,t_YXJ
-    real(dprec)   t_YJXV,t_XJYV,t_XYJV,t_YXJV,t_JXYV,t_JYXV
+    real(wp)   temp1,temp2,temp3,temp4,temp5,temp6,temp7,temp8,temp9
+    real(wp)   AX(nn,nn),AY(nn,nn)
+    real(wp)   Aj(nn),AjX(nn),AjY(nn),AXAj(nn),AYAj(nn)
+    real(wp)   AXinv_tAkltvl(nn),AYinv_tAkltvl(nn),tvkinv_tAklX(nn),tvkinv_tAklY(nn)
+    real(wp)   Ajtvl,tvkAj
+    real(wp)   t_J,t_X,t_Y
+    real(wp)   t_JV,t_XJ,t_YJ,t_XV,t_YV,t_XY
+    real(wp)   t_JXV,t_JYV,t_XJV,t_YJV,t_XYV,t_YXV,t_XYJ,t_YXJ
+    real(wp)   t_YJXV,t_XJYV,t_XYJV,t_YXJV,t_JXYV,t_JYXV
 
     n=Glob_n
 
@@ -2852,7 +2852,7 @@ contains
 !Compute t_YXJ=tr[inv_tAkl*Y*inv_tAkl*X*inv_tAkl*Jij]
     t_YXJ=t_XYJ
 
-    temp1=(TWO/SQRTPI)*Skl
+    temp1=(TWO/Glob_SqrtPi)*Skl
     temp2=1/t_V
     temp3=1/t_J
     ME_rXr_rYr_over_rij=temp1*temp2*temp3*sqrt(temp3)*(  &
@@ -2890,18 +2890,18 @@ contains
 !         tr_AV :: scalar, tr_AV = tau3 = tr[inv_tAkl*tvl*tvk']
 !       tr_AJAV :: scalar, tr_AJAV = eta2(i,j) = tr[inv_tAkl*Jij*inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
-    real(dprec)   ME_d_X_over_rij_d
+    real(wp)   ME_d_X_over_rij_d
     integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
 !Arguments:
-    real(dprec)   X(nn,nn),tAk(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn)
+    real(wp)   X(nn,nn),tAk(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn)
     integer       i,j,tvk(nn),tvl(nn)
-    real(dprec)   inv_tAkltvl(nn),tvkinv_tAkl(nn),tr_AJ,tr_AV,tr_AJAV,Skl
+    real(wp)   inv_tAkltvl(nn),tvkinv_tAkl(nn),tr_AJ,tr_AV,tr_AJAV,Skl
 !Local variables:
     integer       k,n,s,c
-    real(dprec)   temp1,temp2
-    real(dprec)   tAlX(nn,nn),tAlXtAk(nn,nn),Aj(nn),tAkX(nn,nn),tAkXtAl(nn,nn)
-    real(dprec)   theta,kappa,lambda,omega,chi,theta1,kappa1,chi1,omega1
-    real(dprec)   h,m,Xtvl(nn),tvkX(nn)
+    real(wp)   temp1,temp2
+    real(wp)   tAlX(nn,nn),tAlXtAk(nn,nn),Aj(nn),tAkX(nn,nn),tAkXtAl(nn,nn)
+    real(wp)   theta,kappa,lambda,omega,chi,theta1,kappa1,chi1,omega1
+    real(wp)   h,m,Xtvl(nn),tvkX(nn)
 
 !Doing multiplication Xtvl=X*tvl,tvkX=tvk*X
     n=Glob_n
@@ -3034,7 +3034,7 @@ contains
     chi=(chi+chi1)/2
     h=temp2*h
 
-    temp1=(4*Skl)/(15*SQRTPI*tr_AV*tr_AJ*tr_AJ*sqrt(tr_AJ))
+    temp1=(4*Skl)/(15*Glob_SqrtPi*tr_AV*tr_AJ*tr_AJ*sqrt(tr_AJ))
     temp2=15*kappa*tr_AJAV + &
            5*tr_AJ*(6*lambda*tr_AJ+9*tr_AV*theta*tr_AJ-3*kappa*tr_AV-2*omega-2*chi+h+m-3*theta*tr_AJAV)
     ME_d_X_over_rij_d=temp1*temp2
@@ -3046,21 +3046,21 @@ contains
 !f(x) = ( |x| - sqrt(1-x^2)arccos(sqrt(1-x^2)) ) / (x |x|)
 !given a real valued -1<x<1 argument. |x| stands for absolute value.
 !A series representation is employed for |x|<xmin
-!Depending on the kind parameter (dprec=4,8,10,16 - double, extended, or quadruple
+!Depending on the kind parameter (wp=4,8,10,16 - double, extended, or quadruple
 !precision) for real numbers, a different xmin is used.
 !In all cases the accuracy is close to machine precision corresponding to
 !that kind parameter (1-2 last significant figures might be inaccurate in
 !the worst case).
-    real(dprec) ftransaux,x
-    real(dprec),parameter :: xmin_4=0.30_dprec !for single precision
-    real(dprec),parameter :: xmin_8=0.27_dprec !for double precision
-    real(dprec),parameter :: xmin_10=0.2_dprec !for extended precision
-    real(dprec),parameter :: xmin_16=0.065_dprec !for quadruple precision
+    real(wp) ftransaux,x
+    real(wp),parameter :: xmin_4=0.30_wp !for single precision
+    real(wp),parameter :: xmin_8=0.27_wp !for double precision
+    real(wp),parameter :: xmin_10=0.2_wp !for extended precision
+    real(wp),parameter :: xmin_16=0.065_wp !for quadruple precision
 !Local variables
-    real(dprec) x2,ax,t,xmin
+    real(wp) x2,ax,t,xmin
 
     ax=abs(x)
-    selectcase (dprec)
+    selectcase (wp)
     case(0:4)
       xmin=xmin_4
     case(5:8)
@@ -3072,21 +3072,21 @@ contains
     endselect
     if (ax<xmin) then
       x2=x*x
-      t=(524288.0_dprec/50702925.0_dprec)
-      t=(262144.0_dprec/22309287.0_dprec)+x2*t
-      t=(65536.0_dprec/4849845.0_dprec)+x2*t
-      t=(32768.0_dprec/2078505.0_dprec)+x2*t
-      t=(2048.0_dprec/109395.0_dprec)+x2*t
-      t=(1024.0_dprec/45045.0_dprec)+x2*t
-      t=(256.0_dprec/9009.0_dprec)+x2*t
-      t=(128.0_dprec/3465.0_dprec)+x2*t
-      t=(16.0_dprec/315.0_dprec)+x2*t
-      t=(8.0_dprec/105.0_dprec)+x2*t
-      t=(2.0_dprec/15.0_dprec)+x2*t
-      t=(1.0_dprec/3.0_dprec)+x2*t
+      t=(524288.0_wp/50702925.0_wp)
+      t=(262144.0_wp/22309287.0_wp)+x2*t
+      t=(65536.0_wp/4849845.0_wp)+x2*t
+      t=(32768.0_wp/2078505.0_wp)+x2*t
+      t=(2048.0_wp/109395.0_wp)+x2*t
+      t=(1024.0_wp/45045.0_wp)+x2*t
+      t=(256.0_wp/9009.0_wp)+x2*t
+      t=(128.0_wp/3465.0_wp)+x2*t
+      t=(16.0_wp/315.0_wp)+x2*t
+      t=(8.0_wp/105.0_wp)+x2*t
+      t=(2.0_wp/15.0_wp)+x2*t
+      t=(1.0_wp/3.0_wp)+x2*t
       ftransaux=x*t
     else
-      t=sqrt(1.0_dprec-x*x)
+      t=sqrt(1.0_wp-x*x)
       ftransaux=(ax-t*acos(t))/(ax*x)
     endif
 

@@ -5,7 +5,7 @@ program main
 
 !Local variables
   integer      i,iw,Kstart,Kstop,Kstep,OpenFileErr,OptimizationType
-  real(dprec)  r
+  real(wp)  r
 
 !These variables are used to set random number generators
   integer RNSeedSize
@@ -110,11 +110,11 @@ program main
         select case (Glob_BBOP(i)%GSEPSolutionMethod)
         case('G')
           call FullOpt1G(Glob_BBOP(i)%B,Glob_BBOP(i)%C,Glob_BBOP(i)%D,Glob_BBOP(i)%Q, &
-                         Glob_BBOP(i)%R,real(Glob_BBOP(i)%E,dprec),real(Glob_BBOP(i)%F,dprec), &
+                         Glob_BBOP(i)%R,real(Glob_BBOP(i)%E,wp),real(Glob_BBOP(i)%F,wp), &
                          Glob_BBOP(i)%FileName1)
         case('I')
           call FullOpt1I(Glob_BBOP(i)%B,Glob_BBOP(i)%C,Glob_BBOP(i)%D,Glob_BBOP(i)%Q, &
-                         Glob_BBOP(i)%R,real(Glob_BBOP(i)%E,dprec),real(Glob_BBOP(i)%F,dprec), &
+                         Glob_BBOP(i)%R,real(Glob_BBOP(i)%E,wp),real(Glob_BBOP(i)%F,wp), &
                          Glob_BBOP(i)%FileName1)
         endselect
       else

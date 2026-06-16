@@ -282,10 +282,10 @@ contains
 !FMIN      - Function value at the minimum point.
 
 !Arguments:
-    real(dprec)    F,XGUESS,STEP,EPS,XMIN,FMIN
+    real(wp)    F,XGUESS,STEP,EPS,XMIN,FMIN
     integer    MAXFNEVAL,ACTFNEVAL
 !Local variables:
-    real(dprec)    A1,A2,P,S1,S0,X0,X2,XPRED,BIG,X1
+    real(wp)    A1,A2,P,S1,S0,X0,X2,XPRED,BIG,X1
 
     XMIN=XGUESS
     BIG=huge(S0)
@@ -422,10 +422,10 @@ contains
 !  (U IS UNDEFINED THE FIRST TIME.)
 
 !Arguments:
-    real(dprec) F,A,B,T,X,FMIN
+    real(wp) F,A,B,T,X,FMIN
 !Local variables:
-    real(dprec) SA,SB,D,E,M,P,Q,R
-    real(dprec) TOL,T2,TT,U,V,W,FU,FV,FW,FX,CONS
+    real(wp) SA,SB,D,E,M,P,Q,R
+    real(wp) TOL,T2,TT,U,V,W,FU,FV,FW,FX,CONS
 
     TT = T
     IF (T .LE. ZERO ) TT = TEN*tiny(X)

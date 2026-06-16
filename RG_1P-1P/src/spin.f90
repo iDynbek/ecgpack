@@ -18,8 +18,8 @@ module spinStuff
   ! aba
   ! baa
 
-  !integer, parameter :: dprec = kind(1.d0)
-  real(kind = dprec), parameter :: localEps = 1.d-14 ! numerical zero
+  !integer, parameter :: wp = kind(1.d0)
+  real(kind = wp), parameter :: localEps = 1.d-14 ! numerical zero
   integer, parameter :: maxLen = 255 ! fixed length of any string generated in the module
 
 contains
@@ -36,9 +36,9 @@ contains
     integer, dimension(n), intent(out) :: parities
 
     ! mean values of some spin operators
-    real(kind = dprec), dimension(nFactorial), intent(out) :: spinFreeME
-    real(kind = dprec), dimension(n, 2, nFactorial), intent(out) :: SziME
-    real(kind = dprec), dimension(n, n, 2, nFactorial), intent(out) :: SiSjME, SSNCspinME
+    real(kind = wp), dimension(nFactorial), intent(out) :: spinFreeME
+    real(kind = wp), dimension(n, 2, nFactorial), intent(out) :: SziME
+    real(kind = wp), dimension(n, n, 2, nFactorial), intent(out) :: SiSjME, SSNCspinME
 
     ! local variables
     integer :: Cnk, ptr, NumYTerms
@@ -53,12 +53,12 @@ contains
 
     integer, dimension(:), allocatable :: spinFunction, intSpinfunctionA, intSpinfunctionB
     integer, dimension(:, :), allocatable :: spinFunctionsArray
-    real(kind = dprec), dimension(:), allocatable :: tmpSpinFunctionA, tmpSpinFunctionB, tmpSpinFunctionC
+    real(kind = wp), dimension(:), allocatable :: tmpSpinFunctionA, tmpSpinFunctionB, tmpSpinFunctionC
 
     character (len = maxLen) :: myFmt
     character(len = maxLen) :: spinFunctionString
-    real(kind = dprec) :: test, norm1, norm2
-    real(kind = dprec), dimension(:, :), allocatable :: finalSpinFunctions
+    real(kind = wp) :: test, norm1, norm2
+    real(kind = wp), dimension(:, :), allocatable :: finalSpinFunctions
 
     logical :: success
 
@@ -377,12 +377,12 @@ contains
 
     allocate(tmpSpinFunctionA(numberOfPrimitives))
 
-    tmpSpinFunctionA = real(spinFunctionsArray(:, 1), kind=dprec)
+    tmpSpinFunctionA = real(spinFunctionsArray(:, 1), kind=wp)
     norm1 = spinFunctionsScalarProductReal(tmpSpinFunctionA, tmpSpinFunctionA, numberOfPrimitives)
     finalSpinFunctions(:, 1) = tmpSpinFunctionA / sqrt(norm1)
 
     if (numberOfSpinFunctions == 2) then
-      tmpSpinFunctionA = real(spinFunctionsArray(:, 2), kind=dprec)
+      tmpSpinFunctionA = real(spinFunctionsArray(:, 2), kind=wp)
       norm1 = spinFunctionsScalarProductReal(tmpSpinFunctionA, tmpSpinFunctionA, numberOfPrimitives)
       tmpSpinFunctionA = real(spinFunctionsArray(:, 3))
       norm2 = spinFunctionsScalarProductReal(tmpSpinFunctionA, tmpSpinFunctionA, numberOfPrimitives)
@@ -455,7 +455,7 @@ contains
 
     if (Glob_ProcID == 0) then
       open(newunit=io, file="spinData.txt", status="replace", action="write")
-      write(io, '("Se from Young string =" , 1x, f6.3)') real(SeDoubled, kind=dprec) * 0.5
+      write(io, '("Se from Young string =" , 1x, f6.3)') real(SeDoubled, kind=wp) * 0.5
       close(io)
     endif
 
@@ -652,7 +652,7 @@ contains
 
     integer, dimension(n), intent(out) :: parities
     integer, dimension(:, :), allocatable, intent(out) :: primitives
-    real(kind = dprec), dimension(:), allocatable, intent(out) :: finalSpinFunction
+    real(kind = wp), dimension(:), allocatable, intent(out) :: finalSpinFunction
     integer, intent(out) :: numberOfPrimitives
 
     ! local variables
@@ -668,11 +668,11 @@ contains
 
     integer, dimension(:), allocatable :: spinFunction, intSpinfunctionA, intSpinfunctionB
     integer, dimension(:, :), allocatable :: spinFunctionsArray
-    real(kind = dprec), dimension(:), allocatable :: tmpSpinFunctionA, tmpSpinFunctionB, tmpSpinFunctionC
+    real(kind = wp), dimension(:), allocatable :: tmpSpinFunctionA, tmpSpinFunctionB, tmpSpinFunctionC
 
     character (len = maxLen) :: myFmt
     character(len = maxLen) :: spinFunctionString
-    real(kind = dprec) :: test, norm1, norm2
+    real(kind = wp) :: test, norm1, norm2
 
     logical :: success, exist
 
@@ -836,7 +836,7 @@ contains
 
     allocate(tmpSpinFunctionA(numberOfPrimitives))
 
-    tmpSpinFunctionA = real(spinFunctionsArray(:, 1), kind=dprec)
+    tmpSpinFunctionA = real(spinFunctionsArray(:, 1), kind=wp)
     norm1 = spinFunctionsScalarProductReal(tmpSpinFunctionA, tmpSpinFunctionA, numberOfPrimitives)
     finalSpinFunction(:) = tmpSpinFunctionA / sqrt(norm1)
 
@@ -903,7 +903,7 @@ contains
       else
         open(newunit=io, file="spinData.txt", status="new", action="write")
       end if
-      write(io, '("Se from Young string =" , 1x, f6.3)') real(SeDoubled, kind=dprec) * 0.5
+      write(io, '("Se from Young string =" , 1x, f6.3)') real(SeDoubled, kind=wp) * 0.5
       close(io)
     endif
 
@@ -977,21 +977,21 @@ contains
     !input variables
     integer, intent(in) :: n, nFactorial, numberOfPrimitives0, numberOfPrimitives1
     integer, dimension(n, n, nFactorial), intent(in) :: permutationMatrices
-    real(kind = dprec), dimension(numberOfPrimitives0), intent(in) :: spinFunction0
-    real(kind = dprec), dimension(numberOfPrimitives1), intent(in) :: spinFunction1
+    real(kind = wp), dimension(numberOfPrimitives0), intent(in) :: spinFunction0
+    real(kind = wp), dimension(numberOfPrimitives1), intent(in) :: spinFunction1
     integer, dimension(n, numberOfPrimitives0), intent(in) :: primitives0
     integer, dimension(n, numberOfPrimitives1), intent(in) :: primitives1
 
     !output variables
-    real(kind = dprec), dimension(n, nFactorial), intent(out) ::  SiMinusME, SiPlusME, SziME
-    real(kind = dprec), dimension(n, n, nFactorial), intent(out) ::  SSNCspinME, SiSjME
-    real(kind = dprec), dimension(nFactorial, 2), intent(out) ::  SpinFreeME
+    real(kind = wp), dimension(n, nFactorial), intent(out) ::  SiMinusME, SiPlusME, SziME
+    real(kind = wp), dimension(n, n, nFactorial), intent(out) ::  SSNCspinME, SiSjME
+    real(kind = wp), dimension(nFactorial, 2), intent(out) ::  SpinFreeME
 
     !local variables
     integer :: ptr, i, j, k, opCase
-    real(kind = dprec) :: ans, Sz1, Sz0, Sz10, temp1, temp2
+    real(kind = wp) :: ans, Sz1, Sz0, Sz10, temp1, temp2
     integer, dimension(:, :, :, :), allocatable :: pairPermutations
-    real(kind = dprec), dimension(:), allocatable :: tmpSpinFunctionA0, tmpSpinFunctionB0, tmpSpinFunctionC0, &
+    real(kind = wp), dimension(:), allocatable :: tmpSpinFunctionA0, tmpSpinFunctionB0, tmpSpinFunctionC0, &
                                                      tmpSpinFunctionA1, tmpSpinFunctionB1, tmpspinFunctionC1
     character(len = maxLen) :: spinFunctionString
     integer :: io
@@ -1210,7 +1210,7 @@ contains
     !                ^i'th place
 
     integer, intent(in) :: n, numberOfPrimitives, i
-    real(kind = dprec), dimension(numberOfPrimitives), intent(inout) :: spinFunction ! old coefficients
+    real(kind = wp), dimension(numberOfPrimitives), intent(inout) :: spinFunction ! old coefficients
     integer, dimension(n, numberOfPrimitives), intent(in) :: primitives ! all the strings possible
 
     ! local variables
@@ -1226,14 +1226,14 @@ contains
   function getSzTotal(primitives, spinFunction, n, numberOfPrimitives) result(ans)
     implicit none
     integer, intent(in) :: n, numberOfPrimitives
-    real(kind = dprec), dimension(numberOfPrimitives), intent(in) :: spinFunction !coefficients
+    real(kind = wp), dimension(numberOfPrimitives), intent(in) :: spinFunction !coefficients
     integer, dimension(n, numberOfPrimitives), intent(in) :: primitives ! all the strings possible
 
-    real(kind = dprec) ans
+    real(kind = wp) ans
 
     !local variables
     integer :: i, j
-    real(kind = dprec), dimension(numberOfPrimitives) :: tmpSpinFunction
+    real(kind = wp), dimension(numberOfPrimitives) :: tmpSpinFunction
 
     ans = ZERO
     do i = 1, n
@@ -1258,7 +1258,7 @@ contains
     ! 4 s_z(i) s_z(j) (.....a..a..) = (.....a..a..) (same with (.....b..b..) )
 
     integer, intent(in) :: n, numberOfPrimitives, i1, i2
-    real(kind = dprec), dimension(numberOfPrimitives), intent(inout) :: spinFunction ! old coefficients
+    real(kind = wp), dimension(numberOfPrimitives), intent(inout) :: spinFunction ! old coefficients
     integer, dimension(n, numberOfPrimitives), intent(in) :: primitives ! all the strings possible
 
     ! local variables
@@ -1344,15 +1344,15 @@ contains
     integer, dimension(n, numberOfPrimitivesA), intent(in) :: primitivesA !primitive set for <..|
     integer, dimension(n, numberOfPrimitivesB), intent(in) :: primitivesB !primitive set for |..>
     integer, intent(in) :: n, i, numberOfPrimitivesA, numberOfPrimitivesB
-    real(kind = dprec), dimension(numberOfPrimitivesB), intent(in)  :: spinFunctionB !coefficients for |..>
+    real(kind = wp), dimension(numberOfPrimitivesB), intent(in)  :: spinFunctionB !coefficients for |..>
 
     !output variables
-    real(kind = dprec), dimension(numberOfPrimitivesA), intent(out) :: spinFunctionA !coefficients for S- |..>
+    real(kind = wp), dimension(numberOfPrimitivesA), intent(out) :: spinFunctionA !coefficients for S- |..>
 
     ! local variables
     integer :: j, found, l, k, s
-    real(kind = dprec), dimension(numberOfPrimitivesA) :: newSpinFunction
-    real(kind = dprec), dimension(n) :: tmp_primitive
+    real(kind = wp), dimension(numberOfPrimitivesA) :: newSpinFunction
+    real(kind = wp), dimension(n) :: tmp_primitive
 
     newSpinFunction = ZERO
 
@@ -1402,15 +1402,15 @@ contains
     integer, dimension(n, numberOfPrimitivesA), intent(in) :: primitivesA
     integer, dimension(n, numberOfPrimitivesB), intent(in) :: primitivesB
     integer, intent(in) :: n, i, numberOfPrimitivesA, numberOfPrimitivesB
-    real(kind = dprec), dimension(numberOfPrimitivesB), intent(in)  :: spinFunctionB
+    real(kind = wp), dimension(numberOfPrimitivesB), intent(in)  :: spinFunctionB
 
     !output vars
-    real(kind = dprec), dimension(numberOfPrimitivesA), intent(out) :: spinFunctionA
+    real(kind = wp), dimension(numberOfPrimitivesA), intent(out) :: spinFunctionA
 
     ! local variables
     integer :: j, found, l, k, s
-    real(kind = dprec), dimension(numberOfPrimitivesA) :: newSpinFunction
-    real(kind = dprec), dimension(n) :: tmp_primitive
+    real(kind = wp), dimension(numberOfPrimitivesA) :: newSpinFunction
+    real(kind = wp), dimension(n) :: tmp_primitive
 
     newSpinFunction = ZERO
     do j = 1, numberOfPrimitivesB
@@ -2061,7 +2061,7 @@ contains
 
     integer, intent(in) :: n, numberOfPrimitives
 
-    real(kind = dprec), dimension(numberOfPrimitives), intent(in) :: spinFunction ! coefficients
+    real(kind = wp), dimension(numberOfPrimitives), intent(in) :: spinFunction ! coefficients
     integer, dimension(n, numberOfPrimitives), intent(in) :: primitives ! all the strings possible
 
     character(len = *), intent(out) :: outString
@@ -2072,7 +2072,7 @@ contains
     character(len = 528) :: finalString, primitiveString
     character(len = 20) :: intString
 
-    real(kind = dprec) :: norm
+    real(kind = wp) :: norm
 
     ! first we obtain the norm of our spin function
     norm = 0
@@ -2180,10 +2180,10 @@ contains
 
     integer, intent(in) :: n, numberOfPrimitives
 
-    real(kind = dprec), dimension(numberOfPrimitives), intent(in) :: oldSpinFunction ! old coefficients
+    real(kind = wp), dimension(numberOfPrimitives), intent(in) :: oldSpinFunction ! old coefficients
     integer, dimension(n, numberOfPrimitives), intent(in) :: primitives ! all the strings possible
     integer, dimension(n, n), intent(in) :: permutation ! permutation matrix
-    real(kind = dprec), dimension(numberOfPrimitives), intent(out) :: newSpinFunction
+    real(kind = wp), dimension(numberOfPrimitives), intent(out) :: newSpinFunction
 
     ! local variables
     integer :: i, j, l, found
@@ -2242,9 +2242,9 @@ contains
     ! of numberOfPrimitives-dimensional integer vectors
 
     integer, intent(in) :: numberOfPrimitives
-    real(kind = dprec), dimension(numberOfPrimitives), intent(in) :: functionA, functionB ! coefficients
+    real(kind = wp), dimension(numberOfPrimitives), intent(in) :: functionA, functionB ! coefficients
 
-    real(kind = dprec) :: ans
+    real(kind = wp) :: ans
 
     ! local variables
     integer :: i
@@ -2263,12 +2263,12 @@ contains
     ! of numberOfPrimitives-dimensional integer vectors
 
     integer, intent(in) :: numberOfPrimitivesA, numberOfPrimitivesB, n
-    real(kind = dprec), dimension(numberOfPrimitivesA), intent(in) :: functionA
-    real(kind = dprec), dimension(numberOfPrimitivesB), intent(in) :: functionB
+    real(kind = wp), dimension(numberOfPrimitivesA), intent(in) :: functionA
+    real(kind = wp), dimension(numberOfPrimitivesB), intent(in) :: functionB
     integer, dimension(n, numberOfPrimitivesA) :: primitivesA
     integer, dimension(n, numberOfPrimitivesB) :: primitivesB
 
-    real(kind = dprec) :: ans
+    real(kind = wp) :: ans
 
     ! local variables
     integer :: i, j
@@ -2391,13 +2391,13 @@ contains
     ! returns Clebsch(Se, S - mp; Sp, mp; S, S)
 
     integer, intent(in) :: SeDoubled, SpDoubled, SDoubled, mpDoubled
-    real(kind = dprec) :: ans
+    real(kind = wp) :: ans
 
     ! instead of using ifs or select case we create
     ! a 4-dimensional array and tabulate the Clebsch values
 
     integer, parameter :: n = 4
-    real(kind = dprec), dimension(0 : n, 0 : n, 0 : n, -n : n) :: table
+    real(kind = wp), dimension(0 : n, 0 : n, 0 : n, -n : n) :: table
 
     table = ZERO
 
@@ -2449,7 +2449,7 @@ contains
     ! S <= 5/2
 
     integer, intent(in) :: sDoubled, jDoubled
-    real(kind = dprec) :: ans
+    real(kind = wp) :: ans
 
     select case(sDoubled)
     case(1)
@@ -2510,7 +2510,7 @@ contains
     ! 1 <= S <= 5/2
 
     integer, intent(in) :: sDoubled, jDoubled
-    real(kind = dprec) :: ans
+    real(kind = wp) :: ans
 
     !if triangle rules are not satisfied return zero
     if (sDoubled < 2 .or. sDoubled + 2 < jDoubled .or. sDoubled + jDoubled < 2 .or. jDoubled + 2 < sDoubled) then

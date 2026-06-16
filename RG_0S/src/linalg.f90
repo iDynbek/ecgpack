@@ -124,11 +124,11 @@ contains
 
 !Arguments :
     integer               m,n,nA,ErrorCode
-    real(dprec)    A(nA,n),invD(n),w(n)
+    real(wp)    A(nA,n),invD(n),w(n)
 !Local variables :
     integer        i,j,jm,im
     integer        q,k,ji,jf,jim,jiR,RowsPerProc,mod_im_Glob_NumOfProcs
-    real(dprec)    x,y,z
+    real(wp)    x,y,z
 
     ErrorCode=0
     if (Glob_LDLTF_PMode==0) then
@@ -165,9 +165,9 @@ contains
       endif
       if (Glob_LDLTF_SModeType==0) then
         do i=m,n
-          call MPI_BCAST(A(1:i-1,i),i-1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+          call MPI_BCAST(A(1:i-1,i),i-1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
         enddo
-        call MPI_BCAST(invD(m:n),n-m+1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+        call MPI_BCAST(invD(m:n),n-m+1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
         call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       endif
     else
@@ -190,7 +190,7 @@ contains
           A(jiR,i)=z
           !
           call MPI_ALLREDUCE(A(ji:jf,i),w(1:Glob_NumOfProcs),Glob_NumOfProcs, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           A(ji:jf,i)=w(1:Glob_NumOfProcs)
           do j=ji,jf
             jm=j-1
@@ -218,7 +218,7 @@ contains
             !
           endif
           call MPI_ALLREDUCE(A(ji:jf,i),w(1:mod_im_Glob_NumOfProcs),mod_im_Glob_NumOfProcs, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           A(ji:jf,i)=w(1:mod_im_Glob_NumOfProcs)
           do j=ji,jf
             jm=j-1
@@ -237,7 +237,7 @@ contains
         do k=1+Glob_ProcID,im,Glob_NumOfProcs
           y=y+A(k,i)*w(k)
         enddo
-        call MPI_ALLREDUCE(y,x,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+        call MPI_ALLREDUCE(y,x,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
         x=A(i,i)-x
         A(1:im,i)=w(1:im)
         if (x==ZERO) then
@@ -283,11 +283,11 @@ contains
 
 !Arguments :
     integer               m,n,nA,ErrorCode
-    complex(dprec) A(nA,n),invD(n),w(n)
+    complex(wp) A(nA,n),invD(n),w(n)
 !Local variables :
     integer        i,j,jm,im
     integer        q,k,ji,jf,jim,jiR,RowsPerProc,mod_im_Glob_NumOfProcs
-    complex(dprec) x,y
+    complex(wp) x,y
 
     ErrorCode=0
     if (Glob_LDLHF_PMode==0) then
@@ -325,9 +325,9 @@ contains
       endif
       if (Glob_LDLHF_SModeType==0) then
         do i=m,n
-          call MPI_BCAST(A(1:i-1,i),2*(i-1),MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+          call MPI_BCAST(A(1:i-1,i),2*(i-1),MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
         enddo
-        call MPI_BCAST(invD(m:n),2*(n-m+1),MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+        call MPI_BCAST(invD(m:n),2*(n-m+1),MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
         call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       endif
     else
@@ -344,7 +344,7 @@ contains
           jiR=ji+Glob_ProcID
           A(jiR,i)=conjg(-dot_product(A(1:jim,i),A(1:jim,jiR)))
           call MPI_ALLREDUCE(A(ji:jf,i),w(1:Glob_NumOfProcs),2*Glob_NumOfProcs, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           A(ji:jf,i)=w(1:Glob_NumOfProcs)
           do j=ji,jf
             jm=j-1
@@ -360,7 +360,7 @@ contains
             A(jiR,i)=conjg(-dot_product(A(1:jim,i),A(1:jim,jiR)))
           endif
           call MPI_ALLREDUCE(A(ji:jf,i),w(1:mod_im_Glob_NumOfProcs),2*mod_im_Glob_NumOfProcs, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           A(ji:jf,i)=w(1:mod_im_Glob_NumOfProcs)
           do j=ji,jf
             jm=j-1
@@ -374,7 +374,7 @@ contains
           y=y+conjg(A(k,i))*w(k)
         enddo
         y=conjg(y)
-        call MPI_ALLREDUCE(y,x,2,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+        call MPI_ALLREDUCE(y,x,2,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
         x=A(i,i)-x
         A(1:im,i)=w(1:im)
         if (x==ZERO) then
@@ -412,10 +412,10 @@ contains
 
 !Arguments
     integer     n,nA
-    real(dprec) A(nA,n),invD(n),b(n),x(n)
+    real(wp) A(nA,n),invD(n),b(n),x(n)
 !Local variables
     integer     i,j,k,ji,jf,jim,jfm,RowsPerProc,mod_n_Glob_NumOfProcs,jiR
-    real(dprec) t
+    real(wp) t
 
     if (Glob_LDLTS_PMode==0) then
       if (Glob_LDLTS_UseBLAS==0) then
@@ -459,7 +459,7 @@ contains
         enddo
         x(jiR)=t+b(jiR)
         call MPI_ALLREDUCE(x(ji:jf),b(ji:jf),Glob_NumOfProcs, &
-                           MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                           MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
         x(ji:jf)=b(ji:jf)
         do j=ji,jf
           t=x(j)
@@ -482,7 +482,7 @@ contains
           x(jiR)=t+b(jiR)
         endif
         call MPI_ALLREDUCE(x(ji:n),b(ji:n),mod_n_Glob_NumOfProcs, &
-                           MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                           MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
         x(ji:n)=b(ji:n)
         do j=ji,n
           t=x(j)
@@ -505,7 +505,7 @@ contains
             x(k)=x(k)-t*A(k,jiR)
           enddo
           call MPI_ALLREDUCE(x(jf:ji),b(jf+Glob_NumOfProcs:ji+Glob_NumOfProcs),Glob_NumOfProcs, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           x(jf:ji)=b(jf+Glob_NumOfProcs:ji+Glob_NumOfProcs)
         endif
         x(jf:ji)=x(jf:ji)+b(jf:ji)
@@ -525,7 +525,7 @@ contains
             x(k)=x(k)-t*A(k,jiR)
           enddo
           call MPI_ALLREDUCE(x(1:ji),b(1+Glob_NumOfProcs:ji+Glob_NumOfProcs),mod_n_Glob_NumOfProcs, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           x(1:ji)=b(1+Glob_NumOfProcs:ji+Glob_NumOfProcs)
         endif
         x(1:ji)=x(1:ji)+b(1:ji)
@@ -565,10 +565,10 @@ contains
 
 !Arguments
     integer        n,nA
-    complex(dprec) A(nA,n),invD(n),b(n),x(n)
+    complex(wp) A(nA,n),invD(n),b(n),x(n)
 !Local variables
     integer        i,j,k,ji,jf,jim,jfm,RowsPerProc,mod_n_Glob_NumOfProcs,jiR
-    complex(dprec) t
+    complex(wp) t
 
     if (Glob_LDLHS_PMode==0) then
       if (Glob_LDLHS_UseBLAS==0) then
@@ -612,7 +612,7 @@ contains
         enddo
         x(jiR)=t+b(jiR)
         call MPI_ALLREDUCE(x(ji:jf),b(ji:jf),2*Glob_NumOfProcs, &
-                           MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                           MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
         x(ji:jf)=b(ji:jf)
         do j=ji,jf
           t=x(j)
@@ -635,7 +635,7 @@ contains
           x(jiR)=t+b(jiR)
         endif
         call MPI_ALLREDUCE(x(ji:n),b(ji:n),2*mod_n_Glob_NumOfProcs, &
-                           MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                           MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
         x(ji:n)=b(ji:n)
         do j=ji,n
           t=x(j)
@@ -658,7 +658,7 @@ contains
             x(k)=x(k)-t*A(k,jiR)
           enddo
           call MPI_ALLREDUCE(x(jf:ji),b(jf+Glob_NumOfProcs:ji+Glob_NumOfProcs),2*Glob_NumOfProcs, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           x(jf:ji)=b(jf+Glob_NumOfProcs:ji+Glob_NumOfProcs)
         endif
         x(jf:ji)=x(jf:ji)+b(jf:ji)
@@ -678,7 +678,7 @@ contains
             x(k)=x(k)-t*A(k,jiR)
           enddo
           call MPI_ALLREDUCE(x(1:ji),b(1+Glob_NumOfProcs:ji+Glob_NumOfProcs),2*mod_n_Glob_NumOfProcs, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           x(1:ji)=b(1+Glob_NumOfProcs:ji+Glob_NumOfProcs)
         endif
         x(1:ji)=x(1:ji)+b(1:ji)
@@ -708,7 +708,7 @@ contains
 !       y - An array (vector) containing the result;
 
     integer      n,nA,j,jm,ji,jf,p,i
-    real(dprec)  A(nA,n),x(n),y(n),w(n),t
+    real(wp)  A(nA,n),x(n),y(n),w(n),t
 
     if (Glob_MTMVL_PMode==0) then
       if (Glob_MTMVL_UseBLAS==0) then
@@ -757,7 +757,7 @@ contains
           w(i)=w(i)+t*A(i,j)
         enddo
       enddo
-      call MPI_ALLREDUCE(w,y,n,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(w,y,n,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
 
   end subroutine MTMVL
@@ -777,7 +777,7 @@ contains
 !       y - An array (vector) containing the result;
 
     integer         n,nA,j,jm,ji,jf,p,i
-    complex(dprec)  A(nA,n),x(n),y(n),w(n),t
+    complex(wp)  A(nA,n),x(n),y(n),w(n),t
 
     if (Glob_MHMVL_PMode==0) then
       if (Glob_MHMVL_UseBLAS==0) then
@@ -786,7 +786,7 @@ contains
         !R is the upper triangle (including the diagonal).
         !Computing (x^H*R^H)^H
         do j=1,n
-          t=cmplx(ZERO,ZERO,dprec)
+          t=cmplx(ZERO,ZERO,wp)
           do i=j,n
             t=t+conjg(A(i,j))*x(i)
           enddo
@@ -801,7 +801,7 @@ contains
         enddo
       else
         !call BLAS routine ZHEMV
-        call ZHEMV('L',n,cmplx(ONE,ZERO,dprec),A,nA,x,1,cmplx(ZERO,ZERO,dprec),y,1)
+        call ZHEMV('L',n,cmplx(ONE,ZERO,wp),A,nA,x,1,cmplx(ZERO,ZERO,wp),y,1)
       endif
     else
       w(1:n)=ZERO
@@ -811,7 +811,7 @@ contains
       ji=1+p*Glob_ProcID
       jf=min(p*(Glob_ProcID+1),n)
       do j=ji,jf
-        t=cmplx(ZERO,ZERO,dprec)
+        t=cmplx(ZERO,ZERO,wp)
         do i=j,n
           t=t+conjg(A(i,j))*x(i)
         enddo
@@ -826,7 +826,7 @@ contains
           w(i)=w(i)+t*A(i,j)
         enddo
       enddo
-      call MPI_ALLREDUCE(w,y,2*n,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(w,y,2*n,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
 
   end subroutine MHMVL
@@ -844,7 +844,7 @@ contains
 !       y - An array (vector) containing the result, y=A^T*x
 
     integer      n,nA,ib,ie,jb,je,j,i,k
-    real(dprec)  A(nA,n),x(n),y(n),w(n),t
+    real(wp)  A(nA,n),x(n),y(n),w(n),t
     integer      n2,p,q
 
     if (Glob_MTMV_PMode==0) then
@@ -912,7 +912,7 @@ contains
           w(ib)=t
         endif
       endif
-      call MPI_ALLREDUCE(w,y,n,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(w,y,n,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
   end subroutine MTMV
 
@@ -929,13 +929,13 @@ contains
 !       y - An array (vector) containing the result, y=A^H*x
 
     integer         n,nA,ib,ie,jb,je,j,i,k
-    complex(dprec)  A(nA,n),x(n),y(n),w(n),t
+    complex(wp)  A(nA,n),x(n),y(n),w(n),t
     integer         n2,p,q
 
     if (Glob_MHMV_PMode==0) then
       if (Glob_MHMV_UseBLAS==0) then
         do i=1,n
-          t=cmplx(ZERO,ZERO,dprec)
+          t=cmplx(ZERO,ZERO,wp)
           do j=1,n
             t=t+conjg(A(j,i))*x(j)
           enddo
@@ -943,7 +943,7 @@ contains
         enddo
       else
         !call BLAS routine ZGEMV
-        call ZGEMV('C',n,n,cmplx(ONE,ZERO,dprec),A,nA,x,1,cmplx(ZERO,ZERO,dprec),y,1)
+        call ZGEMV('C',n,n,cmplx(ONE,ZERO,wp),A,nA,x,1,cmplx(ZERO,ZERO,wp),y,1)
       endif
     else
       !Each process is assigned to deal with some part of
@@ -956,7 +956,7 @@ contains
       !for Fortran type of storage. The actual number of elements
       !assigned to a particular process is k. The algorithm
       !divides the labor between processes as uniformly as possible.
-      w(1:n)=cmplx(ZERO,ZERO,dprec)
+      w(1:n)=cmplx(ZERO,ZERO,wp)
       n2=n*n
       p=n2/Glob_NumOfProcs
       if (mod(n2,Glob_NumOfProcs)/=0) p=p+1
@@ -971,33 +971,33 @@ contains
       jb=mod(q,n)+1
       je=mod(q+k-1,n)+1
       if (ie>ib) then
-        t=cmplx(ZERO,ZERO,dprec)
+        t=cmplx(ZERO,ZERO,wp)
         do j=jb,n
           t=t+conjg(A(j,ib))*x(j)
         enddo
         w(ib)=t
         do i=ib+1,ie-1
-          t=cmplx(ZERO,ZERO,dprec)
+          t=cmplx(ZERO,ZERO,wp)
           do j=1,n
             t=t+conjg(A(j,i))*x(j)
           enddo
           w(i)=t
         enddo
-        t=cmplx(ZERO,ZERO,dprec)
+        t=cmplx(ZERO,ZERO,wp)
         do j=1,je
           t=t+conjg(A(j,i))*x(j)
         enddo
         w(ie)=t
       else
         if (ie==ib) then
-          t=cmplx(ZERO,ZERO,dprec)
+          t=cmplx(ZERO,ZERO,wp)
           do j=jb,je
             t=t+conjg(A(j,ib))*x(j)
           enddo
           w(ib)=t
         endif
       endif
-      call MPI_ALLREDUCE(w,y,2*n,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(w,y,2*n,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
   end subroutine MHMV
 
@@ -1014,11 +1014,11 @@ contains
 
 !Arguments
     integer        n,nA
-    real(dprec)    A(nA,n),x(n)
-    real(dprec)    VMMTMV
+    real(wp)    A(nA,n),x(n)
+    real(wp)    VMMTMV
 !Local variables
     integer      j,k,q,p
-    real(dprec)  s,sum
+    real(wp)  s,sum
 
     if (Glob_VMMTMV_PMode==0) then
       VMMTMV=ZERO
@@ -1062,7 +1062,7 @@ contains
         sum=sum+TWO*s*x(k)
         p=j-n-1
       enddo
-      call MPI_ALLREDUCE(sum,VMMTMV,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(sum,VMMTMV,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
 
   end function VMMTMV
@@ -1080,63 +1080,63 @@ contains
 
 !Arguments
     integer        n,nA
-    complex(dprec) A(nA,n),x(n)
-    real(dprec)    VMMHMV
+    complex(wp) A(nA,n),x(n)
+    real(wp)    VMMHMV
 !Local variables
     integer      j,k,q,p
-    real(dprec)  sr,si,sum
+    real(wp)  sr,si,sum
 
     if (Glob_VMMHMV_PMode==0) then
       VMMHMV=ZERO
       do k=1,n
-        VMMHMV=VMMHMV+(real(x(k),dprec)*real(x(k),dprec)+imag(x(k))*imag(x(k)))*real(A(k,k),dprec)
+        VMMHMV=VMMHMV+(real(x(k),wp)*real(x(k),wp)+imag(x(k))*imag(x(k)))*real(A(k,k),wp)
         sr=ZERO
         si=ZERO
         do j=k+1,n
-          sr=sr+(real(x(j),dprec)*real(A(j,k),dprec)+imag(x(j))*imag(A(j,k)))
-          si=si+(imag(x(j))*real(A(j,k),dprec)-real(x(j),dprec)*imag(A(j,k)))
+          sr=sr+(real(x(j),wp)*real(A(j,k),wp)+imag(x(j))*imag(A(j,k)))
+          si=si+(imag(x(j))*real(A(j,k),wp)-real(x(j),wp)*imag(A(j,k)))
         enddo
-        VMMHMV=VMMHMV+TWO*(real(x(k),dprec)*sr+imag(x(k))*si)
+        VMMHMV=VMMHMV+TWO*(real(x(k),wp)*sr+imag(x(k))*si)
       enddo
     else
       sum=ZERO
       q=n/(2*Glob_NumOfProcs)
       do p=1,2*q,2
         k=(p-1)*Glob_NumOfProcs+Glob_ProcID+1
-        sum=sum+(real(x(k),dprec)*real(x(k),dprec)+imag(x(k))*imag(x(k)))*real(A(k,k),dprec)
+        sum=sum+(real(x(k),wp)*real(x(k),wp)+imag(x(k))*imag(x(k)))*real(A(k,k),wp)
         sr=ZERO
         si=ZERO
         do j=k+1,n
-          sr=sr+(real(x(j),dprec)*real(A(j,k),dprec)+imag(x(j))*imag(A(j,k)))
-          si=si+(imag(x(j))*real(A(j,k),dprec)-real(x(j),dprec)*imag(A(j,k)))
+          sr=sr+(real(x(j),wp)*real(A(j,k),wp)+imag(x(j))*imag(A(j,k)))
+          si=si+(imag(x(j))*real(A(j,k),wp)-real(x(j),wp)*imag(A(j,k)))
         enddo
-        sum=sum+TWO*(real(x(k),dprec)*sr+imag(x(k))*si)
+        sum=sum+TWO*(real(x(k),wp)*sr+imag(x(k))*si)
         k=(p+1)*Glob_NumOfProcs-Glob_ProcID
-        sum=sum+(real(x(k),dprec)*real(x(k),dprec)+imag(x(k))*imag(x(k)))*real(A(k,k),dprec)
+        sum=sum+(real(x(k),wp)*real(x(k),wp)+imag(x(k))*imag(x(k)))*real(A(k,k),wp)
         sr=ZERO
         si=ZERO
         do j=k+1,n
-          sr=sr+(real(x(j),dprec)*real(A(j,k),dprec)+imag(x(j))*imag(A(j,k)))
-          si=si+(imag(x(j))*real(A(j,k),dprec)-real(x(j),dprec)*imag(A(j,k)))
+          sr=sr+(real(x(j),wp)*real(A(j,k),wp)+imag(x(j))*imag(A(j,k)))
+          si=si+(imag(x(j))*real(A(j,k),wp)-real(x(j),wp)*imag(A(j,k)))
         enddo
-        sum=sum+TWO*(real(x(k),dprec)*sr+imag(x(k))*si)
+        sum=sum+TWO*(real(x(k),wp)*sr+imag(x(k))*si)
       enddo
       p=Glob_ProcID
       do k=2*q*Glob_NumOfProcs+1,n
         if (p==0) then
-          sum=sum+(real(x(k),dprec)*real(x(k),dprec)+imag(x(k))*imag(x(k)))*real(A(k,k),dprec)
+          sum=sum+(real(x(k),wp)*real(x(k),wp)+imag(x(k))*imag(x(k)))*real(A(k,k),wp)
           p=p+Glob_NumOfProcs
         endif
         sr=ZERO
         si=ZERO
         do j=k+p,n,Glob_NumOfProcs
-          sr=sr+(real(x(j),dprec)*real(A(j,k),dprec)+imag(x(j))*imag(A(j,k)))
-          si=si+(imag(x(j))*real(A(j,k),dprec)-real(x(j),dprec)*imag(A(j,k)))
+          sr=sr+(real(x(j),wp)*real(A(j,k),wp)+imag(x(j))*imag(A(j,k)))
+          si=si+(imag(x(j))*real(A(j,k),wp)-real(x(j),wp)*imag(A(j,k)))
         enddo
-        sum=sum+TWO*(real(x(k),dprec)*sr+imag(x(k))*si)
+        sum=sum+TWO*(real(x(k),wp)*sr+imag(x(k))*si)
         p=j-n-1
       enddo
-      call MPI_ALLREDUCE(sum,VMMHMV,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(sum,VMMHMV,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
 
   end function VMMHMV
@@ -1145,8 +1145,8 @@ contains
 !Function RMaxAbsEl returns the magnitude of the largest by magnitude element
 !among the first n elements of real array x
     integer        n,j,ji,jf,k
-    real(dprec)    x(n)
-    real(dprec)    RMaxAbsEl,MaxAE
+    real(wp)    x(n)
+    real(wp)    RMaxAbsEl,MaxAE
     MaxAE=ZERO
     if (Glob_RMaxAbsEl_PMode==0) then
       do j=1,n
@@ -1161,7 +1161,7 @@ contains
       do j=ji,jf
         if (abs(x(j))>MaxAE) MaxAE=abs(x(j))
       enddo
-      call MPI_ALLREDUCE(MaxAE,RMaxAbsEl,1,MPI_DPREC,MPI_MAX,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(MaxAE,RMaxAbsEl,1,MPI_WP,MPI_MAX,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
   end function RMaxAbsEl
 
@@ -1169,12 +1169,12 @@ contains
 !Function CMaxAbsEl returns the magnitude of the largest real or imaginary part
 !among the first n elements of complex array x
     integer  n,j,ji,jf,k,maxj
-    complex(dprec)  x(n)
-    real(dprec)     CMaxAbsReOrIm,MaxAE,t
+    complex(wp)  x(n)
+    real(wp)     CMaxAbsReOrIm,MaxAE,t
     MaxAE=ZERO
     if (Glob_CMaxAbsReOrIm_PMode==0) then
       do j=1,n
-        t=abs(real(x(j),dprec))
+        t=abs(real(x(j),wp))
         if (t>MaxAE) MaxAE=t
         t=abs(imag(x(j)))
         if (t>MaxAE) MaxAE=t
@@ -1186,12 +1186,12 @@ contains
       ji=1+k*Glob_ProcID
       jf=min(k*(Glob_ProcID+1),n)
       do j=ji,jf
-        t=abs(real(x(j),dprec))
+        t=abs(real(x(j),wp))
         if (t>MaxAE) MaxAE=t
         t=abs(imag(x(j)))
         if (t>MaxAE) MaxAE=t
       enddo
-      call MPI_ALLREDUCE(MaxAE,CMaxAbsReOrIm,1,MPI_DPREC,MPI_MAX,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(MaxAE,CMaxAbsReOrIm,1,MPI_WP,MPI_MAX,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
   end function CMaxAbsReOrIm
 
@@ -1199,9 +1199,9 @@ contains
 !Function RDotProd computes the dot product x^{T}y,
 !for n-component real vectors x and y.
     integer           n,k,ji,jf,j
-    real(dprec)    RDotProd,a
-    real(dprec)    x(n),y(n)
-    real(dprec)    DDOT
+    real(wp)    RDotProd,a
+    real(wp)    x(n),y(n)
+    real(wp)    DDOT
     if (Glob_RDotProd_PMode==0) then
       if (Glob_RDotProd_UseBLAS==0) then
         RDotProd=ZERO
@@ -1221,7 +1221,7 @@ contains
       do j=ji,jf
         a=a+x(j)*y(j)
       enddo
-      call MPI_ALLREDUCE(a,RDotProd,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(a,RDotProd,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
   end function RDotProd
 
@@ -1229,15 +1229,15 @@ contains
 !Function CDotProd computes the dot product x^{H}y,
 !for n-component complex vectors x and y.
     integer           n,k,ji,jf,j
-    complex(dprec)    CDotProd,a
-    complex(dprec)    x(n),y(n)
-    complex(dprec)    ZDOTC
+    complex(wp)    CDotProd,a
+    complex(wp)    x(n),y(n)
+    complex(wp)    ZDOTC
     if (Glob_CDotProd_PMode==0) then
       if (Glob_CDotProd_UseBLAS==0) then
-        CDotProd=cmplx(ZERO,ZERO,dprec)
+        CDotProd=cmplx(ZERO,ZERO,wp)
         do j=1,n
-          CDotProd=CDotProd+cmplx(real(x(j),dprec)*real(y(j),dprec)+imag(x(j))*imag(y(j)), &
-                                  real(x(j),dprec)*imag(y(j))-imag(x(j))*real(y(j),dprec),dprec)
+          CDotProd=CDotProd+cmplx(real(x(j),wp)*real(y(j),wp)+imag(x(j))*imag(y(j)), &
+                                  real(x(j),wp)*imag(y(j))-imag(x(j))*real(y(j),wp),wp)
         enddo
       else
         !call BLAS function ZDOTC
@@ -1248,12 +1248,12 @@ contains
       if (mod(n,Glob_NumOfProcs)/=0) k=k+1
       ji=1+k*Glob_ProcID
       jf=min(k*(Glob_ProcID+1),n)
-      a=cmplx(ZERO,ZERO,dprec)
+      a=cmplx(ZERO,ZERO,wp)
       do j=ji,jf
-        a=a+cmplx(real(x(j),dprec)*real(y(j),dprec)+imag(x(j))*imag(y(j)), &
-                  real(x(j),dprec)*imag(y(j))-imag(x(j))*real(y(j),dprec),dprec)
+        a=a+cmplx(real(x(j),wp)*real(y(j),wp)+imag(x(j))*imag(y(j)), &
+                  real(x(j),wp)*imag(y(j))-imag(x(j))*real(y(j),wp),wp)
       enddo
-      call MPI_ALLREDUCE(a,CDotProd,2,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(a,CDotProd,2,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
   end function CDotProd
 
@@ -1261,9 +1261,9 @@ contains
 !Function RDotProdItself computes dot product x^{T}x,
 !for an n-component real vector x.
     integer           n,k,ji,jf,j
-    real(dprec)       RDotProdItself,t
-    real(dprec)       x(n)
-    real(dprec)       DDOT
+    real(wp)       RDotProdItself,t
+    real(wp)       x(n)
+    real(wp)       DDOT
     if (Glob_RDotProdItself_PMode==0) then
       if (Glob_RDotProdItself_UseBLAS==0) then
         RDotProdItself=ZERO
@@ -1283,7 +1283,7 @@ contains
       do j=ji,jf
         t=t+x(j)*x(j)
       enddo
-      call MPI_ALLREDUCE(t,RDotProdItself,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(t,RDotProdItself,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
   end function RDotProdItself
 
@@ -1291,14 +1291,14 @@ contains
 !Function CDotProdItself computes dot product x^{H}x,
 !for an n-component complex vector x.
     integer           n,k,ji,jf,j
-    real(dprec)       CDotProdItself,t
-    complex(dprec)    x(n)
-    complex(dprec)    ZDOTC
+    real(wp)       CDotProdItself,t
+    complex(wp)    x(n)
+    complex(wp)    ZDOTC
     if (Glob_CDotProdItself_PMode==0) then
       if (Glob_CDotProdItself_UseBLAS==0) then
         CDotProdItself=ZERO
         do j=1,n
-          CDotProdItself=CDotProdItself+real(x(j),dprec)*real(x(j),dprec)+imag(x(j))*imag(x(j))
+          CDotProdItself=CDotProdItself+real(x(j),wp)*real(x(j),wp)+imag(x(j))*imag(x(j))
         enddo
       else
         !call BLAS function ZDOTC
@@ -1311,9 +1311,9 @@ contains
       jf=min(k*(Glob_ProcID+1),n)
       t=ZERO
       do j=ji,jf
-        t=t+real(x(j),dprec)*real(x(j),dprec)+imag(x(j))*imag(x(j))
+        t=t+real(x(j),wp)*real(x(j),wp)+imag(x(j))*imag(x(j))
       enddo
-      call MPI_ALLREDUCE(t,CDotProdItself,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(t,CDotProdItself,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
   end function CDotProdItself
 
@@ -1321,8 +1321,8 @@ contains
 !Function RDotProdQuotient computes the quotient (x^{T}y)/(y^{T}y),
 !where x and y are n-component real vectors.
     integer        n,k,ji,jf,j
-    real(dprec)    RDotProdQuotient,a,b,t(2),tt(2)
-    real(dprec)    x(n),y(n)
+    real(wp)    RDotProdQuotient,a,b,t(2),tt(2)
+    real(wp)    x(n),y(n)
     if (Glob_RDotProdQuotient_PMode==0) then
       a=ZERO
       b=ZERO
@@ -1342,7 +1342,7 @@ contains
         t(1)=t(1)+x(j)*y(j)
         t(2)=t(2)+y(j)*y(j)
       enddo
-      call MPI_ALLREDUCE(t,tt,2,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(t,tt,2,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       RDotProdQuotient=tt(1)/tt(2)
     endif
   end function RDotProdQuotient
@@ -1351,41 +1351,41 @@ contains
 !Function CDotProdQuotient computes the quotient (x^{H}y)/(y^{H}y),
 !where x and y are n-component complex vectors.
     integer        n,k,ji,jf,j
-    complex(dprec) CDotProdQuotient
-    complex(dprec) x(n),y(n)
-    complex(dprec) a
-    real(dprec)    r,t(3),tt(3)
+    complex(wp) CDotProdQuotient
+    complex(wp) x(n),y(n)
+    complex(wp) a
+    real(wp)    r,t(3),tt(3)
     if (Glob_CDotProdQuotient_PMode==0) then
-      a=cmplx(ZERO,ZERO,dprec)
+      a=cmplx(ZERO,ZERO,wp)
       r=ZERO
       do j=1,n
         a=a+conjg(x(j))*y(j)
-        r=r+real(y(j),dprec)*real(y(j),dprec)+imag(y(j))*imag(y(j))
+        r=r+real(y(j),wp)*real(y(j),wp)+imag(y(j))*imag(y(j))
       enddo
-      CDotProdQuotient=cmplx(real(a,dprec)/r,imag(a)/r,dprec)
+      CDotProdQuotient=cmplx(real(a,wp)/r,imag(a)/r,wp)
     else
       k=n/Glob_NumOfProcs
       if (mod(n,Glob_NumOfProcs)/=0) k=k+1
       ji=1+k*Glob_ProcID
       jf=min(k*(Glob_ProcID+1),n)
-      a=cmplx(ZERO,ZERO,dprec)
+      a=cmplx(ZERO,ZERO,wp)
       t(1)=ZERO
       do j=ji,jf
         a=a+conjg(x(j))*y(j)
-        t(1)=t(1)+real(y(j),dprec)*real(y(j),dprec)+imag(y(j))*imag(y(j))
+        t(1)=t(1)+real(y(j),wp)*real(y(j),wp)+imag(y(j))*imag(y(j))
       enddo
-      t(2)=real(a,dprec)
+      t(2)=real(a,wp)
       t(3)=imag(a)
-      call MPI_ALLREDUCE(t,tt,3,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
-      CDotProdQuotient=cmplx(tt(2)/tt(1),tt(3)/tt(1),dprec)
+      call MPI_ALLREDUCE(t,tt,3,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      CDotProdQuotient=cmplx(tt(2)/tt(1),tt(3)/tt(1),wp)
     endif
   end function CDotProdQuotient
 
   subroutine RVScale(n,x,alpha)
 !Subroutine RVScale scales real vector x by real constant alpha
     integer      n,j
-    real(dprec)  x(n)
-    real(dprec)  alpha
+    real(wp)  x(n)
+    real(wp)  alpha
 
     if (Glob_RVScale_UseBLAS==0) then
       do j=1,n
@@ -1401,15 +1401,15 @@ contains
   subroutine CVScale(n,x,alpha)
 !Subroutine RVScale scales complex vector x by complex constant alpha
     integer         n,j
-    complex(dprec)  x(n)
-    complex(dprec)  alpha
-    real(dprec)     ralpha
+    complex(wp)  x(n)
+    complex(wp)  alpha
+    real(wp)     ralpha
 
     if (Glob_CVScale_UseBLAS==0) then
       if (imag(alpha)==ZERO) then
-        ralpha=real(alpha,dprec)
+        ralpha=real(alpha,wp)
         do j=1,n
-          x(j)=cmplx(ralpha*real(x(j),dprec),ralpha*imag(x(j)),dprec)
+          x(j)=cmplx(ralpha*real(x(j),wp),ralpha*imag(x(j)),wp)
         enddo
       else
         do j=1,n
@@ -1426,9 +1426,9 @@ contains
   function RVDiffEucNorm(n,x,alpha,y)
 !Function RVDiffEucNorm returns the Euclidean norm of the difference x-alpha*y,
 !where y and x are two real vectors and alpha is a real scalar.
-    real(dprec)  RVDiffEucNorm
+    real(wp)  RVDiffEucNorm
     integer      n,j,k,ji,jf,q
-    real(dprec)  x(n),y(n),alpha,t
+    real(wp)  x(n),y(n),alpha,t
 
     if (Glob_RVDiffEucNorm_PMode==0) then
       RVDiffEucNorm=ZERO
@@ -1445,7 +1445,7 @@ contains
       do j=ji,jf
         t=t+(x(j)-alpha*y(j))*(x(j)-alpha*y(j))
       enddo
-      call MPI_ALLREDUCE(t,RVDiffEucNorm,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(t,RVDiffEucNorm,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       RVDiffEucNorm=sqrt(RVDiffEucNorm)
     endif
 
@@ -1454,16 +1454,16 @@ contains
   function CVDiffEucNorm(n,x,alpha,y)
 !Function CVDiffEucNorm returns the Euclidean norm of the difference x-alpha*y,
 !where y and x are two complex vectors and alpha is a complex scalar.
-    real(dprec)     CVDiffEucNorm
+    real(wp)     CVDiffEucNorm
     integer         n,j,k,ji,jf,q
-    complex(dprec)  x(n),y(n),alpha,s
-    real(dprec)     t
+    complex(wp)  x(n),y(n),alpha,s
+    real(wp)     t
 
     if (Glob_CVDiffEucNorm_PMode==0) then
       CVDiffEucNorm=ZERO
       do j=1,n
         s=x(j)-alpha*y(j)
-        CVDiffEucNorm=CVDiffEucNorm+real(s,dprec)*real(s,dprec)+imag(s)*imag(s)
+        CVDiffEucNorm=CVDiffEucNorm+real(s,wp)*real(s,wp)+imag(s)*imag(s)
       enddo
       CVDiffEucNorm=sqrt(CVDiffEucNorm)
     else
@@ -1471,12 +1471,12 @@ contains
       if (mod(n,Glob_NumOfProcs)/=0) k=k+1
       ji=1+k*Glob_ProcID
       jf=min(k*(Glob_ProcID+1),n)
-      t=cmplx(ZERO,ZERO,dprec)
+      t=cmplx(ZERO,ZERO,wp)
       do j=ji,jf
         s=x(j)-alpha*y(j)
-        t=t+real(s,dprec)*real(s,dprec)+imag(s)*imag(s)
+        t=t+real(s,wp)*real(s,wp)+imag(s)*imag(s)
       enddo
-      call MPI_ALLREDUCE(t,CVDiffEucNorm,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(t,CVDiffEucNorm,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       CVDiffEucNorm=sqrt(CVDiffEucNorm)
     endif
 
@@ -1573,11 +1573,11 @@ contains
 
 !Arguments
     integer         k,n,nM,nB,MaxIter,SpecifNorm,NumIter,ErrorCode
-    real(dprec)     M(nM,n),invD(n),B(nB,n),v(n),w(n),x(n)
-    real(dprec)     apprlambda,Tol,lambda,RelAcc
+    real(wp)     M(nM,n),invD(n),B(nB,n),v(n),w(n),x(n)
+    real(wp)     apprlambda,Tol,lambda,RelAcc
 !Local variables
-    real(dprec)     NormOfDiff,NormOfDiffPrev,t1,t2,sqrtn
-    real(dprec)     tc
+    real(wp)     NormOfDiff,NormOfDiffPrev,t1,t2,sqrtn
+    real(wp)     tc
     logical         notconverged
 
     ErrorCode=0
@@ -1721,11 +1721,11 @@ contains
 
 !Arguments
     integer         k,n,nM,nB,MaxIter,SpecifNorm,NumIter,ErrorCode
-    complex(dprec)  M(nM,n),invD(n),B(nB,n),v(n),w(n),x(n)
-    real(dprec)     apprlambda,Tol,lambda,RelAcc
+    complex(wp)  M(nM,n),invD(n),B(nB,n),v(n),w(n),x(n)
+    real(wp)     apprlambda,Tol,lambda,RelAcc
 !Local variables
-    real(dprec)     NormOfDiff,NormOfDiffPrev,t1,t2,sqrtn
-    complex(dprec)  tc
+    real(wp)     NormOfDiff,NormOfDiffPrev,t1,t2,sqrtn
+    complex(wp)  tc
     logical         notconverged
 
     ErrorCode=0
@@ -1745,7 +1745,7 @@ contains
       call MHMV(n,B,nB,v,w,x)
       call LDLHS(n,M,nM,invD,w,x)
       t1=CMaxAbsReOrIm(n,x)
-      call CVScale(n,x,cmplx(1/t1,ZERO,dprec))
+      call CVScale(n,x,cmplx(1/t1,ZERO,wp))
       !tc=(x^{H}v)/(v^{H}v)
       tc=CDotProdQuotient(n,x,v)
       !NormOfDiff=sqrt(2*n)||x-tc*v||
@@ -1769,10 +1769,10 @@ contains
     lambda=t2/t1+apprlambda
     select case        (SpecifNorm)
     case (0) !x^{H}Bx=1
-      call CVScale(n,x,cmplx(1/sqrt(t1),ZERO,dprec))
+      call CVScale(n,x,cmplx(1/sqrt(t1),ZERO,wp))
     case (1) !x^{H}x=1
       t1=CDotProdItself(n,x)
-      call CVScale(n,x,cmplx(1/sqrt(t1),ZERO,dprec))
+      call CVScale(n,x,cmplx(1/sqrt(t1),ZERO,wp))
     endselect
 
   end subroutine GHEPIIS

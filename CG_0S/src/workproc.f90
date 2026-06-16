@@ -12,25 +12,25 @@ module workproc
 contains
 
 !Subroutines writereal and writerealarr (writerealadv and writerealarradv) realize nonadvanced
-!(advanced) output of real(dprec) type. For portability and easiness of modification of the
-!program, all output of real(dprec) type, both on screen and to external files should be done
+!(advanced) output of real(wp) type. For portability and easiness of modification of the
+!program, all output of real(wp) type, both on screen and to external files should be done
 !via calling these subroutines.
 
   subroutine writereal(u,r)
     integer u          !i/o unit
-    real(dprec) r      !real number that needs to be written
+    real(wp) r      !real number that needs to be written
     write(u,'(1x,e23.16)',advance='no') r
   end subroutine writereal
 
   subroutine writerealadv(u,r)
     integer u          !i/o unit
-    real(dprec) r      !real number that needs to be written
+    real(wp) r      !real number that needs to be written
     write(u,'(1x,e23.16)') r
   end subroutine writerealadv
 
   subroutine writerealarr(u,r,k)
     integer u          !i/o unit
-    real(dprec) r(k)   !real array that needs to be written
+    real(wp) r(k)   !real array that needs to be written
     integer k          !the number of elements to write (writing begins with element 1)
     integer i
     do i=1,k
@@ -40,7 +40,7 @@ contains
 
   subroutine writerealarradv(u,r,k)
     integer u          !i/o unit
-    real(dprec) r(k)   !real array that needs to be written
+    real(wp) r(k)   !real array that needs to be written
     integer k          !the number of elements to write (writing begins with element 1)
     integer i
     do i=1,k-1
@@ -81,11 +81,11 @@ contains
 
 !Local variables:
     integer        OpenFileErr
-    real(dprec)    ReadRealA,ReadRealB
-    real(dprec),allocatable,dimension(:) :: ReadRealArr
+    real(wp)    ReadRealA,ReadRealB
+    real(wp),allocatable,dimension(:) :: ReadRealArr
     integer        ReadInt
     integer        WorkInt(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
-    real(dprec),allocatable,dimension(:) :: WorkBuffReal
+    real(wp),allocatable,dimension(:) :: WorkBuffReal
     integer,allocatable,dimension(:)     :: WorkBuffInt
     integer        i,j,Line,j1,j2,j3,j4
     character(70)  ReadChar
@@ -132,7 +132,7 @@ contains
     if (ErrorInDataFile) stop
     Glob_np=Glob_n*(Glob_n+1)/2
     Glob_npt=Glob_np+Glob_np
-    Glob_2raised3n2=TWO**((3*Glob_n)/TWO)
+    Glob_2Raised3n2=TWO**((3*Glob_n)/TWO)
 
     allocate(Glob_Mass(Glob_n+1))
     if (Glob_ProcID==0) then
@@ -141,7 +141,7 @@ contains
       call writerealarradv(6,Glob_Mass,Glob_n+1)
       Line=Line+1
     endif
-    call MPI_BCAST(Glob_Mass,Glob_n+1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_Mass,Glob_n+1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     allocate(Glob_PseudoCharge(Glob_n))
     if (Glob_ProcID==0) then
@@ -151,8 +151,8 @@ contains
       call writerealarradv(6,Glob_PseudoCharge,Glob_n)
       Line=Line+1
     endif
-    call MPI_BCAST(Glob_PseudoCharge0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_PseudoCharge,Glob_n,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_PseudoCharge0,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_PseudoCharge,Glob_n,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
       read(1,*) ReadChar(1:8),Glob_YOperatorString
@@ -183,7 +183,7 @@ contains
       call writerealadv(6,Glob_CurrEnergy)
       Line=Line+1
     endif
-    call MPI_BCAST(Glob_CurrEnergy,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_CurrEnergy,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
       read(1,*) ReadChar(1:16),Glob_WhichEigenvalue
@@ -198,7 +198,7 @@ contains
       call writerealadv(6,Glob_EigvalTol)
       Line=Line+1
     endif
-    call MPI_BCAST(Glob_EigvalTol,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_EigvalTol,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
       read(1,*) ReadChar(1:14),Glob_InvItParameter
@@ -206,7 +206,7 @@ contains
       call writerealadv(6,Glob_InvItParameter)
       Line=Line+1
     endif
-    call MPI_BCAST(Glob_InvItParameter,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_InvItParameter,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
       read(1,*) ReadChar(1:15),Glob_LastEigvalTol
@@ -214,7 +214,7 @@ contains
       call writerealadv(6,Glob_LastEigvalTol)
       Line=Line+1
     endif
-    call MPI_BCAST(Glob_LastEigvalTol,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_LastEigvalTol,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
       read(1,*) ReadChar(1:15),Glob_BestEigvalTol
@@ -222,7 +222,7 @@ contains
       call writerealadv(6,Glob_BestEigvalTol)
       Line=Line+1
     endif
-    call MPI_BCAST(Glob_BestEigvalTol,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_BestEigvalTol,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
       read(1,*) ReadChar(1:16),Glob_WorstEigvalTol
@@ -230,7 +230,7 @@ contains
       call writerealadv(6,Glob_WorstEigvalTol)
       Line=Line+1
     endif
-    call MPI_BCAST(Glob_WorstEigvalTol,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_WorstEigvalTol,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
       read(1,*) ReadChar(1:15),Glob_RG_p1,Glob_RG_s1,Glob_RG_s2
@@ -240,9 +240,9 @@ contains
       call writerealadv(6,Glob_RG_s2)
       Line=Line+1
     endif
-    call MPI_BCAST(Glob_RG_p1,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_RG_s1,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_RG_s2,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_RG_p1,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_RG_s1,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_RG_s2,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
       read(1,'(a70)')   ReadChar(1:70)
@@ -408,8 +408,8 @@ contains
       call MPI_BCAST(Glob_BBOP(i)%F,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       call MPI_BCAST(Glob_BBOP(i)%G,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       call MPI_BCAST(Glob_BBOP(i)%H,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-      call MPI_BCAST(Glob_BBOP(i)%Q,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-      call MPI_BCAST(Glob_BBOP(i)%R,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(Glob_BBOP(i)%Q,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(Glob_BBOP(i)%R,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       do j=1,Glob_FileNameLength
         WorkInt(j)=ichar(Glob_BBOP(i)%FileName1(j:j))
       enddo
@@ -467,7 +467,7 @@ contains
     do i=1,Glob_CurrBasisSize
       WorkBuffReal(i)=Glob_History(i)%Energy
     enddo
-    call MPI_BCAST(WorkBuffReal,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(WorkBuffReal,Glob_CurrBasisSize,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     do i=1,Glob_CurrBasisSize
       Glob_History(i)%Energy=WorkBuffReal(i)
     enddo
@@ -503,7 +503,7 @@ contains
       enddo
     endif
     call MPI_BCAST(Glob_NonlinParam,Glob_npt*Glob_CurrBasisSize, &
-                   MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+                   MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 !Setting the function numbers as they were read
     do i=1,Glob_CurrBasisSize
@@ -773,7 +773,7 @@ contains
     integer       n,npart
     integer       i,j,k,p,q,t,s,w,ii,jj,kk
     character(1)  c1,cc1
-    real(dprec)   Mtot
+    real(wp)   Mtot
     integer       StrLen,NumFactY
     integer       TotNumOfYTerms,TotNumOfYHYTerms,CurrNumOfTerms
     integer       L,R,FirstLPos,LastRPos,MaxNumTermsInFact
@@ -1595,18 +1595,18 @@ contains
 
 !Arguments :
     integer        nfun
-    real(dprec)    x(Glob_npt,nfun)
+    real(wp)    x(Glob_npt,nfun)
     integer        k, method_used
 
 !Local variables :
     integer        i,j,p
-    real(dprec)    r,sumf
+    real(wp)    r,sumf
 !Constants that define the uniform distribution
 !in the case of Glob_CurrBasisSize==0
-    real(dprec)  :: Lmin=-0.5_dprec
-    real(dprec)  :: Lmax= 0.5_dprec
-    real(dprec)  :: Bmin=-0.5_dprec
-    real(dprec)  :: Bmax= 0.5_dprec
+    real(wp)  :: Lmin=-0.5_wp
+    real(wp)  :: Lmax= 0.5_wp
+    real(wp)  :: Bmin=-0.5_wp
+    real(wp)  :: Bmax= 0.5_wp
 
     if (Glob_CurrBasisSize==0) then !making uniform distribution
       do i=1,nfun
@@ -1635,7 +1635,7 @@ contains
         else
           !method 2
           r=Glob_RG_s2*drnor()+ONE
-          do while ((abs(r)>0.8E0_dprec).and.(abs(r)<1.2E0_dprec))
+          do while ((abs(r)>0.8E0_wp).and.(abs(r)<1.2E0_wp))
             r=Glob_RG_s2*drnor()+ONE
           enddo
           do i=1,nfun
@@ -1662,7 +1662,7 @@ contains
         else
           !method 2
           r=Glob_RG_s2*drnor()+ONE
-          do while ((abs(r)>0.8E0_dprec).and.(abs(r)<1.2E0_dprec))
+          do while ((abs(r)>0.8E0_wp).and.(abs(r)<1.2E0_wp))
             r=Glob_RG_s2*drnor()+ONE
           enddo
           do i=1,nfun
@@ -1690,10 +1690,10 @@ contains
 !  Sij is the pair overlap value
 !The result is returned in TotalPenalty
 !Arguments:
-    real(dprec)  MaxPairOverlapPenalty,OverlapThreshold2,TotalPenalty
+    real(wp)  MaxPairOverlapPenalty,OverlapThreshold2,TotalPenalty
 !Local variables
     integer      i,j,k,nbands,leftover
-    real(dprec)  pen_coeff,tp,aux
+    real(wp)  pen_coeff,tp,aux
     logical      oddband
 
     tp=ZERO
@@ -1751,7 +1751,7 @@ contains
         endif
       endif
     endif
-    call MPI_ALLREDUCE(tp,TotalPenalty,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_ALLREDUCE(tp,TotalPenalty,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
 
   end subroutine ComputeOverlapPenalty
 
@@ -1775,10 +1775,10 @@ contains
 !combining the gradient components twice (once after the gradient is computed and once
 !after the gradient addition due to the overlap penalties is computed).
 !Arguments:
-    real(dprec)  MaxPairOverlapPenalty,OverlapThreshold2,TotalPenalty,WkGR(:)
+    real(wp)  MaxPairOverlapPenalty,OverlapThreshold2,TotalPenalty,WkGR(:)
 !Local variables
     integer      i,j,k,m,nbands,leftover
-    real(dprec)  pen_coeff,tp,aux,temp1,temp2
+    real(wp)  pen_coeff,tp,aux,temp1,temp2
     logical      oddband
 
     tp=ZERO
@@ -1892,7 +1892,7 @@ contains
         endif
       endif
     endif
-    call MPI_ALLREDUCE(tp,TotalPenalty,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_ALLREDUCE(tp,TotalPenalty,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
 
   end subroutine ComputeOverlapPenaltyAndAddGradient
 
@@ -1913,7 +1913,7 @@ contains
 !ErrorCode = Nmax + i then the leading minor of order i of S is
 !not positive definite.
 
-    real(dprec)    EnergyGA
+    real(wp)    EnergyGA
 !Arguments:
     integer        Nmin,Nmax
     logical        AreMatElemNeeded
@@ -1921,8 +1921,8 @@ contains
 
 !Local variables:
     integer        i,j
-    real(dprec)    Evalue, EVs(1)
-    complex(dprec) Z(1)
+    real(wp)    Evalue, EVs(1)
+    complex(wp) Z(1)
     integer        NumOfEigvalsFound
     integer        IFAIL
 
@@ -1944,7 +1944,7 @@ contains
         do j=1,i-1
           Glob_S(j,i)=conjg(Glob_S(i,j))
         enddo
-        Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+        Glob_S(i,i)=cmplx(ONE,ZERO,wp)
       enddo
       if (Glob_ProcID==0) then
         call ZHEGVX(1,'N','I','U',Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,  &
@@ -1959,7 +1959,7 @@ contains
       if (Glob_OverlapPenaltyAllowed) call ComputeOverlapPenalty(Glob_MaxOverlapPenalty, &
                                                                  Glob_OverlapPenaltyThreshold2,Glob_TotalOverlapPenalty)
       call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-      call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       if (Glob_OverlapPenaltyAllowed) then
         EnergyGA=Evalue+Glob_TotalOverlapPenalty
       else
@@ -1976,7 +1976,7 @@ contains
 !The only difference is that EnergyGAM also computes the
 !linear coefficients (stored in Glob_c).
 
-    real(dprec)    EnergyGAM
+    real(wp)    EnergyGAM
 !Arguments:
     integer        Nmin,Nmax
     logical        AreMatElemNeeded
@@ -1984,7 +1984,7 @@ contains
 
 !Local variables:
     integer        i,j
-    real(dprec)    Evalue, EVs(1)
+    real(wp)    Evalue, EVs(1)
     integer        NumOfEigvalsFound
     integer        IFAIL
 
@@ -2007,7 +2007,7 @@ contains
         do j=1,i-1
           Glob_S(j,i)=conjg(Glob_S(i,j))
         enddo
-        Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+        Glob_S(i,i)=cmplx(ONE,ZERO,wp)
       enddo
       if (Glob_ProcID==0) then
         call ZHEGVX(1,'V','I','U',Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,  &
@@ -2022,8 +2022,8 @@ contains
       if (Glob_OverlapPenaltyAllowed) call ComputeOverlapPenalty(Glob_MaxOverlapPenalty, &
                                                                  Glob_OverlapPenaltyThreshold2,Glob_TotalOverlapPenalty)
       call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-      call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-      call MPI_BCAST(Glob_c,2*Nmax,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(Glob_c,2*Nmax,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       if (Glob_OverlapPenaltyAllowed) then
         EnergyGAM=Evalue+Glob_TotalOverlapPenalty
       else
@@ -2060,8 +2060,8 @@ contains
 !where i=Glob_nfru+1, j=Glob_nfa
 
 !Arguments:
-    real(dprec)    Evalue
-    real(dprec)    Gradient(Glob_npt*Glob_nfo)
+    real(wp)    Evalue
+    real(wp)    Gradient(Glob_npt*Glob_nfo)
     logical        AreMatElemNeeded
     integer        ErrorCode
 
@@ -2070,9 +2070,9 @@ contains
     integer        i,j,k,l,m,nbands,leftover
     logical        oddband
     integer        N,NumOfEigvalsFound,IFAIL(1)
-    real(dprec)    EVs(1)
-    complex(dprec) W(Glob_npt_MaxAllowed),t
-    real(dprec)    pen_coeff
+    real(wp)    EVs(1)
+    complex(wp) W(Glob_npt_MaxAllowed),t
+    real(wp)    pen_coeff
 
     nfo=Glob_nfo
     nfa=Glob_nfa
@@ -2099,7 +2099,7 @@ contains
         do j=1,i-1
           Glob_S(j,i)=conjg(Glob_S(i,j))
         enddo
-        Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+        Glob_S(i,i)=cmplx(ONE,ZERO,wp)
       enddo
 
       if (Glob_ProcID==0) then
@@ -2114,8 +2114,8 @@ contains
         Evalue=EVs(1)
       endif
       call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-      call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-      call MPI_BCAST(Glob_c,2*nfa,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(Glob_c,2*nfa,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
 
 !Computing gradient
@@ -2129,7 +2129,7 @@ contains
       enddo
       t=Glob_c(k+nfru)
       do m=1,npt
-        Glob_WkGR((k-1)*npt+m)=2*real(conjg(t)*W(m),dprec)
+        Glob_WkGR((k-1)*npt+m)=2*real(conjg(t)*W(m),wp)
       enddo
       do m=1+Glob_ProcID,npt,Glob_NumOfProcs
         Glob_WkGR((k-1)*npt+m)=Glob_WkGR((k-1)*npt+m)-t*conjg(t)*(Glob_D(m,k,k+nfru) &
@@ -2142,7 +2142,7 @@ contains
                                                Glob_TotalOverlapPenalty,Glob_WkGR)
       Evalue=Evalue+Glob_TotalOverlapPenalty
     endif
-    call MPI_ALLREDUCE(Glob_WkGR,Gradient,nfo*npt,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_ALLREDUCE(Glob_WkGR,Gradient,nfo*npt,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     Glob_EnergyGBCounter=Glob_EnergyGBCounter+1
 
@@ -2166,14 +2166,14 @@ contains
 !case of nonzero ErrorCode please see the description of GSEPIIS
 !as ErrorCode is simply passed from that routine to EnergyIA
 
-    real(dprec)    EnergyIA
+    real(wp)    EnergyIA
 !Arguments:
     integer        Nmin,Nmax
     logical        AreMatElemNeeded
     integer        ErrorCode
 
 !Local variables:
-    real(dprec)    Evalue
+    real(wp)    Evalue
     integer        NumOfIterations
 
     if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
@@ -2194,7 +2194,7 @@ contains
       if (Glob_OverlapPenaltyAllowed) call ComputeOverlapPenalty(Glob_MaxOverlapPenalty, &
                                                                  Glob_OverlapPenaltyThreshold2,Glob_TotalOverlapPenalty)
       call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-      call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       if (Glob_OverlapPenaltyAllowed) then
         EnergyIA=Evalue+Glob_TotalOverlapPenalty
       else
@@ -2214,14 +2214,14 @@ contains
 !a properly normalized eigenvector, which gives correct
 !linear coefficients (stored in Glob_c).
 
-    real(dprec)    EnergyIAM
+    real(wp)    EnergyIAM
 !Arguments:
     integer        Nmin,Nmax
     logical        AreMatElemNeeded
     integer        ErrorCode
 
 !Local variables:
-    real(dprec)    Evalue
+    real(wp)    Evalue
     integer        NumOfIterations
 
     if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
@@ -2243,7 +2243,7 @@ contains
       if (Glob_OverlapPenaltyAllowed) call ComputeOverlapPenalty(Glob_MaxOverlapPenalty, &
                                                                  Glob_OverlapPenaltyThreshold2,Glob_TotalOverlapPenalty)
       call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-      call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       if (Glob_OverlapPenaltyAllowed) then
         EnergyIAM=Evalue+Glob_TotalOverlapPenalty
       else
@@ -2282,8 +2282,8 @@ contains
 !where i=Glob_nfru+1, j=Glob_nfa
 
 !Arguments:
-    real(dprec)    Evalue
-    real(dprec)    Gradient(Glob_npt*Glob_nfo)
+    real(wp)    Evalue
+    real(wp)    Gradient(Glob_npt*Glob_nfo)
     logical        AreMatElemNeeded
     integer        ErrorCode
 
@@ -2292,8 +2292,8 @@ contains
     integer        i,j,k,l,m,nbands,leftover
     logical        oddband
     integer        NumOfIterations
-    complex(dprec)    W(Glob_npt_MaxAllowed),t
-    real(dprec)    pen_coeff
+    complex(wp)    W(Glob_npt_MaxAllowed),t
+    real(wp)    pen_coeff
 
     nfo=Glob_nfo
     nfa=Glob_nfa
@@ -2319,7 +2319,7 @@ contains
       if (Glob_LastEigvalTol>Glob_WorstEigvalTol) Glob_WorstEigvalTol=Glob_LastEigvalTol
       if (Glob_LastEigvalTol>Glob_BestEigvalTol) Glob_BestEigvalTol=Glob_LastEigvalTol
       call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-      call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
 
 !Computing gradient
@@ -2333,7 +2333,7 @@ contains
       enddo
       t=Glob_c(k+nfru)
       do m=1,npt
-        Glob_WkGR((k-1)*npt+m)=2*real(conjg(t)*W(m),dprec)
+        Glob_WkGR((k-1)*npt+m)=2*real(conjg(t)*W(m),wp)
       enddo
       do m=1+Glob_ProcID,npt,Glob_NumOfProcs
         Glob_WkGR((k-1)*npt+m)=Glob_WkGR((k-1)*npt+m)-t*conjg(t)*(Glob_D(m,k,k+nfru) &
@@ -2346,7 +2346,7 @@ contains
                                                Glob_TotalOverlapPenalty,Glob_WkGR)
       Evalue=Evalue+Glob_TotalOverlapPenalty
     endif
-    call MPI_ALLREDUCE(Glob_WkGR,Gradient,nfo*npt,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_ALLREDUCE(Glob_WkGR,Gradient,nfo*npt,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     Glob_InvItTempCounter1=Glob_InvItTempCounter1+1
     Glob_InvItTempCounter2=Glob_InvItTempCounter2+NumOfIterations
@@ -2405,8 +2405,8 @@ contains
 !If swap file is OK then send the data to all processes
     if (IsSwapFileOK) then
       if (Glob_ProcID==0) write(*,'(1x,a35)',advance='no') 'Sending H and S to all processes...'
-      call MPI_BCAST(Glob_H,2*Glob_HSLeadDim*Glob_HSLeadDim,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-      call MPI_BCAST(Glob_diagS,Glob_CurrBasisSize,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(Glob_H,2*Glob_HSLeadDim*Glob_HSLeadDim,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(Glob_diagS,Glob_CurrBasisSize,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       !Remember that the lower part (including the diagonal)
       !contains elements of H, while the upper part contains S
 
@@ -2416,7 +2416,7 @@ contains
           do j=1,i-1
             Glob_S(i,j)=Glob_H(j,i)
           enddo
-          Glob_diagH(i)=real(Glob_H(i,i),dprec)
+          Glob_diagH(i)=real(Glob_H(i,i),wp)
         enddo
       endif
       !Restoring proper storage of data for Glob_GSEPSolutionMethod='I'
@@ -2521,7 +2521,7 @@ contains
 !IsHessFileOK is .true. on exit.
 
 !Arguments:
-    real(dprec) V(*),D(*)
+    real(wp) V(*),D(*)
     integer     IVLMAT,nvar
     character(Glob_FileNameLength) FileName
     logical     IsHessFileOK
@@ -2573,7 +2573,7 @@ contains
 !IsSuccess is .true. on exit.
 
 !Arguments:
-    real(dprec) V(*),D(*)
+    real(wp) V(*),D(*)
     integer     IVLMAT,nvar
     character(Glob_FileNameLength) FileName
     logical     IsSuccess
@@ -2617,7 +2617,7 @@ contains
 !Arguments:
     integer      fb,fe
     integer      FuncNumTemp(*)
-    real(dprec)      NonlinParamTemp(Glob_npt,*)
+    real(wp)      NonlinParamTemp(Glob_npt,*)
 !Local variables:
     integer  i,fbn,nfco
 
@@ -2652,7 +2652,7 @@ contains
 !Arguments:
     integer      fb1,fe1,fe2
     integer      FuncNumTemp(*)
-    real(dprec)      NonlinParamTemp(Glob_npt,*)
+    real(wp)      NonlinParamTemp(Glob_npt,*)
 !Local variables:
     integer  i,fbn,k
 
@@ -2687,8 +2687,8 @@ contains
 
 !Arguments:
     integer       fb,fe
-    real(dprec)       TempR(*)
-    complex(dprec)    TempC(*)
+    real(wp)       TempR(*)
+    complex(wp)    TempC(*)
 !Local variables:
     integer  i,j,fbn,nfco,fep,k,q,p,r,s
 
@@ -2799,8 +2799,8 @@ contains
 !triangles (excluding the diagonal) are used as workspace.
 !Arguments:
     integer       fb1,fe1,fe2
-    real(dprec)       TempR(*)
-    complex(dprec)    TempC(*)
+    real(wp)       TempR(*)
+    complex(wp)    TempC(*)
 !Local variables:
     integer  i,j,fn,t,fe1p,k,q,p,r,s,fb2
 
@@ -2921,7 +2921,7 @@ contains
 !Arguments:
     integer  fb,fe
 !Local variables:
-    real(dprec) temp(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) temp(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
     integer i,j,f,t,fbm,fep
 
     f=(fe-fb+1)/2 !integer division!
@@ -2952,8 +2952,8 @@ contains
     integer  fb,fe
 !Local variables:
     integer i,j,f,fbm,fep,ff
-    real(dprec)     r
-    complex(dprec)  c
+    real(wp)     r
+    complex(wp)  c
 
     f=(fe-fb+1)/2 !integer division!
     fbm=fb-1
@@ -3061,8 +3061,8 @@ contains
     logical      blacklisted(*)
     integer      blsize
     integer      FuncNumTemp(*)
-    real(dprec)  NonlinParamTemp(Glob_npt,*)
-    real(dprec)  TempR(*)
+    real(wp)  NonlinParamTemp(Glob_npt,*)
+    real(wp)  TempR(*)
     integer      fbnew
     logical      Permute_ME
 !Local variables:
@@ -3181,9 +3181,9 @@ contains
 !Arguments:
     integer       fb,fe
     integer       FuncNumTemp(*)
-    real(dprec)       NonlinParamTemp(Glob_npt,*)
-    real(dprec)       TempR(*)
-    complex(dprec)    TempC(*)
+    real(wp)       NonlinParamTemp(Glob_npt,*)
+    real(wp)       TempR(*)
+    complex(wp)    TempC(*)
 !Local variables:
     integer  i,j,k,mf,fep,nfco,fbm,cbs,fi,fj
 
@@ -3291,12 +3291,12 @@ contains
 !ranging from Nmin to Nmax.
 !Arguments:
     integer         Nmin,Nmax
-    complex(dprec)  MaxAbsOverlap,MinAbsOverlap
-    real(dprec)     AverageAbsOverlap
+    complex(wp)  MaxAbsOverlap,MinAbsOverlap
+    real(wp)     AverageAbsOverlap
 !Local variables
     integer      i,j,k,nbands,leftover
     logical      oddband
-    real(dprec)  absMaxAbsOverlap,absMinAbsOverlap,absSji,t
+    real(wp)  absMaxAbsOverlap,absMinAbsOverlap,absSji,t
 
     MaxAbsOverlap=ZERO
     absMaxAbsOverlap=ZERO
@@ -3390,10 +3390,10 @@ contains
     integer       FinalSize,NumOfFuncToKeep
 !Local variables:
     integer                                         :: i,OpenFileErr
-    real(dprec),allocatable,dimension(:)            :: WorkBuffReal
+    real(wp),allocatable,dimension(:)            :: WorkBuffReal
     integer,allocatable,dimension(:)                :: WorkBuffInt
     type(Glob_HistoryStep),allocatable,dimension(:) :: TempHistory
-    real(dprec),allocatable,dimension(:,:)          :: TempParam
+    real(wp),allocatable,dimension(:,:)          :: TempParam
     integer,allocatable,dimension(:)                :: TempFunc
 
     if (NumOfFuncToKeep>FinalSize) then
@@ -3451,7 +3451,7 @@ contains
       do i=1,NumOfFuncToKeep
         WorkBuffReal(i)=Glob_History(i)%Energy
       enddo
-      call MPI_BCAST(WorkBuffReal,NumOfFuncToKeep,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(WorkBuffReal,NumOfFuncToKeep,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       do i=1,NumOfFuncToKeep
         Glob_History(i)%Energy=WorkBuffReal(i)
       enddo
@@ -3480,7 +3480,7 @@ contains
       deallocate(WorkBuffInt)
       call MPI_BCAST(Glob_FuncNum,NumOfFuncToKeep,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       call MPI_BCAST(Glob_NonlinParam,Glob_npt*NumOfFuncToKeep, &
-                     MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+                     MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       if (Glob_ProcID==0) then
         write(*,*) 'done'
       endif
@@ -3551,7 +3551,7 @@ contains
 
 !Arguments:
     integer,intent(in)     :: Kstart,Kstop,Kstep,NTrials,OptimizationType,MaxEnergyEval
-    real(dprec),intent(in) :: OverlapThreshold,LinCoeffThreshold
+    real(wp),intent(in) :: OverlapThreshold,LinCoeffThreshold
 !Local variables:
     integer      i,j,K,AttemptToGetGoodFunc,ii
     integer      np,npt,nfo,nfa,nfru,nfrup1,nvmax,nv
@@ -3559,27 +3559,27 @@ contains
     logical      IsSwapFileOK,IsEnergyImproved,ExitNeeded
     logical      IsOverlapBad,IsAnyLinCoeffBad
     integer      wbfu_t,wmu_t,wbfu,wmu,rgm1_counter,rgm2_counter,BlockSizeForZHEGVX
-    real(dprec)  ms1,ms2
-    real(dprec)  Evalue,E_init,E_best
-    real(dprec)  t
-    real(dprec),allocatable,dimension(:,:)   :: ParSet,ParSetBest
-    real(dprec),allocatable,dimension(:)     :: x,x_best,grad
+    real(wp)  ms1,ms2
+    real(wp)  Evalue,E_init,E_best
+    real(wp)  t
+    real(wp),allocatable,dimension(:,:)   :: ParSet,ParSetBest
+    real(wp),allocatable,dimension(:)     :: x,x_best,grad
 !====================================================
 !These variables are used when a finite difference gradient is computed
-!real(dprec),allocatable,dimension(:)     ::    fx,fgrad
-!real(dprec)                                    deltax,Evalue1
+!real(wp),allocatable,dimension(:)     ::    fx,fgrad
+!real(wp)                                    deltax,Evalue1
 !====================================================
 !Arrays used by DRMNG
-    real(dprec),allocatable,dimension(:)     :: D,V,V_init
+    real(wp),allocatable,dimension(:)     :: D,V,V_init
     integer,parameter    :: LIV=60
     integer                 IV(LIV), IV_init(LIV)
     integer                 LV
     integer                 ALG
 !Allocatable work space
-    real(dprec),allocatable,dimension(:)            :: WorkBuffReal
+    real(wp),allocatable,dimension(:)            :: WorkBuffReal
     integer,allocatable,dimension(:)                :: WorkBuffInt
     type(Glob_HistoryStep),allocatable,dimension(:) :: TempHistory
-    real(dprec),allocatable,dimension(:,:)          :: TempParam
+    real(wp),allocatable,dimension(:,:)          :: TempParam
     integer,allocatable,dimension(:)                :: TempFunc
 
     if (Glob_ProcID==0) then
@@ -3662,7 +3662,7 @@ contains
     IV_init(18)=1000000
     IV_init(19)=0 !set summary print format
     IV_init(20)=0; IV_init(22)=0; IV_init(23)=-1; IV_init(24)=0
-    V_init(31)=0.0_dprec
+    V_init(31)=0.0_wp
     V_init(32)=2*epsilon(V_init(32))
     V_init(37)=2*epsilon(V_init(37))
 !V(35) GIVES THE MAXIMUM 2-NORM ALLOWED FOR D TIMES THE
@@ -3739,7 +3739,7 @@ contains
         wmu=0
         do i=1,NTrials
           if (Glob_ProcID==0) call GenerateTrialParam(nfo,ParSet,wbfu_t,wmu_t)
-          call MPI_BCAST(ParSet,npt*nfo,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+          call MPI_BCAST(ParSet,npt*nfo,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
           Glob_NonlinParam(1:npt,nfrup1:K)=ParSet(1:npt,1:nfo)
           Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
           if (ErrCode==0) then
@@ -3827,7 +3827,7 @@ contains
             call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
             select case (IV(1))
             case (1) !Only energy is needed
-              call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+              call MPI_BCAST(x,nv,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
               do i=1,nfo
                 Glob_NonlinParam(1:npt,nfru+i)=x((i-1)*npt+1:i*npt)
               enddo
@@ -3844,7 +3844,7 @@ contains
                 endif
               endif
             case (2) !Only gradient is needed
-              call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+              call MPI_BCAST(x,nv,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
               do i=1,nfo
                 Glob_NonlinParam(1:npt,nfru+i)=x((i-1)*npt+1:i*npt)
               enddo
@@ -4113,7 +4113,7 @@ contains
 
 !Arguments:
     integer,intent(in)     :: Kstart,Kstop,Kstep,NTrials,OptimizationType,MaxEnergyEval
-    real(dprec),intent(in) :: OverlapThreshold,LinCoeffThreshold
+    real(wp),intent(in) :: OverlapThreshold,LinCoeffThreshold
 !Local variables:
     integer      i,j,K,AttemptToGetGoodFunc,ii
     integer      np,npt,nfo,nfa,nfru,nfrup1,nvmax,nv
@@ -4121,27 +4121,27 @@ contains
     logical      IsSwapFileOK,IsEnergyImproved,ExitNeeded
     logical      IsOverlapBad,IsAnyLinCoeffBad
     integer      wbfu_t,wmu_t,wbfu,wmu,rgm1_counter,rgm2_counter
-    real(dprec)  ms1,ms2
-    real(dprec)  Evalue,E_init,E_best
-    real(dprec)  t
-    real(dprec),allocatable,dimension(:,:)   :: ParSet,ParSetBest
-    real(dprec),allocatable,dimension(:)     :: x,x_best,grad
+    real(wp)  ms1,ms2
+    real(wp)  Evalue,E_init,E_best
+    real(wp)  t
+    real(wp),allocatable,dimension(:,:)   :: ParSet,ParSetBest
+    real(wp),allocatable,dimension(:)     :: x,x_best,grad
 !Arrays used by DRMNG
-    real(dprec),allocatable,dimension(:)     :: D,V,V_init
+    real(wp),allocatable,dimension(:)     :: D,V,V_init
     integer,parameter    :: LIV=60
     integer                 IV(LIV), IV_init(LIV)
     integer                 LV
     integer                 ALG
 !Allocatable work space
-    real(dprec),allocatable,dimension(:)            :: WorkBuffReal
+    real(wp),allocatable,dimension(:)            :: WorkBuffReal
     integer,allocatable,dimension(:)                :: WorkBuffInt
     type(Glob_HistoryStep),allocatable,dimension(:) :: TempHistory
-    real(dprec),allocatable,dimension(:,:)          :: TempParam
+    real(wp),allocatable,dimension(:,:)          :: TempParam
     integer,allocatable,dimension(:)                :: TempFunc
 !====================================================
 !These variables are used when a finite difference gradient is computed
-!real(dprec),allocatable,dimension(:)     ::    fx,fgrad
-!real(dprec)                                    deltax,Evalue1
+!real(wp),allocatable,dimension(:)     ::    fx,fgrad
+!real(wp)                                    deltax,Evalue1
 !====================================================
 
     if (Glob_ProcID==0) then
@@ -4223,7 +4223,7 @@ contains
     IV_init(18)=1000000
     IV_init(19)=0 !set summary print format
     IV_init(20)=0; IV_init(22)=0; IV_init(23)=-1; IV_init(24)=0
-    V_init(31)=0.0_dprec
+    V_init(31)=0.0_wp
     V_init(32)=2*epsilon(V_init(32))
     V_init(37)=2*epsilon(V_init(37))
 !V(35) GIVES THE MAXIMUM 2-NORM ALLOWED FOR D TIMES THE
@@ -4303,7 +4303,7 @@ contains
         wmu=0
         do i=1,NTrials
           if (Glob_ProcID==0) call GenerateTrialParam(nfo,ParSet,wbfu_t,wmu_t)
-          call MPI_BCAST(ParSet,npt*nfo,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+          call MPI_BCAST(ParSet,npt*nfo,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
           Glob_NonlinParam(1:npt,nfrup1:K)=ParSet(1:npt,1:nfo)
           Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
           if (ErrCode==0) then
@@ -4391,7 +4391,7 @@ contains
             call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
             select case (IV(1))
             case (1) !Only energy is needed
-              call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+              call MPI_BCAST(x,nv,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
               do i=1,nfo
                 Glob_NonlinParam(1:npt,nfru+i)=x((i-1)*npt+1:i*npt)
               enddo
@@ -4408,7 +4408,7 @@ contains
                 endif
               endif
             case (2) !Only gradient is needed
-              call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+              call MPI_BCAST(x,nv,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
               do i=1,nfo
                 Glob_NonlinParam(1:npt,nfru+i)=x((i-1)*npt+1:i*npt)
               enddo
@@ -4670,7 +4670,7 @@ contains
 !Arguments:
     integer,intent(in)     :: K, FuncBegin, FuncEnd, NumOfFuncToOpt, NumOfFuncToShift
     integer,intent(in)     :: NumCycles, MaxEnergyEval
-    real(dprec),intent(in) :: OverlapThreshold,LinCoeffThreshold
+    real(wp),intent(in) :: OverlapThreshold,LinCoeffThreshold
     integer,intent(in)     :: SavingFreq
 !Local variables:
     integer      i,j,m,ip,AttemptToGetGoodOverlap,ii,totsteps
@@ -4679,17 +4679,17 @@ contains
     integer      q,nr,OptIterCounter
     integer      ErrCode,NumOfFailures,NumOfEnergyEval,NumOfGradEval
     integer      BlockSizeForZHEGVX
-    real(dprec)  Evalue,E_best
+    real(wp)  Evalue,E_best
     logical      IsSwapFileOK,ExitNeeded,LastIter
     logical      IsOverlapBad,IsAnyLinCoeffBad
-    real(dprec)  t
-    real(dprec),allocatable,dimension(:,:) :: NonlinParamTemp
+    real(wp)  t
+    real(wp),allocatable,dimension(:,:) :: NonlinParamTemp
     integer,allocatable,dimension(:)       :: FuncNumTemp
-    real(dprec),allocatable,dimension(:)   :: TempR
-    complex(dprec),allocatable,dimension(:):: TempC
-    real(dprec),allocatable,dimension(:)   :: x,grad,x_init,x_best
+    real(wp),allocatable,dimension(:)   :: TempR
+    complex(wp),allocatable,dimension(:):: TempC
+    real(wp),allocatable,dimension(:)   :: x,grad,x_init,x_best
 !Arrays used by DRMNG
-    real(dprec),allocatable,dimension(:)     :: D,V,V_init
+    real(wp),allocatable,dimension(:)     :: D,V,V_init
     integer,parameter    :: LIV=60
     integer                 IV(LIV),IV_init(LIV)
     integer                 LV
@@ -4789,7 +4789,7 @@ contains
     IV_init(18)=1000000
     IV_init(19)=0 !set summary print format
     IV_init(20)=0; IV_init(22)=0; IV_init(23)=-1; IV_init(24)=0
-    V_init(31)=0.0_dprec
+    V_init(31)=0.0_wp
     V_init(32)=2*epsilon(V_init(32))
     V_init(37)=2*epsilon(V_init(37))
 !V(35) GIVES THE MAXIMUM 2-NORM ALLOWED FOR D TIMES THE
@@ -4946,7 +4946,7 @@ contains
           call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
           select case (IV(1))
           case (1) !Only energy is needed
-            call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+            call MPI_BCAST(x,nv,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
             do i=1,nfo
               Glob_NonlinParam(1:npt,nfru+i)=x((i-1)*npt+1:i*npt)
             enddo
@@ -4963,7 +4963,7 @@ contains
               endif
             endif
           case (2) !Only gradient is needed
-            call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+            call MPI_BCAST(x,nv,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
             do i=1,nfo
               Glob_NonlinParam(1:npt,nfru+i)=x((i-1)*npt+1:i*npt)
             enddo
@@ -5202,7 +5202,7 @@ contains
 !Arguments:
     integer,intent(in)     :: K, FuncBegin, FuncEnd, NumOfFuncToOpt, NumOfFuncToShift
     integer,intent(in)     :: NumCycles, MaxEnergyEval
-    real(dprec),intent(in) :: OverlapThreshold,LinCoeffThreshold
+    real(wp),intent(in) :: OverlapThreshold,LinCoeffThreshold
     integer,intent(in)     :: SavingFreq
 !Local variables:
     integer      i,j,m,ip,AttemptToGetGoodOverlap,ii,totsteps
@@ -5210,17 +5210,17 @@ contains
     integer      CurrCycle,CurrFunc,CurrFuncBegin
     integer      q,nr,OptIterCounter
     integer      ErrCode,NumOfFailures,NumOfEnergyEval,NumOfGradEval
-    real(dprec)  Evalue,E_best
+    real(wp)  Evalue,E_best
     logical      IsSwapFileOK,ExitNeeded,LastIter
     logical      IsOverlapBad,IsAnyLinCoeffBad
-    real(dprec)  t
-    real(dprec),allocatable,dimension(:,:) :: NonlinParamTemp
+    real(wp)  t
+    real(wp),allocatable,dimension(:,:) :: NonlinParamTemp
     integer,allocatable,dimension(:)       :: FuncNumTemp
-    real(dprec),allocatable,dimension(:)   :: TempR
-    complex(dprec),allocatable,dimension(:):: TempC
-    real(dprec),allocatable,dimension(:)   :: x,grad,x_init,x_best
+    real(wp),allocatable,dimension(:)   :: TempR
+    complex(wp),allocatable,dimension(:):: TempC
+    real(wp),allocatable,dimension(:)   :: x,grad,x_init,x_best
 !Arrays used by DRMNG
-    real(dprec),allocatable,dimension(:)     :: D,V,V_init
+    real(wp),allocatable,dimension(:)     :: D,V,V_init
     integer,parameter    :: LIV=60
     integer                 IV(LIV),IV_init(LIV)
     integer                 LV
@@ -5319,7 +5319,7 @@ contains
     IV_init(18)=1000000
     IV_init(19)=0 !set summary print format
     IV_init(20)=0; IV_init(22)=0; IV_init(23)=-1; IV_init(24)=0
-    V_init(31)=0.0_dprec
+    V_init(31)=0.0_wp
     V_init(32)=2*epsilon(V_init(32))
     V_init(37)=2*epsilon(V_init(37))
 !V(35) GIVES THE MAXIMUM 2-NORM ALLOWED FOR D TIMES THE
@@ -5486,7 +5486,7 @@ contains
           call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
           select case (IV(1))
           case (1) !Only energy is needed
-            call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+            call MPI_BCAST(x,nv,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
             do i=1,nfo
               Glob_NonlinParam(1:npt,nfru+i)=x((i-1)*npt+1:i*npt)
             enddo
@@ -5503,7 +5503,7 @@ contains
               endif
             endif
           case (2) !Only gradient is needed
-            call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+            call MPI_BCAST(x,nv,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
             do i=1,nfo
               Glob_NonlinParam(1:npt,nfru+i)=x((i-1)*npt+1:i*npt)
             enddo
@@ -5751,8 +5751,8 @@ contains
 
 !Arguments:
     integer,intent(in)     :: InitFunc,FinalFunc,MaxEnergyEval
-    real(dprec),intent(in) :: OverlapThreshold,MaxOverlapPenalty
-    real(dprec),intent(in) :: DataSaveMinTimeInterv,HessianSaveMinTimeInterv
+    real(wp),intent(in) :: OverlapThreshold,MaxOverlapPenalty
+    real(wp),intent(in) :: DataSaveMinTimeInterv,HessianSaveMinTimeInterv
     character(Glob_FileNameLength),intent(in) :: HessFileName
 !Local variables:
     integer      i,j
@@ -5762,19 +5762,19 @@ contains
     integer      BlockSizeForZHEGVX
     logical      IsSwapFileOK,ExitNeeded
     logical      SaveHessian,IsHessFileOK,IsHessSaveSuccess
-    real(dprec)  Evalue,CurrentEnergy
-    real(dprec)  TimeOfLastSave, TimeOfLastHessSave
-    real(dprec)  t
+    real(wp)  Evalue,CurrentEnergy
+    real(wp)  TimeOfLastSave, TimeOfLastHessSave
+    real(wp)  t
     integer      tas,InitFuncNew
-    complex(dprec)  MaxAbsOverlap,MinAbsOverlap
-    real(dprec)     AverageAbsOverlap
-    real(dprec),allocatable,dimension(:,:)   :: NonlinParamTemp
+    complex(wp)  MaxAbsOverlap,MinAbsOverlap
+    real(wp)     AverageAbsOverlap
+    real(wp),allocatable,dimension(:,:)   :: NonlinParamTemp
     integer,allocatable,dimension(:)         :: FuncNumTemp
-    real(dprec),allocatable,dimension(:)     :: TempR
-    complex(dprec),allocatable,dimension(:)  :: TempC
-    real(dprec),allocatable,dimension(:)     :: x,grad
+    real(wp),allocatable,dimension(:)     :: TempR
+    complex(wp),allocatable,dimension(:)  :: TempC
+    real(wp),allocatable,dimension(:)     :: x,grad
 !Arrays used by DRMNG
-    real(dprec),allocatable,dimension(:)     :: D,V
+    real(wp),allocatable,dimension(:)     :: D,V
     integer,parameter    :: LIV=60
     integer                 IV(LIV)
     integer                 LV
@@ -5782,10 +5782,10 @@ contains
     integer                 IVLMAT
 !!====================================================
 !!These variables are used when a finite difference gradient is computed
-!real(dprec)                                    deltax,Evalue1
+!real(wp)                                    deltax,Evalue1
 !integer                                        m
-!complex(dprec)                                 Skl_plus, Skl_minus
-!real(dprec)                                    gar1,gai1,gar2,gai2,gnr,gni
+!complex(wp)                                 Skl_plus, Skl_minus
+!real(wp)                                    gar1,gai1,gar2,gai2,gnr,gni
 !!====================================================
 
     if (OverlapThreshold>=ONE) then
@@ -5941,7 +5941,7 @@ contains
       IV(17)=1000000; IV(18)=1000000
       IV(19)=-1 !set summary print format
       IV(20)=0; IV(22)=0; IV(23)=-1; IV(24)=0
-      V(31)=0.0_dprec
+      V(31)=0.0_wp
       V(32)=2*epsilon(V(32))
       V(37)=2*epsilon(V(37))
       !V(35) GIVES THE MAXIMUM 2-NORM ALLOWED FOR D TIMES THE
@@ -5990,7 +5990,7 @@ contains
       call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       select case (IV(1))
       case (1) !Only energy is needed
-        call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+        call MPI_BCAST(x,nv,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
         do i=1,nfo
           Glob_NonlinParam(1:npt,InitFuncNew+i-1)=x((i-1)*npt+1:i*npt)
         enddo
@@ -6052,7 +6052,7 @@ contains
           endif
         endif
       case (2) !Only gradient is needed
-        call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+        call MPI_BCAST(x,nv,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
         do i=1,nfo
           Glob_NonlinParam(1:npt,InitFuncNew+i-1)=x((i-1)*npt+1:i*npt)
         enddo
@@ -6304,8 +6304,8 @@ contains
 
 !Arguments:
     integer,intent(in)     :: InitFunc,FinalFunc,MaxEnergyEval
-    real(dprec),intent(in) :: OverlapThreshold,MaxOverlapPenalty
-    real(dprec),intent(in) :: DataSaveMinTimeInterv,HessianSaveMinTimeInterv
+    real(wp),intent(in) :: OverlapThreshold,MaxOverlapPenalty
+    real(wp),intent(in) :: DataSaveMinTimeInterv,HessianSaveMinTimeInterv
     character(Glob_FileNameLength),intent(in) :: HessFileName
 !Local variables:
     integer      i,j
@@ -6314,19 +6314,19 @@ contains
     integer      NumOfEnergyEvalDuringFullOpt_Init
     logical      IsSwapFileOK,ExitNeeded
     logical      SaveHessian,IsHessFileOK,IsHessSaveSuccess
-    real(dprec)  Evalue,CurrentEnergy
-    real(dprec)  TimeOfLastSave, TimeOfLastHessSave
-    real(dprec)  t
+    real(wp)  Evalue,CurrentEnergy
+    real(wp)  TimeOfLastSave, TimeOfLastHessSave
+    real(wp)  t
     integer      tas,InitFuncNew
-    complex(dprec)  MaxAbsOverlap,MinAbsOverlap
-    real(dprec)     AverageAbsOverlap
-    real(dprec),allocatable,dimension(:,:)   :: NonlinParamTemp
+    complex(wp)  MaxAbsOverlap,MinAbsOverlap
+    real(wp)     AverageAbsOverlap
+    real(wp),allocatable,dimension(:,:)   :: NonlinParamTemp
     integer,allocatable,dimension(:)         :: FuncNumTemp
-    real(dprec),allocatable,dimension(:)     :: TempR
-    complex(dprec),allocatable,dimension(:)  :: TempC
-    real(dprec),allocatable,dimension(:)     :: x,grad
+    real(wp),allocatable,dimension(:)     :: TempR
+    complex(wp),allocatable,dimension(:)  :: TempC
+    real(wp),allocatable,dimension(:)     :: x,grad
 !Arrays used by DRMNG
-    real(dprec),allocatable,dimension(:)     :: D,V
+    real(wp),allocatable,dimension(:)     :: D,V
     integer,parameter    :: LIV=60
     integer                 IV(LIV)
     integer                 LV
@@ -6486,7 +6486,7 @@ contains
       IV(17)=1000000; IV(18)=1000000
       IV(19)=-1 !set summary print format
       IV(20)=0; IV(22)=0; IV(23)=-1; IV(24)=0
-      V(31)=0.0_dprec
+      V(31)=0.0_wp
       V(32)=2*epsilon(V(32))
       V(37)=2*epsilon(V(37))
       !V(35) GIVES THE MAXIMUM 2-NORM ALLOWED FOR D TIMES THE
@@ -6535,7 +6535,7 @@ contains
       call MPI_BCAST(IV,LIV,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       select case (IV(1))
       case (1) !Only energy is needed
-        call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+        call MPI_BCAST(x,nv,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
         do i=1,nfo
           Glob_NonlinParam(1:npt,InitFuncNew+i-1)=x((i-1)*npt+1:i*npt)
         enddo
@@ -6597,7 +6597,7 @@ contains
           endif
         endif
       case (2) !Only gradient is needed
-        call MPI_BCAST(x,nv,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+        call MPI_BCAST(x,nv,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
         do i=1,nfo
           Glob_NonlinParam(1:npt,InitFuncNew+i-1)=x((i-1)*npt+1:i*npt)
         enddo
@@ -6760,7 +6760,7 @@ contains
 !                     of all functions
 
 !Arguments:
-    real(dprec),intent(in)   :: LinCoeffThreshold
+    real(wp),intent(in)   :: LinCoeffThreshold
     character(Glob_FileNameLength),intent(in) :: FileName
     integer,intent(in)       :: PrintInfoSpec
 
@@ -6771,10 +6771,10 @@ contains
     logical      IsSwapFileOK
     integer      BlockSizeForZHEGVX
     integer      NumOfEigvalsFound
-    real(dprec)  Evalue, EVs(1)
-    complex(dprec) Min_c,Max_c
-    real(dprec)  Aver_c
-    real(dprec),allocatable,dimension(:,:)   :: NonlinParamTemp
+    real(wp)  Evalue, EVs(1)
+    complex(wp) Min_c,Max_c
+    real(wp)  Aver_c
+    real(wp),allocatable,dimension(:,:)   :: NonlinParamTemp
     character(Glob_FileNameLength)          :: ch_temp
 
     if (Glob_ProcID==0) then
@@ -6833,7 +6833,7 @@ contains
       do j=1,i-1
         Glob_S(j,i)=conjg(Glob_S(i,j))
       enddo
-      Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+      Glob_S(i,i)=cmplx(ONE,ZERO,wp)
     enddo
 
     if (Glob_ProcID==0) then
@@ -6854,8 +6854,8 @@ contains
       stop
     endif
     Evalue=EVs(1)
-    call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_c,2*cbs,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_c,2*cbs,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
       write(*,*) ' done'
@@ -6937,7 +6937,7 @@ contains
       do j=1,i-1
         Glob_S(j,i)=conjg(Glob_S(i,j))
       enddo
-      Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+      Glob_S(i,i)=cmplx(ONE,ZERO,wp)
     enddo
 
     if (Glob_ProcID==0) then
@@ -6958,7 +6958,7 @@ contains
       stop
     endif
     Evalue=EVs(1)
-    call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
       write(*,*) 'Basis size after elimination ',cbs
@@ -6974,9 +6974,9 @@ contains
     Glob_History(cbs)%Energy=Evalue
 
     Glob_CurrEnergy=Evalue
-    Glob_LastEigvalTol=1.0E+35_dprec
-    Glob_BestEigvalTol=1.0E+35_dprec
-    Glob_WorstEigvalTol=1.0E-35_dprec
+    Glob_LastEigvalTol=1.0E+35_wp
+    Glob_BestEigvalTol=1.0E+35_wp
+    Glob_WorstEigvalTol=1.0E-35_wp
 
     ch_temp=Glob_DataFileName
     Glob_DataFileName=FileName
@@ -7031,7 +7031,7 @@ contains
 !                   nonlinear parameters of linearly dependent functions.
 
 !Arguments:
-    real(dprec),intent(in)   :: LinDepThreshold
+    real(wp),intent(in)   :: LinDepThreshold
     character(Glob_FileNameLength),intent(in) :: FileName
     integer,intent(in)       :: PrintInfoSpec
 
@@ -7042,11 +7042,11 @@ contains
     logical        IsSwapFileOK
     integer        BlockSizeForZHEGVX
     integer        NumOfEigvalsFound
-    real(dprec)    Evalue, EVs(1)
-    complex(dprec) MaxOverlap,MinOverlap
-    real(dprec)    AverOverlap
-    complex(dprec) Min_c,Max_c
-    real(dprec)    Average_c
+    real(wp)    Evalue, EVs(1)
+    complex(wp) MaxOverlap,MinOverlap
+    real(wp)    AverOverlap
+    complex(wp) Min_c,Max_c
+    real(wp)    Average_c
     integer,allocatable,dimension(:)         :: MaskArray
     character(Glob_FileNameLength)          :: ch_temp
 
@@ -7106,7 +7106,7 @@ contains
       do j=1,i-1
         Glob_S(j,i)=conjg(Glob_S(i,j))
       enddo
-      Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+      Glob_S(i,i)=cmplx(ONE,ZERO,wp)
     enddo
 
     if (Glob_ProcID==0) write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
@@ -7129,8 +7129,8 @@ contains
       stop
     endif
     Evalue=EVs(1)
-    call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_c,2*cbs,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_c,2*cbs,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
       write(*,*) ' done'
@@ -7147,13 +7147,13 @@ contains
       do j=1,i-1
         Glob_S(j,i)=conjg(Glob_S(i,j))
       enddo
-      Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+      Glob_S(i,i)=cmplx(ONE,ZERO,wp)
     enddo
 
 !Check overlap
     MaskArray(1:cbs)=0
-    MaxOverlap=cmplx(ZERO,ZERO,dprec)
-    MinOverlap=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,dprec)
+    MaxOverlap=cmplx(ZERO,ZERO,wp)
+    MinOverlap=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,wp)
     AverOverlap=ZERO
     k=0
     do i=1,cbs
@@ -7186,8 +7186,8 @@ contains
     AverOverlap=AverOverlap/(cbs*(cbs-1)/2)
 
 !Check linear coefficients:
-    Min_c=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,dprec)
-    Max_c=cmplx(ZERO,ZERO,dprec)
+    Min_c=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,wp)
+    Max_c=cmplx(ZERO,ZERO,wp)
     Average_c=ZERO
     do i=1,cbs
       if (abs(Glob_c(i))>abs(Max_c)) Max_c=Glob_c(i)
@@ -7254,7 +7254,7 @@ contains
       do j=1,i-1
         Glob_S(j,i)=conjg(Glob_S(i,j))
       enddo
-      Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+      Glob_S(i,i)=cmplx(ONE,ZERO,wp)
     enddo
 
     if (Glob_ProcID==0) then
@@ -7275,12 +7275,12 @@ contains
       stop
     endif
     Evalue=EVs(1)
-    call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_c,2*cbs,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_c,2*cbs,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 !Check overlap
-    MaxOverlap=cmplx(ZERO,ZERO,dprec)
-    MinOverlap=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,dprec)
+    MaxOverlap=cmplx(ZERO,ZERO,wp)
+    MinOverlap=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,wp)
     AverOverlap=ZERO
     k=0
     do i=1,cbs
@@ -7293,8 +7293,8 @@ contains
     AverOverlap=AverOverlap/(cbs*(cbs-1)/2)
 
 !Check linear coefficients:
-    Min_c=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,dprec)
-    Max_c=cmplx(ZERO,ZERO,dprec)
+    Min_c=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,wp)
+    Max_c=cmplx(ZERO,ZERO,wp)
     Average_c=ZERO
     do i=1,cbs
       if (abs(Glob_c(i))>abs(Max_c)) Max_c=Glob_c(i)
@@ -7332,9 +7332,9 @@ contains
     Glob_History(cbs)%Energy=Evalue
 
     Glob_CurrEnergy=Evalue
-    Glob_LastEigvalTol=1.0E+35_dprec
-    Glob_BestEigvalTol=1.0E+35_dprec
-    Glob_WorstEigvalTol=1.0E-35_dprec
+    Glob_LastEigvalTol=1.0E+35_wp
+    Glob_BestEigvalTol=1.0E+35_wp
+    Glob_WorstEigvalTol=1.0E-35_wp
 
     ch_temp=Glob_DataFileName
     Glob_DataFileName=FileName
@@ -7379,8 +7379,8 @@ contains
 !interval [a_old(1-SeparationParam),a_old(1+SeparationParam)]).
 
 !Arguments:
-    real(dprec),intent(in)                    :: LinDepThreshold
-    real(dprec),intent(in)                    :: SeparationParam
+    real(wp),intent(in)                    :: LinDepThreshold
+    real(wp),intent(in)                    :: SeparationParam
     character(Glob_FileNameLength),intent(in) :: FileName
     integer,intent(in)                        :: PrintInfoSpec
 
@@ -7391,11 +7391,11 @@ contains
     logical        IsSwapFileOK
     integer        BlockSizeForZHEGVX
     integer        NumOfEigvalsFound
-    real(dprec)    Evalue, EVs(1), r
-    complex(dprec) MaxOverlap,MinOverlap
-    real(dprec)    AverOverlap
-    complex(dprec) Min_c,Max_c
-    real(dprec)    Average_c
+    real(wp)    Evalue, EVs(1), r
+    complex(wp) MaxOverlap,MinOverlap
+    real(wp)    AverOverlap
+    complex(wp) Min_c,Max_c
+    real(wp)    Average_c
     integer,allocatable,dimension(:)    :: MaskArray
     character(Glob_FileNameLength)      :: ch_temp
 
@@ -7456,7 +7456,7 @@ contains
       do j=1,i-1
         Glob_S(j,i)=conjg(Glob_S(i,j))
       enddo
-      Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+      Glob_S(i,i)=cmplx(ONE,ZERO,wp)
     enddo
 
     if (Glob_ProcID==0) write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
@@ -7479,8 +7479,8 @@ contains
       stop
     endif
     Evalue=EVs(1)
-    call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_c,2*cbs,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_c,2*cbs,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
       write(*,*) ' done'
@@ -7497,13 +7497,13 @@ contains
       do j=1,i-1
         Glob_S(j,i)=conjg(Glob_S(i,j))
       enddo
-      Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+      Glob_S(i,i)=cmplx(ONE,ZERO,wp)
     enddo
 
 !Check overlap
     MaskArray(1:cbs)=0
-    MaxOverlap=cmplx(ZERO,ZERO,dprec)
-    MinOverlap=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,dprec)
+    MaxOverlap=cmplx(ZERO,ZERO,wp)
+    MinOverlap=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,wp)
     AverOverlap=ZERO
     k=0
     do i=1,cbs
@@ -7537,8 +7537,8 @@ contains
     AverOverlap=AverOverlap/(cbs*(cbs-1)/2)
 
 !Check linear coefficients:
-    Min_c=cmplx(sqrt(huge(ONE)/10),sqrt(huge(ONE))/10,dprec)
-    Max_c=cmplx(ZERO,ZERO,dprec)
+    Min_c=cmplx(sqrt(huge(ONE)/10),sqrt(huge(ONE))/10,wp)
+    Max_c=cmplx(ZERO,ZERO,wp)
     Average_c=ZERO
     do i=1,cbs
       if (abs(Glob_c(i))>abs(Max_c)) Max_c=Glob_c(i)
@@ -7585,7 +7585,7 @@ contains
         enddo
       endif
     enddo
-    call MPI_BCAST(Glob_NonlinParam,cbs*npt,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_NonlinParam,cbs*npt,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) write(*,'(1x,a28)',advance='no') 'Computing matrix elements...'
     call ComputeMatElem(1,cbs)
@@ -7604,7 +7604,7 @@ contains
       do j=1,i-1
         Glob_S(j,i)=conjg(Glob_S(i,j))
       enddo
-      Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+      Glob_S(i,i)=cmplx(ONE,ZERO,wp)
     enddo
 
     if (Glob_ProcID==0) then
@@ -7625,12 +7625,12 @@ contains
       stop
     endif
     Evalue=EVs(1)
-    call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_c,2*cbs,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_c,2*cbs,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 !Check overlap
-    MaxOverlap=cmplx(ZERO,ZERO,dprec)
-    MinOverlap=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,dprec)
+    MaxOverlap=cmplx(ZERO,ZERO,wp)
+    MinOverlap=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,wp)
     AverOverlap=ZERO
     k=0
     do i=1,cbs
@@ -7643,8 +7643,8 @@ contains
     AverOverlap=AverOverlap/(cbs*(cbs-1)/2)
 
 !Check linear coefficients:
-    Min_c=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,dprec)
-    Max_c=cmplx(ZERO,ZERO,dprec)
+    Min_c=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,wp)
+    Max_c=cmplx(ZERO,ZERO,wp)
     Average_c=ZERO
     do i=1,cbs
       if (abs(Glob_c(i))>abs(Max_c)) Max_c=Glob_c(i)
@@ -7682,9 +7682,9 @@ contains
     Glob_History(cbs)%Energy=Evalue
 
     Glob_CurrEnergy=Evalue
-    Glob_LastEigvalTol=1.0E+35_dprec
-    Glob_BestEigvalTol=1.0E+35_dprec
-    Glob_WorstEigvalTol=1.0E-35_dprec
+    Glob_LastEigvalTol=1.0E+35_wp
+    Glob_BestEigvalTol=1.0E+35_wp
+    Glob_WorstEigvalTol=1.0E-35_wp
 
     ch_temp=Glob_DataFileName
     Glob_DataFileName=FileName
@@ -7740,8 +7740,8 @@ contains
 !                   the linear parameters of all basis functions.
 
 !Arguments:
-    real(dprec),intent(in)                    :: LCThreshold
-    real(dprec),intent(in)                    :: SeparationParam
+    real(wp),intent(in)                    :: LCThreshold
+    real(wp),intent(in)                    :: SeparationParam
     character(Glob_FileNameLength),intent(in) :: FileName
     integer,intent(in)                        :: PrintInfoSpec
 
@@ -7752,11 +7752,11 @@ contains
     logical        IsSwapFileOK
     integer        BlockSizeForZHEGVX
     integer        NumOfEigvalsFound
-    real(dprec)    Evalue, EVs(1), r
-    complex(dprec) MaxOverlap,MinOverlap
-    real(dprec)    AverOverlap
-    complex(dprec) Min_c,Max_c
-    real(dprec)    Average_c
+    real(wp)    Evalue, EVs(1), r
+    complex(wp) MaxOverlap,MinOverlap
+    real(wp)    AverOverlap
+    complex(wp) Min_c,Max_c
+    real(wp)    Average_c
     character(Glob_FileNameLength)          :: ch_temp
 
     if (Glob_ProcID==0) then
@@ -7812,7 +7812,7 @@ contains
       do j=1,i-1
         Glob_S(j,i)=conjg(Glob_S(i,j))
       enddo
-      Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+      Glob_S(i,i)=cmplx(ONE,ZERO,wp)
     enddo
 
     if (Glob_ProcID==0) write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
@@ -7835,8 +7835,8 @@ contains
       stop
     endif
     Evalue=EVs(1)
-    call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_c,2*cbs,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_c,2*cbs,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) then
       write(*,*) ' done'
@@ -7852,8 +7852,8 @@ contains
     endif
 
 !Check overlap
-    MaxOverlap=cmplx(ZERO,ZERO,dprec)
-    MinOverlap=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,dprec)
+    MaxOverlap=cmplx(ZERO,ZERO,wp)
+    MinOverlap=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,wp)
     AverOverlap=ZERO
     k=0
     do i=1,cbs
@@ -7886,8 +7886,8 @@ contains
       endif
       stop
     endif
-    Min_c=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,dprec)
-    Max_c=cmplx(ZERO,ZERO,dprec)
+    Min_c=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,wp)
+    Max_c=cmplx(ZERO,ZERO,wp)
     Average_c=ZERO
     do i=1,cbs
       if (abs(Glob_c(i))>abs(Max_c)) Max_c=Glob_c(i)
@@ -7925,7 +7925,7 @@ contains
         enddo
       endif
     enddo
-    call MPI_BCAST(Glob_NonlinParam,cbs*Glob_npt,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_NonlinParam,cbs*Glob_npt,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     if (Glob_ProcID==0) write(*,'(1x,a28)',advance='no') 'Computing matrix elements...'
     call ComputeMatElem(1,cbs)
@@ -7944,7 +7944,7 @@ contains
       do j=1,i-1
         Glob_S(j,i)=conjg(Glob_S(i,j))
       enddo
-      Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+      Glob_S(i,i)=cmplx(ONE,ZERO,wp)
     enddo
 
     if (Glob_ProcID==0) then
@@ -7965,12 +7965,12 @@ contains
       stop
     endif
     Evalue=EVs(1)
-    call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_c,2*cbs,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_c,2*cbs,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 !Check overlap
-    MaxOverlap=cmplx(ZERO,ZERO,dprec)
-    MinOverlap=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,dprec)
+    MaxOverlap=cmplx(ZERO,ZERO,wp)
+    MinOverlap=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,wp)
     AverOverlap=ZERO
     k=0
     do i=1,cbs
@@ -7983,8 +7983,8 @@ contains
     AverOverlap=AverOverlap/(cbs*(cbs-1)/2)
 
 !Check linear coefficients
-    Min_c=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,dprec)
-    Max_c=cmplx(ZERO,ZERO,dprec)
+    Min_c=cmplx(sqrt(huge(ONE))/10,sqrt(huge(ONE))/10,wp)
+    Max_c=cmplx(ZERO,ZERO,wp)
     Average_c=ZERO
     do i=1,cbs
       if (abs(Glob_c(i))>abs(Max_c)) Max_c=Glob_c(i)
@@ -8022,9 +8022,9 @@ contains
     Glob_History(cbs)%Energy=Evalue
 
     Glob_CurrEnergy=Evalue
-    Glob_LastEigvalTol=1.0E+35_dprec
-    Glob_BestEigvalTol=1.0E+35_dprec
-    Glob_WorstEigvalTol=1.0E-35_dprec
+    Glob_LastEigvalTol=1.0E+35_wp
+    Glob_BestEigvalTol=1.0E+35_wp
+    Glob_WorstEigvalTol=1.0E-35_wp
 
     ch_temp=Glob_DataFileName
     Glob_DataFileName=FileName
@@ -8094,36 +8094,36 @@ contains
     logical        IsSwapFileOK
     integer        BlockSizeForZHEGVX
     integer        NumOfEigvecs,NumOfEigvalsFound
-    real(dprec)    Evalue
-    real(dprec),allocatable,dimension(:)      :: Eigvals
-    complex(dprec),allocatable,dimension(:,:) :: Eigvecs
+    real(wp)    Evalue
+    real(wp),allocatable,dimension(:)      :: Eigvals
+    complex(wp),allocatable,dimension(:,:) :: Eigvecs
     integer,allocatable,dimension(:)          :: IFAIL
     integer        NumOfExpcVals
-    real(dprec)    factor
-    real(dprec)    temp1,temp2
+    real(wp)    factor
+    real(wp)    temp1,temp2
     integer,allocatable,dimension(:,:)  ::  IdentityPerm
-    real(dprec)    ReCi,ImCi,ReCj,ImCj,ReOij,ImOij,beta,mu
+    real(wp)    ReCi,ImCi,ReCj,ImCj,ReOij,ImOij,beta,mu
     logical        AreCorrFuncNeeded,ArePartDensNeeded
     logical        IsFile1OK,IsFile3OK
 
 !Local variables used to store temporary data
 !associated with certain expectation values
     integer                                     :: NumCFGridPoints
-    real(dprec),allocatable,dimension(:)        :: CFGrid
-    complex(dprec),allocatable,dimension(:,:)   :: CFkl
-    real(dprec),allocatable,dimension(:,:)      :: CF
+    real(wp),allocatable,dimension(:)        :: CFGrid
+    complex(wp),allocatable,dimension(:,:)   :: CFkl
+    real(wp),allocatable,dimension(:,:)      :: CF
     integer                                     :: NumDensGridPoints
-    real(dprec),allocatable,dimension(:)        :: DensGrid
-    complex(dprec),allocatable,dimension(:,:)   :: Denskl
-    real(dprec),allocatable,dimension(:,:)      :: Dens
+    real(wp),allocatable,dimension(:)        :: DensGrid
+    complex(wp),allocatable,dimension(:,:)   :: Denskl
+    real(wp),allocatable,dimension(:,:)      :: Dens
     integer                                     :: NumOfCFAndDensExpVals
-    real(dprec),allocatable,dimension(:)        :: CFDMEkl_s
-    complex(dprec),allocatable,dimension(:)     :: MEkl,MEkl_s
-    complex(dprec)                              :: Hkl,Skl,Tkl,Vkl
-    complex(dprec)                              :: MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
-    real(dprec)                                 :: H,S,T,V,MV,drach_MV,Darwin,drach_Darwin,OO
-    complex(dprec),allocatable,dimension(:,:)   :: rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl
-    real(dprec),allocatable,dimension(:,:)      :: rm2, rm, r, r2, deltar, drach_deltar
+    real(wp),allocatable,dimension(:)        :: CFDMEkl_s
+    complex(wp),allocatable,dimension(:)     :: MEkl,MEkl_s
+    complex(wp)                              :: Hkl,Skl,Tkl,Vkl
+    complex(wp)                              :: MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
+    real(wp)                                 :: H,S,T,V,MV,drach_MV,Darwin,drach_Darwin,OO
+    complex(wp),allocatable,dimension(:,:)   :: rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl
+    real(wp),allocatable,dimension(:,:)      :: rm2, rm, r, r2, deltar, drach_deltar
 
     if (Glob_ProcID==0) then
       write(*,*)
@@ -8269,7 +8269,7 @@ contains
         enddo
         close(1)
       endif
-      call MPI_BCAST(CFGrid,NumCFGridPoints,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(CFGrid,NumCFGridPoints,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
     if (ArePartDensNeeded) then
       if (Glob_ProcID==0) then
@@ -8279,7 +8279,7 @@ contains
         enddo
         close(1)
       endif
-      call MPI_BCAST(DensGrid,NumDensGridPoints,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_BCAST(DensGrid,NumDensGridPoints,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
 
 !Allocate global arrays
@@ -8369,7 +8369,7 @@ contains
       do j=1,i-1
         Glob_S(j,i)=conjg(Glob_S(i,j))
       enddo
-      Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+      Glob_S(i,i)=cmplx(ONE,ZERO,wp)
     enddo
 
     if (Glob_ProcID==0) then
@@ -8398,8 +8398,8 @@ contains
       Evalue=Eigvals(Glob_WhichEigenvalue)
       Glob_c(1:cbs)=Eigvecs(1:cbs,Glob_WhichEigenvalue)
     endif
-    call MPI_BCAST(Evalue,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_c,2*cbs,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_c,2*cbs,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     Glob_CurrEnergy=Evalue
 
 !print the lower part of the spectrum
@@ -8424,9 +8424,9 @@ contains
       do j=1,i  !j=1,i
         counter=counter+1
         if (mod(counter,Glob_NumOfProcs)==Glob_ProcID) then
-          ReCi=real(Glob_c(i),dprec)
+          ReCi=real(Glob_c(i),wp)
           ImCi=imag(Glob_c(i))
-          ReCj=real(Glob_c(j),dprec)
+          ReCj=real(Glob_c(j),wp)
           ImCj=imag(Glob_c(j))
           if (i==j) then
             factor=1/sqrt(Glob_diagS(i)*Glob_diagS(i))  !1
@@ -8482,7 +8482,7 @@ contains
               c=c+1; MEkl(c)=OOkl
 
               do a=1,NumOfExpcVals
-                ReOij=real(MEkl(a),dprec)
+                ReOij=real(MEkl(a),wp)
                 ImOij=imag(MEkl(a))
                 beta=(ReCi*ReCj+ImCi*ImCj)*ReOij+(ImCi*ReCj-ReCi*ImCj)*ImOij
                 MEkl_s(a)=MEkl_s(a)+factor*Glob_YHYCoeff(k)*beta
@@ -8493,7 +8493,7 @@ contains
                 do a=1,NumCFGridPoints
                   do b=1,n*(n+1)/2
                     c=c+1
-                    ReOij=real(CFkl(b,a),dprec)
+                    ReOij=real(CFkl(b,a),wp)
                     ImOij=imag(CFkl(b,a))
                     beta=(ReCi*ReCj+ImCi*ImCj)*ReOij+(ImCi*ReCj-ReCi*ImCj)*ImOij
                     CFDMEkl_s(c)=CFDMEkl_s(c)+factor*Glob_YHYCoeff(k)*beta
@@ -8504,7 +8504,7 @@ contains
                 do a=1,NumDensGridPoints
                   do b=1,n+1
                     c=c+1
-                    ReOij=real(Denskl(b,a),dprec)
+                    ReOij=real(Denskl(b,a),wp)
                     ImOij=imag(Denskl(b,a))
                     beta=(ReCi*ReCj+ImCi*ImCj)*ReOij+(ImCi*ReCj-ReCi*ImCj)*ImOij
                     CFDMEkl_s(c)=CFDMEkl_s(c)+factor*Glob_YHYCoeff(k)*beta
@@ -8566,7 +8566,7 @@ contains
                 c=c+1; MEkl(c)=OOkl
 
                 do a=1,NumOfExpcVals
-                  ReOij=real(MEkl(a),dprec)
+                  ReOij=real(MEkl(a),wp)
                   ImOij=imag(MEkl(a))
                   beta=(ReCi*ReCj+ImCi*ImCj)*ReOij+(ImCi*ReCj-ReCi*ImCj)*ImOij
                   MEkl_s(a)=MEkl_s(a)+factor*Glob_YCoeff(k)*Glob_YCoeff(kk)*beta
@@ -8577,7 +8577,7 @@ contains
                   do a=1,NumCFGridPoints
                     do b=1,n*(n+1)/2
                       c=c+1
-                      ReOij=real(CFkl(b,a),dprec)
+                      ReOij=real(CFkl(b,a),wp)
                       ImOij=imag(CFkl(b,a))
                       beta=(ReCi*ReCj+ImCi*ImCj)*ReOij+(ImCi*ReCj-ReCi*ImCj)*ImOij
                       CFDMEkl_s(c)=CFDMEkl_s(c)+factor*Glob_YCoeff(k)*Glob_YCoeff(kk)*beta
@@ -8588,7 +8588,7 @@ contains
                   do a=1,NumDensGridPoints
                     do b=1,n+1
                       c=c+1
-                      ReOij=real(Denskl(b,a),dprec)
+                      ReOij=real(Denskl(b,a),wp)
                       ImOij=imag(Denskl(b,a))
                       beta=(ReCi*ReCj+ImCi*ImCj)*ReOij+(ImCi*ReCj-ReCi*ImCj)*ImOij
                       CFDMEkl_s(c)=CFDMEkl_s(c)+factor*Glob_YCoeff(k)*Glob_YCoeff(kk)*beta
@@ -8607,17 +8607,17 @@ contains
 !Combining the results of all processes
     do a=1,NumOfExpcVals
       temp1=MEkl_s(a)
-      call MPI_ALLREDUCE(temp1,temp2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(temp1,temp2,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       MEkl_s(a)=temp2
     enddo
     k=0
     if (AreCorrFuncNeeded) then
       k=NumCFGridPoints*n*(n+1)/2
-      call MPI_ALLREDUCE(CFDMEkl_s,CF,k,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(CFDMEkl_s,CF,k,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
     if (ArePartDensNeeded) then
       kk=NumDensGridPoints*(n+1)
-      call MPI_ALLREDUCE(CFDMEkl_s(k+1:k+kk),Dens,kk,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(CFDMEkl_s(k+1:k+kk),Dens,kk,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
     endif
 
 !Extracting expectation values from arrays MEkl_s and MEkl_e

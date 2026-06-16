@@ -6,11 +6,10 @@ module wp_def
   use mpi
 
 !Define kind parameter for real type
-  integer,parameter     :: dprec=10
-  integer,parameter     :: wp=dprec
+  integer,parameter     :: wp=10
 
-!This is data type identifier for MPI corresponding to real type of kind dprec
-  integer,parameter    :: MPI_DPREC=MPI_REAL16
+!This is data type identifier for MPI corresponding to real type of kind wp
+  integer,parameter    :: MPI_WP=MPI_REAL16
 
 !This is the maximal allowed number of particles in the system. If needed,
 !this number can be increased. However it is not recommended to use a number
@@ -20,25 +19,25 @@ module wp_def
 contains
 
 !Subroutines writereal and writerealarr (writerealadv and writerealarradv) realize nonadvanced
-!(advanced) output of real(dprec) type. For portability and easiness of modification of the
-!program, all output of real(dprec) type, both on screen and to external files should be done
+!(advanced) output of real(wp) type. For portability and easiness of modification of the
+!program, all output of real(wp) type, both on screen and to external files should be done
 !via calling these subroutines.
 
   subroutine writereal(u,r)
     integer u          !i/o unit
-    real(dprec) r      !real number that needs to be written
+    real(wp) r      !real number that needs to be written
     write(u,'(1x,ES27.20)',advance='no') r
   end subroutine writereal
 
   subroutine writerealadv(u,r)
     integer u          !i/o unit
-    real(dprec) r      !real number that needs to be written
+    real(wp) r      !real number that needs to be written
     write(u,'(1x,ES27.20)') r
   end subroutine writerealadv
 
   subroutine writerealarr(u,r,k)
     integer u          !i/o unit
-    real(dprec) r(k)   !real array that needs to be written
+    real(wp) r(k)   !real array that needs to be written
     integer k          !the number of elements to write (writing begins with element 1)
     integer i
     do i=1,k
@@ -48,7 +47,7 @@ contains
 
   subroutine writerealarradv(u,r,k)
     integer u          !i/o unit
-    real(dprec) r(k)   !real array that needs to be written
+    real(wp) r(k)   !real array that needs to be written
     integer k          !the number of elements to write (writing begins with element 1)
     integer i
     do i=1,k-1
@@ -87,8 +86,8 @@ contains
     implicit none
     integer, intent(in)        :: u         ! output unit
     integer, intent(in)        :: n         ! number of particles
-    real(dprec), intent(in)    :: vec1(n) ! mass array
-    real(dprec), intent(in)    :: vec2(n)! charge array
+    real(wp), intent(in)    :: vec1(n) ! mass array
+    real(wp), intent(in)    :: vec2(n)! charge array
     integer :: i
 
     ! Write header

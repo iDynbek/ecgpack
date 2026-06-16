@@ -29,9 +29,9 @@ contains
 !                        <fk|fk>                  det_tAkk^3/2
 
 !Arguments
-    real(dprec),intent(in)   :: vechLk(Glob_np)
-    real(dprec),intent(in)   :: P(Glob_n,Glob_n)
-    real(dprec),intent(out)  :: Skk
+    real(wp),intent(in)   :: vechLk(Glob_np)
+    real(wp),intent(in)   :: P(Glob_n,Glob_n)
+    real(wp),intent(out)  :: Skk
 
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
@@ -39,15 +39,15 @@ contains
     integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
 
 !Local variables
-    real(dprec),allocatable,dimension(:)         :: vechLl
+    real(wp),allocatable,dimension(:)         :: vechLl
 
     integer           n, np
-    real(dprec)       Lk(nn,nn), Ll(nn,nn), inv_Lk(nn,nn), inv_Ll(nn,nn)
-    real(dprec)       tAk(nn,nn), tAl(nn,nn), tAkl(nn,nn), Ak(nn,nn)
-    real(dprec)       inv_tAkl(nn,nn)
-    real(dprec)       W1(nn,nn), W2(nn,nn)
-    real(dprec)       temp1, temp2
-    real(dprec)       det_Lk, det_Ll, det_tAkl
+    real(wp)       Lk(nn,nn), Ll(nn,nn), inv_Lk(nn,nn), inv_Ll(nn,nn)
+    real(wp)       tAk(nn,nn), tAl(nn,nn), tAkl(nn,nn), Ak(nn,nn)
+    real(wp)       inv_tAkl(nn,nn)
+    real(wp)       W1(nn,nn), W2(nn,nn)
+    real(wp)       temp1, temp2
+    real(wp)       det_Lk, det_Ll, det_tAkl
     integer           i,j,k,indx,q
 
     n=Glob_n
@@ -167,7 +167,7 @@ contains
 !Evaluating overlap
     temp2=abs(det_Ll*det_Lk)
     temp1=temp2/det_tAkl
-    Skk=Glob_2raised3n2*temp1*sqrt(temp1)
+    Skk=Glob_2Raised3n2*temp1*sqrt(temp1)
 
   end subroutine OverLapElementS0
 
@@ -195,9 +195,9 @@ contains
 
 !Arguments
     integer,intent(in)       :: m_l
-    real(dprec),intent(in)   :: vechLl(Glob_np)
-    real(dprec),intent(in)   :: P(Glob_n,Glob_n)
-    real(dprec),intent(out)  :: Sll
+    real(wp),intent(in)   :: vechLl(Glob_np)
+    real(wp),intent(in)   :: P(Glob_n,Glob_n)
+    real(wp),intent(out)  :: Sll
 
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
@@ -206,17 +206,17 @@ contains
     integer,parameter :: nnp=nn*(nn+1)/2
 
 !Local variables
-    real(dprec),allocatable,dimension(:)         :: vechLk
+    real(wp),allocatable,dimension(:)         :: vechLk
 
     integer           n,np,m_k
     integer           tvk(nn),tvl(nn)
-    real(dprec)       Lk(nn,nn),Ll(nn,nn),inv_Lk(nn,nn),inv_Ll(nn,nn)
-    real(dprec)       tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn),Ak(nn,nn)
-    real(dprec)       inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn), inv_tAkltAl(nn,nn)
-    real(dprec)       W1(nn,nn),W2(nn,nn)
-    real(dprec)       inv_tAkltvl(nn),vkinv_tAkl(nn)
-    real(dprec)       temp1,temp2
-    real(dprec)       det_Lk, det_Ll, det_tAkl,tau3
+    real(wp)       Lk(nn,nn),Ll(nn,nn),inv_Lk(nn,nn),inv_Ll(nn,nn)
+    real(wp)       tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn),Ak(nn,nn)
+    real(wp)       inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn), inv_tAkltAl(nn,nn)
+    real(wp)       W1(nn,nn),W2(nn,nn)
+    real(wp)       inv_tAkltvl(nn),vkinv_tAkl(nn)
+    real(wp)       temp1,temp2
+    real(wp)       det_Lk, det_Ll, det_tAkl,tau3
     integer           i,j,k,indx
 
     n=Glob_n
@@ -393,7 +393,7 @@ contains
 
 !Evaluating overlap
     temp1=abs(det_Ll*det_Lk)/det_tAkl
-    Sll=Glob_2raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
+    Sll=Glob_2Raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
 
   end subroutine OverLapElementS1
 
@@ -462,9 +462,9 @@ contains
 
 !Arguments
     integer, intent(in)          :: ml
-    real(dprec), intent(in)      :: vechLk(Glob_np), vechLl(Glob_np)
-    real(dprec), intent(in)      :: Pk(Glob_n,Glob_n), Pl(Glob_n,Glob_n)
-    real(dprec), intent(out)     :: TranDipolLength_kl, TranDipolVelocity_kl
+    real(wp), intent(in)      :: vechLk(Glob_np), vechLl(Glob_np)
+    real(wp), intent(in)      :: Pk(Glob_n,Glob_n), Pl(Glob_n,Glob_n)
+    real(wp), intent(out)     :: TranDipolLength_kl, TranDipolVelocity_kl
 
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
@@ -474,17 +474,17 @@ contains
 
 !Local variables
     integer           :: n, np, Qtotal
-    real(dprec)       :: Lk(nn,nn),Ll(nn,nn)
-    real(dprec)       :: inv_Lk(nn,nn),inv_Ll(nn,nn)
-    real(dprec)       :: det_Lk,det_Ll
-    real(dprec)       :: tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn)
-    real(dprec)       :: inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn),tAk_inv_tAkl(nn,nn)
-    real(dprec)       :: det_tAkl
-    real(dprec)       :: tvl(nn),vi(nn),vi_tAk(nn),vi_tAk_inv_tAkl(nn)
+    real(wp)       :: Lk(nn,nn),Ll(nn,nn)
+    real(wp)       :: inv_Lk(nn,nn),inv_Ll(nn,nn)
+    real(wp)       :: det_Lk,det_Ll
+    real(wp)       :: tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn)
+    real(wp)       :: inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn),tAk_inv_tAkl(nn,nn)
+    real(wp)       :: det_tAkl
+    real(wp)       :: tvl(nn),vi(nn),vi_tAk(nn),vi_tAk_inv_tAkl(nn)
 
     integer           :: i,j,k,indx,ii
-    real(dprec)       :: temp0, temp1, temp2, temp3, charge_mass0
-    real(dprec)       :: W1(nn,nn),W2(nn,nn)
+    real(wp)       :: temp0, temp1, temp2, temp3, charge_mass0
+    real(wp)       :: W1(nn,nn),W2(nn,nn)
 
     n=Glob_n
     np=Glob_np
@@ -659,7 +659,7 @@ contains
 ! TranDipolLength_kl = ----------- * -----------------------
 !                        sqrt(2)      Sqrt(vl'*inv_All*vl)
 
-    TranDipolLength_kl = Glob_2raised3n2 * temp1 / sqrt(TWO*inv_All(ml,ml))
+    TranDipolLength_kl = Glob_2Raised3n2 * temp1 / sqrt(TWO*inv_All(ml,ml))
     TranDipolVelocity_kl = TranDipolLength_kl * TWO
 
 !

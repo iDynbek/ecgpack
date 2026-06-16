@@ -16,14 +16,14 @@ contains
     integer        :: OpenFileErr
     integer        :: ReadInt,ReadErr
     integer        :: particle_n0,particle_n1
-    real(dprec)    :: Mass0(Glob_MaxAllowedNumOfParticles),Mass1(Glob_MaxAllowedNumOfParticles)
-    real(dprec)    :: PseudoCharge0(Glob_MaxAllowedNumOfParticles),PseudoCharge1(Glob_MaxAllowedNumOfParticles)
-    real(dprec)    :: PseudoCharge00,PseudoCharge01
-    real(dprec)    :: ReadReal0,ReadReal1
-    real(dprec)    :: RepulsionScalingParamPlus0,RepulsionScalingParamPlus1
-    real(dprec)    :: RepulsionScalingParamMinus0,RepulsionScalingParamMinus1
-    real(dprec)    :: RepulsionScalingParam0,RepulsionScalingParam1
-    real(dprec)    :: AttractionScalingParam0,AttractionScalingParam1
+    real(wp)    :: Mass0(Glob_MaxAllowedNumOfParticles),Mass1(Glob_MaxAllowedNumOfParticles)
+    real(wp)    :: PseudoCharge0(Glob_MaxAllowedNumOfParticles),PseudoCharge1(Glob_MaxAllowedNumOfParticles)
+    real(wp)    :: PseudoCharge00,PseudoCharge01
+    real(wp)    :: ReadReal0,ReadReal1
+    real(wp)    :: RepulsionScalingParamPlus0,RepulsionScalingParamPlus1
+    real(wp)    :: RepulsionScalingParamMinus0,RepulsionScalingParamMinus1
+    real(wp)    :: RepulsionScalingParam0,RepulsionScalingParam1
+    real(wp)    :: AttractionScalingParam0,AttractionScalingParam1
     logical        :: AttrScalParamSupplied0,AttrScalParamSupplied1
     integer        :: WorkInt(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
     integer        :: WorkInt0(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
@@ -33,7 +33,7 @@ contains
     logical        :: ErrorInDataFile !,IsDRMCStep
 
     ErrorInDataFile=.false.
-    Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+    Glob_PiRaised3n2=Glob_Pi**((3*Glob_n)/TWO)
 
 ! opening the wave function files of initial and final states
 ! Glob_WFfile0 initial state's file
@@ -134,7 +134,7 @@ contains
     call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFile) stop
     call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    Glob_2raised3n2=TWO**((3*Glob_n)/TWO)
+    Glob_2Raised3n2=TWO**((3*Glob_n)/TWO)
     Glob_np=Glob_n*(Glob_n+1)/2
     Glob_npt=Glob_np
 
@@ -178,7 +178,7 @@ contains
     EndIF
     call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFile) stop
-    call MPI_BCAST(Glob_Mass,Glob_n+1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_Mass,Glob_n+1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 ! Reading the charges of particles from the wave function files
 ! PseudoCharge0   charges of the electrons which are read from the Glob_WFfile0
@@ -233,8 +233,8 @@ contains
 
     call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFile) stop
-    call MPI_BCAST(Glob_PseudoCharge0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_PseudoCharge,Glob_n,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_PseudoCharge0,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_PseudoCharge,Glob_n,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 ! Reading Young operators
     IF (Glob_ProcID==0) then
@@ -324,8 +324,8 @@ contains
       write(*,'(a33)',advance='no')  ' FINAL STATE  CURRENT_ENERGY:    '
       call writerealadv(6,Glob_CurrEnergy1)
     EndIF
-    call MPI_BCAST(Glob_CurrEnergy0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_CurrEnergy1,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_CurrEnergy0,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_CurrEnergy1,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     IF (Glob_ProcID==0) then
       read(1,*) ReadChar
@@ -350,10 +350,10 @@ contains
       EndDo
     EndIF
 
-    call MPI_BCAST(Glob_c0,Glob_CurrBasisSize0,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_c1,Glob_CurrBasisSize1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_NonlinParam0,Glob_npt*Glob_CurrBasisSize0,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_NonlinParam1,Glob_npt*Glob_CurrBasisSize1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_c0,Glob_CurrBasisSize0,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_c1,Glob_CurrBasisSize1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_NonlinParam0,Glob_npt*Glob_CurrBasisSize0,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_NonlinParam1,Glob_npt*Glob_CurrBasisSize1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     call MPI_BCAST(Glob_FuncNum0,Glob_CurrBasisSize0,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     call MPI_BCAST(Glob_FuncNum1,Glob_CurrBasisSize1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     call MPI_BCAST(Glob_Index,2*Glob_CurrBasisSize1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -971,7 +971,7 @@ contains
     integer                               :: i,j,k,p,q,t,s,w
     integer                               :: pi,pj,pt,ps
     logical                               :: AreYsIdentical
-    real(dprec)                           :: mk,mi,m0
+    real(wp)                           :: mk,mi,m0
     integer,allocatable,dimension(:)      :: IdentParticleSet
     integer,allocatable,dimension(:,:)    :: IdentPseudoPartPairSet
 
@@ -1218,14 +1218,14 @@ contains
 !local variables
     integer :: i, j, n, a, ptr, k, npt, counter
     integer :: nFactorial
-    real(dprec) :: Skk, temp1, temp2
-    real(dprec), allocatable, dimension(:, :, :) :: ketYMatrix
-    real(dprec), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
-    real(dprec), allocatable, dimension(:, :, :) :: SSNCspinME
-    real(dprec), allocatable, dimension(:, :) :: SSNCmassChargeCoefficient
-    real(dprec), allocatable, dimension(:) :: parityFactor, diagS_0, diagS_1, diagS_test_0, diagS_test_1
-    real(dprec), allocatable, dimension(:, :) :: spinFreeME, SOspinME, spinCoeff
-    real(dprec) :: SSNCkl, SSNC, factor
+    real(wp) :: Skk, temp1, temp2
+    real(wp), allocatable, dimension(:, :, :) :: ketYMatrix
+    real(wp), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
+    real(wp), allocatable, dimension(:, :, :) :: SSNCspinME
+    real(wp), allocatable, dimension(:, :) :: SSNCmassChargeCoefficient
+    real(wp), allocatable, dimension(:) :: parityFactor, diagS_0, diagS_1, diagS_test_0, diagS_test_1
+    real(wp), allocatable, dimension(:, :) :: spinFreeME, SOspinME, spinCoeff
+    real(wp) :: SSNCkl, SSNC, factor
 
     n = Glob_n
     npt = Glob_npt
@@ -1296,7 +1296,7 @@ contains
 !Combining the results of all processes
 
     temp1 = SSNC
-    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
     SSNC = temp2
 
 !Printing results

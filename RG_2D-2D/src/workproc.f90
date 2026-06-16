@@ -16,14 +16,14 @@ contains
     integer        :: OpenFileErr
     integer        :: ReadInt,ReadErr
     integer        :: particle_n0,particle_n1
-    real(dprec)    :: Mass0(Glob_MaxAllowedNumOfParticles),Mass1(Glob_MaxAllowedNumOfParticles)
-    real(dprec)    :: PseudoCharge0(Glob_MaxAllowedNumOfParticles),PseudoCharge1(Glob_MaxAllowedNumOfParticles)
-    real(dprec)    :: PseudoCharge00,PseudoCharge01
-    real(dprec)    :: ReadReal0,ReadReal1
-    real(dprec)    :: RepulsionScalingParamPlus0,RepulsionScalingParamPlus1
-    real(dprec)    :: RepulsionScalingParamMinus0,RepulsionScalingParamMinus1
-    real(dprec)    :: RepulsionScalingParam0,RepulsionScalingParam1
-    real(dprec)    :: AttractionScalingParam0,AttractionScalingParam1
+    real(wp)    :: Mass0(Glob_MaxAllowedNumOfParticles),Mass1(Glob_MaxAllowedNumOfParticles)
+    real(wp)    :: PseudoCharge0(Glob_MaxAllowedNumOfParticles),PseudoCharge1(Glob_MaxAllowedNumOfParticles)
+    real(wp)    :: PseudoCharge00,PseudoCharge01
+    real(wp)    :: ReadReal0,ReadReal1
+    real(wp)    :: RepulsionScalingParamPlus0,RepulsionScalingParamPlus1
+    real(wp)    :: RepulsionScalingParamMinus0,RepulsionScalingParamMinus1
+    real(wp)    :: RepulsionScalingParam0,RepulsionScalingParam1
+    real(wp)    :: AttractionScalingParam0,AttractionScalingParam1
     logical        :: AttrScalParamSupplied0,AttrScalParamSupplied1
     integer        :: WorkInt(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
     integer        :: WorkInt0(max(max(Glob_YOperatorStringLength,20),Glob_FileNameLength))
@@ -33,7 +33,7 @@ contains
     logical        :: ErrorInDataFile !,IsDRMCStep
 
     ErrorInDataFile=.false.
-    Glob_Piraised3n2=PI**((3*Glob_n)/TWO)
+    Glob_PiRaised3n2=Glob_Pi**((3*Glob_n)/TWO)
 
 ! opening the wave function files of initial and final states
 ! Glob_WFfile0 initial state's file
@@ -134,7 +134,7 @@ contains
     call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFile) stop
     call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    Glob_2raised3n2=TWO**((3*Glob_n)/TWO)
+    Glob_2Raised3n2=TWO**((3*Glob_n)/TWO)
     Glob_np=Glob_n*(Glob_n+1)/2
     Glob_npt=Glob_np
 
@@ -178,7 +178,7 @@ contains
     EndIF
     call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFile) stop
-    call MPI_BCAST(Glob_Mass,Glob_n+1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_Mass,Glob_n+1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 ! Reading the charges of particles from the wave function files
 ! PseudoCharge0   charges of the electrons which are read from the Glob_WFfile0
@@ -233,8 +233,8 @@ contains
 
     call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFile) stop
-    call MPI_BCAST(Glob_PseudoCharge0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_PseudoCharge,Glob_n,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_PseudoCharge0,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_PseudoCharge,Glob_n,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 ! Reading Young operators
     IF (Glob_ProcID==0) then
@@ -324,8 +324,8 @@ contains
       write(*,'(a33)',advance='no')  ' FINAL STATE  CURRENT_ENERGY:    '
       call writerealadv(6,Glob_CurrEnergy1)
     EndIF
-    call MPI_BCAST(Glob_CurrEnergy0,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_CurrEnergy1,1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_CurrEnergy0,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_CurrEnergy1,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     IF (Glob_ProcID==0) then
       read(1,*) ReadChar
@@ -351,10 +351,10 @@ contains
       EndDo
     EndIF
 
-    call MPI_BCAST(Glob_c0,Glob_CurrBasisSize0,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_c1,Glob_CurrBasisSize1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_NonlinParam0,Glob_npt*Glob_CurrBasisSize0,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_NonlinParam1,Glob_npt*Glob_CurrBasisSize1,MPI_DPREC,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_c0,Glob_CurrBasisSize0,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_c1,Glob_CurrBasisSize1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_NonlinParam0,Glob_npt*Glob_CurrBasisSize0,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_NonlinParam1,Glob_npt*Glob_CurrBasisSize1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     call MPI_BCAST(Glob_FuncNum0,Glob_CurrBasisSize0,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     call MPI_BCAST(Glob_FuncNum1,Glob_CurrBasisSize1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     call MPI_BCAST(Glob_Index0,2*Glob_CurrBasisSize0,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -973,7 +973,7 @@ contains
     integer                               :: i,j,k,p,q,t,s,w
     integer                               :: pi,pj,pt,ps
     logical                               :: AreYsIdentical
-    real(dprec)                           :: mk,mi,m0
+    real(wp)                           :: mk,mi,m0
     integer,allocatable,dimension(:)      :: IdentParticleSet
     integer,allocatable,dimension(:,:)    :: IdentPseudoPartPairSet
 
@@ -1223,16 +1223,16 @@ contains
     integer :: i, j, n, a, ptr, k, npt, counter
     integer :: nFactorial
     integer :: selectTransition
-    real(dprec) :: Skk, temp1, temp2
-    real(dprec), allocatable, dimension(:, :, :) :: ketYMatrix, SiSjME
-    real(dprec), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
-    real(dprec), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient, &
+    real(wp) :: Skk, temp1, temp2
+    real(wp), allocatable, dimension(:, :, :) :: ketYMatrix, SiSjME
+    real(wp), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
+    real(wp), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient, &
                                                     AMMFinmassChargeCoefficient
-    real(dprec), allocatable, dimension(:, :) :: SSNCmassChargeCoefficient, SSFmassChargeCoefficient
-    real(dprec), allocatable, dimension(:) :: parityFactor, diagS_0, diagS_1
-    real(dprec), allocatable, dimension(:, :) :: spinFreeME, SOspinME, spinCoeff
-    real(dprec), allocatable, dimension(:, :, :) :: SSNCspinME
-    real(dprec) :: SSNCkl, SO1kl, SO2kl, SSNC, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, &
+    real(wp), allocatable, dimension(:, :) :: SSNCmassChargeCoefficient, SSFmassChargeCoefficient
+    real(wp), allocatable, dimension(:) :: parityFactor, diagS_0, diagS_1
+    real(wp), allocatable, dimension(:, :) :: spinFreeME, SOspinME, spinCoeff
+    real(wp), allocatable, dimension(:, :, :) :: SSNCspinME
+    real(wp) :: SSNCkl, SO1kl, SO2kl, SSNC, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, &
                    AMM1fin, AMM2fin, AMM1finkl, AMM2finkl, factor
     logical :: areFilesTheSame
 
@@ -1357,31 +1357,31 @@ contains
 !Combining the results of all processes
 
     temp1 = SSNC
-    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
     SSNC= temp2
 
     temp1 = SO1
-    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
     SO1 = temp2
 
     temp1 = SO2
-    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
     SO2 = temp2
 
     temp1 = AMM1
-    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
     AMM1 = temp2
 
     temp1 = AMM2
-    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
     AMM2 = temp2
 
     temp1 = AMM1fin
-    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
     AMM1fin = temp2
 
     temp1 = AMM2fin
-    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_DPREC, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
     AMM2fin = temp2
 
 !Printing results
@@ -1432,48 +1432,48 @@ contains
 
     !scalar matelem vars
     integer                                    :: NumCFGridPoints
-    real(dprec),allocatable,dimension(:,:)     :: CFGrid
-    real(dprec),allocatable,dimension(:,:)     :: CFkl
-    real(dprec),allocatable,dimension(:,:)     :: CF
+    real(wp),allocatable,dimension(:,:)     :: CFGrid
+    real(wp),allocatable,dimension(:,:)     :: CFkl
+    real(wp),allocatable,dimension(:,:)     :: CF
     integer                                    :: NumDensGridPoints
-    real(dprec),allocatable,dimension(:,:)     :: DensGrid
-    real(dprec),allocatable,dimension(:,:)     :: Denskl
-    real(dprec),allocatable,dimension(:,:)     :: Dens
+    real(wp),allocatable,dimension(:,:)     :: DensGrid
+    real(wp),allocatable,dimension(:,:)     :: Denskl
+    real(wp),allocatable,dimension(:,:)     :: Dens
     integer                                    :: NumOfCFAndDensExpVals
-    real(dprec),allocatable,dimension(:)       :: CFDMEkl_s
-    real(dprec),allocatable,dimension(:)       :: MEkl,MEkl_s,MEkl1,MEkl_s1,MEkl2,MEkl_s2
-    real(dprec)                                :: Hkl,Skl,Tkl,Vkl
-    real(dprec)                                :: Hkl1,Skl1,Tkl1,Vkl1
-    real(dprec)                                :: Hkl2,Skl2,Tkl2,Vkl2
-    real(dprec)                                :: MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
-    real(dprec)                                :: MVkl1,drach_MVkl1,Darwinkl1,drach_Darwinkl1,OOkl1
-    real(dprec)                                :: MVkl2,drach_MVkl2,Darwinkl2,drach_Darwinkl2,OOkl2
-    real(dprec)                                :: H,S,T,V,MV,drach_MV,Darwin,drach_Darwin,OO
-    real(dprec),allocatable,dimension(:,:)     :: rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,prvalkl
-    real(dprec),allocatable,dimension(:,:)     :: rm2kl1,rmkl1,rkl1,r2kl1,deltarkl1,drach_deltarkl1,prvalkl1
-    real(dprec),allocatable,dimension(:,:)     :: rm2kl2,rmkl2,rkl2,r2kl2,deltarkl2,drach_deltarkl2,prvalkl2
-    real(dprec),allocatable,dimension(:,:)     :: rm2,rm,r,r2,deltar,drach_deltar,prval
-    real(dprec),allocatable,dimension(:,:,:,:) :: rmrmkl,rmrmkl1,rmrmkl2
+    real(wp),allocatable,dimension(:)       :: CFDMEkl_s
+    real(wp),allocatable,dimension(:)       :: MEkl,MEkl_s,MEkl1,MEkl_s1,MEkl2,MEkl_s2
+    real(wp)                                :: Hkl,Skl,Tkl,Vkl
+    real(wp)                                :: Hkl1,Skl1,Tkl1,Vkl1
+    real(wp)                                :: Hkl2,Skl2,Tkl2,Vkl2
+    real(wp)                                :: MVkl,drach_MVkl,Darwinkl,drach_Darwinkl,OOkl
+    real(wp)                                :: MVkl1,drach_MVkl1,Darwinkl1,drach_Darwinkl1,OOkl1
+    real(wp)                                :: MVkl2,drach_MVkl2,Darwinkl2,drach_Darwinkl2,OOkl2
+    real(wp)                                :: H,S,T,V,MV,drach_MV,Darwin,drach_Darwin,OO
+    real(wp),allocatable,dimension(:,:)     :: rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,prvalkl
+    real(wp),allocatable,dimension(:,:)     :: rm2kl1,rmkl1,rkl1,r2kl1,deltarkl1,drach_deltarkl1,prvalkl1
+    real(wp),allocatable,dimension(:,:)     :: rm2kl2,rmkl2,rkl2,r2kl2,deltarkl2,drach_deltarkl2,prvalkl2
+    real(wp),allocatable,dimension(:,:)     :: rm2,rm,r,r2,deltar,drach_deltar,prval
+    real(wp),allocatable,dimension(:,:,:,:) :: rmrmkl,rmrmkl1,rmrmkl2
     integer                                                                    :: NumOfExpcVals
 
     !spin-dependent vars
     integer :: i, j, n, a, a1, b, b1, c, ptr, k, npt, counter
     integer :: nFactorial
     integer :: selectTransition
-    real(dprec) :: Skk, temp1, temp2
-    real(dprec), allocatable, dimension(:, :, :) :: ketYMatrix
-    real(dprec), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
-    real(dprec), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient, &
+    real(wp) :: Skk, temp1, temp2
+    real(wp), allocatable, dimension(:, :, :) :: ketYMatrix
+    real(wp), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
+    real(wp), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient, &
                                                     AMMFinmassChargeCoefficient
-    real(dprec), allocatable, dimension(:, :) :: SSNCmassChargeCoefficient, SSFmassChargeCoefficient
-    real(dprec), allocatable, dimension(:) :: parityFactor, diagS_0, diagS_1
-    real(dprec), allocatable, dimension(:, :) :: spinFreeME, SOspinME, spinCoeff
-    real(dprec), allocatable, dimension(:, :, :) :: SSNCspinME, SiSjME
-    real(dprec) :: factor
-    real(dprec), allocatable, dimension(:, :) :: drach_SSFMatrix, drach_AnihMatrix, SSFMatrix, AnihMatrix
-    real(dprec), allocatable,dimension(:,:)    ::  IdentityPerm
-    real(dprec) :: SSFkl, SSF, drach_SSF, RME
-    real(dprec) :: beta, mu
+    real(wp), allocatable, dimension(:, :) :: SSNCmassChargeCoefficient, SSFmassChargeCoefficient
+    real(wp), allocatable, dimension(:) :: parityFactor, diagS_0, diagS_1
+    real(wp), allocatable, dimension(:, :) :: spinFreeME, SOspinME, spinCoeff
+    real(wp), allocatable, dimension(:, :, :) :: SSNCspinME, SiSjME
+    real(wp) :: factor
+    real(wp), allocatable, dimension(:, :) :: drach_SSFMatrix, drach_AnihMatrix, SSFMatrix, AnihMatrix
+    real(wp), allocatable,dimension(:,:)    ::  IdentityPerm
+    real(wp) :: SSFkl, SSF, drach_SSF, RME
+    real(wp) :: beta, mu
     logical :: areFilesTheSame
 
     !Initialize parameters
@@ -1732,14 +1732,14 @@ contains
 !Combining the results of all processes
     do a=1,NumOfExpcVals
       temp1=MEkl_s(a)
-      call MPI_ALLREDUCE(temp1,temp2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+      call MPI_ALLREDUCE(temp1,temp2,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       MEkl_s(a)=temp2
     enddo
 
     do a = 1, n
       do b = a + 1, n
         temp1 = drach_SSFMatrix(a, b)
-        call MPI_ALLREDUCE(temp1,temp2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+        call MPI_ALLREDUCE(temp1,temp2,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
         drach_SSFMatrix(a, b) = temp2
       enddo
     enddo
@@ -1747,7 +1747,7 @@ contains
     do a = 1, n
       do b = a + 1, n
         temp1 = SSFMatrix(a, b)
-        call MPI_ALLREDUCE(temp1,temp2,1,MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+        call MPI_ALLREDUCE(temp1,temp2,1,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
         SSFMatrix(a, b) = temp2
       enddo
     enddo

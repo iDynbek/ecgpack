@@ -6,10 +6,10 @@ program main
 !Local variables
   integer        :: i,j
   character(70)  :: ReadChar
-  real(dprec)    :: LineStrength
-  real(dprec)    :: OscillatorStrength
-  real(dprec)    :: DeltaE
-  real(dprec)    :: DeltaE_cm
+  real(wp)    :: LineStrength
+  real(wp)    :: OscillatorStrength
+  real(wp)    :: DeltaE
+  real(wp)    :: DeltaE_cm
 
 !Initialize MPI
   call MPI_INIT(Glob_MPIErrCode)

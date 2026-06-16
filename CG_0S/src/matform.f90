@@ -15,8 +15,8 @@ contains
 !matrix elements.
 !Important comment:  i must be greater or equal to j.
     integer,intent(in)        ::  i,j
-    complex(dprec),intent(in) ::  Hij,Sij
-    complex(dprec)            ::  f
+    complex(wp),intent(in) ::  Hij,Sij
+    complex(wp)            ::  f
 
     select case (Glob_GSEPSolutionMethod)
     case('I')
@@ -25,7 +25,7 @@ contains
       !Array Glob_S is entirely used to store S.
       if (i==j) then
         Glob_diagS(i)=real(Sij)
-        Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+        Glob_S(i,i)=cmplx(ONE,ZERO,wp)
         Glob_H(i,i)=real(Hij)/Glob_diagS(i)-Glob_ApproxEnergy
       else
         f=1/sqrt(Glob_diagS(i)*Glob_diagS(j))
@@ -70,9 +70,9 @@ contains
 !Dj(3*Glob_np+1:4*Glob_np)  is dSijdvechBj
 
     integer,intent(in)        ::  i,j
-    complex(dprec),intent(in) ::  Hij,Sij
-    complex(dprec),intent(in) ::  Di(2*Glob_npt),Dj(2*Glob_npt)
-    complex(dprec)            ::  f
+    complex(wp),intent(in) ::  Hij,Sij
+    complex(wp),intent(in) ::  Di(2*Glob_npt),Dj(2*Glob_npt)
+    complex(wp)            ::  f
 
     select case (Glob_GSEPSolutionMethod)
     case('I')
@@ -81,7 +81,7 @@ contains
       !Array Glob_S is used entirely to store S.
       if (i==j) then
         Glob_diagS(i)=real(Sij)
-        Glob_S(i,i)=cmplx(ONE,ZERO,dprec)
+        Glob_S(i,i)=cmplx(ONE,ZERO,wp)
         Glob_H(i,i)=real(Hij)/Glob_diagS(i)-Glob_ApproxEnergy
         Glob_D(1:2*Glob_npt,i-Glob_nfru,i)=2*real(Di(1:2*Glob_npt))/Glob_diagS(i)
       else
@@ -133,14 +133,14 @@ contains
 !Local variables :
     integer         k,l,i,kk,ll,ii,j,q
     integer         kstart,lstart,kstop,lstop,n,np,np1,npt,nb
-    real(dprec)     Paramk(Glob_npt),Paraml(Glob_npt)
+    real(wp)     Paramk(Glob_npt),Paraml(Glob_npt)
     integer         gradflag
-    complex(dprec)  Skl,Hkl
-    complex(dprec)  Ssum,Hsum
+    complex(wp)  Skl,Hkl
+    complex(wp)  Ssum,Hsum
 !These arrays are not actually used but needed for proper calling
 !of subroutine MatrixElements. Thus, one can set some small size
 !for them
-    complex(dprec)  Dk(2),Dl(2)
+    complex(wp)  Dk(2),Dl(2)
 
     n=Glob_n
     np=Glob_np
@@ -175,9 +175,9 @@ contains
         Glob_SklBuff1(i)=Ssum
         if (i==Glob_HSBuffLen) then
           call MPI_ALLREDUCE(Glob_HklBuff1,Glob_HklBuff2,2*i, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           call MPI_ALLREDUCE(Glob_SklBuff1,Glob_SklBuff2,2*i, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           ii=0
           do kk=kstart,k
             if (kk==kstart) then
@@ -204,9 +204,9 @@ contains
     enddo
     if (i>0) then
       call MPI_ALLREDUCE(Glob_HklBuff1,Glob_HklBuff2,2*i, &
-                         MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                         MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       call MPI_ALLREDUCE(Glob_SklBuff1,Glob_SklBuff2,2*i, &
-                         MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                         MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       ii=0
       do kk=kstart,Nmax
         if (kk==kstart) then
@@ -247,12 +247,12 @@ contains
 !Local variables :
     integer         k,l,i,kk,ll,ii,j,q
     integer         kstart,lstart,kstop,lstop,n,np,np4,npt,nb
-    real(dprec)     Paramk(Glob_npt),Paraml(Glob_npt)
+    real(wp)     Paramk(Glob_npt),Paraml(Glob_npt)
     integer         gradflag
-    complex(dprec)  Skl,Hkl
-    complex(dprec)  Ssum,Hsum
-    complex(dprec)  Dk(2*Glob_npt),Dl(2*Glob_npt)
-    complex(dprec)  Dksum(2*Glob_npt),Dlsum(2*Glob_npt)
+    complex(wp)  Skl,Hkl
+    complex(wp)  Ssum,Hsum
+    complex(wp)  Dk(2*Glob_npt),Dl(2*Glob_npt)
+    complex(wp)  Dksum(2*Glob_npt),Dlsum(2*Glob_npt)
 
     n=Glob_n
     np=Glob_np
@@ -300,13 +300,13 @@ contains
         if ((l>Glob_nfru).and.(l/=k)) Glob_DlBuff1(1:np4,i)=Dlsum(1:np4)
         if (i==Glob_HSBuffLen) then
           call MPI_ALLREDUCE(Glob_HklBuff1,Glob_HklBuff2,2*i, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           call MPI_ALLREDUCE(Glob_SklBuff1,Glob_SklBuff2,2*i, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           call MPI_ALLREDUCE(Glob_DkBuff1,Glob_DkBuff2,2*i*np4, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           if (Glob_nfo>1) call MPI_ALLREDUCE(Glob_DlBuff1,Glob_DlBuff2,2*i*np4, &
-                                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           ii=0
           do kk=kstart,k
             if (kk==kstart) then
@@ -336,13 +336,13 @@ contains
     enddo
     if (i>0) then
       call MPI_ALLREDUCE(Glob_HklBuff1,Glob_HklBuff2,2*i, &
-                         MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                         MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       call MPI_ALLREDUCE(Glob_SklBuff1,Glob_SklBuff2,2*i, &
-                         MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                         MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       call MPI_ALLREDUCE(Glob_DkBuff1,Glob_DkBuff2,2*i*np4, &
-                         MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                         MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       if (Glob_nfo>1) call MPI_ALLREDUCE(Glob_DlBuff1,Glob_DlBuff2,2*i*np4, &
-                                         MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                                         MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       ii=0
       do kk=kstart,Nmax
         if (kk==kstart) then

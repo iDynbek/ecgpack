@@ -13,8 +13,8 @@ contains
 !matrix elements.
 !Important comment:  i must be greater or equal to j.
     integer,intent(in)      ::  i,j
-    real(dprec),intent(in)  ::  Hij,Sij
-    real(dprec)             ::  f
+    real(wp),intent(in)  ::  Hij,Sij
+    real(wp)             ::  f
 
     select case (Glob_GSEPSolutionMethod)
     case('I')
@@ -64,9 +64,9 @@ contains
 !Dj(Glob_np+1:2*Glob_np)    is dSijdvechLj
 
     integer,intent(in)     ::  i,j
-    real(dprec),intent(in) ::  Hij,Sij
-    real(dprec),intent(in) ::  Di(2*Glob_npt),Dj(2*Glob_npt)
-    real(dprec)            ::  f
+    real(wp),intent(in) ::  Hij,Sij
+    real(wp),intent(in) ::  Di(2*Glob_npt),Dj(2*Glob_npt)
+    real(wp)            ::  f
 
     select case (Glob_GSEPSolutionMethod)
     case('I')
@@ -127,15 +127,15 @@ contains
 !Local variables :
     integer     k,l,i,kk,ll,ii,j,q
     integer     kstart,lstart,kstop,lstop,n,np,np1,npt,nb
-    real(dprec) Paramk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
-    real(dprec) Paraml(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
+    real(wp) Paramk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
+    real(wp) Paraml(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
     integer     mk,ml,mmk,mml
-    real(dprec) Skl,Hkl,Skl1,Hkl1,Skl2,Hkl2,Skl3,Hkl3,Skl4,Hkl4
-    real(dprec) Ssum,Hsum
+    real(wp) Skl,Hkl,Skl1,Hkl1,Skl2,Hkl2,Skl3,Hkl3,Skl4,Hkl4
+    real(wp) Ssum,Hsum
 !These arrays are not actually used but needed for proper calling
 !of subroutine MatrixElements. Thus, one can set some small size
 !for them
-    real(dprec)  Dk(2),Dl(2),Dk1(2),Dl1(2),Dk2(2),Dl2(2),Dk3(2),Dl3(2),Dk4(2),Dl4(2)
+    real(wp)  Dk(2),Dl(2),Dk1(2),Dl1(2),Dk2(2),Dl2(2),Dk3(2),Dl3(2),Dk4(2),Dl4(2)
 
     n=Glob_n
     np=Glob_np
@@ -186,9 +186,9 @@ contains
         Glob_SklBuff1(i)=Ssum
         if (i==Glob_HSBuffLen) then
           call MPI_ALLREDUCE(Glob_HklBuff1,Glob_HklBuff2,i, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           call MPI_ALLREDUCE(Glob_SklBuff1,Glob_SklBuff2,i, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           ii=0
           do kk=kstart,k
             if (kk==kstart) then
@@ -215,9 +215,9 @@ contains
     enddo
     if (i>0) then
       call MPI_ALLREDUCE(Glob_HklBuff1,Glob_HklBuff2,i, &
-                         MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                         MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       call MPI_ALLREDUCE(Glob_SklBuff1,Glob_SklBuff2,i, &
-                         MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                         MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       ii=0
       do kk=kstart,Nmax
         if (kk==kstart) then
@@ -258,23 +258,23 @@ contains
 !Local variables :
     integer     k,l,i,kk,ll,ii,j,q
     integer     kstart,lstart,kstop,lstop,n,np,npt,npt2,nb
-    real(dprec) Paramk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
-    real(dprec) Paraml(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
+    real(wp) Paramk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
+    real(wp) Paraml(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
     integer     mk,ml,mmk,mml
-    real(dprec) Skl,Hkl,Skl1,Hkl1,Skl2,Hkl2,Skl3,Hkl3,Skl4,Hkl4
-    real(dprec) Ssum,Hsum
-    real(dprec) Dk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-    real(dprec) Dl(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-    real(dprec) Dk1(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-    real(dprec) Dl1(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-    real(dprec) Dk2(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-    real(dprec) Dl2(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-    real(dprec) Dk3(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-    real(dprec) Dl3(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-    real(dprec) Dk4(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-    real(dprec) Dl4(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-    real(dprec) Dksum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-    real(dprec) Dlsum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) Skl,Hkl,Skl1,Hkl1,Skl2,Hkl2,Skl3,Hkl3,Skl4,Hkl4
+    real(wp) Ssum,Hsum
+    real(wp) Dk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) Dl(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) Dk1(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) Dl1(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) Dk2(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) Dl2(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) Dk3(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) Dl3(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) Dk4(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) Dl4(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) Dksum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) Dlsum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
     logical     grad_l
 
     n=Glob_n
@@ -340,13 +340,13 @@ contains
         if ((l>Glob_nfru).and.(l/=k)) Glob_DlBuff1(1:npt2,i)=Dlsum(1:npt2)
         if (i==Glob_HSBuffLen) then
           call MPI_ALLREDUCE(Glob_HklBuff1,Glob_HklBuff2,i, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           call MPI_ALLREDUCE(Glob_SklBuff1,Glob_SklBuff2,i, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           call MPI_ALLREDUCE(Glob_DkBuff1,Glob_DkBuff2,i*npt2, &
-                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           if (Glob_nfo>1) call MPI_ALLREDUCE(Glob_DlBuff1,Glob_DlBuff2,i*npt2, &
-                                             MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                                             MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           ii=0
           do kk=kstart,k
             if (kk==kstart) then
@@ -376,13 +376,13 @@ contains
     enddo
     if (i>0) then
       call MPI_ALLREDUCE(Glob_HklBuff1,Glob_HklBuff2,i, &
-                         MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                         MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       call MPI_ALLREDUCE(Glob_SklBuff1,Glob_SklBuff2,i, &
-                         MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                         MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       call MPI_ALLREDUCE(Glob_DkBuff1,Glob_DkBuff2,i*npt2, &
-                         MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                         MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       if (Glob_nfo>1) call MPI_ALLREDUCE(Glob_DlBuff1,Glob_DlBuff2,i*npt2, &
-                                         MPI_DPREC,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
+                                         MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
       ii=0
       do kk=kstart,Nmax
         if (kk==kstart) then
