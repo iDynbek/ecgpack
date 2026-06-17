@@ -29,8 +29,8 @@ In many practical situation one must save intermediate basis sets. This can be e
 
 ## Creating input files
 
-When a large basis needs to be generated it requires multiple actions (e.g. basis enlargements `BASIS_ENL` and cyclic optimizations `OPT_CYCLE`) that need to be repeated routinely. it may be tedious to manually write the sequence of corresponding commands and their multiple arguments. For this reason it is convenient to create a simple utility that creates a desired list of commands, or, even better, prepares a ready to use input file `inout.txt` to initiate calculations from scratch.
+When a large basis needs to be generated it requires multiple actions (e.g. basis enlargements `BASIS_ENL` and cyclic optimizations `OPT_CYCLE`) that need to be repeated routinely. It may be tedious to manually write the sequence of corresponding commands and their multiple arguments. For this reason it is convenient to create a simple utility that creates a desired list of commands, or, even better, prepares a ready to use input file `inout.txt` to initiate calculations from scratch.
 
-Directory `ecgpack/utilities/input_file_manipulation` contain a Python script that can be invoked to generate an input file for a desired system with a long list of repeated actions. One can modify this script as needed.
+Directory `ecgpack/utilities/input_file_manipulation` contains a Python script `ecg_input_file_generator.py` that can be invoked to generate an input file for a desired system with a long list of repeated actions. One can modify this script as needed.
 
 ## Restarting calculations that generate a basis
