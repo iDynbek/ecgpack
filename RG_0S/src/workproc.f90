@@ -8340,7 +8340,7 @@ contains
     if ((IsWFNeeded).and.(Glob_ProcID==0)) then
       write(*,'(1x,a)',advance='no') 'Saving wave function...'
       open(2,file=FileName4)
-      write(2,'(1x,a)') 'RGL0 WAVE FUNCTION FILE'
+      write(2,'(1x,a)') 'RG_0S WAVE FUNCTION FILE'
       write(2,'(1x,a9,1x,i6)') 'PARTICLES',Glob_n+1
       write(2,'(1x,a6)',advance='no') 'MASSES'
       call writerealarradv(2,Glob_Mass,Glob_n+1)
