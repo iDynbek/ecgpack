@@ -9,7 +9,7 @@ The RG_0S-1P code calculates only the **transition dipole moment**. It does **no
 The line strength and oscillator strength are calculated afterward in a separate post-processing step, for example in an Excel worksheet, using the calculated transition dipole moment, transition energy, and the required angular-momentum factors. For more information, see the folloinwg paper:
 https://doi.org/10.1103/qrtf-56np
 
-Only the wave-function files of the initial ($^2S^e$) and final ($^2P^o$) states are required when the transition code is executed. 
+Only the wave-function files of the initial ($S^e$) and final ($P^o$) states are required when the transition code is executed. 
 No input file such as `inout.txt` is required at that stage.
 
 The initial and final wave functions must correspond to the **same isotope** and must use the same particle masses and particle ordering.
@@ -31,26 +31,26 @@ The example files are organized in the following three folders:
 
 ```text
 transition_dipole_moment_He
-   initial_state_2Se-He/
-   final_state_2Po-He/
+   initial_state_Se-He/
+   final_state_Po-He/
    dipole_moment/
 
 transition_dipole_moment_Li
-   initial_state_2Se-Li/
-   final_state_2Po-Li/
+   initial_state_Se-Li/
+   final_state_Po-Li/
    dipole_moment/
 ```
 
 The folder contents are organized as follows:
 
-- `initial_state_2Se` contains the input files for generating initial-state wave function ($^2S^e$).
-- `final_state_2Po` contains the input files for generating the final-state wave function ($^2P^o$).
+- `initial_state_Se` contains the input file for generating initial-state wave function ($S^e$).
+- `final_state_Po` contains the input file for generating the final-state wave function ($P^o$).
 - `dipole_moment` contains the wave-function files required by the transition code and the resultant output file.
 
 
 ## 2. Save each wave function
 
-Add the following instruction to the corresponding `inout.txt` file used in each ECG state calculation:
+Add the following instruction to the corresponding `inout.txt` files used in each ECG state calculation:
 
 ```text
 SAVE_HSWF I 100 none none none wavefunction.txt
@@ -80,21 +80,21 @@ The `RG_0S-1P` transition code expects the following file names:
 
 Rename or copy the saved wave functions accordingly.
 
-Copy the generated wave functions from the initial- and final-state folders to the `transition_dipole_moment` folder and rename them accordingly.
+Copy the generated wave functions from the initial- and final-state folders to the `dipole_moment` folder and rename them accordingly.
 
 For example, when the three folders are located in the same parent directory:
 
 ```bash
 cd transition_dipole_moment_He
 cd dipole_moment
-cp ../initial_state_2Se-He/wavefunction.txt wf_state0.txt
-cp ../final_state_2Po-He/wavefunction.txt wf_state1.txt
+cp ../initial_state_Se-He/wavefunction.txt wf_state0.txt
+cp ../final_state_Po-He/wavefunction.txt wf_state1.txt
 ```
 
 
 ## 4. Prepare the working directory
 
-The `transition_dipole_moment` folder is the working directory for the transition calculation.
+The `dipole_moment` folder is the working directory for the transition calculation.
 Place the following files in this folder:
 
 ```text
@@ -108,7 +108,7 @@ An `inout.txt` file is not required in this directory because the transition cod
 Before the calculation, the directory should therefore contain at least:
 
 ```text
-transition_dipole_moment/
+dipole_moment/
 ├── RG_0S-1P
 ├── wf_state0.txt
 └── wf_state1.txt
@@ -159,9 +159,9 @@ For example, these calculations may be carried out in an Excel worksheet using:
 
 ```text
 
-Save the initial S-state wave function in initial_state_2Se                             
+Save the initial S-state wave function in initial_state_Se                             
                          +
-Save the final P-state wave function in final_state_2Po
+Save the final P-state wave function in final_state_Po
                          ↓
 Copy and rename the initial S-state wave function as
 dipole_moment/wf_state0.txt
