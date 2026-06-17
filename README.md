@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="doc/img/logo_and_name.svg" alt="ECG package logo" width="480">
+</p>
+
 # ECGPACK
 
 ## Description
