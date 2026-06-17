@@ -6,8 +6,7 @@ This calculation evaluates the **electric-dipole transition matrix element** bet
 
 The RG_0S-1P code calculates only the **transition dipole moment**. It does **not** calculate the line strength or oscillator strength directly.
 
-The line strength and oscillator strength are calculated afterward in a separate post-processing step, for example in an Excel worksheet, using the calculated transition dipole moment, transition energy, and the required angular-momentum factors.
-For more information, see the folloinwg paper:
+The line strength and oscillator strength are calculated afterward in a separate post-processing step, for example in an Excel worksheet, using the calculated transition dipole moment, transition energy, and the required angular-momentum factors. For more information, see the folloinwg paper:
 https://doi.org/10.1103/qrtf-56np
 
 Only the wave-function files of the initial ($^2S^e$) and final ($^2P^o$) states are required when the transition code is executed. 
@@ -31,16 +30,22 @@ The wave functions must be calculated for the same isotope and with consistent p
 The example files are organized in the following three folders:
 
 ```text
-initial_state_Li-2Se/
-final_state_Li-2Po/
-transition_dipole_moment/
+transition_dipole_moment_He
+   initial_state_2Se-He/
+   final_state_2Po-He/
+   dipole_moment/
+
+transition_dipole_moment_Li
+   initial_state_2Se-Li/
+   final_state_2Po-Li/
+   dipole_moment/
 ```
 
 The folder contents are organized as follows:
 
-- `initial_state_Li-2Se` contains the input files for generating initial-state wave function ($^2S^e$).
-- `final_state_Li-2Po` contains the input files for generating the final-state wave function ($^2P^o$).
-- `transition_dipole_moment` contains the wave-function files required by the transition code and the resultant output file.
+- `initial_state_2Se` contains the input files for generating initial-state wave function ($^2S^e$).
+- `final_state_2Po` contains the input files for generating the final-state wave function ($^2P^o$).
+- `dipole_moment` contains the wave-function files required by the transition code and the resultant output file.
 
 
 ## 2. Save each wave function
@@ -80,15 +85,16 @@ Copy the generated wave functions from the initial- and final-state folders to t
 For example, when the three folders are located in the same parent directory:
 
 ```bash
-cd transition_dipole_moment
-cp ../initial_state_Li-2Se/wavefunction.txt wf_state0.txt
-cp ../final_state_Li-2Po/wavefunction.txt wf_state1.txt
+cd transition_dipole_moment_He
+cd dipole_moment
+cp ../initial_state_2Se-He/wavefunction.txt wf_state0.txt
+cp ../final_state_2Po-He/wavefunction.txt wf_state1.txt
 ```
 
 
 ## 4. Prepare the working directory
 
-The `transition_dipole_moment` folder is the working directory for the transition calculation. 
+The `transition_dipole_moment` folder is the working directory for the transition calculation.
 Place the following files in this folder:
 
 ```text
@@ -108,12 +114,12 @@ transition_dipole_moment/
 └── wf_state1.txt
 ```
 
-After the calculation, the resultant output file is also generated in the `transition_dipole_moment` folder.
+After the calculation, the resultant output file is also generated in the `dipole_moment` folder.
 
 
 ## 5. Run the transition calculation
 
-Run the `RG_0S-1P` executable from the `transition_dipole_moment` working directory.
+Run the `RG_0S-1P` executable from the `dipole_moment` working directory.
 
 For example:
 
@@ -153,15 +159,15 @@ For example, these calculations may be carried out in an Excel worksheet using:
 
 ```text
 
-Save the initial S-state wave function in initial_state_Li-2Se                             
+Save the initial S-state wave function in initial_state_2Se                             
                          +
-Save the final P-state wave function in final_state_Li-2Po
+Save the final P-state wave function in final_state_2Po
                          ↓
 Copy and rename the initial S-state wave function as
-transition_dipole_moment/wf_state0.txt
+dipole_moment/wf_state0.txt
                          ↓
 Copy and rename the final P-state wave function as
-transition_dipole_moment/wf_state1.txt
+dipole_moment/wf_state1.txt
                          ↓
 Run RG_0S-1P in the transition_dipole_moment folder
                          ↓
