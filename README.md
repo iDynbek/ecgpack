@@ -19,11 +19,7 @@ The ECG project repository has the following directory structure:
 | Directory | Description |
 | -------- | -------- |
 | `ecgpack/` | Root directory |
-| `ecgpack/archive/` | An archive of some older versions of the ECG codes. This should normally not be used or looked at by anyone, unless you know what you are doing. |
-| `ecgpack/bin/` | Binary files for calculations (created by user) |
 | `ecgpack/CG_0S/` | The code for energy and wavefunction calculations with complex spherically symmetric Gaussians ($L=0$, even parity) that have the form $$\phi_k=\exp [ \mathbf{r}' (C_k \otimes \mathbf{I}) \mathbf{r}]=\exp [ \mathbf{r}' ((A_k+i B_k) \otimes \mathbf{I}) \mathbf{r}].$$ The CG_0S code is currently a work in progress and lags behind the corresponding RG_0S code in terms of features and the quality of the implementation. |
-| `ecgpack/doc/` | Directory containing manuals and documentation |
-| `ecgpack/jobs/` | Work directory for calculations (created by user) |
 | `ecgpack/RG_0S/` | The code for energy and wavefunction calculations with real spherically symmetric Gaussians ($L=0$, even parity) that have the form $$\phi_k=\exp [ \mathbf{r}' (A_k \otimes \mathbf{I}) \mathbf{r}].$$ |
 | `ecgpack/RG_0S-1P/` | The code for the calculation of the transition electric dipole moments for states that are expanded using RG_0S and RG_1P bases. Currently this includes the transition dipole moment operators in the length and velocity gauges. |
 | `ecgpack/RG_0S-2D/` | The code for the calculation of the offdiagonal matrix elements between states that are expanded using RG_0S and RG_2D bases. Currently this includes the evaluation of the spin--orbit and noncontact spin-spin interactions. |
@@ -37,7 +33,11 @@ The ECG project repository has the following directory structure:
 | `ecgpack/RG_2P/` | The code for energy and wavefunction calculations with real ECGs ($L=1$, even parity) that have the form $$\phi_k=(x_{i_k} y_{j_k} - x_{j_k} y_{i_k}) \exp [ \mathbf{r}' (A_k \otimes \mathbf{I}) \mathbf{r}].$$ |
 | `ecgpack/RG_2P-2D/` | The code for the calculation of the offdiagonal matrix elements between states that are expanded using RG_2P and RG_2D bases. Currently this includes the evaluation of the spin--orbit and noncontact spin-spin interactions. |
 | `ecgpack/RG_2P-2P/` | The code for the calculation of the offdiagonal matrix elements between states that are expanded using RG_2P and RG_2P bases. Currently this includes the evaluation of the spin--orbit and noncontact spin-spin interactions. |
-| `ecgpack/utilities/` | Various utilities |
+| `ecgpack/archive/` | An archive of some older versions of the ECG codes. This should normally not be used or looked at by anyone, unless you know what you are doing. |
+| `ecgpack/bin/` | Binary files for calculations (may be created by user) |
+| `ecgpack/doc/` | Directory containing manuals and documentation |
+| `ecgpack/jobs/` | Work directory for calculations (may be created by user) |
+| `ecgpack/utilities/` | Various utilities and scripts |
 
 Each directory with a code contains a `Makefile` and a subdirectory `src` with the actual source. The source structure and the structure of the makefiles are very similar for all codes. In fact, some of the makefiles for different codes in the collection are identical. Each directory with a code also contains an identical subdirectory `.vscode` with standard JSON configuration files for Microsoft Visual Studio Code (VSCode). These are user-independent and provide the capability to build and debug each code in its directory using VSCode.
 
