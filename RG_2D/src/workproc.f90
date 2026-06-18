@@ -93,6 +93,47 @@ contains
     Glob_2Raised3n2=TWO**((3*Glob_n)/TWO)
     Glob_PiRaised3n2=Glob_Pi**((3*Glob_n)/TWO)
 
+!Read the optional FIXED_INDEX_1 and FIXED_INDEX_2 lines that may appear between
+!the PARTICLES and MASSES lines (in any order). As with the other optional
+!descriptors, each record is read into a buffer first and parsed internally so
+!that backspace 1 reliably pushes the line back if it turns out not to be a
+!FIXED_INDEX_1/FIXED_INDEX_2 line.
+    if (Glob_ProcID==0) then
+      do i=1,2
+        read(1,'(A)',iostat=ReadLineErr) ReadLine
+        if (ReadLineErr/=0) exit
+        read(ReadLine,*,iostat=ReadErr) ReadChar(1:13),ReadInt
+        if ((ReadErr==0).and.(ReadChar(1:13)=='FIXED_INDEX_1')) then
+          Glob_IsIndexFixed(1)=.true.
+          Glob_IndexFixedValue(1)=ReadInt
+          write(*,'(1x,a13,1x,i6)') ReadChar(1:13),Glob_IndexFixedValue(1)
+          Line=Line+1
+          if ((Glob_IndexFixedValue(1)<1).or.(Glob_IndexFixedValue(1)>Glob_n)) then
+            write(*,*) 'Error in data file, line ',Line
+            write(*,*) 'FIXED_INDEX_1 value must be in the range from 1 to',Glob_n
+            ErrorInDataFile=.true.
+          endif
+        elseif ((ReadErr==0).and.(ReadChar(1:13)=='FIXED_INDEX_2')) then
+          Glob_IsIndexFixed(2)=.true.
+          Glob_IndexFixedValue(2)=ReadInt
+          write(*,'(1x,a13,1x,i6)') ReadChar(1:13),Glob_IndexFixedValue(2)
+          Line=Line+1
+          if ((Glob_IndexFixedValue(2)<1).or.(Glob_IndexFixedValue(2)>Glob_n)) then
+            write(*,*) 'Error in data file, line ',Line
+            write(*,*) 'FIXED_INDEX_2 value must be in the range from 1 to',Glob_n
+            ErrorInDataFile=.true.
+          endif
+        else
+          backspace 1
+          exit
+        endif
+      enddo
+    endif
+    call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    if (ErrorInDataFile) stop
+    call MPI_BCAST(Glob_IsIndexFixed,2,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_IndexFixedValue,2,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+
     allocate(Glob_Mass(Glob_n+1))
     if (Glob_ProcID==0) then
       read(1,*) ReadChar(1:6),Glob_Mass(1:Glob_n+1)
@@ -583,6 +624,8 @@ contains
       endif
       if (Glob_BasisTypeSupplied) write(1,'(1x,a10,1x,a5)') 'BASIS_TYPE',Glob_BasisType
       write(1,'(1x,a9,1x,i6)') 'PARTICLES',Glob_n+1
+      if (Glob_IsIndexFixed(1)) write(1,'(1x,a13,1x,i6)') 'FIXED_INDEX_1',Glob_IndexFixedValue(1)
+      if (Glob_IsIndexFixed(2)) write(1,'(1x,a13,1x,i6)') 'FIXED_INDEX_2',Glob_IndexFixedValue(2)
       write(1,'(1x,a6)',advance='no') 'MASSES'
       call writerealarradv(1,Glob_Mass,Glob_n+1)
       write(1,'(1x,a7)',advance='no') 'CHARGES'
@@ -1834,6 +1877,14 @@ contains
         endif
       endif
     endif
+
+    !If any of the indices are fixed then we set them to the fixed values
+    if (Glob_IsIndexFixed(1)) then
+      m(1:nfun,1)=Glob_IndexFixedValue(1)
+    endif
+    if (Glob_IsIndexFixed(2)) then
+      m(1:nfun,2)=Glob_IndexFixedValue(2)
+    endif   
 
   end subroutine GenerateTrialParam
 
@@ -4062,70 +4113,72 @@ contains
           enddo
         case(1)
 
-          !We first optimize Z-indices
+          !We first optimize indices (if they are not fixed)
           NumOfFailures=0
           !Generate a random sequence which will define the order in which
-          !Z-indices should be optimized (one index at a time)
+          !indices should be optimized (one index at a time)
           call GenerateRndIntSeq(nfo,IndOptSequence)
-          !Loop where Z-indices are optimized. Note: there is some room for improvement
-          !here as I programmed it in a simple way when all matrix element of functions
+          !Loop where the indices are optimized. Note: there is some room for improvement
+          !here it is programmed in a simple way when all matrix element of functions
           !nfrup1 through K are computed each time while it is not always necessary.
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           do i=1,nfo
             ii=IndOptSequence(i) !!  ii should be the same for two indices
             j=Glob_Index(nfru+ii,1)
             j2=Glob_Index(nfru+ii,2)
             jbest=j
             jbest2=j2
-            do jj=1,Glob_n
-              if (jj/=j ) then  !.and. jj/=j2
-                Glob_Index(nfru+ii,1)=jj
-                Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
-                if (ErrCode/=0) then
-                  NumOfFailures=NumOfFailures+1
-                  Glob_Index(nfru+ii,1)=jbest
-                  if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
-                    if (Glob_ProcID==0) then
-                      write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
-                      write(*,*) 'during the optimization of x-indicies exceeded limit'
+            if (.not.Glob_IsIndexFixed(1)) then
+              do jj=1,Glob_n
+                if (jj/=j) then !.and. jj/=j2
+                  Glob_Index(nfru+ii,1)=jj
+                  Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
+                  if (ErrCode/=0) then
+                    NumOfFailures=NumOfFailures+1
+                    Glob_Index(nfru+ii,1)=jbest
+                    if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
+                      if (Glob_ProcID==0) then
+                        write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
+                        write(*,*) 'during the optimization of x-indicies exceeded limit'
+                      endif
+                      stop
                     endif
-                    stop
-                  endif
-                else
-                  if (Evalue<Glob_CurrEnergy) then
-                    Glob_CurrEnergy=Evalue
-                    jbest=jj
+                  else
+                    if (Evalue<Glob_CurrEnergy) then
+                      Glob_CurrEnergy=Evalue
+                      jbest=jj
+                    endif
                   endif
                 endif
-              endif
-            enddo
+              enddo
+            endif
             Glob_Index(nfru+ii,1)=jbest
-            NumOfFailures=0
-            do jj2=1,Glob_n
-              if (jj2/=j2) then !.and. jj2/=jbest
-                Glob_Index(nfru+ii,2)=jj2
-                Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
-                if (ErrCode/=0) then
-                  NumOfFailures=NumOfFailures+1
-                  Glob_Index(nfru+ii,2)=jbest2
-                  if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
-                    if (Glob_ProcID==0) then
-                      write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
-                      write(*,*) 'during the optimization of y-indicies exceeded limit'
+            if (.not.Glob_IsIndexFixed(2)) then
+              do jj2=1,Glob_n
+                if (jj2/=j2) then ! .and. jj2/=jbest
+                  Glob_Index(nfru+ii,2)=jj2
+                  Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
+                  if (ErrCode/=0) then
+                    NumOfFailures=NumOfFailures+1
+                    Glob_Index(nfru+ii,2)=jbest2
+                    if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
+                      if (Glob_ProcID==0) then
+                        write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
+                        write(*,*) 'during the optimization of y-indicies exceeded limit'
+                      endif
+                      stop
                     endif
-                    stop
-                  endif
-                else
-                  if (Evalue<Glob_CurrEnergy) then
-                    Glob_CurrEnergy=Evalue
-                    jbest2=jj2
+                  else
+                    if (Evalue<Glob_CurrEnergy) then
+                      Glob_CurrEnergy=Evalue
+                      jbest2=jj2
+                    endif
                   endif
                 endif
-              endif
-            enddo
+              enddo
+            endif
             Glob_Index(nfru+ii,2)=jbest2
           enddo
-
+          
           !Now we optimize nonlinear parameters
 
           !Setting IV and V values as was in their initial copies
@@ -4727,69 +4780,72 @@ contains
           enddo
         case(1)
 
-          !We first optimize Z-indices
+          !We first optimize indices (if they are not fixed)
           NumOfFailures=0
           !Generate a random sequence which will define the order in which
-          !x,y,z-indices should be optimized (one index at a time)
+          !indices should be optimized (one index at a time)
           call GenerateRndIntSeq(nfo,IndOptSequence)
-          !Loop where Z-indices are optimized. Note: there is some room for improvement
-          !here as I programmed it in a simple way when all matrix element of functions
+          !Loop where the indices are optimized. Note: there is some room for improvement
+          !here it is programmed in a simple way when all matrix element of functions
           !nfrup1 through K are computed each time while it is not always necessary.
-       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           do i=1,nfo
             ii=IndOptSequence(i) !!  ii should be the same for two indices
             j=Glob_Index(nfru+ii,1)
             j2=Glob_Index(nfru+ii,2)
             jbest=j
             jbest2=j2
-            do jj=1,Glob_n
-              if (jj/=j) then !.and. jj/=j2
-                Glob_Index(nfru+ii,1)=jj
-                Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
-                if (ErrCode/=0) then
-                  NumOfFailures=NumOfFailures+1
-                  Glob_Index(nfru+ii,1)=jbest
-                  if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
-                    if (Glob_ProcID==0) then
-                      write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
-                      write(*,*) 'during the optimization of x-indicies exceeded limit'
+            if (.not.Glob_IsIndexFixed(1)) then
+              do jj=1,Glob_n
+                if (jj/=j) then !.and. jj/=j2
+                  Glob_Index(nfru+ii,1)=jj
+                  Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
+                  if (ErrCode/=0) then
+                    NumOfFailures=NumOfFailures+1
+                    Glob_Index(nfru+ii,1)=jbest
+                    if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
+                      if (Glob_ProcID==0) then
+                        write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
+                        write(*,*) 'during the optimization of x-indicies exceeded limit'
+                      endif
+                      stop
                     endif
-                    stop
-                  endif
-                else
-                  if (Evalue<Glob_CurrEnergy) then
-                    Glob_CurrEnergy=Evalue
-                    jbest=jj
+                  else
+                    if (Evalue<Glob_CurrEnergy) then
+                      Glob_CurrEnergy=Evalue
+                      jbest=jj
+                    endif
                   endif
                 endif
-              endif
-            enddo
+              enddo
+            endif
             Glob_Index(nfru+ii,1)=jbest
-            NumOfFailures=0
-            do jj2=1,Glob_n
-              if (jj2/=j2) then ! .and. jj2/=jbest
-                Glob_Index(nfru+ii,2)=jj2
-                Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
-                if (ErrCode/=0) then
-                  NumOfFailures=NumOfFailures+1
-                  Glob_Index(nfru+ii,2)=jbest2
-                  if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
-                    if (Glob_ProcID==0) then
-                      write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
-                      write(*,*) 'during the optimization of y-indicies exceeded limit'
+            if (.not.Glob_IsIndexFixed(2)) then
+              do jj2=1,Glob_n
+                if (jj2/=j2) then ! .and. jj2/=jbest
+                  Glob_Index(nfru+ii,2)=jj2
+                  Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
+                  if (ErrCode/=0) then
+                    NumOfFailures=NumOfFailures+1
+                    Glob_Index(nfru+ii,2)=jbest2
+                    if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
+                      if (Glob_ProcID==0) then
+                        write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
+                        write(*,*) 'during the optimization of y-indicies exceeded limit'
+                      endif
+                      stop
                     endif
-                    stop
-                  endif
-                else
-                  if (Evalue<Glob_CurrEnergy) then
-                    Glob_CurrEnergy=Evalue
-                    jbest2=jj2
+                  else
+                    if (Evalue<Glob_CurrEnergy) then
+                      Glob_CurrEnergy=Evalue
+                      jbest2=jj2
+                    endif
                   endif
                 endif
-              endif
-            enddo
+              enddo
+            endif
             Glob_Index(nfru+ii,2)=jbest2
           enddo
+
           !Now we optimize nonlinear parameters
 
           !Setting IV and V values as was in their initial copies

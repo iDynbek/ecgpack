@@ -93,6 +93,32 @@ contains
     Glob_2Raised3n2=TWO**((3*Glob_n)/TWO)
     Glob_PiRaised3n2=Glob_Pi**((3*Glob_n)/TWO)
 
+!Read the optional FIXED_INDEX line that may appear between the PARTICLES and
+!MASSES lines. As with the other optional descriptors, the record is read into
+!a buffer first and parsed internally so that backspace 1 reliably pushes the
+!line back if it turns out not to be a FIXED_INDEX line.
+    if (Glob_ProcID==0) then
+      read(1,'(A)',iostat=ReadLineErr) ReadLine
+      if (ReadLineErr==0) read(ReadLine,*,iostat=ReadErr) ReadChar(1:11),ReadInt
+      if ((ReadLineErr==0).and.(ReadErr==0).and.(ReadChar(1:11)=='FIXED_INDEX')) then
+        Glob_IsIndexFixed=.true.
+        Glob_IndexFixedValue=ReadInt
+        write(*,'(1x,a11,1x,i6)') ReadChar(1:11),Glob_IndexFixedValue
+        Line=Line+1
+        if ((Glob_IndexFixedValue<1).or.(Glob_IndexFixedValue>Glob_n)) then
+          write(*,*) 'Error in data file, line ',Line
+          write(*,*) 'FIXED_INDEX value must be in the range from 1 to',Glob_n
+          ErrorInDataFile=.true.
+        endif
+      else
+        if (ReadLineErr==0) backspace 1
+      endif
+    endif
+    call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    if (ErrorInDataFile) stop
+    call MPI_BCAST(Glob_IsIndexFixed,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    call MPI_BCAST(Glob_IndexFixedValue,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+
     allocate(Glob_Mass(Glob_n+1))
     if (Glob_ProcID==0) then
       read(1,*) ReadChar(1:6),Glob_Mass(1:Glob_n+1)
@@ -593,6 +619,7 @@ contains
       endif
       if (Glob_BasisTypeSupplied) write(1,'(1x,a10,1x,a5)') 'BASIS_TYPE',Glob_BasisType
       write(1,'(1x,a9,1x,i6)') 'PARTICLES',Glob_n+1
+      if (Glob_IsIndexFixed) write(1,'(1x,a11,1x,i6)') 'FIXED_INDEX',Glob_IndexFixedValue
       write(1,'(1x,a6)',advance='no') 'MASSES'
       call writerealarradv(1,Glob_Mass,Glob_n+1)
       write(1,'(1x,a7)',advance='no') 'CHARGES'
@@ -1827,6 +1854,9 @@ contains
         endif
       endif
     endif
+
+    !If the z-index is fixed then we set it to the fixed value
+    if (Glob_IsIndexFixed) m(1:nfun)=Glob_IndexFixedValue
 
   end subroutine GenerateTrialParam
 
@@ -4012,42 +4042,44 @@ contains
           enddo
         case(1)
 
-          !We first optimize Z-indices
+          !We first optimize Z-indices (if they are not fixed)
           NumOfFailures=0
-          !Generate a random sequence which will define the order in which
-          !Z-indices should be optimized (one index at a time)
-          call GenerateRndIntSeq(nfo,ZIndOptSequence)
-          !Loop where Z-indices are optimized. Note: there is some room for improvement
-          !here as I programmed it in a simple way when all matrix element of functions
-          !nfrup1 through K are computed each time while it is not always necessary.
-          do i=1,nfo
-            ii=ZIndOptSequence(i)
-            j=Glob_ZIndex(nfru+ii)
-            jbest=j
-            do jj=1,Glob_n
-              if (jj/=j) then
-                Glob_ZIndex(nfru+ii)=jj
-                Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
-                if (ErrCode/=0) then
-                  NumOfFailures=NumOfFailures+1
-                  Glob_ZIndex(nfru+ii)=jbest
-                  if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
-                    if (Glob_ProcID==0) then
-                      write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
-                      write(*,*) 'during the optimization of Z-indicies exceeded limit'
+          if (.not.Glob_IsIndexFixed) then
+            !Generate a random sequence which will define the order in which
+            !Z-indices should be optimized (one index at a time)
+            call GenerateRndIntSeq(nfo,ZIndOptSequence)
+            !Loop where Z-indices are optimized. Note: there is some room for improvement
+            !here as I programmed it in a simple way when all matrix element of functions
+            !nfrup1 through K are computed each time while it is not always necessary.
+            do i=1,nfo
+              ii=ZIndOptSequence(i)
+              j=Glob_ZIndex(nfru+ii)
+              jbest=j
+              do jj=1,Glob_n
+                if (jj/=j) then
+                  Glob_ZIndex(nfru+ii)=jj
+                  Evalue=EnergyGA(nfrup1,K,.true.,ErrCode)
+                  if (ErrCode/=0) then
+                    NumOfFailures=NumOfFailures+1
+                    Glob_ZIndex(nfru+ii)=jbest
+                    if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
+                      if (Glob_ProcID==0) then
+                        write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
+                        write(*,*) 'during the optimization of Z-indicies exceeded limit'
+                      endif
+                      stop
                     endif
-                    stop
-                  endif
-                else
-                  if (Evalue<Glob_CurrEnergy) then
-                    Glob_CurrEnergy=Evalue
-                    jbest=jj
+                  else
+                    if (Evalue<Glob_CurrEnergy) then
+                      Glob_CurrEnergy=Evalue
+                      jbest=jj
+                    endif
                   endif
                 endif
-              endif
+              enddo
+              Glob_ZIndex(nfru+ii)=jbest
             enddo
-            Glob_ZIndex(nfru+ii)=jbest
-          enddo
+          endif
 
           !Now we optimize nonlinear parameters
 
@@ -4631,42 +4663,44 @@ contains
           enddo
         case(1)
 
-          !We first optimize Z-indices
+          !We first optimize Z-indices (if they are not fixed)
           NumOfFailures=0
-          !Generate a random sequence which will define the order in which
-          !Z-indices should be optimized (one index at a time)
-          call GenerateRndIntSeq(nfo,ZIndOptSequence)
-          !Loop where Z-indices are optimized. Note: there is some room for improvement
-          !here as I programmed it in a simple way when all matrix element of functions
-          !nfrup1 through K are computed each time while it is not always necessary.
-          do i=1,nfo
-            ii=ZIndOptSequence(i)
-            j=Glob_ZIndex(nfru+ii)
-            jbest=j
-            do jj=1,Glob_n
-              if (jj/=j) then
-                Glob_ZIndex(nfru+ii)=jj
-                Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
-                if (ErrCode/=0) then
-                  NumOfFailures=NumOfFailures+1
-                  Glob_ZIndex(nfru+ii)=jbest
-                  if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
-                    if (Glob_ProcID==0) then
-                      write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
-                      write(*,*) 'during the optimization of Z-indicies exceeded limit'
+          if (.not.Glob_IsIndexFixed) then
+            !Generate a random sequence which will define the order in which
+            !Z-indices should be optimized (one index at a time)
+            call GenerateRndIntSeq(nfo,ZIndOptSequence)
+            !Loop where Z-indices are optimized. Note: there is some room for improvement
+            !here as I programmed it in a simple way when all matrix element of functions
+            !nfrup1 through K are computed each time while it is not always necessary.
+            do i=1,nfo
+              ii=ZIndOptSequence(i)
+              j=Glob_ZIndex(nfru+ii)
+              jbest=j
+              do jj=1,Glob_n
+                if (jj/=j) then
+                  Glob_ZIndex(nfru+ii)=jj
+                  Evalue=EnergyIA(nfrup1,K,.true.,ErrCode)
+                  if (ErrCode/=0) then
+                    NumOfFailures=NumOfFailures+1
+                    Glob_ZIndex(nfru+ii)=jbest
+                    if (NumOfFailures>Glob_MaxEnergyFailsAllowed) then
+                      if (Glob_ProcID==0) then
+                        write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
+                        write(*,*) 'during the optimization of Z-indicies exceeded limit'
+                      endif
+                      stop
                     endif
-                    stop
-                  endif
-                else
-                  if (Evalue<Glob_CurrEnergy) then
-                    Glob_CurrEnergy=Evalue
-                    jbest=jj
+                  else
+                    if (Evalue<Glob_CurrEnergy) then
+                      Glob_CurrEnergy=Evalue
+                      jbest=jj
+                    endif
                   endif
                 endif
-              endif
+              enddo
+              Glob_ZIndex(nfru+ii)=jbest
             enddo
-            Glob_ZIndex(nfru+ii)=jbest
-          enddo
+          endif
 
           !Now we optimize nonlinear parameters
 

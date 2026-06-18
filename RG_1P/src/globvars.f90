@@ -168,6 +168,14 @@ module globvars
 !of the basis functions. The indices generally range from 1 to Glob_n
   integer,allocatable,dimension(:),save :: Glob_ZIndex
 
+!Logical variable Glob_IsIndexFixed specifies if the z-indices of 
+!basis functions are fixed
+  logical :: Glob_IsIndexFixed = .false.
+
+!If Glob_IsIndexFixed=.true. then the value of z-index is stored in
+!Glob_IndexFixedValue. Otherwise, Glob_IndexFixedValue is not used.
+  integer :: Glob_IndexFixedValue
+
 !Array Glob_FuncNum contains the basis function numbers
   integer,allocatable,dimension(:),save :: Glob_FuncNum
 
