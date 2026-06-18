@@ -1144,7 +1144,7 @@ C  ***  MATRIX STORED COMPACTLY BY ROWS.  X AND Y MAY OCCUPY THE SAME
 C  ***  STORAGE.  ***
 C
       INTEGER N
-      REAL(wp) X(N), L(1), Y(N)
+      REAL(wp) X(N), L(*), Y(N)
       INTEGER I, II, IJ, IM1, I0, J, NP1
       REAL(wp) XI, ZERO
 C/6
@@ -1182,7 +1182,7 @@ C  ***  MATRIX STORED COMPACTLY BY ROWS.  X AND Y MAY OCCUPY THE SAME
 C  ***  STORAGE.  ***
 C
       INTEGER N
-      REAL(wp) X(N), L(1), Y(N)
+      REAL(wp) X(N), L(*), Y(N)
       REAL(wp) DD7TPR
       EXTERNAL DD7TPR
       INTEGER I, J, K
@@ -1218,7 +1218,7 @@ C  ***  TRIANGULAR MATRIX STORED COMPACTLY BY ROWS.  X AND Y MAY
 C  ***  OCCUPY THE SAME STORAGE.  ***
 C
       INTEGER N
-      REAL(wp) X(N), L(1), Y(N)
+      REAL(wp) X(N), L(*), Y(N)
 C     DIMENSION L(N*(N+1)/2)
       INTEGER I, IJ, I0, J
       REAL(wp) YI, ZERO
@@ -1249,7 +1249,7 @@ C
 C  ***  PARAMETER DECLARATIONS  ***
 C
       INTEGER N
-      REAL(wp) BETA(N), GAMMA(N), L(1), LAMBDA(N), LPLUS(1),
+      REAL(wp) BETA(N), GAMMA(N), L(*), LAMBDA(N), LPLUS(*),
      1                 W(N), Z(N)
 C     DIMENSION L(N*(N+1)/2), LPLUS(N*(N+1)/2)
 C
@@ -1392,7 +1392,7 @@ C  ***  MATRIX STORED COMPACTLY BY ROWS.  X AND Y MAY OCCUPY THE SAME
 C  ***  STORAGE.  ***
 C
       INTEGER N
-      REAL(wp) X(N), L(1), Y(N)
+      REAL(wp) X(N), L(*), Y(N)
 C     DIMENSION L(N*(N+1)/2)
       INTEGER I, II, IJ, I0, J, NP1
       REAL(wp) T, ZERO
@@ -3010,7 +3010,7 @@ C
 C  ***  COMPUTE  Y  AND  Z  FOR  DL7UPD  CORRESPONDING TO BFGS UPDATE.
 C
       INTEGER N
-      REAL(wp) L(1), S(N), W(N), Y(N), Z(N)
+      REAL(wp) L(*), S(N), W(N), Y(N), Z(N)
 C     DIMENSION L(N*(N+1)/2)
 C
 C--------------------------  PARAMETER USAGE  --------------------------

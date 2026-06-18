@@ -3843,6 +3843,9 @@ contains
 !real(wp)                                 deltax,Evalue1,Evalue_plus_2h,Evalue_minus_2h
 !====================================================
 
+    wbfu_t=0
+    wmu_t=0
+
     if (Glob_ProcID==0) then
       write(*,*)
       write(*,*)  'Routine BasisEnlG has started'
@@ -4506,6 +4509,9 @@ contains
 !real(wp),allocatable,dimension(:)     ::    fx,fgrad,fgrad_5_points
 !real(wp)                                    deltax,Evalue1,Evalue_plus_2h,Evalue_minus_2h
 !====================================================
+
+    wbfu_t=0
+    wmu_t=0
 
     if (Glob_ProcID==0) then
       write(*,*)
@@ -6238,6 +6244,8 @@ contains
 !real(wp)                              deltax,Evalue1,Evalue_plus_2h,Evalue_minus_2h,res_5_point
 !!====================================================
 
+    IsHessFileOK=.false.
+
     if (OverlapThreshold>=ONE) then
       Glob_OverlapPenaltyAllowed=.false.
     else
@@ -6723,6 +6731,8 @@ contains
     integer                 LV
     integer                 ALG
     integer                 IVLMAT
+
+    IsHessFileOK=.false.
 
     if (OverlapThreshold>=ONE) then
       Glob_OverlapPenaltyAllowed=.false.

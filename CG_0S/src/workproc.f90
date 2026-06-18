@@ -3603,6 +3603,9 @@ contains
     real(wp),allocatable,dimension(:,:)          :: TempParam
     integer,allocatable,dimension(:)                :: TempFunc
 
+    wbfu_t=0
+    wmu_t=0
+
     if (Glob_ProcID==0) then
       write(*,*)
       write(*,*)  'Routine BasisEnlG has started'
@@ -4164,6 +4167,9 @@ contains
 !real(wp),allocatable,dimension(:)     ::    fx,fgrad
 !real(wp)                                    deltax,Evalue1
 !====================================================
+
+    wbfu_t=0
+    wmu_t=0
 
     if (Glob_ProcID==0) then
       write(*,*)
@@ -5809,6 +5815,8 @@ contains
 !real(wp)                                    gar1,gai1,gar2,gai2,gnr,gni
 !!====================================================
 
+    IsHessFileOK=.false.
+
     if (OverlapThreshold>=ONE) then
       Glob_OverlapPenaltyAllowed=.false.
     else
@@ -6353,6 +6361,8 @@ contains
     integer                 LV
     integer                 ALG
     integer                 IVLMAT
+
+    IsHessFileOK=.false.
 
     if (OverlapThreshold>=ONE) then
       Glob_OverlapPenaltyAllowed=.false.
