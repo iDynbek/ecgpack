@@ -31,7 +31,7 @@ The calculated velocity-form momentum matrix element is purely imaginary and is 
 $$
 \left\langle S^e \middle| P_z \middle| P^o \right\rangle
 =
-i\,0.314\,193\,144.
+0.314\,193\,144\;i.
 $$
 
 The corresponding line strengths and oscillator strengths are evaluated separately during the post-processing step, for example using an Excel worksheet.

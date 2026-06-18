@@ -49,7 +49,7 @@ The folder contents are organized as follows:
 Add the following instruction to the corresponding `inout.txt` files used in each ECG state calculation:
 
 ```text
-SAVE_HSWF I 100 none none none wavefunction.txt
+SAVE_HSWF I 10 none none none wavefunction.txt
 ```
 
 The relevant arguments are:
@@ -58,7 +58,7 @@ The relevant arguments are:
 |---|---|
 | `SAVE_HSWF` | Keyword for writing the wave function |
 | `I` | Eigensolver type |
-| `100` | Number of ECG basis functions |
+| `10` | Number of ECG basis functions |
 | `wavefunction.txt` | Name of the saved wave-function file |
 
 The basis-set size specified in the `SAVE_HSWF` instruction must be consistent with the wave function being saved.

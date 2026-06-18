@@ -17,7 +17,7 @@ The initial and final wave functions must correspond to the **same isotope** and
 Otherwise, the transition dipole moment calculation will fail or the resulting matrix element will not be physically meaningful.
 
 
-## 1. Required files 
+## 1. Required files
 
 Two independently optimized ECG wave functions are required:
 
