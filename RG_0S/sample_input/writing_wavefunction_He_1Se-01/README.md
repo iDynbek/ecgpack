@@ -2,10 +2,10 @@
 
 ## Description
 
-The sample `inout.txt` file in this directory defines a basis of 10 ECG functions for the lowest $^1P^o$ state of the helium atom (assuming infinite nuclear mass). 
+The sample `inout.txt` file in this directory defines a basis of 10 ECG functions for the lowest $^1S^e$ state of the helium atom (assuming infinite nuclear mass).
 Running it generates the wave-function expansion and writes it to a separate file whose name is specified in the input (`wavefunction.txt`).
 
-On a single CPU core, the calculation takes approximately 1 seconds in double precision (gfortran compiler, AMD Ryzen 7 7800X3D).
+On a single CPU core, the calculation takes approximately 1 second in double precision (gfortran compiler, AMD Ryzen 7 7800X3D).
 
 ## The `SAVE_HSWF` instruction
 
