@@ -2,15 +2,15 @@
 
 ## Description
 
-This calculation evaluates the **electric-dipole transition matrix element** between the initial $2~^2S^e$ state and the final $2~^2P^o$ state of the lithim atom using the ECG transition dipole moment code.
+This calculation evaluates the **electric-dipole transition matrix element** between the initial $2~^2S^e$ state and the final $2~^2P^o$ state of the lithium atom using the ECG transition dipole moment code.
 
-The RG_0S-1P code calculates only the **transition dipole moment**. It does **not** calculate the line strength or oscillator strength directly.
+The `RG_0S-1P` code calculates only the **transition matrix elements** (the length-form coordinate matrix element and the velocity-form momentum matrix element). It does **not** calculate the line strength or oscillator strength directly.
 
-The line strength and oscillator strength are calculated afterward in a separate post-processing step, for example in an Excel worksheet, using the calculated transition dipole moment, transition energy, and the required angular-momentum factors. For the definitions of the reduced transition matrix elements, line strengths, and length- and velocity-form oscillator strengths, see:
+The line strength and oscillator strength are calculated afterward in a separate post-processing step, for example in an Excel worksheet, using the calculated transition matrix elements, transition energy, and the required angular-momentum factors. For the definitions of the reduced transition matrix elements, line strengths, and length- and velocity-form oscillator strengths, see:
 
 S. Nasiri, L. Adamowicz, and S. Bubin, *Physical Review A* **112**, 062809 (2025), https://doi.org/10.1103/qrtf-56np.
 
-Only the wave-function files of the initial ($S^e$) and final ($P^o$) states are required when the transition code is executed. 
+Only the wave-function files of the initial ($S^e$) and final ($P^o$) states are required when the transition code is executed.
 No input file such as `inout.txt` is required at that stage.
 
 The initial and final wave functions must correspond to the **same isotope** and must use the same particle masses and particle ordering.
@@ -28,40 +28,10 @@ Two independently optimized ECG wave functions are required:
 
 The wave functions must be calculated for the same isotope and with consistent physical parameters.
 
-The example files are organized in the following three folders:
-
-```text
-transition_dipole_moment_He
-   initial_state_Li-2Se/
-   final_state_Li-2Po/
-   dipole_moment/
-```
-
-The folder contents are organized as follows:
-
-- `initial_state_Li-2Se` contains the input file for generating initial-state wave function ($2~^2S^e$).
-- `final_state_Li-2Po` contains the input file for generating the final-state wave function ($2~^2P^o$).
-- `dipole_moment` contains the wave-function files required by the transition code.
-
 
 ## 2. Save each wave function
 
-Add the following instruction to the corresponding `inout.txt` files used in each ECG state calculation:
-
-```text
-SAVE_HSWF I 100 none none none wavefunction.txt
-```
-
-The relevant arguments are:
-
-| Argument | Description |
-|---|---|
-| `SAVE_HSWF` | Keyword for writing the wave function |
-| `I` | Eigensolver type |
-| `100` | Number of ECG basis functions |
-| `wavefunction.txt` | Name of the saved wave-function file |
-
-The basis-set size specified in the `SAVE_HSWF` instruction must be consistent with the wave function being saved.
+In the example directories in the `RG_0S` and `RG_1P` codes, there is a `writing_wavefunction` folder. The input files in those directories can be used to compute the wave function.
 Run the $S^e$-state and $P^o$-state calculations separately and save both wave functions.
 
 
@@ -76,21 +46,12 @@ The `RG_0S-1P` transition code expects the following file names:
 
 Rename or copy the saved wave functions accordingly.
 
-Copy the generated wave functions from the initial- and final-state folders to the `dipole_moment` folder and rename them accordingly.
-
-For example, when the three folders are located in the same parent directory:
-
-```bash
-cd transition_dipole_moment_Li
-cd dipole_moment
-cp ../initial_state_Li-2Se/wavefunction.txt wf_state0.txt
-cp ../final_state_Li-2Po/wavefunction.txt wf_state1.txt
-```
+Copy the generated wave functions from the initial- and final-state folders into the `transition_dipole_moment_Li` working directory and rename them accordingly.
 
 
 ## 4. Prepare the working directory
 
-The `dipole_moment` folder is the working directory for the transition calculation.
+The `transition_dipole_moment_Li` folder is the working directory for the transition calculation.
 Place the following files in this folder:
 
 ```text
@@ -104,23 +65,23 @@ An `inout.txt` file is not required in this directory because the transition cod
 Before the calculation, the directory should therefore contain at least:
 
 ```text
-dipole_moment/
+transition_dipole_moment_Li/
 ├── RG_0S-1P
 ├── wf_state0.txt
 └── wf_state1.txt
 ```
 
-After the calculation, the resultant output file is also generated in the `dipole_moment` folder.
+After the calculation, the result is presented in the terminal, or can be written to a file (see Section 5).
 
 
 ## 5. Run the transition calculation
 
-Run the `RG_0S-1P` executable from the `dipole_moment` working directory.
+Run the `RG_0S-1P` executable from the `transition_dipole_moment_Li` working directory.
 
 For example:
 
 ```bash
-./RG_0S-1P >  out.txt
+./RG_0S-1P > out.txt
 ```
 
 The program reads:
@@ -130,21 +91,20 @@ wf_state0.txt
 wf_state1.txt
 ```
 
-and calculates the transition dipole moment for the $S^e\rightarrow P^o$ transition.
+and calculates the transition matrix elements for the $S^e\rightarrow P^o$ transition.
 
 
-## 6. Use the calculated transition dipole moment
+## 6. Use the calculated transition matrix elements
 
-The result obtained from `RG_0S-1P` is the transition dipole moment associated with the selected component of the electric-dipole operator.
+The results obtained from `RG_0S-1P` are the transition matrix elements associated with the selected components of the electric-dipole operator: the $z$ component in the length gauge and the $P_z$ component in the velocity gauge.
 
-For the standard $S^e\rightarrow P^o$ calculation using the $z$ component, the directly calculated matrix element is converted to the orbital reduced transition dipole moment using the appropriate angular factor.
-
-The orbital reduced transition matrix element is first obtained from the calculated component using the appropriate angular-momentum factor.
-The line strength is then calculated from the squared magnitude of the reduced matrix element. Finally, the oscillator strength is calculated using the line strength, transition energy, and initial-state statistical weight.
+The orbital reduced transition matrix element is obtained from the calculated component using the appropriate angular-momentum factor.
+The line strength is then calculated from the squared magnitude of the reduced matrix element.
+Finally, the oscillator strength is calculated using the line strength, transition energy, and initial-state statistical weight.
 
 For example, these calculations may be carried out in an Excel worksheet using:
 
-- the transition dipole moment obtained from `RG_0S-1P` code;
+- the transition matrix elements obtained from the `RG_0S-1P` code;
 - the transition energy;
 - the statistical weight of the initial fine-structure level;
 - the required $3j$-symbol factor;
@@ -156,21 +116,88 @@ For example, these calculations may be carried out in an Excel worksheet using:
 
 ```text
 
-Save the initial S-state wave function in initial_state_Li-2Se                             
-                         +
-Save the final P-state wave function in final_state_Li-2Po
-                         ↓
-Copy and rename the initial S-state wave function as
-dipole_moment/wf_state0.txt
-                         ↓
-Copy and rename the final P-state wave function as
-dipole_moment/wf_state1.txt
-                         ↓
-Run RG_0S-1P in the dipole_moment folder
-                         ↓
-Generate the resultant output file and obtain
-the transition dipole moment
-                         ↓
-Calculate the line strength and oscillator strength separately,
-for example in Excel
+Save the initial S-state wave function
+             +
+Save the final P-state wave function
+             ↓
+Copy and rename the initial S-state wave function as wf_state0.txt
+             ↓
+Copy and rename the final P-state wave function as wf_state1.txt
+             ↓
+Run RG_0S-1P in the transition_dipole_moment_Li folder
+             ↓
+Generate the resultant output file and obtain the transition matrix elements
+             ↓
+Calculate the line strength and oscillator strength separately, for example in Excel
 ```
+
+
+## Final results
+
+Atomic units are used throughout.
+
+For this sample calculation, the transition energy is
+
+$$
+\Delta E = 0.068\,044\,261.
+$$
+
+The calculated length-form coordinate matrix element is
+
+$$
+\left\langle S^e \middle| z \middle| P^o \right\rangle
+=
+2.342\,866\,004.
+$$
+
+The calculated velocity-form momentum matrix element is purely imaginary and is given by
+
+$$
+\left\langle S^e \middle| P_z \middle| P^o \right\rangle
+=
+0.159\,590\,277\,i.
+$$
+
+The corresponding line strengths and oscillator strengths are evaluated separately during the post-processing step, for example using an Excel worksheet.
+
+The length-form line strength is
+
+$$
+S^{\mathrm{L}} = 32.934\,1266,
+$$
+
+and the velocity-form line strength is
+
+$$
+S^{\mathrm{V}} = 0.152\,814\,341.
+$$
+
+The corresponding oscillator strengths are
+
+$$
+f^{\mathrm{L}} = 0.746\,992\,775,
+$$
+
+and
+
+$$
+f^{\mathrm{V}} = 0.748\,602\,639.
+$$
+
+For comparison, high-accuracy nonrelativistic reference values for the infinite-nuclear-mass lithium atom, obtained using 11,000 and 12,000 ECG functions for the $2~^2S^e$ and $2~^2P^o$ states, respectively, are
+
+$$
+f_{\mathrm{ref}}^{\mathrm{L}} = 0.746\,956\,8098,
+$$
+
+and
+
+$$
+f_{\mathrm{ref}}^{\mathrm{V}} = 0.746\,956\,79.
+$$
+
+These reference values are reported in:
+
+S. Nasiri, J. Liu, S. Bubin, M. Stanke, A. Kędziorski, and L. Adamowicz, *Atomic Data and Nuclear Data Tables* **149**, 101559 (2023), https://doi.org/10.1016/j.adt.2022.101559.
+
+The disagreement between the present length- and velocity-form oscillator strengths, as well as their deviations from the reference values, is primarily attributable to incomplete basis-set convergence because only 100 ECG functions are used for each state in this sample calculation.
