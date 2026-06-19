@@ -62,15 +62,6 @@ wf_state1.txt
 
 An `inout.txt` file is not required in this directory because the transition code reads the two wave-function files directly.
 
-Before the calculation, the directory should therefore contain at least:
-
-```text
-transition_dipole_moment_Li/
-├── RG_0S-1P
-├── wf_state0.txt
-└── wf_state1.txt
-```
-
 After the calculation, the result is presented in the terminal, or can be written to a file (see Section 5).
 
 
@@ -106,7 +97,7 @@ For example, these calculations may be carried out in an Excel worksheet using:
 
 - the transition matrix elements obtained from the `RG_0S-1P` code;
 - the transition energy;
-- the statistical weight of the initial fine-structure level;
+- the statistical weight of the initial state;
 - the required $3j$-symbol factor;
 - the required $6j$-symbol factor; and
 - the length- or velocity-gauge oscillator-strength expression.

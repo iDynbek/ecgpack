@@ -2,5 +2,5 @@
 
 This directory includes two example calculations of transition dipole moments:
 
-1) He:  $1~^1S^e \rightarrow 2~^1P^o$
-2) Li:  $2~^2S^e \rightarrow 2~^2P^o$
+1) He:  $2~^1P^o \rightarrow 2~^1D^e$
+2) Li:  $2~^2P^o \rightarrow 3~^2D^e$
