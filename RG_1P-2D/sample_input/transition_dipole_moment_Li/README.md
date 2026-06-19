@@ -186,4 +186,4 @@ $$
 D. Sun, L. Wang, Z.-C. Yan, *Atomic Data and Nuclear Data Tables* **169**, 101793 (2026), https://doi.org/10.1016/j.adt.2026.101793.
 
 
-The disagreement between the present length- and velocity-form oscillator strengths, as well as their deviations from the reference value, is primarily attributable to incomplete basis-set convergence because only 100 ECG functions are used for each state in this sample calculation.
+The disagreement between the present length- and velocity-form oscillator strengths, as well as their deviations from the reference value, is primarily attributable to incomplete basis-set convergence because only 100 ECG basis functions are used for each state in this sample calculation.

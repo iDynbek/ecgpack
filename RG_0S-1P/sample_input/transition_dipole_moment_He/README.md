@@ -188,4 +188,4 @@ $$
 This reference value is reported in Table 12.11 of the *Handbook of Atomic, Molecular, and Optical Physics* (2023).
 
 
-The disagreement between the present length- and velocity-form oscillator strengths, as well as their deviations from the reference value, is primarily attributable to incomplete basis-set convergence because only 10 ECG functions are used for each state in this sample calculation.
+The disagreement between the present length- and velocity-form oscillator strengths, as well as their deviations from the reference value, is primarily attributable to incomplete basis-set convergence because only 10 ECG basis functions are used for each state in this sample calculation.
