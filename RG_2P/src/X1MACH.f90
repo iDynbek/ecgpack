@@ -195,13 +195,13 @@
         B = RADIX(X)
         SELECT CASE (I)
         CASE (1)
-          D1MACH = B**(MINEXPONENT(X)-1) ! the smallest positive magnitude.
+          D1MACH = TINY(X)               ! the smallest positive magnitude.
         CASE (2)
           D1MACH = HUGE(X)               ! the largest magnitude.
         CASE (3)
-          D1MACH = B**(-DIGITS(X))       ! the smallest relative spacing.
+          D1MACH = EPSILON(X)/B          ! the smallest relative spacing.
         CASE (4)
-          D1MACH = B**(1-DIGITS(X))      ! the largest relative spacing.
+          D1MACH = EPSILON(X)            ! the largest relative spacing.
         CASE (5)
           D1MACH = LOG10(B)
         CASE DEFAULT
