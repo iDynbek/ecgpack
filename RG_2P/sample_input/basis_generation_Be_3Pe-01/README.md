@@ -1,6 +1,6 @@
 # Description
 
-Sample file `inout.txt` in this directory provides input for generating ECG basis for the lowest $^3 P^e$ state of Be atom (Be-9 isotope). It starts from 0 basis functions and stops when the basis reaches 100 basis functions. When the basis size equals 5, 10, 20, 50, and 100 functions the program will save the input in separate files named  
+Sample file `inout.txt` in this directory provides input for generating an ECG basis for the lowest $^3 P^e$ state of Be atom (Be-9 isotope). It starts from 0 basis functions and stops when the basis reaches 100 basis functions. When the basis size equals 5, 10, 20, 50, and 100 functions, the program will save the input in separate files named  
 `inout_Be_3Pe-01-00005.txt`  
 `inout_Be_3Pe-01-00010.txt`  
 `inout_Be_3Pe-01-00020.txt`  

@@ -31,7 +31,7 @@ The wave functions must be calculated for the same isotope and with consistent p
 
 ## 2. Save each wave function
 
-In the example directories in the `RG_0S` and `RG_1P` codes, there is a `writing_wavefunction` folder. The input files in those directories can be used to compute the wave function.
+In the example directories in the `RG_0S` and `RG_1P` codes, there is a `store_wavefunction` folder. The input files in those directories can be used to compute the wave function.
 Run the $S^e$-state and $P^o$-state calculations separately and save both wave functions.
 
 

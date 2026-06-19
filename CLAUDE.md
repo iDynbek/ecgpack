@@ -4,18 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-ECG is a collection of closely related parallel Fortran codes for variational calculations of quantum few-body systems (few-electron atoms and molecules) using all-particle explicitly correlated Gaussian (ECG) basis functions. Developed by the research group of Sergiy Bubin (Physics Department, Nazarbayev University). Parallelism is via MPI. See `README.md` for the physics conventions and references.
+ECG is a collection of closely related parallel Fortran codes for variational calculations of quantum few-body systems (few-electron atoms and molecules) using all-particle explicitly correlated Gaussian (ECG) basis functions. Developed by the research group of Sergiy Bubin (Physics Department, Nazarbayev University). Parallelism is via MPI. See `README.md` and directory `doc/` for documentation that includes physics conventions and references.
 
 ## Repository layout
 
-Each code lives in its own top-level directory with an identical structure: a `Makefile`, a `src/` subdirectory, and a `.vscode/` subdirectory (identical, user-independent JSON configs for building/debugging the code in VSCode). The codes fall into two groups:
+Each code lives in its own top-level directory with an identical structure: a `Makefile`, a `src/` subdirectory, and a `.vscode/` subdirectory (identical, user-independent JSON configs for building/debugging the code in VSCode). Most, but not all, codes also include a `sample_input/` subdirectory of worked examples (see below). The codes fall into several groups (some of these groups may overlap):
 
-- **Energy/wavefunction codes** — `RG_0S`, `RG_1P`, `RG_2D`, `RG_2P` (real Gaussians for different angular-momentum/parity symmetries) and `CG_0S` (complex Gaussians, L=0; work in progress, lags behind `RG_0S`).
-- **Matrix-element codes** — `RG_0S-1P`, `RG_0S-2D`, `RG_0S-2P`, `RG_1P-1P`, `RG_1P-2D`, `RG_1P-2P`, `RG_2D-2D`, `RG_2P-2D`, `RG_2P-2P` (offdiagonal elements between two bases: transition dipole moments, spin–orbit, spin–spin).
+- **Energy codes (diagonal matrix element codes; basis generation codes)** — `RG_0S`, `RG_1P`, `RG_2D`, `RG_2P`, `CG_0S`. These are used for generating ECG basis sets for states of different angular-momentum/parity. They can compute energies, expectation values, particle distributions, and save wave functions.
+- **Off-diagonal matrix element codes** — `RG_0S-1P`, `RG_0S-2D`, `RG_0S-2P`, `RG_1P-1P`, `RG_1P-2D`, `RG_1P-2P`, `RG_2D-2D`, `RG_2P-2D`, `RG_2P-2P`. These codes are used to compute off-diagonal matrix elements between two states of different angular-momentum/parity (and which are thus expanded using different basis sets) for such operators as transition dipole moment, spin–orbit interaction, and non-contact spin–spin interaction.
+- **Transition dipole codes** — `RG_0S-1P`, `RG_1P-2D`, `RG_1P-2P`. These codes are used to compute off-diagonal matrix elements of the transition dipole moment operator in the length and velocity gauges.
+- **Fine structure coupling codes** — `RG_0S-2D`, `RG_0S-2P`, `RG_1P-1P`, `RG_2D-2D`, `RG_2P-2D`, `RG_2P-2P`. These codes are used to compute off-diagonal matrix elements of the spin–orbit interaction and non-contact spin–spin interaction.
+- **Real Gaussian codes (Real ECG codes)** — `RG_0S`, `RG_1P`, `RG_2D`, `RG_2P`, `RG_0S-1P`, `RG_0S-2D`, `RG_0S-2P`, `RG_1P-1P`, `RG_1P-2D`, `RG_1P-2P`, `RG_2D-2D`, `RG_2P-2D`, `RG_2P-2P`. These deal with real Gaussian basis sets (real ECGs).
+- **Complex Gaussian codes (Complex ECG codes)** — `CG_0S`. These deal with complex ECG basis sets (complex ECGs). Currently there is only one basis ($L=0$), and it is a work in progress that lags behind the real ECG codes. It may not even be compilable.
 
-The four energy codes (`RG_0S`, `RG_1P`, `RG_2D`, `RG_2P`) also ship a `sample_input/` subdirectory of worked examples — see the Running section below.
+Only some codes ship with a `sample_input/` subdirectory of worked examples — the four energy codes (`RG_0S`, `RG_1P`, `RG_2D`, `RG_2P`) plus `RG_0S-1P` and `RG_1P-2D`. The remaining codes (`CG_0S` and the other off-diagonal codes) currently have no sample inputs. See the Running section below.
 
-`RG_0S` is the most complete reference implementation; other codes share much of its source and Makefile. Non-code directories: `archive/` (old versions, do not touch), `utilities/`, and `bin/` + `jobs/` (created by the user, not in git). The root also holds `README.md` (the repository manual) and `.code-workspace` (a VSCode multi-folder workspace grouping all the code directories).
+`RG_0S` is the most complete reference implementation; other codes share much of its source and Makefile. Non-code directories: `archive/` (old versions, do not touch), `doc/` (documentation), `utilities/`, and `bin/` + `jobs/` (created by the user, not in git). The root also holds `README.md` (the repository manual), `AUTHORS.md` (list of contributors), and `.code-workspace` (a VSCode multi-folder workspace grouping all the code directories).
 
 ## Building
 
@@ -45,13 +49,13 @@ Note: the **number of particles is compiled in**, not a runtime argument. `build
 
 ## Running
 
-Each binary is an MPI program. It reads a single input/output file named **`inout.txt`** from the current working directory (default `Glob_DataFileName` in `globvars.f90`); the file's first line is `PARTICLES <n>`. Run from a job directory containing `inout.txt`:
+Each binary is an MPI program. The energy codes read a single input/output file named **`inout.txt`** from the current working directory (default `Glob_DataFileName` in `globvars.f90`); the file's first (optional) line is `BASIS_TYPE <BASIS>`, the second (required) line is `PARTICLES <n>`. The off-diagonal matrix-element codes instead read two wave-function files (one per state, e.g. `wf_state0.txt`/`wf_state1.txt`) and do not need an `inout.txt`. Run from a job directory containing the required input file(s):
 
 ```bash
-mpirun -np <N> /path/to/bin/.../RG_0S_N4_P8_optlapack
+mpirun -np <N> /path/to/bin/<toolchain>/<config>/RG_0S_N4_P8_optlapack
 ```
 
-There is no automated test suite; validation is done by running physical test cases and comparing computed energies/expectation values against published reference values. The four energy codes ship ready-to-run cases under `<CODE>/sample_input/`, each in its own directory with an `inout.txt` and a `README.md` describing it, expected runtime, and the reference energy/values to reproduce. Three kinds recur: `basis_generation_*` (build an ECG basis from scratch up to a target size), `expected_values_*` (compute expectation values from a saved 100-function basis), and `densities_*` (compute densities and pair correlation functions, with grid-builder Bash scripts, gnuplot plotting scripts, and sample output plots).
+There is no automated test suite; validation is done by running physical test cases and comparing computed energies/expectation values against published reference values. The codes that ship sample inputs (see Repository layout) provide ready-to-run cases under `<CODE>/sample_input/`, each in its own directory with an `inout.txt` and a `README.md` describing it, expected runtime, and the reference energy/values to reproduce. Several kinds recur: `basis_generation_*` (build an ECG basis from scratch up to a target size), `expected_values_*` (compute expectation values from a saved basis), `densities_*` (compute densities and pair correlation functions, with grid-builder Bash scripts, gnuplot plotting scripts, and sample output plots), `store_wavefunction_*` (saves both the linear and nonlinear variational parameters of the wave function into a file), and `transition_dipole_moment_*` (compute the transition dipole moment using two wave functions of the initial and final states provided in two separate files).
 
 ## Source architecture
 
@@ -59,7 +63,7 @@ Within each `src/`, the module compile/dependency order (see the Makefile) is:
 
 `wp_def_<PREC>` → `globvars` → `misc`, `linalg`, `spin` → `matelem` → `matform` → `workproc` → `main`
 
-- **`wp_def_<PREC>.f90`** — defines the working-precision kind (`dprec`), `Glob_MaxAllowedNumOfParticles`, and the MPI real type. Edited at build time by `build.bash` (see above).
+- **`wp_def_<PREC>.f90`** — defines the working-precision kind (`wp`), `Glob_MaxAllowedNumOfParticles`, and the MPI real type. Edited at build time by `build.bash` (see above).
 - **`globvars.f90`** — all global state (the `Glob_*` variables: masses, charges, basis, matrices) and physical/numeric constants.
 - **`linalg.f90`** — linear-algebra wrappers over BLAS/LAPACK. `BLAS.f`/`LAPACK.f` are bundled netlib reference sources used only when `OPTLPKBLS=no`. `dmng.f` (TOMS nonlinear minimizer) and `X1MACH.f90` (machine constants) support the optimizer.
 - **`spin.f90`** — spin algebra and permutational-symmetry projection.

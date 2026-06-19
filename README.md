@@ -6,7 +6,7 @@
 
 ## Description
 
-ECGPACK is a collection of closely related parallel computer codes for performing high accuracy variational calculations of quantum few-body systems (few-electron atoms,  molecules, ions, and systems containing exotic particles) using all-particle explicitly correlated Gaussian (ECG) basis sets. ECGPACK is written in Fortran and uses MPI for parallelism.
+ECGPACK is a collection of closely related parallel computer codes for performing high accuracy variational calculations of quantum few-body systems (few-electron atoms, molecules, ions, and systems containing exotic particles) using all-particle explicitly correlated Gaussian (ECG) basis sets. ECGPACK is written in Fortran and uses MPI for parallelism.
 
 ## Citation
 
