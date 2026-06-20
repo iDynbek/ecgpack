@@ -31,7 +31,7 @@ SRC_DIR=./src
 # Set compiler flags for each machine and compiler type (for both release and debug builds).
 
 # Generic Ubuntu machine, generic Linux machine, shabyt, muon
-ifeq ($(shell [ "$(MACHINE)" = "ubuntu-generic" ] || [ "$(MACHINE)" = "linux-generic" ] || [ "$(MACHINE)" = "shabyt" ] || [ "$(MACHINE)" = "muon" ] && echo true),true)
+ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
   # gfortran and Open MPI (system defaults)
   ifeq ($(COMPILER_TYPE), gnu)
     FC=mpif90
@@ -98,7 +98,7 @@ ifeq ($(shell [ "$(MACHINE)" = "ubuntu-generic" ] || [ "$(MACHINE)" = "linux-gen
 endif
 
 # puma, ocelote, elgato
-ifeq ($(shell [ "$(MACHINE)" = "puma" ] || [ "$(MACHINE)" = "ocelote" ] || [ "$(MACHINE)" = "elgato" ] && echo true),true)
+ifneq ($(filter $(MACHINE),puma ocelote elgato),)
   # gfortran and Open MPI
   ifeq ($(COMPILER_TYPE), gnu)
     FC=mpif90
