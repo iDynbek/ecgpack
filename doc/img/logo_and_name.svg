@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="690" height="192" viewBox="0 0 1840 512" role="img" aria-labelledby="title desc">
-  <title id="title">ECGPACK logo with fully connected heptagon emblem</title>
-  <desc id="desc">A regular heptagon made of seven gold circles, each connected to every other gold circle by thin gold lines, with an equally sized brown circle at the center connected to all seven outer circles by thin brown lines. The gold elements are drawn above the brown elements. The slanted text ECGPACK appears to the right of the heptagon, reduced in size and vertically centered with the heptagon center.</desc>
+  <title id="title">ECGPACK logo with adjusted heptagon node distances</title>
+  <desc id="desc">A heptagon-inspired fully connected emblem with seven gold outer circles whose distances from the center have been adjusted radially: dot 1 unchanged, dot 2 increased by 10 percent, dot 3 decreased by 5 percent, dot 4 increased by 15 percent, dot 5 unchanged, dot 6 decreased by 10 percent, and dot 7 increased by 30 percent. A brown central circle is connected to all seven outer circles. The gold elements are drawn above the brown elements. Slanted ECGPACK text appears to the right, centered vertically with respect to the emblem center.</desc>
   <style>
     .gold-line { stroke: rgb(221,175,83); stroke-width: 5.4; stroke-linecap: round; stroke-linejoin: round; fill: none; }
     .gold-circle { fill: rgb(221,175,83); }
@@ -10,47 +10,47 @@
     .logo-text { fill: rgb(88,87,75); font-family: Arial, Helvetica, sans-serif; font-style: italic; font-size: 180px; }
   </style>
 
-  <!-- Brown elements underneath -->
-  <line x1="256" y1="256" x2="178.769" y2="416.372" class="brown-line" />
-  <line x1="256" y1="256" x2="82.463" y2="295.609" class="brown-line" />
-  <line x1="256" y1="256" x2="116.834" y2="145.019" class="brown-line" />
-  <line x1="256" y1="256" x2="256.000" y2="78.000" class="brown-line" />
-  <line x1="256" y1="256" x2="395.166" y2="145.019" class="brown-line" />
-  <line x1="256" y1="256" x2="429.537" y2="295.609" class="brown-line" />
-  <line x1="256" y1="256" x2="333.231" y2="416.372" class="brown-line" />
-  <circle cx="256" cy="256" r="16.8" class="brown-circle" />
+  <!-- Brown elements underneath: center-to-node radial connections adjusted to the new node locations -->
+  <line x1="256.000" y1="256.000" x2="256.000" y2="78.000" class="brown-line" />
+  <line x1="256.000" y1="256.000" x2="409.083" y2="133.921" class="brown-line" />
+  <line x1="256.000" y1="256.000" x2="420.860" y2="293.629" class="brown-line" />
+  <line x1="256.000" y1="256.000" x2="344.816" y2="440.428" class="brown-line" />
+  <line x1="256.000" y1="256.000" x2="178.769" y2="416.372" class="brown-line" />
+  <line x1="256.000" y1="256.000" x2="99.817" y2="291.648" class="brown-line" />
+  <line x1="256.000" y1="256.000" x2="75.084" y2="111.725" class="brown-line" />
+  <circle cx="256.000" cy="256.000" r="16.8" class="brown-circle" />
 
-  <!-- Gold elements on top: complete graph among the seven outer circles -->
-  <line x1="178.769" y1="416.372" x2="82.463" y2="295.609" class="gold-line" />
-  <line x1="178.769" y1="416.372" x2="116.834" y2="145.019" class="gold-line" />
-  <line x1="178.769" y1="416.372" x2="256.000" y2="78.000" class="gold-line" />
-  <line x1="178.769" y1="416.372" x2="395.166" y2="145.019" class="gold-line" />
-  <line x1="178.769" y1="416.372" x2="429.537" y2="295.609" class="gold-line" />
-  <line x1="178.769" y1="416.372" x2="333.231" y2="416.372" class="gold-line" />
-  <line x1="82.463" y1="295.609" x2="116.834" y2="145.019" class="gold-line" />
-  <line x1="82.463" y1="295.609" x2="256.000" y2="78.000" class="gold-line" />
-  <line x1="82.463" y1="295.609" x2="395.166" y2="145.019" class="gold-line" />
-  <line x1="82.463" y1="295.609" x2="429.537" y2="295.609" class="gold-line" />
-  <line x1="82.463" y1="295.609" x2="333.231" y2="416.372" class="gold-line" />
-  <line x1="116.834" y1="145.019" x2="256.000" y2="78.000" class="gold-line" />
-  <line x1="116.834" y1="145.019" x2="395.166" y2="145.019" class="gold-line" />
-  <line x1="116.834" y1="145.019" x2="429.537" y2="295.609" class="gold-line" />
-  <line x1="116.834" y1="145.019" x2="333.231" y2="416.372" class="gold-line" />
-  <line x1="256.000" y1="78.000" x2="395.166" y2="145.019" class="gold-line" />
-  <line x1="256.000" y1="78.000" x2="429.537" y2="295.609" class="gold-line" />
-  <line x1="256.000" y1="78.000" x2="333.231" y2="416.372" class="gold-line" />
-  <line x1="395.166" y1="145.019" x2="429.537" y2="295.609" class="gold-line" />
-  <line x1="395.166" y1="145.019" x2="333.231" y2="416.372" class="gold-line" />
-  <line x1="429.537" y1="295.609" x2="333.231" y2="416.372" class="gold-line" />
-  <circle cx="178.769" cy="416.372" r="16.8" class="gold-circle" />
-  <circle cx="82.463" cy="295.609" r="16.8" class="gold-circle" />
-  <circle cx="116.834" cy="145.019" r="16.8" class="gold-circle" />
+  <!-- Gold elements on top: complete graph among the seven adjusted outer circles -->
+  <line x1="256.000" y1="78.000" x2="409.083" y2="133.921" class="gold-line" />
+  <line x1="256.000" y1="78.000" x2="420.860" y2="293.629" class="gold-line" />
+  <line x1="256.000" y1="78.000" x2="344.816" y2="440.428" class="gold-line" />
+  <line x1="256.000" y1="78.000" x2="178.769" y2="416.372" class="gold-line" />
+  <line x1="256.000" y1="78.000" x2="99.817" y2="291.648" class="gold-line" />
+  <line x1="256.000" y1="78.000" x2="75.084" y2="111.725" class="gold-line" />
+  <line x1="409.083" y1="133.921" x2="420.860" y2="293.629" class="gold-line" />
+  <line x1="409.083" y1="133.921" x2="344.816" y2="440.428" class="gold-line" />
+  <line x1="409.083" y1="133.921" x2="178.769" y2="416.372" class="gold-line" />
+  <line x1="409.083" y1="133.921" x2="99.817" y2="291.648" class="gold-line" />
+  <line x1="409.083" y1="133.921" x2="75.084" y2="111.725" class="gold-line" />
+  <line x1="420.860" y1="293.629" x2="344.816" y2="440.428" class="gold-line" />
+  <line x1="420.860" y1="293.629" x2="178.769" y2="416.372" class="gold-line" />
+  <line x1="420.860" y1="293.629" x2="99.817" y2="291.648" class="gold-line" />
+  <line x1="420.860" y1="293.629" x2="75.084" y2="111.725" class="gold-line" />
+  <line x1="344.816" y1="440.428" x2="178.769" y2="416.372" class="gold-line" />
+  <line x1="344.816" y1="440.428" x2="99.817" y2="291.648" class="gold-line" />
+  <line x1="344.816" y1="440.428" x2="75.084" y2="111.725" class="gold-line" />
+  <line x1="178.769" y1="416.372" x2="99.817" y2="291.648" class="gold-line" />
+  <line x1="178.769" y1="416.372" x2="75.084" y2="111.725" class="gold-line" />
+  <line x1="99.817" y1="291.648" x2="75.084" y2="111.725" class="gold-line" />
   <circle cx="256.000" cy="78.000" r="16.8" class="gold-circle" />
-  <circle cx="395.166" cy="145.019" r="16.8" class="gold-circle" />
-  <circle cx="429.537" cy="295.609" r="16.8" class="gold-circle" />
-  <circle cx="333.231" cy="416.372" r="16.8" class="gold-circle" />
+  <circle cx="409.083" cy="133.921" r="16.8" class="gold-circle" />
+  <circle cx="420.860" cy="293.629" r="16.8" class="gold-circle" />
+  <circle cx="344.816" cy="440.428" r="16.8" class="gold-circle" />
+  <circle cx="178.769" cy="416.372" r="16.8" class="gold-circle" />
+  <circle cx="99.817" cy="291.648" r="16.8" class="gold-circle" />
+  <circle cx="75.084" cy="111.725" r="16.8" class="gold-circle" />
 
-  <!-- Slanted text centered vertically with respect to the heptagon -->
+  <!-- Slanted text centered vertically with respect to the heptagon center -->
   <text x="520" y="268" class="logo-text" dominant-baseline="middle" alignment-baseline="middle">ECGPACK</text>
 
 </svg>
