@@ -2280,6 +2280,11 @@
 *     ..
 *     .. Local Scalars ..
       REAL(wp)   RND, EPS, SFMIN, SMALL, RMACH
+*     SMALL is formed at run time (see the executable statements below) and is
+*     declared VOLATILE so that 1/HUGE is not constant-folded into a subnormal
+*     literal at compile time. That folding makes nvfortran emit a harmless but
+*     noisy underflow warning (NVFORTRAN-W-0130); this keeps the build clean.
+      VOLATILE           SMALL
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
@@ -2306,7 +2311,11 @@
          RMACH = EPS
       ELSE IF( LSAME( CMACH, 'S' ) ) THEN
          SFMIN = TINY(ZERO)
-         SMALL = ONE / HUGE(ZERO)
+*        Compute SMALL = 1/HUGE through a run-time variable (declared VOLATILE
+*        above) so the intentional subnormal value is not produced by compile-
+*        time constant folding.
+         SMALL = HUGE(ZERO)
+         SMALL = ONE / SMALL
          IF( SMALL.GE.SFMIN ) THEN
 *
 *           Use SMALL plus a bit, to avoid the possibility of rounding

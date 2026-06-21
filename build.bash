@@ -313,7 +313,6 @@ for toolchain_value in ${toolchain_list[@]}; do
             make ${config_value} COMPILER=${compiler} MACHINE=${machine} PREC=${precision_value} OPTLPKBLS=${use_optimized_lapack_value} EXEFILE=ecg
             # Check if the build was successful
             if [ $? -eq 0 ]; then
-            Build finished succesfully
               echo "═════════════════════ Build finished succesfully ══════════════════════"
               # Copy the code to the bin directory
               mkdir -p ../${binsubdirname}
