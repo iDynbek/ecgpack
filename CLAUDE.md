@@ -33,8 +33,8 @@ To build a single code directly, invoke its Makefile (this is what `build.bash` 
 
 ```bash
 cd RG_0S
-make release COMPILER_TYPE=gnu MACHINE=ubuntu-generic PREC=8 OPTLPKBLS=yes EXEFILE=ecg
-make debug   COMPILER_TYPE=gnu MACHINE=ubuntu-generic PREC=8 OPTLPKBLS=no  EXEFILE=ecg
+make release COMPILER=gfortran MACHINE=ubuntu-generic PREC=8 OPTLPKBLS=yes EXEFILE=ecg
+make debug   COMPILER=gfortran MACHINE=ubuntu-generic PREC=8 OPTLPKBLS=no  EXEFILE=ecg
 make clean   # also: cleaner, cleanest, cleanrelease, cleandebug
 ```
 
@@ -43,7 +43,7 @@ Key build parameters:
 - `CONFIG` (`release`/`debug`) — set by the `make release`/`make debug` target. `release` uses `-O3 -march=native`; `debug` enables bounds/uninit/FPE checks. Object and `.mod` files go in `release/` or `debug/`.
 - `PREC` — real `kind`: `8` (double/fp64), `10` (extended/fp80, GNU only), `16` (quadruple). Selects which `src/wp_def_<PREC>.f90` is compiled.
 - `OPTLPKBLS` — `yes` links the system optimized LAPACK/BLAS (or MKL for Intel); `no` compiles the bundled reference `src/BLAS.f` and `src/LAPACK.f`. Always forced to `no` for `PREC=10`/`16`.
-- `COMPILER_TYPE` (`gnu`→`mpif90`, `intel`→`mpiifort`) and `MACHINE` select compiler flags. Supported machines are hardcoded in both `build.bash` and the Makefiles; adding a machine means editing both.
+- `COMPILER` (`gfortran`→`mpif90`, `ifort`→`mpiifort`) and `MACHINE` select compiler flags. Supported machines are hardcoded in both `build.bash` and the Makefiles; adding a machine means editing both.
 
 Note: the **number of particles is compiled in**, not a runtime argument. `build.bash` does an in-place `sed` on `src/wp_def_<PREC>.f90` to set `Glob_MaxAllowedNumOfParticles`, builds, then restores the original from `wp_def_temporary.f90`. A binary built for N particles rejects input files with a different particle count.
 

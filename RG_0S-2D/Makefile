@@ -1,19 +1,24 @@
-# This is a makefile to compile an ECG code. Examples of compilations with this
-# makefile:
-#    make release COMPILER_TYPE=gnu MACHINE=ubuntu-generic PREC=8 OPTLPKBLS=yes EXEFILE=ecg
-#    make debug COMPILER_TYPE=gnu MACHINE=shabyt PREC=10 OPTLPKBLS=no EXEFILE=ecg
-#    make release COMPILER_TYPE=intel MACHINE=muon PREC=8 OPTLPKBLS=yes EXEFILE=ecg
+# This is a Makefile to compile an ECGPACK code. Here are some examples of compilations with this Makefile:
+#    make release COMPILER=gfortran MACHINE=linux-generic PREC=8 OPTLPKBLS=yes EXEFILE=ecg
+#    make debug COMPILER=gfortran MACHINE=irgetas PREC=10 OPTLPKBLS=no EXEFILE=ecg
+#    make release COMPILER=ifort MACHINE=ubuntu-generic PREC=8 OPTLPKBLS=yes EXEFILE=ecg
+#    make debug COMPILER=ifx MACHINE=shabyt PREC=16 OPTLPKBLS=no EXEFILE=ecg
 
 
-# Set default compiler type (intel, gnu, sun, etc..)
-COMPILER_TYPE=gnu
+# Set the default compiler
+# Supported options: gfortran, ifort, ifx, nvfortran
+# Note that instead of thees compilers their corresponding MPI wrappers are actually invoked (e.g. mpif90 instead of gfortran; mpiifort instead of ifort, etc.)
+COMPILER=gfortran
 
-# Set default machine where the compilation takes place (mylinuxbox, ice, marin, etc.)
-MACHINE=ubuntu-generic
+# Set the default machine where the compilation takes place 
+# Supported options: linux-generic, ubuntu-generic, irgetas, shabyt, muon, puma, ocelote, elgato
+MACHINE=linux-generic
 
-# Set the default precision (kind of real type, 8, 10, or 16)
+# Set the default precision (real kind: 8, 10, or 16)
 # Value PREC=8 corresponds to standard double precision
+# Value PREC=10 corresponds to extended precision
 # Value PREC=16 corresponds to quadruple precision
+# Note that PREC=10 or PREC=16 support is compiler and platform dependent and is not universal. 
 PREC=8
 
 # Set the default name for the generated executable file
@@ -24,10 +29,9 @@ SRC_DIR=./src
 
 # Set compiler flags for each machine and compiler type (for both release and debug builds).
 
-# Generic Ubuntu machine, generic Linux machine, shabyt, muon
 ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
-  # gfortran and Open MPI (system defaults)
-  ifeq ($(COMPILER_TYPE), gnu)
+  # gfortran and Open MPI (default on most Linux systems)
+  ifeq ($(COMPILER), gfortran)
     FC=mpif90
     export MPICOMPFLAGS=
     export MPILINKFLAGS=
@@ -59,16 +63,16 @@ ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
       endif
     endif
   endif
-  # Intel Fortran and Intel MPI
-  ifeq ($(COMPILER_TYPE), intel)
+  # Intel Fortran (ifort) and Intel MPI
+  ifeq ($(COMPILER), ifort)
     FC=mpiifort
     export MPICOMPFLAGS=
     export MPILINKFLAGS=
     export FCFLAGS=-module $(CONFIG)
     export LINKFLAGS=-module $(CONFIG)
     ifeq ($(CONFIG), debug)
-      export FCFLAGS+=-C -O0 -g -check bounds -check all -check uninit -traceback -ftrapuv -debug full
-      export LINKFLAGS+=-C -O0 -g -check bounds -check all -check uninit -traceback -ftrapuv -debug full
+      export FCFLAGS+=-C -O0 -g -check bounds -check all -check uninit -traceback -ftrapuv -debug full -fpe0
+      export LINKFLAGS+=-C -O0 -g -check bounds -check all -check uninit -traceback -ftrapuv -debug full -fpe0
     endif
     ifeq ($(CONFIG), release)
       export FCFLAGS+=-O3 -ip -xhost -fp-model precise
@@ -88,13 +92,71 @@ ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
         COMPILER_SUPPORTED=yes
       endif
     endif
-  endif  
+  endif
+  # Intel Fortran (LLVM-based ifx) and Intel MPI
+  ifeq ($(COMPILER), ifx)
+    FC=mpiifx
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-module $(CONFIG)
+    export LINKFLAGS=-module $(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-O0 -g -check all -check uninit -traceback -ftrapuv -fpe0
+      export LINKFLAGS+=-O0 -g -check all -check uninit -traceback -ftrapuv -fpe0
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3 -xhost -fp-model precise
+      export LINKFLAGS+=-O3 -xhost -fp-model precise
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+      ifeq ($(OPTLPKBLS),yes)
+        # Link with MKL
+        export FCFLAGS+=-I$(MKLROOT)/include
+        export LINKFLAGS+=-L$(MKLROOT)
+        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
+      endif
+    endif
+    ifeq ($(PREC), 16)
+      ifneq ($(OPTLPKBLS),yes)
+        COMPILER_SUPPORTED=yes
+      endif
+    endif
+  endif
+  # NVIDIA HPC SDK (nvfortran) and Open MPI
+  ifeq ($(COMPILER), nvfortran)
+    FC=mpif90
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-module $(CONFIG)
+    export LINKFLAGS=-module $(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-O0 -g -Mbounds -Ktrap=fp -traceback
+      export LINKFLAGS+=-O0 -g -Mbounds -Ktrap=fp -traceback
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3 -tp=native
+      export LINKFLAGS+=-O3 -tp=native
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+      ifeq ($(OPTLPKBLS),yes)
+        # Link with the LAPACK/BLAS bundled in the NVIDIA HPC SDK
+        export LINKFLAGS+=-llapack -lblas
+      endif
+    endif
+    ifeq ($(PREC), 10)
+      COMPILER_SUPPORTED=no
+    endif
+    ifeq ($(PREC), 16)
+      COMPILER_SUPPORTED=no
+    endif
+  endif
 endif
 
-# puma, ocelote, elgato
 ifneq ($(filter $(MACHINE),puma ocelote elgato),)
   # gfortran and Open MPI
-  ifeq ($(COMPILER_TYPE), gnu)
+  ifeq ($(COMPILER), gfortran)
     FC=mpif90
     export MPICOMPFLAGS=
     export MPILINKFLAGS=
@@ -126,16 +188,16 @@ ifneq ($(filter $(MACHINE),puma ocelote elgato),)
       endif
     endif
   endif
-  # Intel Fortran and Intel MPI
-  ifeq ($(COMPILER_TYPE), intel)
+  # Intel Fortran (ifort) and Intel MPI
+  ifeq ($(COMPILER), ifort)
     FC=mpiifort
     export MPICOMPFLAGS=
     export MPILINKFLAGS=
     export FCFLAGS=-module $(CONFIG)
     export LINKFLAGS=-module $(CONFIG)
     ifeq ($(CONFIG), debug)
-      export FCFLAGS+=-C -O0 -g -check bounds -check all -check uninit -traceback -ftrapuv -debug full
-      export LINKFLAGS+=-C -O0 -g -check bounds -check all -check uninit -traceback -ftrapuv -debug full
+      export FCFLAGS+=-C -O0 -g -check bounds -check all -check uninit -traceback -ftrapuv -debug full -fpe0
+      export LINKFLAGS+=-C -O0 -g -check bounds -check all -check uninit -traceback -ftrapuv -debug full -fpe0
     endif
     ifeq ($(CONFIG), release)
       export FCFLAGS+=-O3 -ip -xhost -fp-model precise
@@ -155,7 +217,37 @@ ifneq ($(filter $(MACHINE),puma ocelote elgato),)
         COMPILER_SUPPORTED=yes
       endif
     endif
-  endif  
+  endif
+  # Intel Fortran (LLVM-based ifx) and Intel MPI
+  ifeq ($(COMPILER), ifx)
+    FC=mpiifx
+    export MPICOMPFLAGS=
+    export MPILINKFLAGS=
+    export FCFLAGS=-module $(CONFIG)
+    export LINKFLAGS=-module $(CONFIG)
+    ifeq ($(CONFIG), debug)
+      export FCFLAGS+=-O0 -g -check all -check uninit -traceback -ftrapuv -fpe0
+      export LINKFLAGS+=-O0 -g -check all -check uninit -traceback -ftrapuv -fpe0
+    endif
+    ifeq ($(CONFIG), release)
+      export FCFLAGS+=-O3 -xhost -fp-model precise
+      export LINKFLAGS+=-O3 -xhost -fp-model precise
+    endif
+    ifeq ($(PREC), 8)
+      COMPILER_SUPPORTED=yes
+      ifeq ($(OPTLPKBLS),yes)
+        # Link with MKL
+        export FCFLAGS+=-I$(MKLROOT)/include
+        export LINKFLAGS+=-L$(MKLROOT)
+        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
+      endif
+    endif
+    ifeq ($(PREC), 16)
+      ifneq ($(OPTLPKBLS),yes)
+        COMPILER_SUPPORTED=yes
+      endif
+    endif
+  endif
 endif
 
 # Creating lists of objects for convenience
@@ -200,9 +292,9 @@ cleanest:
 ptarg:
 	@echo CONFIG=$(CONFIG)
 ifeq ($(COMPILER_SUPPORTED), yes)
-	@echo Using COMPILER_TYPE=$(COMPILER_TYPE) and settings for MACHINE=$(MACHINE) PREC=$(PREC) ...
+	@echo Using COMPILER=$(COMPILER) and settings for MACHINE=$(MACHINE) PREC=$(PREC) ...
 else
-	@echo Error - there is no support for COMPILER_TYPE=$(COMPILER_TYPE) and MACHINE=$(MACHINE) PREC=$(PREC)
+	@echo Error - there is no support for COMPILER=$(COMPILER) and MACHINE=$(MACHINE) PREC=$(PREC)
 	@false
 endif
 

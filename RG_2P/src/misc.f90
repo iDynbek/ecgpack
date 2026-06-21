@@ -4,6 +4,35 @@ module misc
   use globvars
   implicit none
 
+  !Random-number generator state shared between drnor() and drnor_start().
+  !These were previously local variables carrying the SAVE attribute and
+  !coupled through an obsolescent ENTRY statement (which crashed the Intel
+  !ifx compiler with an internal error). They are promoted to module scope
+  !so that the generator and its initializer can be two independent
+  !procedures.
+  !The default U values are the result of calling DUNI 100000 times with
+  !seed 305; they are loaded in case the user forgets to call drnor_start.
+  real(8), private, save :: U(17) = (/ &
+    0.471960981577884755837789724978D+00, &
+    0.930323453205669578433639632431D+00, &
+    0.110161790933730836587127944899D+00, &
+    0.571501996273139518362638757010D-01, &
+    0.402467554779738266237538503137D+00, &
+    0.451181953427459489458279456915D+00, &
+    0.296076152342721102174129954053D+00, &
+    0.128202189325888116466879622359D-01, &
+    0.314274693850973603980853259266D+00, &
+    0.335521366752294932468163594171D-02, &
+    0.488685045200439371607850367840D+00, &
+    0.195470426865656758693860613516D+00, &
+    0.864162706791773556901599326053D+00, &
+    0.335505955815259203596381170316D+00, &
+    0.377190200199058085469526470541D+00, &
+    0.400780392114818314671676525916D+00, &
+    0.374224214182207466262750307281D+00 /)
+  integer, private, save :: II = 17
+  integer, private, save :: JJ = 5
+
 contains
 
   function drnor()
@@ -38,12 +67,10 @@ contains
 !       WRITE(*,'(1X,D20.15)') Z
 ! 1  CONTINUE
 !    END
-    real(8)  DRNOR,DRNOR_START
+    real(8)  DRNOR
     real(8)  AA,B,C,C1,C2,PC,X,Y,XN
-    real(8)  V(65),DSTART,U(17),S,T,UN,VNI
-    integer  J,IA,IB,IC,II,JJ,ID,III,JJJ,L
-    save     U,II,JJ
-    integer  ISEED
+    real(8)  V(65),S,UN,VNI
+    integer  J,L
 
     data AA,B,C &
       /0.123758602991705622657860318807D+02, &
@@ -124,29 +151,6 @@ contains
       0.277699426966286466722522163764D+01, &
       0.277699426966286466722522163764D+01, &
       0.277699426966286466722522163764D+01/
-!LOAD DATA ARRAY IN CASE USER FORGETS TO INITIALIZE.
-!THIS ARRAY IS THE RESULT OF CALLING DUNI 100000 TIMES
-!WITH SEED 305.
-    data U &
-      /0.471960981577884755837789724978D+00, &
-      0.930323453205669578433639632431D+00, &
-      0.110161790933730836587127944899D+00, &
-      0.571501996273139518362638757010D-01, &
-      0.402467554779738266237538503137D+00, &
-      0.451181953427459489458279456915D+00, &
-      0.296076152342721102174129954053D+00, &
-      0.128202189325888116466879622359D-01, &
-      0.314274693850973603980853259266D+00, &
-      0.335521366752294932468163594171D-02, &
-      0.488685045200439371607850367840D+00, &
-      0.195470426865656758693860613516D+00, &
-      0.864162706791773556901599326053D+00, &
-      0.335505955815259203596381170316D+00, &
-      0.377190200199058085469526470541D+00, &
-      0.400780392114818314671676525916D+00, &
-      0.374224214182207466262750307281D+00/
-
-    data II,JJ /17,5/
 !***FIRST EXECUTABLE STATEMENT  DRNOR
 
 ! FAST PART...
@@ -215,8 +219,23 @@ contains
     DRNOR = sign(XN-X,DRNOR)
     return
 
+  end function drnor
+
+  function drnor_start(ISEED)
+!Initializes the state of the drnor() random number generator.
+!ISEED is any N O N - Z E R O integer. drnor_start returns a double
+!precision echo of ISEED.
+!
+!This was previously the DRNOR_START alternate ENTRY point of drnor.
+!It was split into a separate procedure (sharing the module-level state
+!U, II, JJ) because the ENTRY statement caused an internal compiler error
+!in the Intel ifx compiler.
+    real(8)  drnor_start
+    integer  ISEED
+    real(8)  S,T
+    integer  IA,IB,IC,ID,III,JJJ
+
 !FILL
-    entry DRNOR_START(ISEED)
     if (ISEED.NE.0) then
 
       !SET UP ...
@@ -248,10 +267,10 @@ contains
       enddo
     endif
 !RETURN FLOATING ECHO OF ISEED
-    DRNOR_START=dfloat(ISEED)
+    drnor_start=dfloat(ISEED)
     return
 
-  end function drnor
+  end function drnor_start
 
   subroutine DA17LSM(F,XGUESS,STEP,EPS,MAXFNEVAL,ACTFNEVAL,XMIN,FMIN)
 !This is modified subroutine A17LS by J.S.Nash. I slightly
