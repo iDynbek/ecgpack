@@ -35,7 +35,8 @@ usage_print() {
   echo "    intel-2025a (requires Easybuild module intel/2025a)"
   echo "    intel-2024a (requires Easybuild module intel/2024a)"  
   echo "    intel-2023b (requires Easybuild module intel/2023b)"
-  echo "    nvhpc-24.9 (requires Easybuild modules NVHPC/24.9-CUDA-12.6.0 and OpenMPI/5.0.3-NVHPC-24.9-CUDA-12.6.0)"  
+  echo "    nvhpc-25.9 (requires Easybuild module NVHPC/25.9-CUDA-12.9.1)"
+  echo "    nvhpc-25.3 (requires Easybuild module NVHPC/25.3-CUDA-12.8.0)"  
   echo ""
    echo "Machine: puma, ocelote, elgato"
   echo "Supported toolchain names :"
@@ -211,7 +212,7 @@ for toolchain_value in ${toolchain_list[@]}; do
   # Check if the toolchain is valid for the specified machine and load the corresponding module.
   # If the module is not loaded or/and the proper Fortran compiler and MPI are inaccessible,
   # print an error message.
-  if [[ " linux-generic ubuntu-generic irgetas shabyt muon " == *" $machine "* ]]; then
+  if [[ " linux-generic ubuntu-generic irgetas shabyt muon " == *" $machine "* ]]; then 
     # Possibly insert $machine in the path given by $bindirname (this can be left empty)
     machinedirname=""
     if [ "$toolchain_value" = "foss-2025b" ]; then
@@ -230,8 +231,10 @@ for toolchain_value in ${toolchain_list[@]}; do
       load_toolchain "intel/2024a" ifx ifx "software/intel-compilers/2024.2.0/compiler/2024.2/bin/ifx" mpiifx "software/impi/2021.13.0-intel-compilers-2024.2.0/mpi/2021.13/bin/mpiifx" || continue
     elif [ "$toolchain_value" = "intel-2023b" ]; then
       load_toolchain "intel/2023b" ifort ifort "software/intel-compilers/2023.2.1/compiler/2023.2.1/linux/bin/intel64/ifort" mpiifort "software/impi/2021.10.0-intel-compilers-2023.2.1/mpi/2021.10.0/bin/mpiifort" || continue
-    elif [ "$toolchain_value" = "nvhpc-24.9" ]; then
-      load_toolchain "NVHPC/24.9-CUDA-12.6.0 OpenMPI/5.0.3-NVHPC-24.9-CUDA-12.6.0" nvfortran nvfortran "software/NVHPC/24.9-CUDA-12.6.0/Linux_x86_64/24.9/compilers/bin/nvfortran" mpif90 "software/OpenMPI/5.0.3-NVHPC-24.9-CUDA-12.6.0/bin/mpif90" || continue
+    elif [ "$toolchain_value" = "nvhpc-25.3" ]; then
+      load_toolchain "NVHPC/25.3-CUDA-12.8.0" nvfortran nvfortran "software/nvidia-compilers/25.3-CUDA-12.8.0/Linux_x86_64/25.3/compilers/bin/nvfortran" mpif90 "software/NVHPC/25.3-CUDA-12.8.0/Linux_x86_64/25.3/comm_libs/hpcx/bin/mpif90" || continue
+    elif [ "$toolchain_value" = "nvhpc-25.9" ]; then
+      load_toolchain "NVHPC/25.9-CUDA-12.9.1" nvfortran nvfortran "software/nvidia-compilers/25.9-CUDA-12.9.1/Linux_x86_64/25.9/compilers/bin/nvfortran" mpif90 "software/NVHPC/25.9-CUDA-12.9.1/Linux_x86_64/25.9/comm_libs/hpcx/bin/mpif90" || continue
     elif [ "$toolchain_value" = "systemdefault" ]; then
       load_toolchain "" gfortran gfortran "/usr/bin/gfortran" mpif90 "/usr/bin/mpif90" || continue
     else
