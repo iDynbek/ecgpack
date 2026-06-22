@@ -9,6 +9,10 @@
 #    make release COMPILER=nvfortran MACHINE=shabyt PREC=8 EXEFILE=ecg
 # ───────────────────────────────────────────────────────────────────
 
+# Note that if using a specific compiler (mpif90 wrapper) requires loading a module on
+# your system (this is quite common in HPC environments) then you first need to load
+# that module before running the make command.
+
 # Set the default compiler
 # Supported options: gfortran, ifort, ifx, nvfortran
 # Note that instead of thees compilers their corresponding MPI wrappers are actually 
