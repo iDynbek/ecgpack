@@ -162,9 +162,15 @@ ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon puma
       ifeq ($(COMPILER), nvfortran)
         export LINKFLAGS+=-L${MKLROOT}/lib -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
       endif
-      # ifort/ifx: let the Intel driver link MKL (-qmkl) instead of the manual line below,
+      # Intel compilers: let the driver link MKL instead of the manual line below,
       # which avoids the bare "-lm" that fails to resolve on some systems (e.g. puma).
-      ifneq ($(filter $(COMPILER),ifort ifx),)
+      # ifort uses the older "-mkl" spelling (works across all ifort versions, incl. 2020);
+      # ifx (oneAPI only) uses the newer "-qmkl" spelling.
+      ifeq ($(COMPILER), ifort)
+        # export LINKFLAGS+=-L${MKLROOT}/lib -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
+        export LINKFLAGS+=-mkl=sequential
+      endif
+      ifeq ($(COMPILER), ifx)
         # export LINKFLAGS+=-L${MKLROOT}/lib -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
         export LINKFLAGS+=-qmkl=sequential
       endif
