@@ -186,9 +186,9 @@ cleanest:
 ptarg:
 	@echo CONFIG=$(CONFIG)
 ifeq ($(COMPILER_SUPPORTED), yes)
-	@echo Using COMPILER=$(COMPILER) and settings for MACHINE=$(MACHINE) PREC=$(PREC) ...
+	@echo Using COMPILER=$(COMPILER) MACHINE=$(MACHINE) PREC=$(PREC) EXEFILE=$(CONFIG)/$(EXEFILE)
 else
-	@echo Error - there is no support for COMPILER=$(COMPILER) and MACHINE=$(MACHINE) PREC=$(PREC)
+	@echo Error - there is no support for COMPILER=$(COMPILER) MACHINE=$(MACHINE) PREC=$(PREC)
 	@false
 endif
 
