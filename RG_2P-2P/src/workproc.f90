@@ -108,24 +108,23 @@ contains
         ErrorInDataFile=.true.
       EndIF
 
-!        comparing the number of particle in Glob_WFfile0 and Glob_WFfile1 files
+!     comparing the number of particle in Glob_WFfile0 and Glob_WFfile1 files
       IF (particle_n0/=particle_n1) then
         write(*,*) ' '
         write(*,*) 'the number of particles in initial and final states is not the same !!!'
         write(*,*) ' '
         ErrorInDataFile=.true.
       Else
-        IF (Glob_n/=Glob_MaxAllowedNumOfPseudoParticles) then
+        IF (particle_n0/=Glob_MaxAllowedNumOfPseudoParticles) then
           write(*,*) ' '
           write (*,*) 'The version of the code you are running was compiled for the case'
           write (*,*) 'when the number of particles in the system is equal to', &
             Glob_MaxAllowedNumOfParticles
-          write (*,*) 'while the number of particles specIFied in the wave function files is',Glob_n+1
+          write (*,*) 'while the number of particles specIFied in the wave function files is',particle_n0+1
           write (*,*) 'Please make appropriate changes. Program will now stop.'
           write(*,*) ' '
           ErrorInDataFile=.true.
         EndIF
-!                Glob_n=particle_n0=particle_n1
         Glob_n=particle_n0
       EndIF
 
@@ -1250,7 +1249,6 @@ contains
     !spin-dependent vars
     integer :: i, j, n, a, a1, b, b1, c, ptr, k, npt, counter
     integer :: nFactorial
-    integer :: selectTransition
     real(wp) :: Skk, temp1, temp2
     real(wp), allocatable, dimension(:, :, :) :: ketYMatrix
     real(wp), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
@@ -1806,7 +1804,6 @@ contains
 !local variables
     integer :: i, j, n, a, ptr, k, npt, counter
     integer :: nFactorial
-    integer :: selectTransition
     real(wp) :: Skk, temp1, temp2
     real(wp), allocatable, dimension(:, :, :) :: ketYMatrix
     real(wp), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
@@ -1819,10 +1816,6 @@ contains
     real(wp) :: SSNCkl, SO1kl, SO2kl, SSNC, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, &
                    AMM1fin, AMM2fin, AMM1finkl, AMM2finkl, factor
     logical :: areFilesTheSame
-
-!selectTransition = 1 -- calculate 3P -> 3P matelem
-!selectTransition = 2 -- calculate 3P -> 1P matelem
-    selectTransition = 1
 
     n = Glob_n
     npt = Glob_npt
@@ -1852,12 +1845,12 @@ contains
                      SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, ketYMatrix, &
                      Glob_YOperatorString0, Glob_YOperatorString1, SSNCspinME, SiMinusME, SiPlusME, SziME, spinFreeME, SiSjME)
     SOspinME = ZERO
-    if (selectTransition == 1) then
+    if (Glob_selectTransition == 1) then
       SOspinME = SziME
-    else if (selectTransition == 2) then
+    else if (Glob_selectTransition == 2) then
       SOspinME = SiPlusME
     else
-      stop "incorrect selectTransition value"
+      stop "incorrect Glob_selectTransition value"
     endif
 
     do i = 1, nFactorial
@@ -1913,7 +1906,7 @@ contains
           endif
           do a = 1, nFactorial ! Permutations from S_n introduced by A operator
 
-            call spinDependentMatrixElements(selectTransition, Glob_Index0(i,1), Glob_Index1(j,1), &
+            call spinDependentMatrixElements(Glob_Index0(i,1), Glob_Index1(j,1), &
                                              Glob_Index0(i,2), Glob_Index1(j,2), Glob_NonlinParam0(1 : npt, i), &
                                              Glob_NonlinParam1(1 : npt, j), ketYMatrix(1 : n, 1 : n, a), &
                                           SOspinME(:, a), SSNCspinME(:, :, a), SSNCmassChargeCoefficient, SOmassChargeCoefficient, &

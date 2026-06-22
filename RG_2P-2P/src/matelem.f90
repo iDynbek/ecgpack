@@ -3044,7 +3044,7 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)-(t_XJV5+t_J
 
   end subroutine spinPreCalc
 
-  subroutine spinDependentMatrixElements(selectTransition, m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pket, &
+  subroutine spinDependentMatrixElements(m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pket, &
                                          SOspinME, SSNCspinME, SSNCmassChargeCoefficient, SOmassChargeCoefficient, &
                                          AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, &
                                          SSNCkl, SO1kl, SO2kl, AMM1kl, AMM2kl, AMM1finkl, AMM2finkl)
@@ -3066,7 +3066,7 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)-(t_XJV5+t_J
     !         1 and 2 stay for spin-same orbit and spin-another orbit contributions
 
     !Arguments
-    integer,intent(in)       :: m_k, m_l, mm_k, mm_l, selectTransition
+    integer,intent(in)       :: m_k, m_l, mm_k, mm_l
     real(wp),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
     real(wp),intent(in)   :: Pket(Glob_n,Glob_n)
 
@@ -3426,7 +3426,7 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)-(t_XJV5+t_J
         AMM2kl = AMM2kl + SOspinME(indexI) * AMMmassChargeCoefficient(indexI, indexJ, 4) * temp1
         AMM2finkl = AMM2finkl + SOspinME(indexI) * AMMfinmassChargeCoefficient(indexI, indexJ, 4) * temp1
 
-        if (selectTransition == 2 .or. indexJ <= indexI .or. abs(SSNCspinME(indexI, indexJ)) < localEps ) cycle
+        if (Glob_selectTransition == 2 .or. indexJ <= indexI .or. abs(SSNCspinME(indexI, indexJ)) < localEps ) cycle
         !SSNC term
         !sum f1010 + f0101
         t1 = jiAklinvVk * jiAklinvVl + jjAklinvVk * jjAklinvVl - jiAklinvVk * jjAklinvVl - jjAklinvVk * jiAklinvVl

@@ -4,12 +4,6 @@ program main
   implicit none
 
 !Local variables
-  integer        :: i,j
-  character(70)  :: ReadChar
-  real(wp)    :: LineStrength
-  real(wp)    :: OscillatorStrength
-  real(wp)    :: DeltaE
-  real(wp)    :: DeltaE_cm
   character(len=100) :: line
   character(len=20)  :: mode, transition
   integer :: ios
@@ -45,7 +39,10 @@ program main
       spin_calc = .true.
       scalar_calc = .true.
   case default
-      stop 'Unknown type of calculation'
+      if (Glob_ProcID==0) then
+        write(*,*) 'Unknown mode of calculation: ', trim(mode)
+      endif
+      stop
   end select
 
   select case (trim(transition))
@@ -54,11 +51,17 @@ program main
   case ('XP_XP')
       Glob_selectTransition = 1
   case default
-      stop 'Unknown transition'
+      if (Glob_ProcID==0) then
+        write(*,*) 'Unknown transition: ', trim(transition)
+      endif
+      stop
   end select
 
   if (Glob_selectTransition == 2 .and. scalar_calc) then
-    stop 'Scalar calculation for XP -> XP transition is not supported'
+    if (Glob_ProcID==0) then
+      write(*,*) 'Scalar calculation for XP -> XP transition is not supported'
+    endif
+    stop
   end if
 
   call Readwf0wf1()
@@ -93,10 +96,6 @@ program main
     endif
     call ComputeSpinDep()
   endif
-
-
-
-  DeltaE = Glob_CurrEnergy0-Glob_CurrEnergy1
 
   call MPI_FINALIZE(Glob_MPIErrCode)
 
