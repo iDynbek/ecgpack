@@ -18,15 +18,15 @@ The program requires an input file named `inp.txt` containing two positional arg
 
    * `XP_XP` — diagonal matrix element
 
-     $$
-     \langle {}^{X}P_{J} | \mathcal{H} | {}^{X}P_{J} \rangle
-     $$
+$$
+\langle {}^{X}P_{J} | \mathcal{H} | {}^{X}P_{J} \rangle.
+$$
 
    * `3P_1P` — off-diagonal matrix element
 
-     $$
-     \langle {}^{3}P_{J=1} | \mathcal{H} | {}^{1}P_{J=1} \rangle
-     $$
+$$
+\langle {}^{3}P_{J=1} | \mathcal{H} | {}^{1}P_{J=1} \rangle.
+$$
 
 Here, $\mathcal{H}$ denotes either the scalar relativistic or spin-dependent part of the Breit–Pauli Hamiltonian.
 
