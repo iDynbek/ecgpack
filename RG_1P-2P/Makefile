@@ -1,13 +1,18 @@
-# This is a Makefile to compile an ECGPACK code. Here are some examples of compilations with this Makefile:
-#    make release COMPILER=gfortran MACHINE=linux-generic PREC=8 OPTLPKBLS=yes EXEFILE=ecg
-#    make debug COMPILER=gfortran MACHINE=irgetas PREC=10 OPTLPKBLS=no EXEFILE=ecg
-#    make release COMPILER=ifort MACHINE=ubuntu-generic PREC=8 OPTLPKBLS=yes EXEFILE=ecg
-#    make debug COMPILER=ifx MACHINE=shabyt PREC=16 OPTLPKBLS=no EXEFILE=ecg
-
+# ───────────────────────────────────────────────────────────────────
+# This is a Makefile to compile an ECGPACK code. Here are some examples of compilations
+# with this Makefile:
+#    make release COMPILER=gfortran MACHINE=linux-generic PREC=8 LINALG=netlib EXEFILE=ecg
+#    make release COMPILER=gfortran MACHINE=ubuntu-generic PREC=8 EXEFILE=ecg
+#    make debug COMPILER=gfortran MACHINE=irgetas PREC=10 LINALG=netlib EXEFILE=ecg
+#    make release COMPILER=ifort MACHINE=puma PREC=8 EXEFILE=ecg
+#    make debug COMPILER=ifx MACHINE=muon PREC=16 LINALG=netlib EXEFILE=ecg
+#    make release COMPILER=nvfortran MACHINE=shabyt PREC=8 EXEFILE=ecg
+# ───────────────────────────────────────────────────────────────────
 
 # Set the default compiler
 # Supported options: gfortran, ifort, ifx, nvfortran
-# Note that instead of thees compilers their corresponding MPI wrappers are actually invoked (e.g. mpif90 instead of gfortran; mpiifort instead of ifort, etc.)
+# Note that instead of thees compilers their corresponding MPI wrappers are actually 
+# invoked (e.g. mpif90 instead of gfortran; mpiifort instead of ifort, etc.)
 COMPILER=gfortran
 
 # Set the default machine where the compilation takes place 
@@ -21,6 +26,12 @@ MACHINE=linux-generic
 # Note that PREC=10 or PREC=16 support is compiler and platform dependent and is not universal. 
 PREC=8
 
+# LINALG selects the BLAS/LAPACK implementation used by the energy codes. The
+# off-diagonal matrix-element codes do not link an external BLAS/LAPACK library,
+# so here LINALG is only a dummy argument; it must be left at its default value
+# netlib (which is also the only value allowed for PREC=10 and PREC=16).
+LINALG=netlib
+
 # Set the default name for the generated executable file
 EXEFILE=ecg
 
@@ -29,7 +40,7 @@ SRC_DIR=./src
 
 # Set compiler flags for each machine and compiler type (for both release and debug builds).
 
-ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
+ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon puma ocelote elgato),)
   # gfortran and Open MPI (default on most Linux systems)
   ifeq ($(COMPILER), gfortran)
     FC=mpif90
@@ -47,18 +58,14 @@ ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
     endif
     ifeq ($(PREC), 8)
       COMPILER_SUPPORTED=yes
-      ifeq ($(OPTLPKBLS),yes)
-        # Link with Lapack and BLAS
-        export LINKFLAGS+=-lblas -llapack
-      endif
     endif
     ifeq ($(PREC), 10)
-      ifneq ($(OPTLPKBLS),yes)
+      ifeq ($(LINALG),netlib)
         COMPILER_SUPPORTED=yes
       endif
     endif
     ifeq ($(PREC), 16)
-      ifneq ($(OPTLPKBLS),yes)
+      ifeq ($(LINALG),netlib)
         COMPILER_SUPPORTED=yes
       endif
     endif
@@ -80,15 +87,9 @@ ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
     endif
     ifeq ($(PREC), 8)
       COMPILER_SUPPORTED=yes
-      ifeq ($(OPTLPKBLS),yes)
-        # Link with MKL
-        export FCFLAGS+=-I$(MKLROOT)/include
-        export LINKFLAGS+=-L$(MKLROOT)
-        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
-      endif
     endif
     ifeq ($(PREC), 16)
-      ifneq ($(OPTLPKBLS),yes)
+      ifeq ($(LINALG),netlib)
         COMPILER_SUPPORTED=yes
       endif
     endif
@@ -110,15 +111,9 @@ ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
     endif
     ifeq ($(PREC), 8)
       COMPILER_SUPPORTED=yes
-      ifeq ($(OPTLPKBLS),yes)
-        # Link with MKL
-        export FCFLAGS+=-I$(MKLROOT)/include
-        export LINKFLAGS+=-L$(MKLROOT)
-        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
-      endif
     endif
     ifeq ($(PREC), 16)
-      ifneq ($(OPTLPKBLS),yes)
+      ifeq ($(LINALG),netlib)
         COMPILER_SUPPORTED=yes
       endif
     endif
@@ -140,112 +135,12 @@ ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
     endif
     ifeq ($(PREC), 8)
       COMPILER_SUPPORTED=yes
-      ifeq ($(OPTLPKBLS),yes)
-        # Link with the LAPACK/BLAS bundled in the NVIDIA HPC SDK
-        export LINKFLAGS+=-llapack -lblas
-      endif
     endif
     ifeq ($(PREC), 10)
       COMPILER_SUPPORTED=no
     endif
     ifeq ($(PREC), 16)
       COMPILER_SUPPORTED=no
-    endif
-  endif
-endif
-
-ifneq ($(filter $(MACHINE),puma ocelote elgato),)
-  # gfortran and Open MPI
-  ifeq ($(COMPILER), gfortran)
-    FC=mpif90
-    export MPICOMPFLAGS=
-    export MPILINKFLAGS=
-    export FCFLAGS=-J$(CONFIG)
-    export LINKFLAGS=-J$(CONFIG)
-    ifeq ($(CONFIG), debug)
-      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
-      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
-    endif
-    ifeq ($(CONFIG), release)
-      export FCFLAGS+=-O3 -march=native
-      export LINKFLAGS+=-O3 -march=native
-    endif
-    ifeq ($(PREC), 8)
-      COMPILER_SUPPORTED=yes
-      ifeq ($(OPTLPKBLS),yes)
-        # Link with Lapack and BLAS
-        export LINKFLAGS+=-lblas -llapack
-      endif
-    endif
-    ifeq ($(PREC), 10)
-      ifneq ($(OPTLPKBLS),yes)
-        COMPILER_SUPPORTED=yes
-      endif
-    endif
-    ifeq ($(PREC), 16)
-      ifneq ($(OPTLPKBLS),yes)
-        COMPILER_SUPPORTED=yes
-      endif
-    endif
-  endif
-  # Intel Fortran (ifort) and Intel MPI
-  ifeq ($(COMPILER), ifort)
-    FC=mpiifort
-    export MPICOMPFLAGS=
-    export MPILINKFLAGS=
-    export FCFLAGS=-module $(CONFIG)
-    export LINKFLAGS=-module $(CONFIG)
-    ifeq ($(CONFIG), debug)
-      export FCFLAGS+=-C -O0 -g -check bounds -check all -check uninit -traceback -ftrapuv -debug full -fpe0
-      export LINKFLAGS+=-C -O0 -g -check bounds -check all -check uninit -traceback -ftrapuv -debug full -fpe0
-    endif
-    ifeq ($(CONFIG), release)
-      export FCFLAGS+=-O3 -ip -xhost -fp-model precise
-      export LINKFLAGS+=-O3 -ip -xhost -fp-model precise
-    endif
-    ifeq ($(PREC), 8)
-      COMPILER_SUPPORTED=yes
-      ifeq ($(OPTLPKBLS),yes)
-        # Link with MKL
-        export FCFLAGS+=-I$(MKLROOT)/include
-        export LINKFLAGS+=-L$(MKLROOT)
-        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
-      endif
-    endif
-    ifeq ($(PREC), 16)
-      ifneq ($(OPTLPKBLS),yes)
-        COMPILER_SUPPORTED=yes
-      endif
-    endif
-  endif
-  # Intel Fortran (LLVM-based ifx) and Intel MPI
-  ifeq ($(COMPILER), ifx)
-    FC=mpiifx
-    export MPICOMPFLAGS=
-    export MPILINKFLAGS=
-    export FCFLAGS=-module $(CONFIG)
-    export LINKFLAGS=-module $(CONFIG)
-    ifeq ($(CONFIG), debug)
-      export FCFLAGS+=-O0 -g -check all -check uninit -traceback -ftrapuv -fpe0
-      export LINKFLAGS+=-O0 -g -check all -check uninit -traceback -ftrapuv -fpe0
-    endif
-    ifeq ($(CONFIG), release)
-      export FCFLAGS+=-O3 -xhost -fp-model precise
-      export LINKFLAGS+=-O3 -xhost -fp-model precise
-    endif
-    ifeq ($(PREC), 8)
-      COMPILER_SUPPORTED=yes
-      ifeq ($(OPTLPKBLS),yes)
-        # Link with MKL
-        export FCFLAGS+=-I$(MKLROOT)/include
-        export LINKFLAGS+=-L$(MKLROOT)
-        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
-      endif
-    endif
-    ifeq ($(PREC), 16)
-      ifneq ($(OPTLPKBLS),yes)
-        COMPILER_SUPPORTED=yes
-      endif
     endif
   endif
 endif
@@ -254,7 +149,6 @@ endif
 
 export BARE_OBJS=wp_def_$(PREC).o globvars.o matelem.o workproc.o main.o
 export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS))
-
 
 .PHONY: release debug all clean cleaner cleanest cleandebug cleanrelease ptarg
 

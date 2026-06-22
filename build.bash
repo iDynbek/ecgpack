@@ -7,7 +7,7 @@ usage_print() {
   echo "Missing arguments or invalid arguments."
   echo ""  
   echo "PROPER USAGE:"
-  echo "$0 machine=<machinename> toolchain=<toolchainnames> config=<confignames> code=<codenames> nparticles=<nparticles> precision=<precisions> use_optimized_lapack=<yesnoflag>"
+  echo "$0 machine=<machinename> toolchain=<toolchainnames> config=<confignames> code=<codenames> nparticles=<nparticles> precision=<precisions> linalg=<linalgnames>"
   echo ""
   echo "NOTE:"
   echo "All arguments are optional except nparticles. If multiple values are specified for an argument, they must be separated by a comma."
@@ -20,7 +20,7 @@ usage_print() {
   echo "<codenames> is the list of codes that need to be built. Currently these could be RG_0S,RG_1P,RG_2P,RG_2D,RG_0S-1P,RG_0S2P,RG_0S-2D,RG_1P-1P,RG_2P-2P,RG_2P-2D. The default includes all codes."
   echo "<nparticles> defines for how many particles each code must be build for. There is no default value. This argument must be present."
   echo "<precisions> is the kind parameter for real type. 8 corresponds to double precision (fp64), 10 corresponds to extended precision (fp80), 16 corresponds to quadruple precision. Different compilers/toolchain support different kinds. For example, Intel compilers supports only 8 and 16, while modern GNU compilers support 8, 10, and 16. The default value is 8."
-  echo "<yesnoflag> is a flag that specifies whether to use optimized LAPACK libraries (yes) or use nonoptimized LAPACK from source (no). The default value is yes for precision=8. For precision=10 and precision=16 the value is always no, regardless how the flag is set because optimized LAPACK for these two cases is unavailable."
+  echo "<linalgnames> specifies which BLAS/LAPACK implementation to link against. Possible values are: netlib (default; non-optimized reference BLAS/LAPACK built from the bundled source), mkl (Intel Math Kernel Library), lblas (optimized BLAS/LAPACK exposed through the -lblas/-llapack symbolic links), openblas (OpenBLAS), and aocl (AMD AOCL-BLAS and AOCL-LAPACK). For precision=10 and precision=16 only netlib is available, so any other value is skipped because optimized BLAS/LAPACK is unavailable for these two precisions."
   echo "" 
   echo "Supported toolchains on different machines are listed below."
   echo ""   
@@ -38,23 +38,31 @@ usage_print() {
   echo "    nvhpc-25.9 (requires Easybuild module NVHPC/25.9-CUDA-12.9.1)"
   echo "    nvhpc-25.3 (requires Easybuild module NVHPC/25.3-CUDA-12.8.0)"  
   echo ""
-   echo "Machine: puma, ocelote, elgato"
+  echo "Machine: puma"
   echo "Supported toolchain names :"
-  echo "    systemdefault (system default compiler and MPI installed on the system)"  
-  echo "    gnu8-8.3.0 (requires module gnu8/8.3.0)"
+  echo "    systemdefault (system default compiler and MPI installed on the system; currently is the same as ohpc)"  
+  echo "    ohpc (requires module ohpc ; equivalent to modules gnu13/13.2.0 and openmpi5/5.0.5)"
+  echo "    intel-2024.0.0 (requires module intel/2024.0.0)"
+  echo ""
+  echo "Machine: ocelote, elgato"
+  echo "Supported toolchain names :"
+  echo "    systemdefault (system default compiler and MPI installed on the system; may not work without mpif90 wrapper)"  
+  echo "    ohpc (requires module ohpc ; currently is equivalent to modules gnu8/8.3.0 and openmpi3/3.1.4)"
   echo "    intel-2020.4 (requires module intel/2020.4)"
-
+  echo ""  
   echo "EXECUTION EXAMPLES:"
   echo ""  
-  echo "    $0 machine=linux-generic toolchain=foss-2025b config=release code=RG_0S,RG_1P,RG_2D,RG_2P nparticles=3,4,5,6,7,8 precision=8,10,16 use_optimized_lapack=no"
-  echo ""  
-  echo "    $0 machine=linux-generic toolchain=foss-2025a config=release code=RG_0S,RG_1P,RG_2D,RG_2P,RG_0S-1P,RG_1P-2D,RG_1P-2P,RG_0S-2D,RG_0S-2P,RG_1P-1P,RG_2D-2D,RG_2P-2D,RG_2P-2P nparticles=3,4,5,6,7,8 precision=8 use_optimized_lapack=yes"
-  echo ""  
-  echo "    $0 machine=irgetas toolchain=foss-2023b config=release code=RG_0S,RG_1P nparticles=3,4,5,6 precision=8,10,16 use_optimized_lapack=no"
-  echo ""  
-  echo "    $0 machine=muon toolchain=foss-2023b,intel-2023b config=debug,release code=RG_0S nparticles=4,5 precision=8,16 use_optimized_lapack=yes,no"
-  echo "" 
-  echo "    $0 machine=puma toolchain=intel-2020.4 config=debug,release code=RG_0S nparticles=5 precision=8,16 use_optimized_lapack=yes,no"  
+  echo "    $0 machine=linux-generic toolchain=foss-2025b config=release code=RG_0S,RG_1P,RG_2D,RG_2P nparticles=3,4,5,6,7,8 precision=8,10,16 linalg=netlib"
+  echo ""
+  echo "    $0 machine=linux-generic toolchain=foss-2025a config=release code=RG_0S,RG_1P,RG_2D,RG_2P,RG_0S-1P,RG_1P-2D,RG_1P-2P,RG_0S-2D,RG_0S-2P,RG_1P-1P,RG_2D-2D,RG_2P-2D,RG_2P-2P nparticles=3,4,5,6,7,8 precision=8 linalg=openblas"
+  echo ""
+  echo "    $0 machine=irgetas toolchain=foss-2023b config=release code=RG_0S,RG_1P nparticles=3,4,5,6 precision=8,10,16 linalg=netlib"
+  echo ""
+  echo "    $0 machine=muon toolchain=foss-2023b,intel-2023b config=debug,release code=RG_0S nparticles=4,5 precision=8,16 linalg=mkl,netlib"
+  echo ""
+  echo "    $0 machine=puma toolchain=ohpc config=debug,release code=RG_0S nparticles=5 precision=8,16 linalg=lblas"  
+  echo ""
+  echo "    $0 machine=ocelote toolchain=intel-2020.4 config=debug,release code=RG_0S nparticles=5 precision=8,16 linalg=mkl,netlib"
   echo ""  
   echo "    $0 machine=shabyt nparticles=4,5 precision=10"
   echo ""  
@@ -70,7 +78,7 @@ config="debug,release"
 code="RG_0S, RG_1P, RG_2D, RG_2P, RG_0S-1P, RG_1P-2D, RG_1P-2P, RG_0S-2D, RG_0S-2P, RG_1P-1P, RG_2D-2D, RG_2P-2D, RG_2P-2P"
 nparticles=""
 precision="8"
-use_optimized_lapack="yes"
+linalg="netlib"
 
 # Parse the arguments
 for arg in "$@"; do
@@ -81,7 +89,7 @@ for arg in "$@"; do
     code=*) code="${arg#*=}" ;;
     nparticles=*) nparticles="${arg#*=}" ;;
     precision=*) precision="${arg#*=}" ;;
-    use_optimized_lapack=*) use_optimized_lapack="${arg#*=}" ;;
+    linalg=*) linalg="${arg#*=}" ;;
     *) echo "ERROR, INVALID ARGUMENT: $arg" ; echo "" ; usage_print ;;
   esac
 done
@@ -100,7 +108,7 @@ IFS=',' read -ra config_list <<< $config
 IFS=',' read -ra code_list <<< $code
 IFS=',' read -ra nparticles_list <<< $nparticles
 IFS=',' read -ra precision_list <<< $precision
-IFS=',' read -ra use_optimized_lapack_list <<< $use_optimized_lapack
+IFS=',' read -ra linalg_list <<< $linalg
 
 # Check if machine is set properly. Only a single machine can be used as an argument
 if [[ " linux-generic ubuntu-generic shabyt muon puma ocelote elgato " != *" $machine "* ]]; then
@@ -150,10 +158,10 @@ for precision_value in ${precision_list[@]}; do
   fi
 done
 
-# Check if use_optimized_lapack is set properly
-for use_optimized_lapack_value in ${use_optimized_lapack_list[@]}; do
-  if [[ " yes no " != *" $use_optimized_lapack_value "* ]]; then
-    echo "ERROR, WRONG VALUE(S) OF ARGUMENT: use_optimized_lapack"
+# Check if linalg is set properly
+for linalg_value in ${linalg_list[@]}; do
+  if [[ " netlib mkl lblas openblas aocl " != *" $linalg_value "* ]]; then
+    echo "ERROR, WRONG VALUE(S) OF ARGUMENT: linalg"
     usage_print
     exit 1
   fi
@@ -243,21 +251,36 @@ for toolchain_value in ${toolchain_list[@]}; do
       exit 1
     fi
   fi
-  if [[ " puma ocelote elgato " == *" $machine "* ]]; then
+  if [[ " puma " == *" $machine "* ]]; then
     # Possibly insert $machine in the path given by $bindirname (this can be left empty). Be sure to add a trailing slash.
     machinedirname=${machine}"/"
-    if [ "$toolchain_value" = "gnu8-8.3.0" ]; then
-      load_toolchain "gnu8/8.3.0" gfortran gfortran "/opt/ohpc/pub/compiler/gcc/8.3.0/bin/gfortran" mpif90 "/opt/ohpc/pub/mpi/openmpi3-gnu8/3.1.4/bin/mpif90" || continue
-    elif [ "$toolchain_value" = "intel-2020.4" ]; then
-      load_toolchain "intel/2020.4" ifort ifort "/opt/ohpc/pub/compiler/intel_2020_u4/compilers_and_libraries/linux/bin/intel64/ifort" mpiifort "/opt/ohpc/pub/compiler/intel_2020_u4/compilers_and_libraries/linux/mpi/intel64/bin/mpiifort" || continue
+    if [ "$toolchain_value" = "ohpc" ]; then
+      load_toolchain "ohpc" gfortran gfortran "gcc/13.2.0/bin/gfortran" mpif90 "openmpi5-gnu13/5.0.5/bin/mpif90" || continue
+    elif [ "$toolchain_value" = "intel-2024.0.0" ]; then
+      load_toolchain "intel/2024.0.0" ifx ifx "intel/oneapi/compiler/2024.0/bin/ifx" mpiifx "intel/oneapi/mpi/2021.11/bin/mpiifx" || continue
     elif [ "$toolchain_value" = "systemdefault" ]; then
-      load_toolchain "" gfortran gfortran "/opt/ohpc/pub/compiler/gcc/8.3.0/bin/gfortran" mpif90 "/opt/ohpc/pub/mpi/openmpi3-gnu8/3.1.4/bin/mpif90" || continue
+      load_toolchain "" gfortran gfortran "bin/gfortran" mpif90 "bin/mpif90" || continue
     else
       echo "ERROR, INVALID TOOLCHAIN $toolchain FOR MACHINE $machine"
       usage_print
       exit 1
     fi
   fi
+  if [[ " ocelote elgato " == *" $machine "* ]]; then
+    # Possibly insert $machine in the path given by $bindirname (this can be left empty). Be sure to add a trailing slash.
+    machinedirname=${machine}"/"
+    if [ "$toolchain_value" = "ohpc" ]; then
+      load_toolchain "ohpc" gfortran gfortran "gcc/8.3.0/bin/gfortran" mpif90 "openmpi3-gnu8/3.1.4/bin/mpif90" || continue
+    elif [ "$toolchain_value" = "intel-2020.4" ]; then
+      load_toolchain "intel/2020.4" ifort ifort "intel_2020_u4/compilers_and_libraries/linux/bin/intel64/ifort" mpiifort "intel_2020_u4/compilers_and_libraries/linux/mpi/intel64/bin/mpiifort" || continue
+    elif [ "$toolchain_value" = "systemdefault" ]; then
+      load_toolchain "" gfortran gfortran "bin/gfortran" mpif90 "bin/mpif90" || continue
+    else
+      echo "ERROR, INVALID TOOLCHAIN $toolchain FOR MACHINE $machine"
+      usage_print
+      exit 1
+    fi
+  fi  
   # Loop over all configurations
   for config_value in ${config_list[@]}; do
     # Loop over all codes
@@ -274,24 +297,20 @@ for toolchain_value in ${toolchain_list[@]}; do
           elif [[ "$precision_value" = "16" ]]; then
             MPI_REALX_name=MPI_REAL16
           fi
-          # Loop over all values of use_optimized_lapack, but for precision=10,16 only the `no` is allowed
-          for use_optimized_lapack_value in ${use_optimized_lapack_list[@]}; do
+          # Loop over all values of linalg, but for precision=10,16 only netlib is allowed
+          for linalg_value in ${linalg_list[@]}; do
             binsubdirname=${bindirname}/${machinedirname}${toolchain_value}/${config_value}
             binaryfilename=${code_value}_N${nparticles_value}_P${precision_value}
-            if [[ "$use_optimized_lapack_value" = "yes" ]]; then
-              if [[ "$precision_value" = "10" ]]; then
-                continue
-              elif [[ "$precision_value" = "16" ]]; then
-                continue
-              else
-                # Add suffix to the binary file name if optimized LAPACK is used
-                binaryfilename=${binaryfilename}_optlapack
-              fi
+            # For precision=10 and precision=16 only netlib is available, so skip any other linalg value
+            if [[ "$precision_value" != "8" && "$linalg_value" != "netlib" ]]; then
+              continue
             fi
+            # Always add the linalg value as a suffix to the binary file name
+            binaryfilename=${binaryfilename}_${linalg_value}
             echo ""
             echo "════════════════════════ Starting a new build ═════════════════════════"
             echo "machine="$machine "   toolchain="$toolchain_value "   config="$config_value
-            echo "code="$code_value "   nparticles="$nparticles_value "   precision="$precision_value "   use_optimized_lapack="$use_optimized_lapack_value
+            echo "code="$code_value "   nparticles="$nparticles_value "   precision="$precision_value "   linalg="$linalg_value
             echo "───────────────────────────── make output ─────────────────────────────"
             # Check if file ${code_value}/src/wp_def_${precision_value}.f90 exists. This way
             # we also automtically test if the directory ${code_value} for this specific code exists
@@ -310,7 +329,7 @@ for toolchain_value in ${toolchain_list[@]}; do
             sed -i "s/MPI_DPREC=[^ ][^ ]*/MPI_DPREC=${MPI_REALX_name}/g" src/wp_def_${precision_value}.f90
             # Build the code
             make clean > /dev/null 2>&1
-            make ${config_value} COMPILER=${compiler} MACHINE=${machine} PREC=${precision_value} OPTLPKBLS=${use_optimized_lapack_value} EXEFILE=ecg
+            make ${config_value} COMPILER=${compiler} MACHINE=${machine} PREC=${precision_value} LINALG=${linalg_value} EXEFILE=ecg
             # Check if the build was successful
             if [ $? -eq 0 ]; then
               echo "═════════════════════ Build finished succesfully ══════════════════════"

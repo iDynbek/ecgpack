@@ -1,13 +1,18 @@
-# This is a Makefile to compile an ECGPACK code. Here are some examples of compilations with this Makefile:
-#    make release COMPILER=gfortran MACHINE=linux-generic PREC=8 OPTLPKBLS=yes EXEFILE=ecg
-#    make debug COMPILER=gfortran MACHINE=irgetas PREC=10 OPTLPKBLS=no EXEFILE=ecg
-#    make release COMPILER=ifort MACHINE=ubuntu-generic PREC=8 OPTLPKBLS=yes EXEFILE=ecg
-#    make debug COMPILER=ifx MACHINE=shabyt PREC=16 OPTLPKBLS=no EXEFILE=ecg
-
+# ───────────────────────────────────────────────────────────────────
+# This is a Makefile to compile an ECGPACK code. Here are some examples of compilations
+# with this Makefile:
+#    make release COMPILER=gfortran MACHINE=linux-generic PREC=8 LINALG=openblas EXEFILE=ecg
+#    make release COMPILER=gfortran MACHINE=ubuntu-generic PREC=8 LINALG=lblas EXEFILE=ecg
+#    make debug COMPILER=gfortran MACHINE=irgetas PREC=10 LINALG=netlib EXEFILE=ecg
+#    make release COMPILER=ifort MACHINE=puma PREC=8 LINALG=mkl EXEFILE=ecg
+#    make debug COMPILER=ifx MACHINE=muon PREC=16 LINALG=netlib EXEFILE=ecg
+#    make release COMPILER=nvfortran MACHINE=shabyt PREC=8 LINALG=lblas EXEFILE=ecg
+# ───────────────────────────────────────────────────────────────────
 
 # Set the default compiler
 # Supported options: gfortran, ifort, ifx, nvfortran
-# Note that instead of thees compilers their corresponding MPI wrappers are actually invoked (e.g. mpif90 instead of gfortran; mpiifort instead of ifort, etc.)
+# Note that instead of thees compilers their corresponding MPI wrappers are actually 
+# invoked (e.g. mpif90 instead of gfortran; mpiifort instead of ifort, etc.)
 COMPILER=gfortran
 
 # Set the default machine where the compilation takes place 
@@ -21,13 +26,18 @@ MACHINE=linux-generic
 # Note that PREC=10 or PREC=16 support is compiler and platform dependent and is not universal. 
 PREC=8
 
-# Set whether selected linear algebra routines should be linked from an optimized
-# LAPACK/BLAS library (OPTLPKBLS=yes) such as OpenBLAS or Intel Math Kernel Library
-# Otherwise (OPTLPKBLS=no, or any other value) the supplied non-optimized source
-# of these routines is used. Setting the OPTLPKBLS option makes effect only for PREC=8
-# because optimized BLAS/LAPACK libraries are not available in extended or quadruple 
-# precision in any of the standard libraries.   
-OPTLPKBLS=yes
+# Select which BLAS/LAPACK implementation the linear algebra routines are linked
+# against via the LINALG argument. Supported values:
+#   netlib   - Non-optimized reference BLAS/LAPACK compiled from the bundled modified Netlib
+#              source (default). Results in no additions to LINKFLAGS.
+#   mkl      - Intel Math Kernel Library.
+#   lblas    - Optimized BLAS/LAPACK exposed through the -lblas/-llapack symbolic links.
+#   openblas - OpenBLAS library.
+#   aocl     - AMD Optimizing CPU Libraries (AOCL-BLAS and AOCL-LAPACK).
+# Choosing an optimized library (any value other than netlib) makes effect only for
+# PREC=8, because optimized BLAS/LAPACK libraries are not available in extended or
+# quadruple precision. For PREC=10 and PREC=16 the value of LINALG must be netlib.
+LINALG=netlib
 
 # Set the default name for the generated executable file
 EXEFILE=ecg
@@ -37,7 +47,7 @@ SRC_DIR=./src
 
 # Set compiler flags for each machine and compiler type (for both release and debug builds).
 
-ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
+ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon puma ocelote elgato),)
   # gfortran and Open MPI (default on most Linux systems)
   ifeq ($(COMPILER), gfortran)
     FC=mpif90
@@ -55,18 +65,14 @@ ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
     endif
     ifeq ($(PREC), 8)
       COMPILER_SUPPORTED=yes
-      ifeq ($(OPTLPKBLS),yes)
-        # Link with Lapack and BLAS
-        export LINKFLAGS+=-lblas -llapack
-      endif
     endif
     ifeq ($(PREC), 10)
-      ifneq ($(OPTLPKBLS),yes)
+      ifeq ($(LINALG),netlib)
         COMPILER_SUPPORTED=yes
       endif
     endif
     ifeq ($(PREC), 16)
-      ifneq ($(OPTLPKBLS),yes)
+      ifeq ($(LINALG),netlib)
         COMPILER_SUPPORTED=yes
       endif
     endif
@@ -88,15 +94,9 @@ ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
     endif
     ifeq ($(PREC), 8)
       COMPILER_SUPPORTED=yes
-      ifeq ($(OPTLPKBLS),yes)
-        # Link with MKL
-        export FCFLAGS+=-I$(MKLROOT)/include
-        export LINKFLAGS+=-L$(MKLROOT)
-        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
-      endif
     endif
     ifeq ($(PREC), 16)
-      ifneq ($(OPTLPKBLS),yes)
+      ifeq ($(LINALG),netlib)
         COMPILER_SUPPORTED=yes
       endif
     endif
@@ -118,15 +118,9 @@ ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
     endif
     ifeq ($(PREC), 8)
       COMPILER_SUPPORTED=yes
-      ifeq ($(OPTLPKBLS),yes)
-        # Link with MKL
-        export FCFLAGS+=-I$(MKLROOT)/include
-        export LINKFLAGS+=-L$(MKLROOT)
-        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
-      endif
     endif
     ifeq ($(PREC), 16)
-      ifneq ($(OPTLPKBLS),yes)
+      ifeq ($(LINALG),netlib)
         COMPILER_SUPPORTED=yes
       endif
     endif
@@ -148,10 +142,6 @@ ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
     endif
     ifeq ($(PREC), 8)
       COMPILER_SUPPORTED=yes
-      ifeq ($(OPTLPKBLS),yes)
-        # Link with the LAPACK/BLAS bundled in the NVIDIA HPC SDK
-        export LINKFLAGS+=-llapack -lblas
-      endif
     endif
     ifeq ($(PREC), 10)
       COMPILER_SUPPORTED=no
@@ -160,110 +150,36 @@ ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon),)
       COMPILER_SUPPORTED=no
     endif
   endif
-endif
 
-ifneq ($(filter $(MACHINE),puma ocelote elgato),)
-  # gfortran and Open MPI
-  ifeq ($(COMPILER), gfortran)
-    FC=mpif90
-    export MPICOMPFLAGS=
-    export MPILINKFLAGS=
-    export FCFLAGS=-J$(CONFIG)
-    export LINKFLAGS=-J$(CONFIG)
-    ifeq ($(CONFIG), debug)
-      export FCFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
-      export LINKFLAGS+=-C -O0 -g -fbounds-check -fbacktrace -finit-real=nan -fcheck=all -fimplicit-none -ffpe-trap=invalid,zero,overflow
-    endif
-    ifeq ($(CONFIG), release)
-      export FCFLAGS+=-O3 -march=native
-      export LINKFLAGS+=-O3 -march=native
-    endif
-    ifeq ($(PREC), 8)
-      COMPILER_SUPPORTED=yes
-      ifeq ($(OPTLPKBLS),yes)
-        # Link with Lapack and BLAS
-        export LINKFLAGS+=-lblas -llapack
+  # Add linker flags for the selected optimized linear algebra library (PREC=8 only).
+  # For PREC=10 and PREC=16 only the bundled Netlib source (LINALG=netlib) is used,
+  # which requires no additional linker flags.
+  ifeq ($(PREC), 8)
+    ifeq ($(LINALG), mkl)
+      ifeq ($(COMPILER), gfortran)
+        export LINKFLAGS+=-L${MKLROOT}/lib -lmkl_gf_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
+      else
+        export LINKFLAGS+=-L${MKLROOT}/lib -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
       endif
     endif
-    ifeq ($(PREC), 10)
-      ifneq ($(OPTLPKBLS),yes)
-        COMPILER_SUPPORTED=yes
-      endif
+    ifeq ($(LINALG), lblas)
+      export LINKFLAGS+=-llapack -lblas
     endif
-    ifeq ($(PREC), 16)
-      ifneq ($(OPTLPKBLS),yes)
-        COMPILER_SUPPORTED=yes
-      endif
+    ifeq ($(LINALG), openblas)
+      export LINKFLAGS+=-lopenblas
     endif
-  endif
-  # Intel Fortran (ifort) and Intel MPI
-  ifeq ($(COMPILER), ifort)
-    FC=mpiifort
-    export MPICOMPFLAGS=
-    export MPILINKFLAGS=
-    export FCFLAGS=-module $(CONFIG)
-    export LINKFLAGS=-module $(CONFIG)
-    ifeq ($(CONFIG), debug)
-      export FCFLAGS+=-C -O0 -g -check bounds -check all -check uninit -traceback -ftrapuv -debug full -fpe0
-      export LINKFLAGS+=-C -O0 -g -check bounds -check all -check uninit -traceback -ftrapuv -debug full -fpe0
-    endif
-    ifeq ($(CONFIG), release)
-      export FCFLAGS+=-O3 -ip -xhost -fp-model precise
-      export LINKFLAGS+=-O3 -ip -xhost -fp-model precise
-    endif
-    ifeq ($(PREC), 8)
-      COMPILER_SUPPORTED=yes
-      ifeq ($(OPTLPKBLS),yes)
-        # Link with MKL
-        export FCFLAGS+=-I$(MKLROOT)/include
-        export LINKFLAGS+=-L$(MKLROOT)
-        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
-      endif
-    endif
-    ifeq ($(PREC), 16)
-      ifneq ($(OPTLPKBLS),yes)
-        COMPILER_SUPPORTED=yes
-      endif
-    endif
-  endif
-  # Intel Fortran (LLVM-based ifx) and Intel MPI
-  ifeq ($(COMPILER), ifx)
-    FC=mpiifx
-    export MPICOMPFLAGS=
-    export MPILINKFLAGS=
-    export FCFLAGS=-module $(CONFIG)
-    export LINKFLAGS=-module $(CONFIG)
-    ifeq ($(CONFIG), debug)
-      export FCFLAGS+=-O0 -g -check all -check uninit -traceback -ftrapuv -fpe0
-      export LINKFLAGS+=-O0 -g -check all -check uninit -traceback -ftrapuv -fpe0
-    endif
-    ifeq ($(CONFIG), release)
-      export FCFLAGS+=-O3 -xhost -fp-model precise
-      export LINKFLAGS+=-O3 -xhost -fp-model precise
-    endif
-    ifeq ($(PREC), 8)
-      COMPILER_SUPPORTED=yes
-      ifeq ($(OPTLPKBLS),yes)
-        # Link with MKL
-        export FCFLAGS+=-I$(MKLROOT)/include
-        export LINKFLAGS+=-L$(MKLROOT)
-        export LINKFLAGS+=-Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
-      endif
-    endif
-    ifeq ($(PREC), 16)
-      ifneq ($(OPTLPKBLS),yes)
-        COMPILER_SUPPORTED=yes
-      endif
+    ifeq ($(LINALG), aocl)
+      export LINKFLAGS+=-L${EBROOTAOCLMINLAPACK}/lib -L${EBROOTAOCLMINBLAS}/lib -lflame -lblis-mt -laoclutils -lstdc++ -lm -lpthread
     endif
   endif
 endif
 
 # Creating lists of objects for convenience
 
-ifeq ($(OPTLPKBLS), yes)
-  export BARE_OBJS_LPKBLS=
-else
+ifeq ($(LINALG), netlib)
   export BARE_OBJS_LPKBLS=BLAS.o LAPACK.o
+else
+  export BARE_OBJS_LPKBLS=
 endif
 export OBJS_LPKBLS=$(addprefix $(CONFIG)/,$(BARE_OBJS_LPKBLS))
 
@@ -271,7 +187,6 @@ export BARE_OBJS=wp_def_$(PREC).o X1MACH.o dmng.o globvars.o misc.o linalg.o \
               matelem.o matform.o workproc.o main.o spin.o
 export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS))
 export OBJS+=$(OBJS_LPKBLS)
-
 
 .PHONY: release debug all clean cleaner cleanest cleandebug cleanrelease ptarg
 
@@ -309,9 +224,9 @@ cleanest:
 ptarg:
 	@echo CONFIG=$(CONFIG)
 ifeq ($(COMPILER_SUPPORTED), yes)
-	@echo Using COMPILER=$(COMPILER) and settings for MACHINE=$(MACHINE) PREC=$(PREC) OPTLPKBLS=$(OPTLPKBLS) ...
+	@echo Using COMPILER=$(COMPILER) MACHINE=$(MACHINE) PREC=$(PREC) LINALG=$(LINALG) EXEFILE=$(CONFIG)/$(EXEFILE)
 else
-	@echo Error - there is no support for COMPILER=$(COMPILER) and MACHINE=$(MACHINE) PREC=$(PREC) OPTLPKBLS=$(OPTLPKBLS)
+	@echo Error - there is no support for COMPILER=$(COMPILER) MACHINE=$(MACHINE) PREC=$(PREC) LINALG=$(LINALG)
 	@false
 endif
 

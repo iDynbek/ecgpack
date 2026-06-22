@@ -23,7 +23,7 @@ Only some codes ship with a `sample_input/` subdirectory of worked examples — 
 
 ## Building
 
-The canonical entry point is `build.bash` in the root directory — run it with no arguments for full usage. It loops over toolchains/configs/codes/precisions, builds via each code's Makefile, and stores binaries in `bin/<toolchain>/<config>/<CODE>_N<nparticles>_P<precision>[_optlapack]`. The `nparticles` argument is required.
+The canonical entry point is `build.bash` in the root directory — run it with no arguments for full usage. It loops over toolchains/configs/codes/precisions/linalg choices, builds via each code's Makefile, and stores binaries in `bin/<toolchain>/<config>/<CODE>_N<nparticles>_P<precision>_<linalg>` (the `<linalg>` suffix is always present — e.g. `_netlib`, `_mkl`, `_openblas`). The `nparticles` argument is required. The `linalg` argument (see below) takes one of `netlib` (default), `mkl`, `lblas`, `openblas`, `aocl`; for `precision=10`/`16` only `netlib` is built (other values are skipped).
 
 ```bash
 ./build.bash machine=ubuntu-generic toolchain=systemdefault config=release code=RG_0S nparticles=4 precision=8
@@ -33,8 +33,8 @@ To build a single code directly, invoke its Makefile (this is what `build.bash` 
 
 ```bash
 cd RG_0S
-make release COMPILER=gfortran MACHINE=ubuntu-generic PREC=8 OPTLPKBLS=yes EXEFILE=ecg
-make debug   COMPILER=gfortran MACHINE=ubuntu-generic PREC=8 OPTLPKBLS=no  EXEFILE=ecg
+make release COMPILER=gfortran MACHINE=ubuntu-generic PREC=8 LINALG=openblas EXEFILE=ecg
+make debug   COMPILER=gfortran MACHINE=ubuntu-generic PREC=8 LINALG=netlib   EXEFILE=ecg
 make clean   # also: cleaner, cleanest, cleanrelease, cleandebug
 ```
 
@@ -42,8 +42,8 @@ Key build parameters:
 
 - `CONFIG` (`release`/`debug`) — set by the `make release`/`make debug` target. `release` uses `-O3 -march=native`; `debug` enables bounds/uninit/FPE checks. Object and `.mod` files go in `release/` or `debug/`.
 - `PREC` — real `kind`: `8` (double/fp64), `10` (extended/fp80, GNU only), `16` (quadruple). Selects which `src/wp_def_<PREC>.f90` is compiled.
-- `OPTLPKBLS` — `yes` links the system optimized LAPACK/BLAS (or MKL for Intel); `no` compiles the bundled reference `src/BLAS.f` and `src/LAPACK.f`. Always forced to `no` for `PREC=10`/`16`.
-- `COMPILER` (`gfortran`→`mpif90`, `ifort`→`mpiifort`) and `MACHINE` select compiler flags. Supported machines are hardcoded in both `build.bash` and the Makefiles; adding a machine means editing both.
+- `LINALG` — selects which BLAS/LAPACK implementation to link against (default `netlib`). `netlib` compiles the bundled, lightly modified reference `src/BLAS.f`/`src/LAPACK.f` and adds no extra link flags; `mkl` (Intel MKL — compiler-dependent `-lmkl_*` flags), `lblas` (`-llapack -lblas`), `openblas` (`-lopenblas`), and `aocl` (AMD AOCL `-lflame -lblis …`) instead link an external optimized library and skip the bundled sources. Only `PREC=8` honors the optimized choices; for `PREC=10`/`16` only `LINALG=netlib` is supported (any other value leaves the build unsupported). In the off-diagonal codes `LINALG` is accepted but a no-op (they link no BLAS/LAPACK). The bundled `src/BLAS.f`/`src/LAPACK.f` and the `BARE_OBJS_LPKBLS` object list are compiled only when `LINALG=netlib`.
+- `COMPILER` (`gfortran`→`mpif90`, `ifort`→`mpiifort`, `ifx`→`mpiifx`, `nvfortran`→`mpif90`) and `MACHINE` select compiler flags. Supported machines are hardcoded in both `build.bash` and the Makefiles; adding a machine means editing both.
 
 Note: the **number of particles is compiled in**, not a runtime argument. `build.bash` does an in-place `sed` on `src/wp_def_<PREC>.f90` to set `Glob_MaxAllowedNumOfParticles`, builds, then restores the original from `wp_def_temporary.f90`. A binary built for N particles rejects input files with a different particle count.
 
@@ -52,7 +52,7 @@ Note: the **number of particles is compiled in**, not a runtime argument. `build
 Each binary is an MPI program. The energy codes read a single input/output file named **`inout.txt`** from the current working directory (default `Glob_DataFileName` in `globvars.f90`); the file's first (optional) line is `BASIS_TYPE <BASIS>`, the second (required) line is `PARTICLES <n>`. The off-diagonal matrix-element codes instead read two wave-function files (one per state, e.g. `wf_state0.txt`/`wf_state1.txt`) and do not need an `inout.txt`. Run from a job directory containing the required input file(s):
 
 ```bash
-mpirun -np <N> /path/to/bin/<toolchain>/<config>/RG_0S_N4_P8_optlapack
+mpirun -np <N> /path/to/bin/<toolchain>/<config>/RG_0S_N4_P8_netlib
 ```
 
 There is no automated test suite; validation is done by running physical test cases and comparing computed energies/expectation values against published reference values. The codes that ship sample inputs (see Repository layout) provide ready-to-run cases under `<CODE>/sample_input/`, each in its own directory with an `inout.txt` and a `README.md` describing it, expected runtime, and the reference energy/values to reproduce. Several kinds recur: `basis_generation_*` (build an ECG basis from scratch up to a target size), `expected_values_*` (compute expectation values from a saved basis), `densities_*` (compute densities and pair correlation functions, with grid-builder Bash scripts, gnuplot plotting scripts, and sample output plots), `store_wavefunction_*` (saves both the linear and nonlinear variational parameters of the wave function into a file), and `transition_dipole_moment_*` (compute the transition dipole moment using two wave functions of the initial and final states provided in two separate files).
@@ -65,7 +65,7 @@ Within each `src/`, the module compile/dependency order (see the Makefile) is:
 
 - **`wp_def_<PREC>.f90`** — defines the working-precision kind (`wp`), `Glob_MaxAllowedNumOfParticles`, and the MPI real type. Edited at build time by `build.bash` (see above).
 - **`globvars.f90`** — all global state (the `Glob_*` variables: masses, charges, basis, matrices) and physical/numeric constants.
-- **`linalg.f90`** — linear-algebra wrappers over BLAS/LAPACK. `BLAS.f`/`LAPACK.f` are bundled netlib reference sources used only when `OPTLPKBLS=no`. `dmng.f` (TOMS nonlinear minimizer) and `X1MACH.f90` (machine constants) support the optimizer.
+- **`linalg.f90`** — linear-algebra wrappers over BLAS/LAPACK. `BLAS.f`/`LAPACK.f` are bundled, lightly modified netlib reference sources used only when `LINALG=netlib`. `dmng.f` (TOMS nonlinear minimizer) and `X1MACH.f90` (machine constants) support the optimizer.
 - **`spin.f90`** — spin algebra and permutational-symmetry projection.
 - **`matelem.f90`** — matrix elements between individual basis functions; **`matform.f90`** assembles the full Hamiltonian (H) and overlap (S) matrices.
 - **`workproc.f90`** — the bulk of the program (often >8000 lines): `ReadIOFile`/`SaveResults` I/O, basis enlargement, optimization cycles, the generalized symmetric eigenvalue solvers (methods `'G'` and `'I'`), expectation values, densities, and swap-file handling.
