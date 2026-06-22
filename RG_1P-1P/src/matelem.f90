@@ -326,7 +326,7 @@ contains
 
   end subroutine spinPreCalc
 
-  subroutine spinDependentMatrixElements(selectTransition, m_k, m_l, vechLk, vechLl, Pket, &
+  subroutine spinDependentMatrixElements(m_k, m_l, vechLk, vechLl, Pket, &
                                          SOspinME, SSNCspinME, SSNCmassChargeCoefficient, SOmassChargeCoefficient, &
                                          AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, SSNCkl, SO1kl, SO2kl, &
                                          AMM1kl, AMM2kl, AMM1finkl, AMM2finkl)
@@ -348,7 +348,6 @@ contains
     !         1 and 2 stay for spin-same orbit and spin-another orbit contributions
 
     !Arguments
-    integer,intent(in)              :: selectTransition
     integer,intent(in)       :: m_k, m_l
     real(wp),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
     real(wp),intent(in)   :: Pket(Glob_n,Glob_n)
@@ -511,10 +510,10 @@ contains
     !common factor
     commonFactorSO = ZERO
     commonFactorSS = ZERO
-    if (selectTransition == 1) then
+    if (Glob_selectTransition == 1) then
       commonFactorSO = TWO * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
       commonFactorSS = TWO * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
-    else if (selectTransition == 2) then
+    else if (Glob_selectTransition == 2) then
       commonFactorSO = -TWO * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
     endif
 
@@ -1573,8 +1572,8 @@ contains
     MVkl=-MVkl/8
     drach_MVkl=ZERO
     drach_MVkl=ME_dWd21(Glob_dmvM,Glob_dmvMB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl,tvkinv_tAkl,inv_tau3,Skl) &
-                -V2kl-Glob_CurrEnergy1*Glob_CurrEnergy1*Skl+2*Glob_CurrEnergy1*Vkl+ &
-                Glob_CurrEnergy1*ME_dXd(Glob_dmvB,tvk,tvl,inv_tAkltvl,inv_tAkl,tAk,tAl,inv_tAkltAl,Skl,tau3)!+&
+                -V2kl-Glob_CurrEnergy0*Glob_CurrEnergy1*Skl+(Glob_CurrEnergy1+Glob_CurrEnergy0)*Vkl+ &
+                Glob_CurrEnergy0*ME_dXd(Glob_dmvB,tvk,tvl,inv_tAkltvl,inv_tAkl,tAk,tAl,inv_tAkltAl,Skl,tau3)!+&
     do i=1,n
       drach_MVkl=drach_MVkl-ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i)) &
                   *ME_d_X_over_rij_d(i,i,Glob_dmvB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl, &

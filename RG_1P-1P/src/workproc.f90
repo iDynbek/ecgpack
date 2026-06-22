@@ -108,24 +108,23 @@ contains
         ErrorInDataFile=.true.
       EndIF
 
-!        comparing the number of particle in Glob_WFfile0 and Glob_WFfile1 files
+!     comparing the number of particle in Glob_WFfile0 and Glob_WFfile1 files
       IF (particle_n0/=particle_n1) then
         write(*,*) ' '
         write(*,*) 'the number of particles in initial and final states is not the same !!!'
         write(*,*) ' '
         ErrorInDataFile=.true.
       Else
-        IF (Glob_n/=Glob_MaxAllowedNumOfPseudoParticles) then
+        IF (particle_n0>Glob_MaxAllowedNumOfPseudoParticles) then
           write(*,*) ' '
           write (*,*) 'The version of the code you are running was compiled for the case'
-          write (*,*) 'when the number of particles in the system is equal to', &
+          write (*,*) 'when the number of particles in the system is smaller or equal to', &
             Glob_MaxAllowedNumOfParticles
-          write (*,*) 'while the number of particles specIFied in the wave function files is',Glob_n+1
+          write (*,*) 'while the number of particles specIFied in the wave function files is',particle_n0+1
           write (*,*) 'Please make appropriate changes. Program will now stop.'
           write(*,*) ' '
           ErrorInDataFile=.true.
         EndIF
-!                Glob_n=particle_n0=particle_n1
         Glob_n=particle_n0
       EndIF
 
@@ -1220,7 +1219,6 @@ contains
 !local variables
     integer :: i, j, n, a, ptr, k, npt, counter
     integer :: nFactorial
-    integer :: selectTransition
     real(wp) :: Skk, temp1, temp2
     real(wp), allocatable, dimension(:, :, :) :: ketYMatrix, SSNCspinME, SiSjME
     real(wp), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
@@ -1232,10 +1230,6 @@ contains
     real(wp) :: SO1kl, SO2kl, SSNCkl, SO1, SO2, SSNC, AMM1, AMM2, AMM1kl, AMM2kl, &
                    AMM1fin, AMM2fin, AMM1finkl, AMM2finkl, factor
     logical :: areFilesTheSame
-
-!selectTransition = 1 -- calculate 3P -> 3P matelem
-!selectTransition = 2 -- calculate 3P -> 1P matelem
-    selectTransition = 1
 
     n = Glob_n
     npt = Glob_npt
@@ -1267,12 +1261,12 @@ contains
                      SSNCspinME, SiMinusME, SiPlusME, SziME, spinFreeME, SiSjME)
 
     SOspinME = ZERO
-    if (selectTransition == 1) then
+    if (Glob_selectTransition == 1) then
       SOspinME = SziME
-    else if (selectTransition == 2) then
+    else if (Glob_selectTransition == 2) then
       SOspinME = SiPlusME
     else
-      stop "incorrect selectTransition value"
+      stop "incorrect Glob_selectTransition value"
     endif
 
     do i = 1, nFactorial
@@ -1328,7 +1322,7 @@ contains
 
           do a = 1, nFactorial ! Permutations from S_n introduced by A operator
 
-            call spinDependentMatrixElements(selectTransition, Glob_Index0(i), Glob_Index1(j), &
+            call spinDependentMatrixElements(Glob_Index0(i), Glob_Index1(j), &
                                         Glob_NonlinParam0(1 : npt, i), Glob_NonlinParam1(1 : npt, j), ketYMatrix(1 : n, 1 : n, a), &
                                              SOspinME(1 : n, a), SSNCspinME(:, :, a), SSNCmassChargeCoefficient, &
                                              SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, &
@@ -1385,41 +1379,41 @@ contains
     if (Glob_ProcID==0) then
 
       !Opening an additional file where selected expectation values will be saved
-      open(2,file=Glob_ExpValFileName,status='replace')
+      open(2,file="expvals_spin.txt",status='replace')
 
       write(*,*) '                    SO1=',SO1
       write(*,*) '                    SO2=',SO2
       write(*,*) '                   SSNC=',SSNC
       write(*,*) '                   AMM1=',AMM1
       write(*,*) '                   AMM2=',AMM2
-      write(*,*) '                   AMM1fin=',AMM1fin
-      write(*,*) '                   AMM2fin=',AMM2fin
+      write(*,*) '                AMM1Fin=',AMM1fin
+      write(*,*) '                AMM2Fin=',AMM2fin
 
       write(*,*)
 
       write(*,*) '        (alpha^2)*SO1=', SO1*(Glob_FineStructConst**2)
       write(*,*) '        (alpha^2)*SO2=', SO2*(Glob_FineStructConst**2)
-      write(*,*) '        (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
+      write(*,*) '       (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
       write(*,*) '       (alpha^2)*AMM1=', AMM1*(Glob_FineStructConst**2)
       write(*,*) '       (alpha^2)*AMM2=', AMM2*(Glob_FineStructConst**2)
-      write(*,*) '       (alpha^2)*AMM1fin=', AMM1fin*(Glob_FineStructConst**2)
-      write(*,*) '       (alpha^2)*AMM2fin=', AMM2fin*(Glob_FineStructConst**2)
+      write(*,*) '    (alpha^2)*AMM1Fin=', AMM1fin*(Glob_FineStructConst**2)
+      write(*,*) '    (alpha^2)*AMM2Fin=', AMM2fin*(Glob_FineStructConst**2)
 
       write(2,*) '                    SO1=',SO1
       write(2,*) '                    SO2=',SO2
       write(2,*) '                   SSNC=',SSNC
       write(2,*) '                   AMM1=',AMM1
       write(2,*) '                   AMM2=',AMM2
-      write(2,*) '                   AMM1fin=',AMM1fin
-      write(2,*) '                   AMM2fin=',AMM2fin
+      write(2,*) '                AMM1fin=',AMM1fin
+      write(2,*) '                AMM2fin=',AMM2fin
 
       write(2,*) '        (alpha^2)*SO1=', SO1*(Glob_FineStructConst**2)
       write(2,*) '        (alpha^2)*SO2=', SO2*(Glob_FineStructConst**2)
-      write(2,*) '        (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
+      write(2,*) '       (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
       write(2,*) '       (alpha^2)*AMM1=', AMM1*(Glob_FineStructConst**2)
       write(2,*) '       (alpha^2)*AMM2=', AMM2*(Glob_FineStructConst**2)
-      write(2,*) '       (alpha^2)*AMM1fin=', AMM1fin*(Glob_FineStructConst**2)
-      write(2,*) '       (alpha^2)*AMM2fin=', AMM2fin*(Glob_FineStructConst**2)
+      write(2,*) '    (alpha^2)*AMM1fin=', AMM1fin*(Glob_FineStructConst**2)
+      write(2,*) '    (alpha^2)*AMM2fin=', AMM2fin*(Glob_FineStructConst**2)
 
     endif
 
@@ -1452,7 +1446,6 @@ contains
 ! spin-dependent stuff
     integer :: i, j, n, a, a1, b, b1, c, ptr, k, npt, counter
     integer :: nFactorial
-    integer :: selectTransition
     real(wp) :: Skk, temp1, temp2
     real(wp), allocatable, dimension(:, :, :) :: ketYMatrix
     real(wp), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
@@ -1807,7 +1800,7 @@ contains
     if (Glob_ProcID==0) then
 
       !Opening an additional file where selected expectation values will be saved
-      open(2,file="expvals_scalar.txt",status='replace')
+         open(2,file="expvals_scalar.txt",status='replace')
       write(*,*) 'done'
       write(*,*)
       write(*,*) 'Expectation values:'

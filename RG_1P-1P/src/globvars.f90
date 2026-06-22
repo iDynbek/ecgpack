@@ -208,8 +208,8 @@ module globvars
 
 !Glob_CurrBasisSize is a variable whose value equals the current
 !size of the basis
-integer                                                                                                        :: Glob_CurrBasisSize0
-integer                                                                                                        :: Glob_CurrBasisSize1
+integer   :: Glob_CurrBasisSize0
+integer   :: Glob_CurrBasisSize1
 !!!integer,allocatable,dimension(:),save                                :: Glob_CurrBasisSizeInDRMCSteps
 
   real(wp)                                             :: Glob_ExpVals1, Glob_ExpVals2
@@ -325,6 +325,10 @@ integer                                                                         
   integer     Glob_ProcID     !The ID of a particular process (ranges
 !from 0 to Glob_NumOfProcs-1
   integer     Glob_MPIErrCode !Error code for MPI routines
+
+
+  integer :: Glob_selectTransition    !Select the transition for which the transition amplitude is computed
+  logical :: Glob_spinFileWasOpened=.false. !Manage writing spin wave functions
 
 end module globvars
 

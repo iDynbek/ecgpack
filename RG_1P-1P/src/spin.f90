@@ -33,7 +33,7 @@ contains
 
     integer, intent(out) :: positronPosition, numberOfSpinFunctions
     integer, dimension(n, n, nFactorial), intent(out) :: permutationMatrices
-    integer, dimension(n), intent(out) :: parities
+    integer, dimension(n), intent(inout) :: parities
 
     ! mean values of some spin operators
     real(kind = wp), dimension(nFactorial), intent(out) :: spinFreeME
@@ -650,7 +650,7 @@ contains
     character(len = *), intent(in) :: spatialYoung
     integer, dimension(n, n, nFactorial), intent(in) :: permutationMatrices
 
-    integer, dimension(n), intent(out) :: parities
+    integer, dimension(n), intent(inout) :: parities
     integer, dimension(:, :), allocatable, intent(out) :: primitives
     real(kind = wp), dimension(:), allocatable, intent(out) :: finalSpinFunction
     integer, intent(out) :: numberOfPrimitives
@@ -930,9 +930,14 @@ contains
     test = (sqrt(FOUR * test + ONE) - ONE) * ONEHALF
 
     if (Glob_ProcID == 0) then
-
-      open(newunit=io, file="spinData.txt", status="old", action="write", position = "append")
-      write(io, '(a)') '==========================================='
+      if (Glob_spinFileWasOpened) then
+          open(newunit=io, file="spinData.txt", status="old", action="write", position = "append")
+      else
+          open(newunit=io, file="spinData.txt", status="replace", action="write")
+      endif
+      Glob_spinFileWasOpened = .true.
+      
+      write(io, '("Se from Young string =" , 1x, f6.3)') real(SeDoubled, kind=wp) * 0.5
       write(io, '(a, a)') "chi = ", trim(adjustl(spinFunctionString))
       write(io, '("S calculated         =" , 1x, f6.3)') test
       write(io, '(a)') "C_SO_J, C_SS_J:"
@@ -956,6 +961,7 @@ contains
 
       write(io,*) ''
       write(io,*) ''
+      write(io, '(a)') '==========================================='
       close(io)
     endif
 
