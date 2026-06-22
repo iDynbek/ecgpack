@@ -68,7 +68,7 @@ CONTAINS
     ENDIF
 
     CALL MPI_BCAST(ErrorInDataFILE,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    IF (ErrorInDataFILE) STOP
+    IF (ErrorInDataFILE) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
 
 !-------------------------------------------------------------------
 ! reading Header
@@ -155,7 +155,7 @@ CONTAINS
     ENDIF
 
     CALL MPI_BCAST(ErrorInDataFILE,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    IF (ErrorInDataFILE) STOP
+    IF (ErrorInDataFILE) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
 
     CALL MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
@@ -232,7 +232,7 @@ CONTAINS
     ENDIF
 
     CALL MPI_BCAST(ErrorInDataFILE,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    IF (ErrorInDataFILE) STOP
+    IF (ErrorInDataFILE) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
 
     CALL MPI_BCAST(Glob_Mass,Glob_n+1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
@@ -303,7 +303,7 @@ CONTAINS
     ENDIF
 
     CALL MPI_BCAST(ErrorInDataFILE,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    IF (ErrorInDataFILE) STOP
+    IF (ErrorInDataFILE) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
 
     CALL MPI_BCAST(Glob_PseudoCharge0,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     CALL MPI_BCAST(Glob_PseudoCharge,Glob_n,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -369,7 +369,7 @@ CONTAINS
     ENDIF
 
     CALL MPI_BCAST(ErrorInDataFILE,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    IF (ErrorInDataFILE) STOP
+    IF (ErrorInDataFILE) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
 
     CALL MPI_BCAST(WorkInt1,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     CALL MPI_BCAST(WorkInt2,Glob_YOperatorStringLength,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -585,7 +585,7 @@ CONTAINS
           WRITE(*,*) '  contains wrong symbols. Invalid character: "', c1, '" at position ', i
         ENDIF
 
-        STOP
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
 
       ENDIF
 
@@ -607,7 +607,7 @@ CONTAINS
 
       IF(Glob_ProcID==0)WRITE(*,*)  &
         '  Error in ProgramDataInit: the numer of left and right brackets in the Young operator is different'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
 
     ENDIF
 
@@ -2052,7 +2052,7 @@ CONTAINS
             WRITE(*,'(4X,A,I4,A,I4)') '  at  k=',k,'   l=',l
             WRITE(*,'(4X,A,ES22.10)') '  diagS1(k) = ', diagS1(k)
             WRITE(*,'(4X,A,ES22.10)') '  diagS2(l) = ', diagS2(l)
-            ERROR STOP
+            call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !error stop
           ENDIF
 
           TranDipolLength_kl = TranDipolLength_kl_Loc / sqrt(diagS1(k)*diagS2(l))

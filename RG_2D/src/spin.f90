@@ -293,7 +293,7 @@ contains
     j = 1
     do while (.not. success)
 
-      if (j > numberOfPrimitives) stop "unable to build the spin function"
+      if (j > numberOfPrimitives) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop "unable to build the spin function"
 
       if (positronPosition > 0) then ! 1st function for positronic systems corresponds to positron spin up
         do while (primitives(positronPosition, j) == 0)
@@ -755,7 +755,7 @@ contains
 
         enddo
 
-        if (found <= 0) stop "cant act with S-"
+        if (found <= 0) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop "cant act with S-"
 
         newSpinFunction(found) = newSpinFunction(found) + spinFunction(j)
 

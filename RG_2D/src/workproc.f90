@@ -41,7 +41,7 @@ contains
     endif
 
     call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    if (ErrorInDataFile) stop
+    if (ErrorInDataFile) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
 
 !Reading information
     if (Glob_ProcID==0) Line=0
@@ -87,7 +87,7 @@ contains
       ErrorInDataFile=.true.
     endif
     call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    if (ErrorInDataFile) stop
+    if (ErrorInDataFile) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     Glob_np=Glob_n*(Glob_n+1)/2
     Glob_npt=Glob_np
     Glob_2Raised3n2=TWO**((3*Glob_n)/TWO)
@@ -130,7 +130,7 @@ contains
       enddo
     endif
     call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    if (ErrorInDataFile) stop
+    if (ErrorInDataFile) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     call MPI_BCAST(Glob_IsIndexFixed,2,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     call MPI_BCAST(Glob_IndexFixedValue,2,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
@@ -839,7 +839,7 @@ contains
         write(*,*) 'Error in ReadBlackList: incorrect values in file ',trim(Glob_BlackListFileName)
         close(1)
       endif
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     call MPI_BCAST(Glob_lbf,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     if (Glob_lbf==0) then
@@ -1057,7 +1057,7 @@ contains
           (c1/='(')) then
         write(*,*) 'Error in ProgramDataInit: the Young operator expression'
         write(*,*) 'contains wrong symbols'
-        stop
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
       endif
     enddo
 
@@ -1072,7 +1072,7 @@ contains
     if (R/=L) then
       write(*,*) 'Error in ProgramDataInit: the numer of left and right brackets in the'
       write(*,*) 'Young operator is different'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
 
 !NumFactY is the number of factors in the Young operator,
@@ -3691,7 +3691,7 @@ contains
         write(*,*) 'Error in ReallocateBasisFuncData:'
         write(*,*) 'NumOfFuncToKeep must be smaller or equal than FinalSize'
       endif
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     if (Glob_UseReallocFile) then
       !Temporarily store the information in a file
@@ -3735,7 +3735,7 @@ contains
           write(*,*) 'Error in ReallocateBasisFuncData:'
           write(*,*) 'cannot read data from file',Glob_ReallocFileName
         endif
-        stop
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
       endif
       if (Glob_ProcID==0) then
         open(1,file=Glob_ReallocFileName,form='unformatted',status='replace',iostat=OpenFileErr)
@@ -4006,7 +4006,7 @@ contains
     endif
     if (ErrCode/=0) then
       if (Glob_ProcID==0) write(*,*) 'Error in BasisEnlG: initial energy cannot be computed'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
 
     if (Glob_ProcID==0) write(*,*) 'Initial energy ',Glob_CurrEnergy
@@ -4083,14 +4083,14 @@ contains
             write(*,'(1x,a28,f7.3,a1)') 'The fraction of failures is ', &
               (100*NumOfFailures*ONE)/NTrials,'%'
           endif
-          stop
+          call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
         endif
         if (.not.(IsEnergyImproved)) then
           if (Glob_ProcID==0) then
             write(*,*) 'Error in BasisEnlG: random selection did not result'
             write(*,*) 'in any energy improvement'
           endif
-          stop
+          call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
         endif
         Glob_NonlinParam(1:npt,nfrup1:K)=ParSetBest(1:npt,1:nfo)
         Glob_Index(nfrup1:K,1)=IndSetBest(1:nfo,1)
@@ -4140,7 +4140,7 @@ contains
                         write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
                         write(*,*) 'during the optimization of x-indicies exceeded limit'
                       endif
-                      stop
+                      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
                     endif
                   else
                     if (Evalue<Glob_CurrEnergy) then
@@ -4165,7 +4165,7 @@ contains
                         write(*,*) 'Error in BasisEnlG: number of failures in energy calculations'
                         write(*,*) 'during the optimization of y-indicies exceeded limit'
                       endif
-                      stop
+                      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
                     endif
                   else
                     if (Evalue<Glob_CurrEnergy) then
@@ -4310,7 +4310,7 @@ contains
                 write(*,*) 'calculations during the optimization of nonlinear parameters'
                 write(*,*) 'exceeded limit'
               endif
-              stop
+              call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
             endif
             if (NumOfEnergyEval>=MaxEnergyEval) ExitNeeded=.true.
           enddo
@@ -4329,7 +4329,7 @@ contains
             write(*,*) 'Error in BasisEnlG: failed to evaluate energy after the optimization'
             write(*,*) 'of nonlinear parameters'
           endif
-          stop
+          call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
         endif
 
         !Checking if overlaps are OK (only in case OverlapThreshold>ZERO)
@@ -4671,7 +4671,7 @@ contains
     endif
     if (ErrCode/=0) then
       if (Glob_ProcID==0) write(*,*) 'Error in BasisEnlI: initial energy cannot be computed'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
 
     if (Glob_ProcID==0) write(*,*) 'Initial energy ',Glob_CurrEnergy
@@ -4750,14 +4750,14 @@ contains
             write(*,'(1x,a28,f7.3,a1)') 'The fraction of failures is ', &
               (100*NumOfFailures*ONE)/NTrials,'%'
           endif
-          stop
+          call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
         endif
         if (.not.(IsEnergyImproved)) then
           if (Glob_ProcID==0) then
             write(*,*) 'Error in BasisEnlI: random selection did not result'
             write(*,*) 'in any energy improvement'
           endif
-          stop
+          call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
         endif
         Glob_NonlinParam(1:npt,nfrup1:K)=ParSetBest(1:npt,1:nfo)
         Glob_Index(nfrup1:K,1)=IndSetBest(1:nfo,1)
@@ -4807,7 +4807,7 @@ contains
                         write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
                         write(*,*) 'during the optimization of x-indicies exceeded limit'
                       endif
-                      stop
+                      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
                     endif
                   else
                     if (Evalue<Glob_CurrEnergy) then
@@ -4832,7 +4832,7 @@ contains
                         write(*,*) 'Error in BasisEnlI: number of failures in energy calculations'
                         write(*,*) 'during the optimization of y-indicies exceeded limit'
                       endif
-                      stop
+                      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
                     endif
                   else
                     if (Evalue<Glob_CurrEnergy) then
@@ -4978,7 +4978,7 @@ contains
                 write(*,*) 'calculations during the optimization of nonlinear parameters'
                 write(*,*) 'exceeded limit'
               endif
-              stop
+              call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
             endif
             if (NumOfEnergyEval>=MaxEnergyEval) ExitNeeded=.true.
           enddo
@@ -4994,7 +4994,7 @@ contains
             write(*,*) 'Error in BasisEnlI: failed to evaluate energy after the optimization'
             write(*,*) 'of nonlinear parameters'
           endif
-          stop
+          call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
         endif
 
         !Checking if overlaps are OK (only in case OverlapThreshold>ZERO)
@@ -5355,7 +5355,7 @@ contains
     endif
     if (ErrCode/=0) then
       if (Glob_ProcID==0) write(*,*) 'Error in OptCycleG: initial energy cannot be computed'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
 
     if (Glob_ProcID==0) write(*,*) 'Initial energy ',Glob_CurrEnergy
@@ -5503,7 +5503,7 @@ contains
               write(*,*) 'calculations during the optimization of nonlinear parameters'
               write(*,*) 'exceeded limit'
             endif
-            stop
+            call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
           endif
           if (NumOfEnergyEval>=MaxEnergyEval) ExitNeeded=.true.
         enddo !while
@@ -5587,7 +5587,7 @@ contains
           Glob_CurrEnergy=EnergyGA(nfrup1,cbs,.true.,ErrCode)
           if (ErrCode/=0) then
             if (Glob_ProcID==0) write(*,*) 'Error in OptCycleG: energy cannot be computed'
-            stop
+            call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
           endif
         endif
 
@@ -5881,7 +5881,7 @@ contains
     endif
     if (ErrCode/=0) then
       if (Glob_ProcID==0) write(*,*) 'Error in OptCycleI: initial energy cannot be computed'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
 
     if (Glob_ProcID==0) write(*,*) 'Initial energy ',Glob_CurrEnergy
@@ -5947,7 +5947,7 @@ contains
           if (ErrCode/=0) then
             if (Glob_ProcID==0) write(*,*) &
               'Error in OptCycleI: energy cannot be computed after permuting basis functions'
-            stop
+            call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
           endif
         endif
 
@@ -6038,7 +6038,7 @@ contains
               write(*,*) 'calculations during the optimization of nonlinear parameters'
               write(*,*) 'exceeded limit'
             endif
-            stop
+            call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
           endif
           if (NumOfEnergyEval>=MaxEnergyEval) ExitNeeded=.true.
         enddo !while
@@ -6121,7 +6121,7 @@ contains
           Glob_CurrEnergy=EnergyIA(nfrup1,cbs,.true.,ErrCode)
           if (ErrCode/=0) then
             if (Glob_ProcID==0) write(*,*) 'Error in OptCycleI: energy cannot be computed'
-            stop
+            call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
           endif
         endif
 
@@ -6162,7 +6162,7 @@ contains
         if (ErrCode/=0) then
           if (Glob_ProcID==0) write(*,*) &
             'Error in OptCycleI: energy cannot be computed after sorting basis functions'
-          stop
+          call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
         endif
         if (Glob_ProcID==0) write(*,*) 'done'
       endif
@@ -6406,7 +6406,7 @@ contains
     endif
     if (ErrCode/=0) then
       if (Glob_ProcID==0) write(*,*) 'Error in FullOpt1G: initial energy cannot be computed'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     if (Glob_ProcID==0) write(*,*) ' done'
     if (Glob_ProcID==0) then
@@ -6600,7 +6600,7 @@ contains
           write(*,*) 'calculations during the optimization of nonlinear parameters'
           write(*,*) 'exceeded limit'
         endif
-        stop
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
       endif
       if (NumOfEnergyEval>=MaxEnergyEval) then
         if (Glob_ProcID==0) then
@@ -6621,7 +6621,7 @@ contains
         write(*,*) 'Error in FullOpt1G: failed to evaluate energy after the optimization'
         write(*,*) 'of nonlinear parameters'
       endif
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     if (Glob_OverlapPenaltyAllowed) then
       Glob_CurrEnergy=Evalue-Glob_TotalOverlapPenalty
@@ -6895,7 +6895,7 @@ contains
     endif
     if (ErrCode/=0) then
       if (Glob_ProcID==0) write(*,*) 'Error in FullOpt1I: initial energy cannot be computed'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     if (Glob_ProcID==0) write(*,*) ' done'
     if (Glob_ProcID==0) then
@@ -7065,7 +7065,7 @@ contains
           write(*,*) 'calculations during the optimization of nonlinear parameters'
           write(*,*) 'exceeded limit'
         endif
-        stop
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
       endif
       if (NumOfEnergyEval>=MaxEnergyEval) then
         if (Glob_ProcID==0) then
@@ -7086,7 +7086,7 @@ contains
         write(*,*) 'Error in FullOpt1I: failed to evaluate energy after the optimization'
         write(*,*) 'of nonlinear parameters'
       endif
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     if (Glob_OverlapPenaltyAllowed) then
       Glob_CurrEnergy=Evalue-Glob_TotalOverlapPenalty
@@ -7288,7 +7288,7 @@ contains
     if (ErrorCode/=0) then
       if (Glob_ProcID==0) write(*,*) &
         'Error in EliminateLittleContribFunc: initial energy cannot be computed'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     Evalue=EVs(1)
     call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -7345,7 +7345,7 @@ contains
         write(*,*) 'smaller than ',LinCoeffThreshold
         write(*,*) 'No output file have been written. Program will now stop'
       endif
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
 
     if (Glob_ProcID==0) then
@@ -7392,7 +7392,7 @@ contains
     if (ErrorCode/=0) then
       if (Glob_ProcID==0) write(*,*) &
         'Error in EliminateLittleContribFunc: energy cannot be computed'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     Evalue=EVs(1)
     call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -7444,7 +7444,7 @@ contains
       write(*,*) 'Program will now stop'
     endif
 
-    stop
+    call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
 
   end subroutine EliminateLittleContribFunc
 
@@ -7561,7 +7561,7 @@ contains
     if (ErrorCode/=0) then
       if (Glob_ProcID==0) write(*,*) &
         'Error in EliminateLinDepFunc: initial energy cannot be computed'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     Evalue=EVs(1)
     call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -7647,7 +7647,7 @@ contains
         write(*,*) 'No linearly dependent functions have been found'
         write(*,*) 'No file have been written. Program will now stop'
       endif
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
 
     j=0
@@ -7700,7 +7700,7 @@ contains
     if (ErrorCode/=0) then
       if (Glob_ProcID==0) write(*,*) &
         'Error in EliminateLinDepFunc: energy cannot be computed'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     Evalue=EVs(1)
     call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -7789,7 +7789,7 @@ contains
       write(*,*) 'Program will now stop'
     endif
 
-    stop
+    call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
 
   end subroutine EliminateLinDepFunc
 
@@ -7898,7 +7898,7 @@ contains
     if (ErrorCode/=0) then
       if (Glob_ProcID==0) write(*,*) &
         'Error in SeparateLinDepFunc: initial energy cannot be computed'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     Evalue=EVs(1)
     call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -7984,7 +7984,7 @@ contains
         write(*,*) 'No linearly dependent functions have been found'
         write(*,*) 'No file have been written. Program will now stop'
       endif
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
 
     j=0
@@ -8034,7 +8034,7 @@ contains
     if (ErrorCode/=0) then
       if (Glob_ProcID==0) write(*,*) &
         'Error in EliminateLinDepFunc: energy cannot be computed'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     Evalue=EVs(1)
     call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -8123,7 +8123,7 @@ contains
       write(*,*) 'Program will now stop'
     endif
 
-    stop
+    call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
 
   end subroutine SeparateLinDepFunc
 
@@ -8238,7 +8238,7 @@ contains
     if (ErrorCode/=0) then
       if (Glob_ProcID==0) write(*,*) &
         'Error in SeparateFuncLargeCoeff: initial energy cannot be computed'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     Evalue=EVs(1)
     call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -8288,7 +8288,7 @@ contains
         write(*,*) 'There are no functions whose linear coefficients exceed threshold'
         write(*,*) 'No file have been written. Program will now stop'
       endif
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     Min_c=huge(Min_c)/2
     Max_c=ZERO
@@ -8358,7 +8358,7 @@ contains
     call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     if (ErrorCode/=0) then
       if (Glob_ProcID==0) write(*,*) 'Error in SeparateFuncLargeCoeff: energy cannot be computed'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
     Evalue=EVs(1)
     call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -8442,7 +8442,7 @@ contains
       write(*,*) 'Program will now stop'
     endif
 
-    stop
+    call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
 
   end subroutine SeparateFuncLargeCoeff
 
@@ -8508,7 +8508,7 @@ contains
       if (Glob_ProcID==0) then
         write(*,*) 'Error in SaveHSWF: wrong GSEP solution method'
       endif
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
 
 !Setting the values of some global and local variables
@@ -8654,7 +8654,7 @@ contains
             write(*,*) &
               'Error in SaveHSWF: routine DSYGVX failed with error code',ErrorCode
           endif
-          stop
+          call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
         endif
 
         !sending the eigenvalue and the eigenvector to all processes
@@ -8738,7 +8738,7 @@ contains
             write(*,*) 'failed'
             write(*,*) 'Error in SaveHSWF: the energy cannot be computed'
           endif
-          stop
+          call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
         endif
         !print the energy
         if (Glob_ProcID==0) then
@@ -8931,7 +8931,7 @@ contains
       if (Glob_ProcID==0) then
         write(*,*) 'Error in ExpectationValues: wrong GSEP solution method'
       endif
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
 
 !Setting the values of some global and local variables
@@ -8995,7 +8995,7 @@ contains
         if (Glob_ProcID==0) then
           write(*,*) 'Error in ExpectationValues: cannot open CF grid file ',FileName1
         endif
-        stop
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
       endif
     endif
 
@@ -9029,7 +9029,7 @@ contains
         if (Glob_ProcID==0) then
           write(*,*) 'Error in ExpectationValues: cannot open density grid file ',FileName3
         endif
-        stop
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
       endif
     endif
 
@@ -9246,7 +9246,7 @@ contains
           write(*,*) &
             'Error in ExpectationValues: routine DSYGVX failed with error code',ErrorCode
         endif
-        stop
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
       endif
 
       !sending the eigenvalue and the eigenvector to all processes
@@ -9299,7 +9299,7 @@ contains
           write(*,*) 'failed'
           write(*,*) 'Error in ExpectationValues: the energy cannot be computed'
         endif
-        stop
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
       endif
       !print the energy
       if (Glob_ProcID==0) then

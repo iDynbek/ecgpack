@@ -161,7 +161,7 @@ contains
 
           IF (temp1 <= 0.0_wp) THEN
             WRITE(*,*) 'ERROR: tAkk not SPD at i=',i
-            ERROR STOP
+            call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !error stop
           END IF
 
           det_tAkk = det_tAkk * temp1
@@ -423,7 +423,7 @@ contains
 
           IF (temp1 <= 0.0_wp) THEN
             WRITE(*,*) 'ERROR: tAll not SPD at i=',i
-            ERROR STOP
+            call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !error stop
           END IF
 
           det_tAll = det_tAll * temp1
@@ -814,7 +814,7 @@ contains
         IF (i == j) THEN
           IF (temp1 <= 0.0_wp) THEN
             WRITE(*,*) 'ERROR: tAkl not SPD at i=',i,' temp1=',temp1,' mk=',mk,' ml1=',ml_1,' ml2=',ml_2
-            ERROR STOP
+            call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !error stop
           END IF
           W1(i,i) = SQRT(temp1)
           det_tAkl = det_tAkl * temp1
@@ -935,7 +935,7 @@ contains
       IF (m_den /= m_den) THEN
         WRITE(*,*)
         WRITE(*,*) 'WARNING: m_den is NaN'
-        ERROR STOP
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !error stop
       END IF
 
       IF(Verbose==3) THEN
@@ -960,7 +960,7 @@ contains
         WRITE(*,'(12X,A32,ES12.4)') '|Lk|^1.5*|Ll|^1.5 / |tAkl|^1.5: ', temp1
       IF (temp1 /= temp1) THEN
         WRITE(*,*) 'WARNING: |Lk|^1.5*|Ll|^1.5 / |tAkl|^1.5 is NaN'
-        ERROR STOP
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !error stop
       ENDIF
     END IF
 
@@ -977,7 +977,7 @@ contains
 
       IF (SQRT(inv_Akk(mk, mk)) /= SQRT(inv_Akk(mk, mk))) THEN
         WRITE(*,*) 'WARNING: SQRT(inv_Akk(mk, mk)) is NaN'
-        ERROR STOP
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !error stop
       ENDIF
     END IF
 
@@ -1071,7 +1071,7 @@ contains
 
       IF (tm_num /= tm_num) THEN
         WRITE(*,*) 'WARNING: tm_num is NaN'
-        ERROR STOP
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !error stop
       END IF
 
       ! Length-gauge charge-mass factor: (q_i - Q_tot * m_i / m_total)
@@ -1101,7 +1101,7 @@ contains
 
       IF (tm_num_v /= tm_num_v) THEN
         WRITE(*,*) 'WARNING: tm_num_v is NaN'
-        ERROR STOP
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !error stop
       END IF
 
       ! Velocity-gauge charge-mass factor: (q_0/m_0 - q_i/m_i)
@@ -1131,7 +1131,7 @@ contains
 
       IF (TranDipolLength_kl /= TranDipolLength_kl) THEN
         WRITE(*,*) 'WARNING: TranDipolLength_kl is NaN'
-        ERROR STOP
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !error stop
       END IF
 
       IF(Verbose==3) THEN

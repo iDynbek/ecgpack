@@ -687,7 +687,9 @@ contains
       commonFactorSO = -sqrt(FIVE / (12._wp)) * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
       commonFactorSS = sqrt(15._wp) / TWO * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
     endif
-   if (selectTransition == 3) commonFactorSO=-ONEHALF * sqrt(FIVE / THREE) * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
+    if (selectTransition == 3) then
+      commonFactorSO=-ONEHALF * sqrt(FIVE / THREE) * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
+    endif
     if (selectTransition == 4) then
       commonFactorSO = ONEHALF * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
       commonFactorSS = ONEHALF * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))

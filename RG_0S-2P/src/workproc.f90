@@ -62,7 +62,7 @@ contains
 
     EndIF
     call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    IF (ErrorInDataFile) stop
+    IF (ErrorInDataFile) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
 
     IF (Glob_ProcID==0) Line0=0
     IF (Glob_ProcID==0) Line1=0
@@ -132,7 +132,7 @@ contains
 
     EndIF
     call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    IF (ErrorInDataFile) stop
+    IF (ErrorInDataFile) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     Glob_2Raised3n2=TWO**((3*Glob_n)/TWO)
     Glob_np=Glob_n*(Glob_n+1)/2
@@ -177,7 +177,7 @@ contains
 
     EndIF
     call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    IF (ErrorInDataFile) stop
+    IF (ErrorInDataFile) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     call MPI_BCAST(Glob_Mass,Glob_n+1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
 ! Reading the charges of particles from the wave function files
@@ -232,7 +232,7 @@ contains
     EndIF
 
     call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    IF (ErrorInDataFile) stop
+    IF (ErrorInDataFile) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     call MPI_BCAST(Glob_PseudoCharge0,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     call MPI_BCAST(Glob_PseudoCharge,Glob_n,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
@@ -420,7 +420,7 @@ contains
           (c1/='(')) then
         write(*,*) 'Error in ProgramDataInit: the Young operator expression'
         write(*,*) 'contains wrong symbols'
-        stop
+        call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
       endif
     enddo
 
@@ -435,7 +435,7 @@ contains
     if (R/=L) then
       write(*,*) 'Error in ProgramDataInit: the numer of left and right brackets in the'
       write(*,*) 'Young operator is different'
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
     endif
 
 !NumFactY is the number of factors in the Young operator,
@@ -1262,7 +1262,7 @@ contains
     else if (selectTransition == 3) then
       SOspinME = SiPlusME
     else
-      stop "incorrect selectTransition value"
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop "incorrect selectTransition value"
     endif
 
     do i = 1, nFactorial

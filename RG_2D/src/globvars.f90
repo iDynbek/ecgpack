@@ -42,8 +42,8 @@ module globvars
 !These should be set when the program starts
 !=============================================================
 
-  character(5),parameter   :: Glob_BasisType='RG_2D'  !Short name for the type of basis used
-  logical                  ::  Glob_BasisTypeSupplied=.false.
+  character(5),parameter  :: Glob_BasisType='RG_2D'  !Short name for the type of basis used
+  logical  ::  Glob_BasisTypeSupplied=.false.
 
   integer       Glob_n          !Number of pseudoparticles
 
@@ -128,11 +128,11 @@ module globvars
   real(wp)  ::  Glob_RepulsionScalingParamPlus=1.0_wp
   real(wp)  ::  Glob_RepulsionScalingParamMinus=1.0_wp
   real(wp)  :: Glob_AttractionScalingParam=1.0_wp
-  logical      ::  Glob_RepScalParamSupplied=.false.
-  logical      ::  Glob_RepScalParamPlusSupplied=.false.
-  logical      ::  Glob_RepScalParamMinusSupplied=.false.
-  logical      ::  Glob_AttrScalParamSupplied=.false.
-  logical      ::  Glob_ArePseudoParticleMassesTheSame = .true.
+  logical  ::  Glob_RepScalParamSupplied=.false.
+  logical  ::  Glob_RepScalParamPlusSupplied=.false.
+  logical  ::  Glob_RepScalParamMinusSupplied=.false.
+  logical  ::  Glob_AttrScalParamSupplied=.false.
+  logical  ::  Glob_ArePseudoParticleMassesTheSame = .true.
 
 !Glob_YOperatorStringLength defines the length of string
 !Glob_YOperatorString
@@ -303,7 +303,7 @@ module globvars
 !Glob_lbf is a variable whose value is equal to the number of the last
 !blacklisted basis function (assuming they are sorted). Thus it defines the size
 !of array Glob_Blacklisted
-  integer                                 :: Glob_lbf
+  integer  :: Glob_lbf
 
 !Logical array Glob_Blacklisted contains entries that specify if a particular
 !function is supposed to be optimized (this only concerns the cyclic optimization
@@ -321,7 +321,7 @@ module globvars
 
 !Variable Glob_MaxIterForGSEPIIS set the limit of iterations allowed
 !in GSEPIIS
-  integer     ::  Glob_MaxIterForGSEPIIS=30
+  integer  ::  Glob_MaxIterForGSEPIIS=30
 
 !This parameter defines what is the allowed fraction of
 !Eigenvalue problem solution failures for random selection
@@ -332,7 +332,7 @@ module globvars
 
 !This parameter defines how many failures in energy or gradient
 !evaluation are allowed during optimization of nonlinear parameters
-  integer,parameter   :: Glob_MaxEnergyFailsAllowed=5 !
+  integer,parameter  :: Glob_MaxEnergyFailsAllowed=5 !
 
 !This parameter defines how many times a basis enlargement
 !routine or a cyclic optimization routine are allowed to repeat
@@ -342,7 +342,7 @@ module globvars
 !parameters by magnitude are greater then threshold.
 !If this limit is exceeded then the routine stops and shows an
 !error message.
-  integer,parameter   :: Glob_BadOverlapOrLinCoeffLim=10
+  integer,parameter  :: Glob_BadOverlapOrLinCoeffLim=10
 
 !This parameter sets the maximum 2-norm allowed for D (Scaling vector)
 !dot product the very first step that DRMNG attempts. Tuning this value
@@ -351,22 +351,22 @@ module globvars
 
 !Glob_OverlapPenaltyAllowed is set to be .true. when overlaps are subject
 !of penalty for exceeding some threshold
-  logical           ::  Glob_OverlapPenaltyAllowed=.false.
+  logical  ::  Glob_OverlapPenaltyAllowed=.false.
 
 !Glob_OverlapPenaltyThreshold2 defines the absolute square of the overlap threshold.
 !In case when  Glob_OverlapPenaltyAllowed=.false. and Glob_OverlapPenaltyThreshold2<ONE
 !a penalty may be added to the total energy if any of the pair overlaps
 !exceeds Glob_OverlapPenaltyThreshold by magnitude. This global variable
 !is changed depending on the user input.
-  real(wp)       ::  Glob_OverlapPenaltyThreshold2=ONE
+  real(wp)  ::  Glob_OverlapPenaltyThreshold2=ONE
 
 !Glob_MaxOverlapPenalty defines the scale of pair overlap penalties. This global
 !variable is changed depending on the user input. In general, using a value that is
 !of the same order of magnitude as the total energy is recommended.
-  real(wp)       ::  Glob_MaxOverlapPenalty=ONE
+  real(wp)  ::  Glob_MaxOverlapPenalty=ONE
 
 !Glob_TotalOverlapPenalty is equal to the sum of all pair overlap penalties
-  real(wp)       ::  Glob_TotalOverlapPenalty=ZERO
+  real(wp)  ::  Glob_TotalOverlapPenalty=ZERO
 
 !This parameter sets a relative threshold for scaling
 !of nonlinear parameters
@@ -378,7 +378,7 @@ module globvars
 
 !This parameter defines the level of information printed
 !in routines that eliminate basis functions
-  integer,parameter   :: Glob_ElimRoutPrintSpec=2
+  integer,parameter  :: Glob_ElimRoutPrintSpec=2
 
 !=============================================================
 !The following variables are the parameters of the random generator
@@ -394,32 +394,32 @@ module globvars
 !The following variables serve as counters. They are equal the
 !number of times certain routines have been called.
 !=============================================================
-  integer     :: Glob_EnergyGACounter=0
-  integer     :: Glob_EnergyGBCounter=0
-  integer     :: Glob_EnergyIACounter=0
-  integer     :: Glob_EnergyIBCounter=0
+  integer  :: Glob_EnergyGACounter=0
+  integer  :: Glob_EnergyGBCounter=0
+  integer  :: Glob_EnergyIACounter=0
+  integer  :: Glob_EnergyIBCounter=0
 !Glob_InvItTempCounter1 and Glob_InvItTempCounter1 are used
 !for calculating the average number of inverse iterations
 !in certain cycles (when Glob_GSEPSolutionMethod='I')
-  integer     :: Glob_InvItTempCounter1=0
-  integer     :: Glob_InvItTempCounter2=0
+  integer  :: Glob_InvItTempCounter1=0
+  integer  :: Glob_InvItTempCounter2=0
 
 !=============================================================
 !These variables are used to measure time or to define certain
 !time intervals.
 !=============================================================
-  real(4)           :: Glob_TimeSinceStart=0.0
+  real(4)  :: Glob_TimeSinceStart=0.0
 
 !=============================================================
 !The following arrays and variables provide temporary work space
 !for different subroutines
 !=============================================================
-  integer,allocatable,dimension(:)          :: Glob_IntWorkArrForSaveResults
+  integer,allocatable,dimension(:)  :: Glob_IntWorkArrForSaveResults
   integer                                      Glob_LWorkForDSYGVX
-  real(wp),allocatable,dimension(:)      :: Glob_WorkForDSYGVX
-  integer,allocatable,dimension(:)          :: Glob_IWorkForDSYGVX
-  real(wp),allocatable,dimension(:)      :: Glob_WkGR
-  real(wp),allocatable,dimension(:)      :: Glob_WorkForGSEPIIS
+  real(wp),allocatable,dimension(:)  :: Glob_WorkForDSYGVX
+  integer,allocatable,dimension(:)  :: Glob_IWorkForDSYGVX
+  real(wp),allocatable,dimension(:)  :: Glob_WkGR
+  real(wp),allocatable,dimension(:)  :: Glob_WorkForGSEPIIS
 !=============================================================
 !Data used to store basis building and optimization program
 !=============================================================
@@ -472,11 +472,11 @@ module globvars
 !Glob_Glob_BlackListFileName is the name of the file containing
 !the list of functions that are not supposed to be optimized
 !(this concerns only cyclic optimization, routines OptCycleG and OptCycleI).
-  character(Glob_FileNameLength)          :: Glob_DataFileName='inout.txt'
-  character(Glob_FileNameLength)          :: Glob_SwapFileName='swapfile.dat'
-  character(Glob_FileNameLength)          :: Glob_ReallocFileName='realloc.dat'
-  character(Glob_FileNameLength)          :: Glob_BlackListFileName='blacklist.txt'
-  character(Glob_FileNameLength)          :: Glob_ExpValFileName='expvals.txt'
+  character(Glob_FileNameLength)  :: Glob_DataFileName='inout.txt'
+  character(Glob_FileNameLength)  :: Glob_SwapFileName='swapfile.dat'
+  character(Glob_FileNameLength)  :: Glob_ReallocFileName='realloc.dat'
+  character(Glob_FileNameLength)  :: Glob_BlackListFileName='blacklist.txt'
+  character(Glob_FileNameLength)  :: Glob_ExpValFileName='expvals.txt'
 
 !These are the variables that specify whether swapping
 !is allowed and whether a temporary file should be used
@@ -559,6 +559,6 @@ module globvars
 !=============================================================
 
   real(wp), external :: DLAMCH
-  integer, external     :: ILAENV
+  integer, external  :: ILAENV
 
 end module globvars

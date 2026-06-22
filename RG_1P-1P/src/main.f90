@@ -24,11 +24,11 @@ program main
 
   open(unit=10, file='inp.txt', status='old', action='read')
   read(10,'(A)',iostat=ios) line
-  if (ios /= 0) stop 'Error reading inp.txt'
+  if (ios /= 0) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop 'Error reading inp.txt'
 
   ! Reads first two whitespace-separated strings
   read(line,*,iostat=ios) mode, transition
-  if (ios /= 0) stop 'Cannot parse input line'
+  if (ios /= 0) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop 'Cannot parse input line'
 
   select case (trim(mode))
   case ('SPIN')
@@ -42,7 +42,7 @@ program main
       if (Glob_ProcID==0) then
         write(*,*) 'Unknown mode of calculation: ', trim(mode)
       endif
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
   end select
 
   select case (trim(transition))
@@ -54,14 +54,14 @@ program main
       if (Glob_ProcID==0) then
         write(*,*) 'Unknown transition: ', trim(transition)
       endif
-      stop
+      call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
   end select
 
   if (Glob_selectTransition == 2 .and. scalar_calc) then
     if (Glob_ProcID==0) then
       write(*,*) 'Scalar calculation for XP -> XP transition is not supported'
     endif
-    stop
+    call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
   end if
 
   call Readwf0wf1()

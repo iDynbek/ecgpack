@@ -31,7 +31,7 @@ module globvars
 !=============================================================
 ! Global parameters
 !=============================================================
-  INTEGER, parameter   ::  Verbose = 1
+  INTEGER, parameter  ::  Verbose = 1
   ! 0   just the result
   ! 1   some additional information about the program progress
   ! 2   more information about the program progress for debugging purposes
@@ -72,10 +72,10 @@ module globvars
   real(wp)   Glob_PiRaised3n2 !pi^(3n/2)
 
 !Glob_MassMatrix is the mass matrix, M
-  real(wp),allocatable,dimension(:,:),save                                ::  Glob_MassMatrix
+  real(wp),allocatable,dimension(:,:),save  ::  Glob_MassMatrix
 
 !Glob_Mass is the masses of particles (not pseudoparticles!), M_i
-  real(wp),allocatable,dimension(:),save                                ::  Glob_Mass
+  real(wp),allocatable,dimension(:),save  ::  Glob_Mass
 
 !Glob_MassTotal is the total mass of the system (all particles)
   real(wp)   Glob_MassTotal
@@ -107,10 +107,10 @@ module globvars
   real(wp)  ::  Glob_RepulsionScalingParamPlus=1.0_wp
   real(wp)  ::  Glob_RepulsionScalingParamMinus=1.0_wp
   real(wp)  ::  Glob_AttractionScalingParam=1.0_wp
-  LOGICAL      ::  Glob_RepScalParamSupplied=.FALSE.
-  LOGICAL      ::  Glob_RepScalParamPlusSupplied=.FALSE.
-  LOGICAL      ::  Glob_RepScalParamMinusSupplied=.FALSE.
-  LOGICAL      ::  Glob_AttrScalParamSupplied=.FALSE.
+  LOGICAL  ::  Glob_RepScalParamSupplied=.FALSE.
+  LOGICAL  ::  Glob_RepScalParamPlusSupplied=.FALSE.
+  LOGICAL  ::  Glob_RepScalParamMinusSupplied=.FALSE.
+  LOGICAL  ::  Glob_AttrScalParamSupplied=.FALSE.
 
 !Glob_YOperatorStringLength defines the length of string
 !Glob_YOperatorString
@@ -123,24 +123,24 @@ module globvars
 
 !Array Glob_NonlinParam contains the nonlinear parameters of basis
 !functions (elements of the Cholesky matrix, L_k)
-  real(wp),allocatable,dimension(:,:),save                                :: Glob_NonlinParam
+  real(wp),allocatable,dimension(:,:),save  :: Glob_NonlinParam
 
 !Array Glob_Index1 contains the indices of the z-premultiplier
 !of the basis functions. The indices generally range from 1 to Glob_n
-  INTEGER,allocatable,dimension(:),save                                        :: Glob_Index1
+  INTEGER,allocatable,dimension(:),save  :: Glob_Index1
 
 !Array Glob_Index1 contains the indices of the xy-premultiplier (L=2)
 !of the basis functions. The indices generally range from 1 to Glob_n
-  INTEGER,allocatable,dimension(:,:),save                                        :: Glob_Index2
+  INTEGER,allocatable,dimension(:,:),save  :: Glob_Index2
 
 !Array Glob_FuncNum contains the basis function numbers
-  INTEGER,allocatable,dimension(:),save                                        :: Glob_FuncNum
+  INTEGER,allocatable,dimension(:),save  :: Glob_FuncNum
 
 !4D array Glob_Transposit contains all pair permutation matrices
 !(transpositions). The structure is as follows:
 !  Glob_Transposit(1:Glob_n,1:Glob_n,1,2) -- matrix that corresponds to P12
 !  Glob_Transposit(1:Glob_n,1:Glob_n,5,5) -- matrix that corresponds to P55
-  INTEGER,allocatable,dimension(:,:,:,:),save                                :: Glob_Transposit
+  INTEGER,allocatable,dimension(:,:,:,:),save  :: Glob_Transposit
 
 !Variables Glob_NumYTerms and Glob_NumYHYTerms are the number of
 !independent terms in the Y and Y^{\dagger}Y operator respectively
@@ -152,40 +152,40 @@ module globvars
 !The structure is as follows:
 !   Glob_YHYMatr(1:Glob_n,1:Glob_n,5) is the matrix corresponding to the
 !   5-th term of Y^{\dagger}Y operator
-  real(wp),allocatable,dimension(:,:,:),save                        :: Glob_YMatr
-  real(wp),allocatable,dimension(:,:,:),save                        :: Glob_YHYMatr
+  real(wp),allocatable,dimension(:,:,:),save  :: Glob_YMatr
+  real(wp),allocatable,dimension(:,:,:),save  :: Glob_YHYMatr
 
 !Arrays Glob_YCoeff and Glob_YHYCoeff contain all coefficients
 !(coefficients of permutations) in the Y and Y^{\dagger}Y operators
-  real(wp),allocatable,dimension(:),save                                :: Glob_YCoeff
-  real(wp),allocatable,dimension(:),save                                :: Glob_YHYCoeff
+  real(wp),allocatable,dimension(:),save  :: Glob_YCoeff
+  real(wp),allocatable,dimension(:),save  :: Glob_YHYCoeff
 
 !Array Glob_H is used to store the Hamiltonian matrix
-  real(wp),allocatable,dimension(:,:),save                                :: Glob_H
+  real(wp),allocatable,dimension(:,:),save  :: Glob_H
 
 !Array Glob_S is used to store the overlap matrix
-  real(wp),allocatable,dimension(:,:),save                                :: Glob_S
+  real(wp),allocatable,dimension(:,:),save  :: Glob_S
 
 !Array Glob_diagH is used to store the diagonal elements
 !of the Hamiltonian matrix
-  real(wp),allocatable,dimension(:),save                                :: Glob_diagH
+  real(wp),allocatable,dimension(:),save  :: Glob_diagH
 
 !Array Glob_diagS is used to store the diagonal elements
 !of the overlap matrix
-  real(wp),allocatable,dimension(:),save                                :: Glob_diagS,Glob_diagS0,Glob_diagS1
+  real(wp),allocatable,dimension(:),save  :: Glob_diagS,Glob_diagS0,Glob_diagS1
 
 !Array Glob_c is used to store the eigenvector
-  real(wp),allocatable,dimension(:),save                                :: Glob_c
+  real(wp),allocatable,dimension(:),save  :: Glob_c
 
 !Vector Glob_bvc is used for computing particle densities. Its components
 !depend on the masses of particles
-  real(wp),allocatable,dimension(:,:),save                                :: Glob_bvc
+  real(wp),allocatable,dimension(:,:),save  :: Glob_bvc
 
 !=============================================================
 !These variables are used to measure time or to define certain
 !time intervals.
 !=============================================================
-  real(4)           :: Glob_TimeSinceStart=0.0
+  real(4)  :: Glob_TimeSinceStart=0.0
 !=============================================================
 !                        New in RGL01
 !=============================================================
@@ -222,33 +222,33 @@ module globvars
 
 !Glob_CurrBasisSize is a variable whose value equals the current
 !size of the basis
-INTEGER                                                                                                        :: Glob_CurrBasisSize1
-INTEGER                                                                                                        :: Glob_CurrBasisSize2
-!!!INTEGER,allocatable,dimension(:),save                                :: Glob_CurrBasisSizeInDRMCSteps
+INTEGER  :: Glob_CurrBasisSize1
+INTEGER  :: Glob_CurrBasisSize2
+!!!INTEGER,allocatable,dimension(:),save  :: Glob_CurrBasisSizeInDRMCSteps
 
-  real(wp)                                             :: Glob_ExpVals1, Glob_ExpVals2
+  real(wp)  :: Glob_ExpVals1, Glob_ExpVals2
 
 ! CURRENT_ENERGYs from wave function files
-  real(wp)                                             :: Glob_CurrEnergy1,Glob_CurrEnergy2
+  real(wp)  :: Glob_CurrEnergy1,Glob_CurrEnergy2
 
 !Array Glob_S is used to store the overlap matrices for L=1 and L=2 cases
-  real(wp),allocatable,dimension(:,:),save                          :: Glob_S1, Glob_S2
+  real(wp),allocatable,dimension(:,:),save  :: Glob_S1, Glob_S2
 
 !Array Glob_diag_S is used to store the diagonal elements
 !of the overlap matrix
-  real(wp),allocatable,dimension(:),save                                :: Glob_diag_S1,Glob_diag_S2
+  real(wp),allocatable,dimension(:),save  :: Glob_diag_S1,Glob_diag_S2
 
-  character(Glob_YOperatorStringLength)                                          :: Glob_YOperatorString1, Glob_YOperatorString2
+  character(Glob_YOperatorStringLength)  :: Glob_YOperatorString1, Glob_YOperatorString2
 
 !Array Glob_c is used to store the eigenvector
-  real(wp),allocatable,dimension(:),save                                :: Glob_c1, Glob_c2
+  real(wp),allocatable,dimension(:),save  :: Glob_c1, Glob_c2
 
 !Array Glob_FuncNum contains the basis function numbers
-  INTEGER,allocatable,dimension(:),save                                         :: Glob_FuncNum1, Glob_FuncNum2
+  INTEGER,allocatable,dimension(:),save  :: Glob_FuncNum1, Glob_FuncNum2
 
 !Array Glob_NonlinParam contains the nonlinear parameters of basis
 !functions (elements of the Cholesky matrix, L_k)
-  real(wp),allocatable,dimension(:,:),save                         :: Glob_NonlinParam1, Glob_NonlinParam2
+  real(wp),allocatable,dimension(:,:),save  :: Glob_NonlinParam1, Glob_NonlinParam2
 
 !Variables Glob_NumYTerms and Glob_NumYHYTerms are the number of
 !independent terms in the Y operator respectively
@@ -259,23 +259,23 @@ INTEGER                                                                         
 !The structure is as follows:
 !   Glob_YMatr(1:Glob_n,1:Glob_n,5) is the matrix corresponding to the
 !   5-th term of Y operator.
-  real(wp),allocatable,dimension(:,:,:),save                        :: Glob_YMatr1, Glob_YMatr2
-  real(wp),allocatable,dimension(:,:,:),save                        :: Glob_YHYMatr1, Glob_YHYMatr2
+  real(wp),allocatable,dimension(:,:,:),save  :: Glob_YMatr1, Glob_YMatr2
+  real(wp),allocatable,dimension(:,:,:),save  :: Glob_YHYMatr1, Glob_YHYMatr2
 
 !Arrays Glob_YCoeff contain all coefficients
 !(coefficients of permutations) in the Y operators
-  real(wp),allocatable,dimension(:),save                                :: Glob_YCoeff1, Glob_YCoeff2
-  real(wp),allocatable,dimension(:),save                                :: Glob_YHYCoeff1, Glob_YHYCoeff2
+  real(wp),allocatable,dimension(:),save  :: Glob_YCoeff1, Glob_YCoeff2
+  real(wp),allocatable,dimension(:),save  :: Glob_YHYCoeff1, Glob_YHYCoeff2
 
   INTEGER Glob_NumFactY1, Glob_NumFactY2
-  INTEGER,allocatable,dimension(:),save                                        :: Glob_NumTermsInYOpFact1, Glob_NumTermsInYOpFact2
+  INTEGER,allocatable,dimension(:),save  :: Glob_NumTermsInYOpFact1, Glob_NumTermsInYOpFact2
   character(Glob_YOperatorStringLength),allocatable,dimension(:) :: Glob_YOpStr1
 
 !=============================================================
 
 !This is just a constant string that is used to fill the parameter
 !list in some routines
-  character(Glob_FileNameLength),parameter                                :: Glob_FileNameNone='none'
+  character(Glob_FileNameLength),parameter  :: Glob_FileNameNone='none'
 
 !=============================================================
 !Global variables for working with files
@@ -285,9 +285,9 @@ INTEGER                                                                         
 !Glob_Glob_BlackListFileName is the name of the file containing
 !the list of functions that are not supposed to be optimized
 !(this concerns only cyclic optimization, routines OptCycleG and OptCycleI).
-  character(Glob_FileNameLength)                                                                :: Glob_DataFileName='inout.txt'
-  character(Glob_FileNameLength)                                                                :: Glob_WFfile1='wf_state1.txt'
-  character(Glob_FileNameLength)                                                                :: Glob_WFfile2='wf_state2.txt'
+  character(Glob_FileNameLength)  :: Glob_DataFileName='inout.txt'
+  character(Glob_FileNameLength)  :: Glob_WFfile1='wf_state1.txt'
+  character(Glob_FileNameLength)  :: Glob_WFfile2='wf_state2.txt'
 !=============================================================
 !Global variables that contain information about
 !identical particles in the system. This information might
@@ -305,13 +305,13 @@ INTEGER                                                                         
 !Array Glob_NumOfPartInIdentPartSet(1:Glob_NumOfIdentPartSets)
 !contains the number of particles in each set of identical
 !particles
-  INTEGER,allocatable,dimension(:),save                                        :: Glob_NumOfPartInIdentPartSet
+  INTEGER,allocatable,dimension(:),save  :: Glob_NumOfPartInIdentPartSet
 
 !Array Glob_IdentPartList contains the list of identical particles
 !(their numbers) in each set of identical particles. For example,
 !entries Glob_IdentPartList(1:Glob_NumOfPartInIdentPartSet(j),j)
 !contain particle numbers that belong to set j.
-  INTEGER,allocatable,dimension(:,:),save                                        :: Glob_IdentPartList
+  INTEGER,allocatable,dimension(:,:),save  :: Glob_IdentPartList
 
 !Glob_NumOfEqvPairSets is the number of equivalent pseudoparticle
 !pair sets in the system (note that j,j is also considered to be a pair
@@ -320,7 +320,7 @@ INTEGER                                                                         
 
 !Array Glob_NumOfPairsInEqvPairSet(1:Glob_NumOfNoneqvPairSets) contains
 !the number of pairs in each set of equivalent pairs
-  INTEGER,allocatable,dimension(:),save                                        :: Glob_NumOfPairsInEqvPairSet
+  INTEGER,allocatable,dimension(:),save  :: Glob_NumOfPairsInEqvPairSet
 
 !Array Glob_EqvPairList contains the list of
 !equivalent pairs in each set of equivalent pairs of particles.
@@ -328,7 +328,7 @@ INTEGER                                                                         
 !Glob_IdentPartList(1:2,1:Glob_NumOfPairsInEqvPairSet(j),j)
 !contain pairs that belong to set j. First index changes from 1 to 2
 !designating first and second particle in the pair.
-  INTEGER,allocatable,dimension(:,:,:),save                                :: Glob_EqvPairList
+  INTEGER,allocatable,dimension(:,:,:),save  :: Glob_EqvPairList
 
 !=============================================================
 !Global variables used with MPI routines
