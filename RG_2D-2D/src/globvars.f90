@@ -209,15 +209,9 @@ module globvars
 
 !Glob_CurrBasisSize is a variable whose value equals the current
 !size of the basis
-<<<<<<< HEAD
-integer  :: Glob_CurrBasisSize0
-integer  :: Glob_CurrBasisSize1
-!!!integer,allocatable,dimension(:),save  :: Glob_CurrBasisSizeInDRMCSteps
-=======
 integer          :: Glob_CurrBasisSize0
 integer          :: Glob_CurrBasisSize1
 !!!integer,allocatable,dimension(:),save                                :: Glob_CurrBasisSizeInDRMCSteps
->>>>>>> 0f4f568 (Added example to RG_2D-2D code)
 
   real(wp)  :: Glob_ExpVals1, Glob_ExpVals2
 

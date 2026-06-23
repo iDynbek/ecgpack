@@ -1020,10 +1020,6 @@ contains
     Glob_dmva2 = (m0**3 + mk**3)/(TWO*m0*mk*(m0+mk)**2)
 !Glob_dmvB(i,i) = (beta^2 + gamma_i^2)/(alpha^2 * M_ii) - M_ii
     Glob_dmvB(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
-    Do i=1,n
-      mi=Glob_Mass(i+1)
-      Glob_dmvB(i,i)=( (m0**3+mi**3)*mk*(m0+mk)**2 - (m0**3+mk**3)*mi*(m0+mi)**2 ) / ( TWO*(m0+mi)*(m0**3+mk**3)*m0*mi**2 )
-    EndDo
     Glob_dmvM(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
     Glob_dmvM(1:n,1:n)=Glob_MassMatrix(1:n,1:n)
     Glob_dmvMB=Glob_dmvM+Glob_dmvB
@@ -1647,9 +1643,9 @@ contains
       write(*,*) '               drach_MV=',drach_MV
       write(*,*) '                 Darwin=',Darwin
       write(*,*) '           drach_Darwin=',drach_Darwin
-      write(*,*) '                     OO=',OO
       write(*,*) '                    SSF=',SSF
       write(*,*) '              drach_SSF=',drach_SSF
+      write(*,*) '                     OO=',OO
 
 
       write(2,'(a)',advance='no') '                      H '
@@ -1668,12 +1664,12 @@ contains
       call writerealadv(2,Darwin)
       write(2,'(a)',advance='no') '           drach_Darwin '
       call writerealadv(2,drach_Darwin)
-      write(2,'(a)',advance='no') '                     OO '
-      call writerealadv(2,OO)
       write(2,'(a)',advance='no') '                    SSF '
       call writerealadv(2,SSF)
       write(2,'(a)',advance='no') '              drach_SSF '
       call writerealadv(2,drach_SSF)
+      write(2,'(a)',advance='no') '                     OO '
+      call writerealadv(2,OO)
 
       if (Glob_NumOfIdentPartSets/=Glob_n+1) then
         write(*,*) '(Warning! These values do not account for indistinguishability of'
@@ -1709,6 +1705,14 @@ contains
         enddo
       enddo
       write(*,*)
+      do i=1,n
+        write(*,'(1x,a21,i1,a1)',advance='no') '       drach_delta(r_',i,')'
+        write(*,*) '=',drach_deltar(i,i)
+        do j=i+1,n
+          write(*,'(1x,a20,i1,i1,a1)',advance='no') '      drach_delta(r_',i,j,')'
+          write(*,*) '=',drach_deltar(i,j)
+        enddo
+      enddo
 
       if (Glob_NumOfIdentPartSets/=Glob_n+1) then
         write(*,*) 'Based on the particle mass and charge values it was determined'
@@ -1798,6 +1802,30 @@ contains
           b=Glob_EqvPairList(2,1,i)
           if (a/=b) write(2,'(a,i1,i1,a1,1x)',advance='no') '            delta(r_',a,b,')'
           if (a==b) write(2,'(a,i1,a1,1x)',advance='no')    '             delta(r_',a,')'
+          call writerealadv(2,beta/k)
+        enddo
+        write(*,*)
+         do i=1,Glob_NumOfNoneqvPairSets
+          beta=ZERO
+          mu=ZERO
+          k=Glob_NumOfPairsInEqvPairSet(i)
+          write(*,'(1x)',advance='no')
+          do j=1,k
+            a=Glob_EqvPairList(1,j,i)
+            b=Glob_EqvPairList(2,j,i)
+            if (a==b) then
+              write(*,'(a14,i1,a4)',advance='no') 'drach_delta(r_',a,') = '
+            else
+              write(*,'(a14,i1,i1,a4)',advance='no') 'drach_delta(r_',a,b,') = '
+            endif
+            beta=beta+drach_deltar(a,b)
+          enddo
+          call writerealadv(6,beta/k)
+          !write to file
+          a=Glob_EqvPairList(1,1,i)
+          b=Glob_EqvPairList(2,1,i)
+          if (a/=b) write(2,'(a,i1,i1,a1,1x)',advance='no') '      drach_delta(r_',a,b,')'
+          if (a==b) write(2,'(a,i1,a1,1x)',advance='no')    '       drach_delta(r_',a,')'
           call writerealadv(2,beta/k)
         enddo
         write(*,*)
@@ -1978,39 +2006,39 @@ contains
       !Opening an additional file where selected expectation values will be saved
       open(2,file="expvals_spin.txt",status='replace')
 
-      write(*,*) '                    SSNC=',SSNC
+      write(*,*) '                   SSNC=',SSNC
       write(*,*) '                    SO1=',SO1
       write(*,*) '                    SO2=',SO2
       write(*,*) '                   AMM1=',AMM1
       write(*,*) '                   AMM2=',AMM2
-      write(*,*) '                   AMM1fin=',AMM1fin
-      write(*,*) '                   AMM2fin=',AMM2fin
+      write(*,*) '                AMM1Fin=',AMM1fin
+      write(*,*) '                AMM2Fin=',AMM2fin
 
       write(*,*)
 
-      write(*,*) '        (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
+      write(*,*) '       (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
       write(*,*) '        (alpha^2)*SO1=', SO1*(Glob_FineStructConst**2)
       write(*,*) '        (alpha^2)*SO2=', SO2*(Glob_FineStructConst**2)
       write(*,*) '       (alpha^2)*AMM1=', AMM1*(Glob_FineStructConst**2)
       write(*,*) '       (alpha^2)*AMM2=', AMM2*(Glob_FineStructConst**2)
-      write(*,*) '       (alpha^2)*AMM1fin=', AMM1fin*(Glob_FineStructConst**2)
-      write(*,*) '       (alpha^2)*AMM2fin=', AMM2fin*(Glob_FineStructConst**2)
+      write(*,*) '    (alpha^2)*AMM1fin=', AMM1fin*(Glob_FineStructConst**2)
+      write(*,*) '    (alpha^2)*AMM2fin=', AMM2fin*(Glob_FineStructConst**2)
 
-      write(2,*) '                    SSNC=',SSNC
+      write(2,*) '                   SSNC=',SSNC
       write(2,*) '                    SO1=',SO1
       write(2,*) '                    SO2=',SO2
       write(2,*) '                   AMM1=',AMM1
       write(2,*) '                   AMM2=',AMM2
-      write(2,*) '                   AMM1fin=',AMM1fin
-      write(2,*) '                   AMM2fin=',AMM2fin
+      write(2,*) '                AMM1fin=',AMM1fin
+      write(2,*) '                AMM2fin=',AMM2fin
 
-      write(2,*) '        (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
+      write(2,*) '       (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
       write(2,*) '        (alpha^2)*SO1=', SO1*(Glob_FineStructConst**2)
       write(2,*) '        (alpha^2)*SO2=', SO2*(Glob_FineStructConst**2)
       write(2,*) '       (alpha^2)*AMM1=', AMM1*(Glob_FineStructConst**2)
       write(2,*) '       (alpha^2)*AMM2=', AMM2*(Glob_FineStructConst**2)
-      write(2,*) '       (alpha^2)*AMM1fin=', AMM1fin*(Glob_FineStructConst**2)
-      write(2,*) '       (alpha^2)*AMM2fin=', AMM2fin*(Glob_FineStructConst**2)
+      write(2,*) '    (alpha^2)*AMM1fin=', AMM1fin*(Glob_FineStructConst**2)
+      write(2,*) '    (alpha^2)*AMM2fin=', AMM2fin*(Glob_FineStructConst**2)
 
     endif
 

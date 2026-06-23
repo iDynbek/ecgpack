@@ -4189,7 +4189,7 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)+(t_XJV5+t_J
 
   end function rPr_rQr
 
-  function dXddYd(X,Y,tvk,tbk,tvl,tbl,tAl,tAk,inv_tAkl,det_tAkl,tau3,tau33,tau333,tau334,inv_tAkltAl,inv_tAkltAk)
+   function dXddYd(X,Y,tvk,tbk,tvl,tbl,tAl,tAk,inv_tAkl,det_tAkl,tau3,tau33,tau333,tau334,inv_tAkltAl,inv_tAkltAk)
     real(wp)   dXddYd
 !arguments
     integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
@@ -4478,7 +4478,7 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)+(t_XJV5+t_J
     term17=-24*trQ*prod*(tau3*term16_1+tau333*term16_2)&
             -16*prod*(Q2*term16_1+tau3*term17_1+Q6*term16_2+tau333*term17_2)
     term18=16*prod*(term3_1*term16_1+tau333*term18_2)
-    term19=16*prod*(tau3*term19_1+term4_2*term16_1)
+    term19=16*prod*(tau3*term19_1+term4_2*term16_2)
 
     big_term1=term1+term2+term3+term4+term6
     big_term2=term7+term8+term9+term11

@@ -1853,6 +1853,7 @@ contains
       write(*,*) '           drach_Darwin=',drach_Darwin
       write(*,*) '                     OO=',OO
       write(*,*) '                    SSF=',SSF
+      write(*,*) '              drach_SSF=',drach_SSF
 
       write(2,'(a)',advance='no') '                      H '
       call writerealadv(2,H)
@@ -1868,6 +1869,8 @@ contains
       call writerealadv(2,Darwin)
       write(2,'(a)',advance='no') '                    SSF '
       call writerealadv(2,SSF)
+      write(2,'(a)',advance='no') '              drach_SSF '
+      call writerealadv(2,drach_SSF)
 
       if (Glob_NumOfIdentPartSets/=Glob_n+1) then
         write(*,*) '(Warning! These values do not account for indistinguishability of'
