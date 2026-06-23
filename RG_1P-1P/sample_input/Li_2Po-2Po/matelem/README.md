@@ -10,25 +10,25 @@ The program requires an input file named `inp.txt` containing two positional arg
 
 1. **Hamiltonian component**
 
-   * `SPIN` — calculate only the spin-dependent part of the Breit–Pauli Hamiltonian.
-   * `SCALAR` — calculate only the scalar relativistic part.
-   * `ALL` — calculate both contributions.
+* `SPIN` — calculate only the spin-dependent part of the Breit–Pauli Hamiltonian.
+* `SCALAR` — calculate only the scalar relativistic part.
+* `ALL` — calculate both contributions.
 
 2. **Transition type**
 
-   * `XP_XP` — diagonal matrix element
+* `XP_XP` — offdiagonal matrix element
 
 $$
 \langle {}^{X}P_{J} | \mathcal{H} | {}^{X}P_{J} \rangle.
 $$
 
-   * `3P_1P` — off-diagonal matrix element
+* `3P_1P` — offdiagonal matrix element
 
 $$
 \langle {}^{3}P_{J=1} | \mathcal{H} | {}^{1}P_{J=1} \rangle.
 $$
 
-Here, $\mathcal{H}$ denotes either the scalar relativistic or spin-dependent part of the Breit–Pauli Hamiltonian.
+Here, $\mathcal{H}$ denotes either the scalar relativistic or spin-dependent part of the Breit–Pauli Hamiltonian. In the first matrix element, the value of $J$ corresponds to the maximum possible value: $J=S+L$.
 
 ### Example
 
@@ -62,7 +62,7 @@ An auxiliary file, `spinData.txt`, contains the spin wave functions of the initi
 For calculations of
 
 $$
-\langle {}^{3}P_{J} | \mathcal{H} | {}^{1}P_{J} \rangle,
+\langle {}^{3}P_{J=1} | \mathcal{H} | {}^{1}P_{J=1} \rangle,
 $$
 
 the input files must contain:

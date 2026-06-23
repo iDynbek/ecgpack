@@ -10,13 +10,13 @@ The program requires an input file named `inp.txt` containing two positional arg
 
 1. **Hamiltonian component**
 
-   * `SPIN` — calculate only the spin-dependent part of the Breit–Pauli Hamiltonian.
-   * `SCALAR` — calculate only the scalar relativistic part.
-   * `ALL` — calculate both contributions.
+* `SPIN` — calculate only the spin-dependent part of the Breit–Pauli Hamiltonian.
+* `SCALAR` — calculate only the scalar relativistic part.
+* `ALL` — calculate both contributions.
 
 2. **Transition type**
 
-   * `XD_XD` — diagonal matrix element
+* `XD_XD` - offdiagonal matrix element
 
 
 $$
@@ -24,13 +24,13 @@ $$
 $$
 
 
-   * `3D_1D` — diagonal matrix element
+* `3D_1D` - offdiagonal matrix element
 
 $$
 \langle {}^{3}D_{J=2} | \mathcal{H} | {}^{1}D_{J=2} \rangle.
 $$
 
-Here, $\mathcal{H}$ denotes either the scalar relativistic or spin-dependent part of the Breit–Pauli Hamiltonian.
+Here, $\mathcal{H}$ denotes either the scalar relativistic or spin-dependent part of the Breit–Pauli Hamiltonian. In the first matrix element, the value of $J$ corresponds to the maximum possible value: $J=S+L$.
 
 ### Example
 
@@ -69,7 +69,7 @@ $$
 
 the input files must contain:
 
-* `wf_state0.txt` — the singlet-state wave function $|{}^{1}P\rangle$;
-* `wf_state1.txt` — the triplet-state wave function $|{}^{3}P\rangle$.
+* `wf_state0.txt` — the singlet-state wave function $|{}^{1}D\rangle$;
+* `wf_state1.txt` — the triplet-state wave function $|{}^{3}D\rangle$.
 
 The order of these files is important and should not be changed.

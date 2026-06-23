@@ -832,6 +832,12 @@ enddo
     enddo
     MVkl=-MVkl/8
 
+
+    temp1=dXddYd(Glob_dmvM,Glob_dmvM,tvk,tbk,tvl,tbl,tAl,tAk,inv_tAkl,det_tAkl,tau3,tau33,tau333,tau334,inv_tAkltAl,inv_tAkltAk)&
+           -V2kl-Glob_CurrEnergy1*Glob_CurrEnergy0*Skl+(Glob_CurrEnergy1+Glob_CurrEnergy0)*Vkl
+
+    drach_MVkl = temp1*Glob_dmva2 + MVkl
+
     !Evaluation of the orbit-orbit interaction
     OOkl = ZERO
     do i=1,n
