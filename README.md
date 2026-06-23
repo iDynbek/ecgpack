@@ -6,19 +6,19 @@
 
 ## Description
 
-ECGPACK is a collection of closely related parallel computer codes for performing high accuracy variational calculations of quantum few-body systems (few-electron atoms, molecules, ions, and systems containing exotic particles) using all-particle explicitly correlated Gaussian (ECG) basis sets. ECGPACK is written in Fortran and uses MPI for parallelism.
+ECGPACK is a collection of closely related parallel computer codes for performing high accuracy variational calculations of quantum few-body systems such as few-electron atoms, molecules, ions, and systems containing exotic particles, using all-particle explicitly correlated Gaussian (ECG) basis sets. ECGPACK is written in Fortran and uses MPI for parallelism.
 
 ## Citation
 
 Placeholder
 
-## Notations
+## Theoretical background
 
-Mathematical formulas in this and other Markdown documentation files are written in the LaTeX format (sandwiched between dollar signs). For comfortable reading it is advised to use a Markdown viewer that can render these formulas in a human-readable form, such as Microsoft Visual Studio Code.  
+For theoretical background and mathematical notations please see [Theoretical background](doc/theoretical_background.md) in the documetation folder, where relevant references are provided.
 
 ## Directory structure
 
-The ECG project repository has the following directory structure:
+The ECGPACK project repository has the following directory structure:
 
 | Directory | Description |
 | -------- | -------- |
@@ -42,10 +42,20 @@ The ECG project repository has the following directory structure:
 | `ecgpack/doc/` | Directory containing manuals and documentation |
 | `ecgpack/jobs/` | Work directory for calculations (may be created by user) |
 | `ecgpack/utilities/` | Various utilities and scripts |
+| | |
 
-Each directory with a code contains a `Makefile` and a subdirectory `src` with the actual source. The source structure and the structure of the makefiles are very similar for all codes. In fact, some of the makefiles for different codes in the collection are identical. Each directory with a code also contains an identical subdirectory `.vscode` with standard JSON configuration files for Microsoft Visual Studio Code (VSCode). These are user-independent and provide the capability to build and debug each code in its directory using VSCode.
+All codes can be divided into three main groups:
 
-Each directory with a code also contains a subdirectory called `sample_input`. These contain simple examples of input files (files `inout.txt`) as well as instructions (in files `README.md`) on how to execute those sample calculations and any additional files or scripts.
+| Group name | List of Codes | Description |
+| -------- | -------- | -------- |
+| Energy and wavefunctions codes | `CG_0S`, `RG_0S`, `RG_1P`, `RG_2D`, `RG_2P` | Generation of ECG basis sets for states of different angular-momentum/parity. They can compute energies, expectation values, particle distributions, and save wave functions |
+| Transition dipole codes | `RG_0S-1P`, `RG_1P-2D`, `RG_1P-2P`, `RG_1P-1P` | Calculation of off-diagonal matrix elements of the transition dipole moment operator in the length and velocity gauges. |
+| Fine structure coupling codes | `RG_0S-2D`, `RG_0S-2P`, `RG_1P-1P`, `RG_2D-2D`, `RG_2P-2D`, `RG_2P-2P` | Calculations of off-diagonal matrix elements of the spin–orbit interaction and non-contact spin–spin interaction |
+| | | |
+
+Each code directory contains a `Makefile` and a subdirectory `src` with the actual source. The source structure and the structure of the makefiles for the cades within each group are very similar. Each directory with a code also contains an subdirectory `.vscode` with standard JSON configuration files for Microsoft Visual Studio Code (VS Code). These are user-independent and provide the capability to build and debug each code in its directory using VS Code.
+
+Each code directory also contains a subdirectory called `sample_input`. These contain simple examples of input files as well as instructions (in files `README.md`) on how to execute those sample calculations and any additional files or scripts that may be relevant.
 
 ## Root directory files
 
@@ -57,64 +67,17 @@ There are several files located in the project's root directory `ecgpack/`. Thei
 | `AUTHORS.md` | List of contributors |
 | `CLAUDE.md` | Configuration file for Anthropic Claude Code to establish persistent project context | 
 | `build.bash` | A Bash-script for batch compilation of multiple codes corresponding to a different number of particles, toolchains, configurations, precision, etc. It is convenient for building a large number of different binaries that are later used in production calculations. The generated binaries are automatically moved to directory `/ecgpack/bin`. For more information run this script in a terminal without arguments or read its header. |
-| `.code-workspace` | A JSON configuration file for Microsoft Visual Studio Code (VSCode) that contains information used to group separate code project directories into a single, unified workspace that can be opened in VSCode. For tips on using VSCode see [Use of Microsoft Visual Studio Code](#use-of-microsoft-visual-studio-code) below. |
+| `.code-workspace` | A JSON configuration file for Microsoft Visual Studio Code (VS Code) that contains information used to group separate code project directories into a single, unified workspace that can be opened in VS Code. |
+| | |
 
-## Compilation
+## Compilation and execution
 
-To compile any selected code (e.g. `RG_0S`) using a specific toolchain and options one can go to the code directory (e.g. `RG_0S/`) and run the `make` command with the corresponding arguments. Please look at the header of the `Makefile` in the code directory as it provides a brief explanation of the arguments.
+Each code is compiled by going to its directory and running `make` with the appropriate arguments (compiler/toolchain, configuration, working precision, and linear algebra library). More conveniently, one can use the `build.bash` script in the root directory to batch-compile many code variants in one step. The codes can be built with double (fp64), extended (fp80), or quadruple (fp128) precision, and the energy codes can be linked against either the bundled netlib reference BLAS/LAPACK or an optimized library (MKL, OpenBLAS, AOCL, etc.). It is important to note that number of particles is compiled in rather than supplied at runtime. Each binary is an MPI program that is launched in the usual way with `mpirun -np <NPROCS> <BINARYFILE>` from the work directory containing the required input file(s). For full details on the build arguments, precision and performance trade-offs, linear algebra options, the `build.bash` script, binary naming, and execution, see [Compilation and execution](doc/compilation_and_execution.md) in the documentation folder.
 
-### Precision
-Note each code in this collection can be compiled with a different working precision specified by the user (provided there is compiler and hardware architecture support) as an argument in the `make` command: 
+## Input file format
 
-* `PREC=8` - fp64 (double precision)
-* `PREC=10` - fp80 (extended precision), hardware support available on x86 CPUs only
-* `PREC=16` - fp128 (quadruple precision), emulation mode
-
-Because calculations with fp128 floating-point numbers use emulation on pretty much any modern CPU, they are very slow. As a rule of thumb, the speed of computations and memory allocation requirements of the codes in this collection on x86 CPUs scale as follows:
-
-| Precision | CPU time (relative) | Memory amount (relative)
-| --- | --- | --- |
-| fp64  | 1 | 1 |
-| fp80  | 5 | 2 |
-| fp128 | 100 | 2 |
-
-Therefore, the quadruple precision (roughly a factor of ~100 slower than double precision) should be used only in special cases where it is absolutely necessary and feasible.  
-
-### Linear algebra library
-
-The energy codes can be linked against different BLAS/LAPACK implementations, selected with the `LINALG` argument of the `make` command:
-
-* `LINALG=netlib` (default) - the bundled, lightly modified netlib reference BLAS/LAPACK is compiled from source (`src/BLAS.f`/`src/LAPACK.f`); no external library is required
-* `LINALG=mkl` - Intel Math Kernel Library (MKL)
-* `LINALG=lblas` - an optimized BLAS/LAPACK exposed through the `-lblas`/`-llapack` symbolic links
-* `LINALG=openblas` - OpenBLAS
-* `LINALG=aocl` - AMD Optimizing CPU Libraries (AOCL-BLAS and AOCL-LAPACK)
-
-An optimized library can be selected only for `PREC=8`; for `PREC=10` and `PREC=16` only `LINALG=netlib` is available, since optimized BLAS/LAPACK libraries do not support extended or quadruple precision. In the off-diagonal matrix-element codes the `LINALG` argument is accepted but has no effect, as those codes do not link an external BLAS/LAPACK library.
-
-### Number of particles
-
-Note that the maximum number of particles in the calculations is compiled in; it is not a runtime argument. A code compiled for a certain number of particles will not execute with input files where the number of particles is larger. For best performance, it is **strongly recommended** that for any calculation of a system with $N$ particles one uses a corresponding binary compiled for exactly the same maximum number of particles.
-
-### Batch compilation of multiple code variants 
-
-The easiest way to compile all or some number of selected codes in **one step** on a specific machine/OS using specific toolchains, precision, etc. is to invoke the `build.bash` script located in the root directory. This script requires arguments. **Please read its source or run it with no arguments** to see instructions regarding how to run it properly. When this script is run, it will save all individual binaries in directory `ecgpack/bin/<toolchainname>/<configuration>`, where `<toolchainname>` (e.g. `systemdefault`) is the name of the toolchain specified and `<configuration>` can be either `debug` (slow and unoptimized binary suitable for debugging) or `release` (fast and optimized binary suitable for production work). The binary files will be named `<code_name>_N<particle_number>_P<precision>_<linalg>` (e.g. `RG_0S_N4_P8_netlib` - `RG_0S` code, 4 particles, double precision, bundled netlib BLAS/LAPACK). The `<linalg>` suffix records the selected linear algebra library (`netlib`, `mkl`, `lblas`, `openblas`, or `aocl`) and is always present.
-
-## Execution
-
-Any compiled binary file can be executed using multiple MPI processes in a standard way:
-
-```bash
-mpirun -np <NPROCS> <BINARYFILE>
-```
-
-For example, suppose a user has compiled all codes with a help of `build.bash` script (invoking the `systemdefault` toolchain, which on most Linux machines means `gfortran` compiler with `OpenMPI`). Then the user creates a work directory `ecgpack/jobs/test` for a test calculation of a 4-particle system with the `RG_0S` ($L=0$) basis and places a relevant input file `inout.txt` in that directory. To launch a test calculation with double precision using 12 CPU cores the execution command should be
-```bash
-mpirun -np 12 ../../bin/systemdefault/release/RG_0S_N4_P8_netlib
-```
-
-Note that the input file `inout.txt` (as well as other relevant files, if any) should be located in the same directory where the execution of the code takes place.
-
-## Input file
+The energy codes read and write a single input/output file named `inout.txt` located in the work directory where the code is executed. This file has a certain format and consists of four sections: a header (defining the quantum system and solver parameters), a command list (the sequence of actions to perform), a history (energies obtained at each basis size), and the basis functions themselves. For a full description on the input file format see [Input file format](doc/input_file_format.md) in the documentation folder.
 
 ## Use of Microsoft Visual Studio Code
+
+For editing, compiling, debugging, and browsing the code locally, we recommend using Microsoft Visual Studio Code (VS Code). This ECGPACK repository includes pre-configured JSON settings for the editor. If you are new to VS Code, a quick-start guide is available in the documentation folder: [Use of Microsoft Visual Studio Code](doc/use_of_visual_studio_code.md).
