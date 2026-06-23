@@ -1903,6 +1903,14 @@ contains
           write(*,*) '=',deltar(i,j)
         enddo
       enddo
+      do i=1,n
+        write(*,'(1x,a21,i1,a1)',advance='no') '       drach_delta(r_',i,')'
+        write(*,*) '=',drach_deltar(i,i)
+        do j=i+1,n
+          write(*,'(1x,a20,i1,i1,a1)',advance='no') '      drach_delta(r_',i,j,')'
+          write(*,*) '=',drach_deltar(i,j)
+        enddo
+      enddo
 
       write(*,*)
 
@@ -1993,6 +2001,30 @@ contains
           b=Glob_EqvPairList(2,1,i)
           if (a/=b) write(2,'(a,i1,i1,a1,1x)',advance='no') '            delta(r_',a,b,')'
           if (a==b) write(2,'(a,i1,a1,1x)',advance='no')    '             delta(r_',a,')'
+          call writerealadv(2,beta/k)
+        enddo
+        write(*,*)
+        do i=1,Glob_NumOfNoneqvPairSets
+          beta=ZERO
+          mu=ZERO
+          k=Glob_NumOfPairsInEqvPairSet(i)
+          write(*,'(1x)',advance='no')
+          do j=1,k
+            a=Glob_EqvPairList(1,j,i)
+            b=Glob_EqvPairList(2,j,i)
+            if (a==b) then
+              write(*,'(a14,i1,a4)',advance='no') 'drach_delta(r_',a,') = '
+            else
+              write(*,'(a14,i1,i1,a4)',advance='no') 'drach_delta(r_',a,b,') = '
+            endif
+            beta=beta+drach_deltar(a,b)
+          enddo
+          call writerealadv(6,beta/k)
+          !write to file
+          a=Glob_EqvPairList(1,1,i)
+          b=Glob_EqvPairList(2,1,i)
+          if (a/=b) write(2,'(a,i1,i1,a1,1x)',advance='no') '      drach_delta(r_',a,b,')'
+          if (a==b) write(2,'(a,i1,a1,1x)',advance='no')    '       drach_delta(r_',a,')'
           call writerealadv(2,beta/k)
         enddo
         write(*,*)

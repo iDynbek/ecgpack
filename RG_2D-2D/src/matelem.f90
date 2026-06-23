@@ -62,13 +62,25 @@ contains
     real(wp)   inv_tAkltbk(nn),tvlinv_tAkl(nn),tvlinv_tAkltAkM(nn),tvlinv_tAkltAlM(nn)
     real(wp)   tbltbk(nn,nn),tvltvk(nn,nn),tbltvk(nn,nn),tvltbk(nn,nn),tvktbk(nn,nn),tvltbl(nn,nn)
 
-    !Vars to calculate delta-fucntions 
-    real(wp) :: tau, ttau, myeta, myteta, R1, R2, R3
-    real(wp) :: myalpha, jijAVk, jijAVl, jijAWk, jijAWl
-
     !Vars to calculate orbit-orbit interaction 
     real(wp)   ::  tvk_r(nn),tvl_r(nn),tbk_r(nn),tbl_r(nn)
     real(wp)   ::  EMatr(nn,nn), KMatr(nn,nn), DMatr(nn,nn), FMatr(nn,nn), GMatr(nn,nn)
+
+
+    !Vars for calculating <1/rij 1/pq>
+    real(wp) :: a, b, d, fij, fpq, tfij, tfpq, uij, upq, tuij, tupq, phi,  phi_sq, phi_cube, dsqab, &
+    acosphi, tau, ttau, myeta, myteta, &
+    commonFactor, arccosCommon, a1, a2, a3, a4, aone, atwo, arccosAns
+    real(wp) :: R11, R12, R1, R21, R22, R23, R2, R31, R32, R33, R3, R4, R51, R52, R53, R5, R6, &
+    ROne, RTwo, radicalCommon, radicalAns, totalAns, commonArccosRadical, xx, &
+    RDZeroOne, RDZeroTwo, RDOneOne, RDOneTwo, RDTwoOne, RDTwoTwo, RDThreeOne, RDThreeTwo, &
+    RDFourOne, RDFourTwo
+    real(wp)   local_eps_for_xx
+    !Vars to calculate delta-fucntions directly
+    real(wp) :: myalpha, jijAVk, jijAVl, jijAWk, jijAWl
+    !Var to set if orbit-orbit correction is needed
+
+    local_eps_for_xx = 1.d-6
 
 
 
@@ -363,7 +375,7 @@ contains
       eta(i,i)=temp4*temp44+temp443*temp444
       term1=tau3*temp44+tau33*temp4+tau333*temp444+tau334*temp443
       term2=temp4*temp44+temp443*temp444
-      !rm2kl(i,i)=temp5*(ONE-TWO*ONETHIRD*term1/(m*temp2) + EIGHT*ONEFIFTH*term2/(THREE*m*temp2*temp2))/temp2
+      rm2kl(i,i)=temp5*(ONE-TWO*ONETHIRD*term1/(m*temp2) + EIGHT*ONEFIFTH*term2/(THREE*m*temp2*temp2))/temp2
       rmkl(i,i)=temp1*(ONE-ONETHIRD*term1/(m*temp2) + ONEFIFTH*term2/(m*temp2*temp2))/temp3
       !rmkl(i,i)=ME_over_rij(i,i,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
       Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge0)*rmkl(i,i)
@@ -422,8 +434,8 @@ contains
         eta(i,j)=temp4*temp44+temp443*temp444
         term1=tau3*temp44+tau33*temp4+tau333*temp444+tau334*temp443
         term2=temp4*temp44+temp443*temp444
-        !rm2kl(j,i)=temp5*(ONE-TWO*ONETHIRD*term1/(m*temp2) + EIGHT*ONEFIFTH*term2/(THREE*m*temp2*temp2))/temp2
-        !rm2kl(i,j)=rm2kl(j,i)
+        rm2kl(j,i)=temp5*(ONE-TWO*ONETHIRD*term1/(m*temp2) + EIGHT*ONEFIFTH*term2/(THREE*m*temp2*temp2))/temp2
+        rm2kl(i,j)=rm2kl(j,i)
         rmkl(j,i)=temp1*(ONE-ONETHIRD*term1/(m*temp2)+ONEFIFTH*term2/(m*temp2*temp2))/temp3
         !rmkl(j,i)=ME_over_rij(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
         rmkl(i,j)=rmkl(j,i)
@@ -450,6 +462,232 @@ tau = tau3                                                                      
 ttau = tau33   
 myeta =  tau333
 myteta = tau334
+
+
+  temp1=4*Skl/(3*Glob_Pi)
+    do i=1,n
+      do j=i,n
+        do p=i,n
+          do q=p,n   !try q=max(p,j),n - it may speed things up a little
+            if (((p==i).and.(q==j)).or.((p==j).and.(q==i))) then
+              temp2=rm2kl(i,j)
+              rmrmkl(i,j,p,q)=temp2
+              rmrmkl(j,i,p,q)=temp2
+              rmrmkl(i,j,q,p)=temp2
+              rmrmkl(j,i,q,p)=temp2
+              rmrmkl(p,q,i,j)=temp2
+              rmrmkl(p,q,j,i)=temp2
+              rmrmkl(q,p,i,j)=temp2
+              rmrmkl(q,p,j,i)=temp2
+            else
+              if (i==j .and. p/=q) then
+                a = inv_tAkl(i,i)
+                b = inv_tAkl(p,p) + inv_tAkl(q,q) -  inv_tAkl(p,q) - inv_tAkl(q,p)
+                d = inv_tAkl(i, p) - inv_tAkl(i, q)
+                fij = tvkinv_tAkl(i)
+                tfij = tbkinv_tAkl(i)
+                uij = inv_tAkltvl(i)
+                tuij = inv_tAkltbl(i)
+                fpq =  tvkinv_tAkl(p) - tvkinv_tAkl(q)                                                            !fij
+                tfpq = tbkinv_tAkl(p) - tbkinv_tAkl(q)
+                upq = inv_tAkltvl(p) - inv_tAkltvl(q)                                                  !uij
+                tupq = inv_tAkltbl(p) - inv_tAkltbl(q)
+              else if (i/=j .and. p==q) then
+                a = inv_tAkl(i,i) + inv_tAkl(j,j) -  inv_tAkl(i,j) - inv_tAkl(j,i)
+                b = inv_tAkl(p,p)
+                d = inv_tAkl(i, p) - inv_tAkl(j, p)
+                fij =  tvkinv_tAkl(i) -   tvkinv_tAkl(j)                                                     !fij
+                tfij = tbkinv_tAkl(i) - tbkinv_tAkl(j)
+                uij = inv_tAkltvl(i) - inv_tAkltvl(j)                                                             !uij
+                tuij = inv_tAkltbl(i) - inv_tAkltbl(j)
+                fpq = tvkinv_tAkl(p)
+                tfpq = tbkinv_tAkl(p)
+                upq = inv_tAkltvl(p)
+                tupq =inv_tAkltbl(p)
+              else if (i==j .and. p==q) then
+                a = inv_tAkl(i,i)
+                b = inv_tAkl(p,p)
+                d = inv_tAkl(i,p)
+                fij = tvkinv_tAkl(i)                                                          !fij
+                tfij = tbkinv_tAkl(i)
+                uij = inv_tAkltvl(i)                                                          !uij
+                tuij = inv_tAkltbl(i)
+                fpq = tvkinv_tAkl(p)
+                tfpq = tbkinv_tAkl(p)
+                upq = inv_tAkltvl(p)
+                tupq = inv_tAkltbl(p)
+              else
+                a = inv_tAkl(i,i) + inv_tAkl(j,j) -  inv_tAkl(i,j) - inv_tAkl(j,i)
+                b = inv_tAkl(p,p) + inv_tAkl(q,q) -  inv_tAkl(p,q) - inv_tAkl(q,p)     !a
+                d = inv_tAkl(i, p) + inv_tAkl(j, q) - inv_tAkl(i, q) - inv_tAkl(j, p)   !d
+                fij = tvkinv_tAkl(i) - tvkinv_tAkl(j)                                                            !fij
+                tfij = tbkinv_tAkl(i) - tbkinv_tAkl(j)
+                fpq = tvkinv_tAkl(p) - tvkinv_tAkl(q)                                                             !fij
+                tfpq = tbkinv_tAkl(p) - tbkinv_tAkl(q)
+                uij = inv_tAkltvl(i) - inv_tAkltvl(j)                                                             !uij
+                tuij = inv_tAkltbl(i) - inv_tAkltbl(j)
+                upq = inv_tAkltvl(p) - inv_tAkltvl(q)                                                             !uij
+                tupq = inv_tAkltbl(p) - inv_tAkltbl(q)
+              endif
+              dsqab = d/(sqrt(a*b))
+              xx = dsqab*dsqab
+              phi = sqrt(ONE-xx)
+              phi_sq = ONE - xx
+              phi_cube = phi_sq*phi
+              commonFactor = (Glob_PiRaised3n2/Glob_Pi)/(abs(det_tAkl)*sqrt(abs(det_tAkl)))
+
+              if (xx < local_eps_for_xx) then
+
+                !Zero-order correction
+                radicalCommon = 1._wp/(45._wp*(a*b)**(2)*sqrt(a*b))
+                R1 = 15._wp*a*b*(3._wp*a*b*tau - b*fij*uij - a*fpq*upq)*ttau
+                R2 = b*(-15._wp*a*b*tau + 9._wp*b*fij*uij + 5._wp*a*fpq*upq)*tfij*tuij
+                R3 = a*(-15._wp*a*b*tau + 5._wp*b*fij*uij + 9._wp*a*fpq*upq)*tfpq*tupq
+                RDZeroOne = R1 + R2 + R3
+
+                R1 = 15._wp*a*b*(3._wp*a*b*myeta - b*fij*tuij - a*fpq*tupq)*myteta
+                R2 = b*(-15._wp*a*b*myeta + 9._wp*b*fij*tuij + 5._wp*a*fpq*tupq)*tfij*uij
+                R3 = a*(-15._wp*a*b*myeta + 5._wp*b*fij*tuij + 9._wp*a*fpq*tupq)*tfpq*upq
+                RDZeroTwo = R1 + R2 + R3
+
+                !First-order correction
+                R1 = (FIVE*a*b*ttau-THREE*b*tfij*tuij-THREE*a*tfpq*tupq)*(fij*upq+fpq*uij)
+                R2 = (FIVE*a*b*tau-THREE*b*fij*uij-THREE*a*fpq*upq)*(tfij*tupq+tfpq*tuij)
+                RDOneOne = (R1 + R2)*d
+
+                R1 = (FIVE*a*b*myteta-THREE*b*tfij*uij-THREE*a*tfpq*upq)*(fij*tupq+fpq*tuij)
+                R2 = (FIVE*a*b*myeta-THREE*b*fij*tuij-THREE*a*fpq*tupq)*(tfij*upq+tfpq*uij)
+                RDOneTwo = (R1 + R2)*d
+
+                !Second-order correction
+                R1 = 25._wp*a*b*ttau*(a*b*tau - b*fij*uij - a*fpq*upq)
+                R2 = b*tfij*tuij*(-25._wp*a*b*tau+25._wp*b*fij*uij+21._wp*a*fpq*upq)
+                R3 = 6._wp*a*b*tfij*tupq*(fpq*uij + fij*upq)
+                R4 = -25._wp*(a**2)*b*tau*tfpq*tupq
+                R5 = 3._wp*a*b*tfpq*fij*(2._wp*upq*tuij + 7._wp*uij*tupq)
+                R6 = a*tfpq*fpq*(6._wp*b*uij*tuij + 25._wp*a*upq*tupq)
+                RDTwoOne = (R1 + R2 + R3 + R4 + R5 + R6)*d**2/(150._wp*(a*b)**3*sqrt(a*b))
+
+                R1 = 25._wp*a*b*myteta*(a*b*myeta - b*fij*tuij - a*fpq*tupq)
+                R2 = b*tfij*uij*(-25._wp*a*b*myeta+25._wp*b*fij*tuij+21._wp*a*fpq*tupq)
+                R3 = 6._wp*a*b*tfij*upq*(fpq*tuij + fij*tupq)
+                R4 = -25._wp*(a**2)*b*myeta*tfpq*upq
+                R5 = 3._wp*a*b*tfpq*fij*(2._wp*tupq*uij + 7._wp*tuij*upq)
+                R6 = a*tfpq*fpq*(6._wp*b*tuij*uij + 25._wp*a*tupq*upq)
+                RDTwoTwo = (R1 + R2 + R3 + R4 + R5 + R6)*d**2/(150._wp*(a*b)**3*sqrt(a*b))
+
+                !Third-order correction
+                R1 = (a*b*ttau-b*tfij*tuij-a*tfpq*tupq)*(fij*upq+fpq*uij)
+                R2 = (a*b*tau-b*fij*uij-a*fpq*upq)*(tfij*tupq+tfpq*tuij)
+                RDThreeOne = (R1 + R2)*d**3/(10._wp*(a*b)**3*sqrt(a*b))
+
+                R1 = (a*b*myteta-b*tfij*uij-a*tfpq*upq)*(fij*tupq+fpq*tuij)
+                R2 = (a*b*myeta-b*fij*tuij-fpq*tupq)*(tfij*upq+tfpq*uij)
+                RDThreeTwo = (R1 + R2)*d**3/(10._wp*(a*b)**3*sqrt(a*b))
+
+                !Fourth-order correction
+                R1 = 7._wp*a*b*ttau*(3._wp*a*b*tau - 5._wp*b*fij*uij - 5._wp*a*fpq*upq)
+                R2 = b*tfij*tuij*(-35._wp*a*b*tau + 49._wp*b*fij*uij + 45._wp*a*fpq*upq)
+                R3 = 20._wp*a*b*tfij*tupq*(fpq*uij+fij*upq)
+                R4 = a*tfpq*fpq*(20._wp*b*uij*tuij + 49._wp*a*upq*tupq)
+                R5 = -35._wp*(a**2)*b*tau*tupq*tfpq
+                R6 = 5._wp*a*b*tfpq*fij*(4._wp*upq*tuij + 9._wp*uij*tupq)
+                RDFourOne = (R1 + R2 + R3 + R4 + R5 + R6)*(d**4)/(280._wp*((a*b)**4)*sqrt(a*b))
+
+                R1 = 7._wp*a*b*myteta*(3._wp*a*b*myeta - 5._wp*b*fij*tuij - 5._wp*a*fpq*tupq)
+                R2 = b*tfij*uij*(-35._wp*a*b*myeta + 49._wp*b*fij*tuij + 45._wp*a*fpq*tupq)
+                R3 = 20._wp*a*b*tfij*upq*(fpq*tuij+fij*tupq)
+                R4 = a*tfpq*fpq*(20._wp*b*tuij*uij + 49._wp*a*tupq*upq)
+                R5 = -35._wp*(a**2)*b*myeta*upq*tfpq
+                R6 = 5._wp*a*b*tfpq*fij*(4._wp*tupq*uij + 9._wp*tuij*upq)
+                RDFourTwo = (R1 + R2 + R3 + R4 + R5 + R6)*(d**4)/(280._wp*((a*b)**4)*sqrt(a*b))
+
+                totalAns = commonFactor*radicalCommon*(RDZeroOne + RDZeroTwo + RDOneOne + RDOneTwo) + &
+                           commonFactor*(RDTwoOne + RDTwoTwo + RDThreeOne + RDThreeTwo + RDFourOne + RDFourTwo)
+
+              else
+                acosphi=asin(abs(dsqab))
+
+                commonArccosRadical = 1._wp/(15._wp*abs(d)**3*sqrt(a*b)*(a*b)**3*phi_cube)
+            !!! Calculation of arccos part  !!!
+                arccosCommon =-(a*b)**3*sqrt(a*b)*phi_cube
+
+                a1 = 5._wp*d*ttau*(fpq*uij + fij*upq - 3._wp*d*tau)
+                a2 = (5._wp*d*tau - 3._wp*fij*upq - 3._wp*fpq*uij)*(tfij*tupq + tfpq*tuij)
+                a3 = 2._wp*fij*uij*tfpq*tupq
+                a4 = 2._wp*fpq*upq*tfij*tuij
+                aone = a1 + a2 + a3 + a4
+
+                !Second term
+                a1 = 5._wp*d*myteta*(fpq*tuij + fij*tupq - 3._wp*d*myeta)
+                a2 = (5._wp*d*myeta - 3._wp*fij*tupq - 3._wp*fpq*tuij)*(tfij*upq + tfpq*uij)
+                a3 = 2._wp*fij*tuij*tfpq*upq
+                a4 = 2._wp*fpq*tupq*tfij*uij
+                atwo = a1 + a2 + a3 + a4
+
+                arccosAns = arccosCommon * (aone + atwo) * acosphi
+
+            !!! Calculation of radical part  !!!
+                radicalCommon=abs(d)
+
+                !First term
+                R11 = (a*b*upq - b*d*uij)*fij
+                R12 = (a*b*uij - a*d*upq)*fpq
+                R1 = 5._wp*(a**2)*(b**2)*d*(phi_sq)*ttau*(R11+R12)
+                R21 = (d**2)*((2._wp*(d**2) - 3._wp*a*b)*uij + a*d*upq)*fij
+                R22 = 5._wp*(a**2)*b*(d**2)*(phi_sq)*tau
+                R23 = a*((d**3)*uij + a*((d**2)-2._wp*a*b)*upq)*fpq
+                R2 = -(b**2)*tfij*tuij*(R21 + R22 + R23)
+                R31 = -b*((d**3)*uij + a*(3._wp*a*b-4._wp*(d**2))*upq)*fij
+                R32 = 5._wp*(a**2)*(b**2)*d*(phi_sq)*tau
+                R33 = -a*(b*(3._wp*a*b-4._wp*(d**2))*uij + (d**3)*upq)*fpq
+                R3 = a*b*tfij*tupq*(R31 + R32 + R33)
+                R4 = a*b*tfpq*tuij*(R31 + R32 + R33)
+                R51 = (d**2)*((2._wp*(d**2) - 3._wp*a*b)*upq + b*d*uij)*fpq
+                R52 = 5._wp*a*(b**2)*(d**2)*(phi_sq)*tau
+                R53 = b*((d**3) * upq + b*((d**2) - 2._wp*a*b)*uij)*fij
+                R5 = -(a**2)*tfpq*tupq*(R51 + R52 + R53)
+                ROne = R1 + R2 + R3 + R4 + R5
+
+                !Second term
+                R11 = (a*b*tupq - b*d*tuij)*fij
+                R12 = (a*b*tuij - a*d*tupq)*fpq
+                R1 = 5._wp*(a**2)*(b**2)*d*(phi_sq)*myteta*(R11 + R12)
+                R21 = (d**2)*((2._wp*(d**2) - 3._wp*a*b)*tuij + a*d*tupq)*fij
+                R22 = 5._wp*(a**2)*b*(d**2)*(phi_sq)*myeta
+                R23 = a*((d**3)*tuij + a*((d**2)-2._wp*a*b)*tupq)*fpq
+                R2 = -(b**2)*tfij*uij*(R21 + R22 + R23)
+                R31 = -b*((d**3)*tuij + a*(3._wp*a*b-4._wp*(d**2))*tupq)*fij
+                R32 = 5._wp*(a**2)*(b**2)*d*(phi_sq)*myeta
+                R33 = -a*(b*(3._wp*a*b-4._wp*(d**2))*tuij + (d**3)*tupq)*fpq
+                R3 = a*b*tfij*upq*(R31 + R32 + R33)
+                R4 = a*b*tfpq*uij*(R31 + R32 + R33)
+                R51 = (d**2)*((2._wp*(d**2) - 3._wp*a*b)*tupq + b*d*tuij)*fpq
+                R52 = 5._wp*a*(b**2)*(d**2)*(phi_sq)*myeta
+                R53 = b*((d**3) * tupq + b*((d**2) - 2._wp*a*b)*tuij)*fij
+                R5 = -(a**2)*tfpq*upq*(R51 + R52 + R53)
+                RTwo = R1 + R2 + R3 + R4 + R5
+
+                radicalAns = radicalCommon * (ROne + RTwo)
+
+                totalAns = commonFactor * commonArccosRadical * (arccosAns + radicalAns)
+
+              endif
+              rmrmkl(i,j,p,q)=totalAns
+              rmrmkl(j,i,p,q)=totalAns
+              rmrmkl(i,j,q,p)=totalAns
+              rmrmkl(j,i,q,p)=totalAns
+              rmrmkl(p,q,i,j)=totalAns
+              rmrmkl(p,q,j,i)=totalAns
+              rmrmkl(q,p,i,j)=totalAns
+              rmrmkl(q,p,j,i)=totalAns
+            endif
+          enddo
+        enddo
+      enddo
+    enddo
+
+
 
 !evaluate delta-functions directly
 !V ---- tau
@@ -483,6 +721,40 @@ do i = 1,n
     deltarkl(j,i) = deltarkl(i,j)
   enddo
 enddo
+
+!evaluate drachmanized delta-function and V2kl operator
+    V2kl=ZERO
+    do p=1,n
+      do q=p,n
+        temp1=ZERO
+        do i=1,n
+          temp1=temp1+ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*rmrmkl(p,q,i,i)
+          do j=i+1,n
+            temp1=temp1+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*rmrmkl(p,q,i,j)
+          enddo
+        enddo
+        temp4=ZERO
+        temp5=ZERO
+        if (p==q) then
+          temp4=2*Glob_Pi*Glob_MassMatrix(p,p)
+          temp5=ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(p))
+        else
+          temp4=2*Glob_Pi*(Glob_MassMatrix(p,p)+Glob_MassMatrix(q,q) &
+                      -Glob_MassMatrix(p,q)-Glob_MassMatrix(p,q))
+          temp5=ScaledChargeProd(Glob_PseudoCharge(p),Glob_PseudoCharge(q))
+        endif
+
+        !temp2=ME_rXr_over_rij(W2,p,q,inv_tAkl,rmkl(p,q),TrAJ(p,q))
+        !temp2=ZERO
+        temp2 = ME_d_X_over_rij_d(p,q,Glob_dmvM,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl, &
+                                  tvkinv_tAkl, tbkinv_tAkl, inv_tAkltvl, inv_tAkltbl)
+        drach_deltarkl(p,q)=(0.5*(Glob_CurrEnergy0+Glob_CurrEnergy1)*rmkl(p,q)-temp1-temp2)/temp4
+        !drach_deltarkl(p,q)=temp2
+        drach_deltarkl(q,p)=drach_deltarkl(p,q)
+
+        V2kl=V2kl+temp5*temp1
+      enddo
+    enddo
 
 
 !Evaluating vector-matrix-vector products
@@ -523,6 +795,26 @@ enddo
       enddo
     enddo
     Darwinkl=-Darwinkl*Glob_Pi/2
+
+
+    !Evaluation of the drachmanized Darwin correction
+    drach_Darwinkl=ZERO
+    do i=1,n
+      drach_Darwinkl=drach_Darwinkl+(   &
+                      ONE/(Mass_For_Darwin(0)*Mass_For_Darwin(0)) &
+                      +ONE/(Mass_For_Darwin(i)*Mass_For_Darwin(i)) &
+                      )*ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*drach_deltarkl(i,i)
+    enddo
+    do i=1,n
+      do j=1,n
+        if(j/=i) then
+          drach_Darwinkl=drach_Darwinkl+   &
+                          ONE/(Mass_For_Darwin(i)*Mass_For_Darwin(i)) &
+                          *ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*drach_deltarkl(i,j)
+        endif
+      enddo
+    enddo
+    drach_Darwinkl=-drach_Darwinkl*Glob_Pi/2
 
 !Mass-velocity correction
     inv_tau3=1/tau3
@@ -2945,76 +3237,409 @@ function ME_rXr_rYr_over_rij_real(p,q,X,Y,inv_tAkl,det_tAkl,tvk,tvl,twk,twl)
 
   end function ME_over_rij
 
-  function ME_d_X_over_rij_d(i,j,X,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
+  function ME_d_X_over_rij_d(p,q,X,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,twk,twl, &
+                             tvkinv_tAkl, twkinv_tAkl, inv_tAkltvl, inv_tAkltwl)
 
     real(wp)   ME_d_X_over_rij_d
     integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
-!Arguments:
-    real(wp)   X(nn,nn),tAl(nn,nn),tAk(nn,nn),inv_tAkl(nn,nn),det_tAkl
-    integer       i,j,tvk(nn),tvl(nn),tbk(nn),tbl(nn)
+    !Arguments:
+    real(wp)   X(nn,nn),tAl(nn,nn),tAk(nn,nn),inv_tAkl(nn,nn),det_tAkl, &
+      tvkinv_tAkl(nn), twkinv_tAkl(nn), inv_tAkltvl(nn), inv_tAkltwl(nn)
+    integer       p,q,tvk(nn),tvl(nn),twk(nn),twl(nn)
 
-!Local variables:
-    integer       c,s,p,q,n,k
+    !Local variables:
+    integer       c,s,n,k,i,j
     real(wp)   tvkXtAl(nn),tbkXtAl(nn)
-    real(wp)   temp1,temp2,temp3,temp4,temp5
     real(wp)   tAkX(nn,nn),tAkXtAl(nn,nn),tAkXtvl(nn),tAkXtbl(nn),XtAl(nn,nn)
 
-!Doing multiplication Xtvl=X*tvl,tvkX=tvk*X
-    n=Glob_n
-    do s=1,n
-      do c=1,n
-        temp1=ZERO
-        temp2=ZERO
+    real(wp) :: commonFactor, gamma, temp, temp1, temp2, temp3
+
+    !Vars for Q-part
+    real(wp) :: trXs, Xij, V, Vij, VX, VijX, VXij, VijXij, &
+                   W, Wij, WX, WijX, WXij, WijXij, &
+                   jijAvk, jijAvl, jijAwk, jijAwl, &
+                   jijAXsAvk, jijAXsAvl, jijAXsAwk, jijAXsAwl
+    real(wp) :: tV, tVij, tVX, tVijX, tVXij, tVijXij, &
+                   tW, tWij, tWX, tWijX, tWXij, tWijXij
+    real(wp) :: I11, I12, I13, I1, &
+                   I21, I22, I23, I2, &
+                   I31, I32, I33, I3, &
+                   I41, I42, I43, I4
+    real(wp) :: XAl(nn, nn), AXsA(nn, nn), Xs(nn, nn), XsA(nn, nn)
+    real(wp) :: AXsA_Vl(nn), AXsA_Wl(nn), Vk_AXsA(nn), Wk_AXsA(nn)
+    real(wp) :: Qans
+    !Vars for RVk part
+    real(wp) :: AlA(nn,nn), XAlA(nn,nn), XAlA_Vl(nn), XAlA_Wl(nn), &
+                   Vk_XAlA(nn), Wk_XAlA(nn), VkXAlAjij, VkXAlAVl, VkXAlAWl
+    real(wp) :: RVk, RVk1, RVk2, RVk3
+    !Vars for RWk part
+    real(wp) :: WkXAlAVl, WkXAlAWl, WkXAlAjij, RWk, RWk1, RWk2, RWk3
+    !Vars for RVl part
+    real(wp) :: AkX(nn,nn), AAkX(nn,nn),  AAkX_Vl(nn), AAkX_Wl(nn), &
+                   VkAAkXVl, WkAAkXWl, VkAAkXWl, WkAAkXVl, &
+                   jijAAkXVl, jijAAkXWl
+    real(wp) :: RVl, RVl1, RVl2, RVl3
+    !Vars for RWl part
+    real(wp) :: RWl, RWl1, RWl2, RWl3
+    !Vars for D2 terms
+    real(wp) :: X_Vl(nn), X_Wl(nn), &
+                   VkXVl, VkXWl, WkXWl, WkXVl, DTwo1, DTwo2, DTwo3, DTwo4, DTwo
+
+    n = Glob_n
+
+  !!! Q-part  !!!
+    !Build Xs matrix
+    XAl = ZERO
+    do i=1,n
+      do j=1,n
+        temp = ZERO
         do k=1,n
-          temp1=temp1+tAk(c,k)*X(k,s)
-          temp2=temp2+X(c,k)*tAl(k,s)
+          temp = temp + X(i,k)*tAl(k,j)
         enddo
-        tAkX(c,s)=temp1
-        XtAl(c,s)=temp2
+        XAl(i,j) = temp
       enddo
     enddo
-
-!Doing multiplication tAlXtAk=tAlX*tAk,tAkXtAl=tAkX*tAl
-    do s=1,n
-      do c=1,n
-        temp1=ZERO
+    Xs = ZERO
+    do i=1,n
+      do j=1,n
+        temp = ZERO
         do k=1,n
-          temp1=temp1+tAkX(c,k)*tAl(k,s)
+          temp = temp + tAk(i,k) * XAl(k,j)
         enddo
-        tAkXtAl(c,s)=temp1
+        Xs(i,j) = temp
       enddo
     enddo
 
-    call symmetrize_matrix(tAkXtAl)
-
-    do s=1,n
-      temp1=ZERO
-      temp2=ZERO
-      do c=1,n
-        temp1=temp1+tAkX(c,s)*tvl(c)
-        temp2=temp2+tAkX(c,s)*tbl(c)
+    !Symmetrize MS
+    do i = 1,n
+      do j = i+1,n
+        temp=ONEHALF*(Xs(j,i)+Xs(i,j))
+        Xs(j,i) = temp
+        Xs(i,j) = temp
       enddo
-      tAkXtvl(s)=temp1
-      tAkXtbl(s)=temp2
     enddo
 
-    do p=1,n
-      temp1=ZERO
-      temp2=ZERO
-      do q=1,n
-        temp1=temp1+tvk(q)*XtAl(q,p)
-        temp2=temp2+tbk(q)*XtAl(q,p)
+    !Find trA
+    trXs = ZERO
+    do i=1,n
+      do j=1,n
+        trXs = trXs + inv_tAkl(i,j)*Xs(j,i)
       enddo
-      tvkXtAl(p)=temp1
-      tbkXtAl(p)=temp2
     enddo
 
-    temp1=4*ME_rXr_over_rij(i,j,tAkXtAl,inv_tAkl,det_tAkl,tvk,tvl,tbk,tbl)
-    temp2=-2*ME_over_rij_tvl(i,j,inv_tAkl,det_tAkl,tvk,tAkXtvl,tbk,tbl)
-    temp3=-2*ME_over_rij_tbl(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbk,tAkXtbl)
-    temp4=-2*ME_over_rij_tvk(i,j,inv_tAkl,det_tAkl,tvkXtAl,tvl,tbk,tbl)
-    temp5=-2*ME_over_rij_tbk(i,j,inv_tAkl,det_tAkl,tvk,tvl,tbkXtAl,tbl)
-    ME_d_X_over_rij_d=temp1+temp2+temp3+temp4+temp5
+    XsA = ZERO
+    do i=1,n
+      do j=1,n
+        temp = ZERO
+        do k=1,n
+          temp = temp + Xs(i,k)*inv_tAkl(k,j)
+        enddo
+        XsA(i,j) = temp
+      enddo
+    enddo
+
+    AXsA = ZERO
+    do i=1,n
+      do j=1,n
+        temp = ZERO
+        do k=1,n
+          temp = temp + inv_tAkl(i,k)*XsA(k,j)
+        enddo
+        AXsA(i,j) = temp
+      enddo
+    enddo
+
+    V=ZERO
+    W=ZERO
+    tV=ZERO
+    tW=ZERO
+    do i=1,n
+      V=V+tvkinv_tAkl(i)*tvl(i)
+      W=W+twkinv_tAkl(i)*twl(i)
+      tV=tV+tvkinv_tAkl(i)*twl(i)
+      tW=tW+twkinv_tAkl(i)*tvl(i)
+    enddo
+
+    do i=1,n
+      temp = ZERO
+      temp1 = ZERO
+      temp2 = ZERO
+      temp3 = ZERO
+      do j=1,n
+        temp = temp + AXsA(i,j)*tvl(j)
+        temp1 = temp1 + AXsA(i,j)*twl(j)
+        temp2 = temp2 + tvk(j)*AXsA(j,i)
+        temp3 = temp3 + twk(j)*AXsA(j,i)
+      enddo
+      AXsA_Vl(i) = temp
+      AXsA_Wl(i) = temp1
+      Vk_AXsA(i) = temp2
+      Wk_AXsA(i) = temp3
+    enddo
+
+    VX = ZERO
+    WX = ZERO
+    tVX = ZERO
+    tWX = ZERO
+    do i=1,n
+      VX = VX + tvk(i)*AXsA_vl(i)
+      WX = WX + twk(i)*AXsA_wl(i)
+      tVX = tVX + tvk(i)*AXsA_wl(i)
+      tWX = tWX + twk(i)*AXsA_vl(i)
+    enddo
+  !!! END Q part !!!!
+
+  !!!!! RVk & RWk part of M-matelem !!!!
+    AlA = ZERO
+    do i=1,n
+      do j=1,n
+        temp = ZERO
+        do k=1,n
+          temp = temp + tAl(i,k)*inv_tAkl(k,j)
+        enddo
+        AlA(i,j) = temp
+      enddo
+    enddo
+
+    XAlA = ZERO
+    do i=1,n
+      do j=1,n
+        temp = ZERO
+        do k=1,n
+          temp = temp + X(i,k)*AlA(k,j)
+        enddo
+        XAlA(i,j) = temp
+      enddo
+    enddo
+
+    do i=1,n
+      temp = ZERO
+      temp1 = ZERO
+      temp2 = ZERO
+      temp3 = ZERO
+      do j=1,n
+        temp = temp + XAlA(i,j)*tvl(j)
+        temp1 = temp1 + XAlA(i,j)*twl(j)
+        temp2 = temp2 + tvk(j)*XAlA(j,i)
+        temp3 = temp3 + twk(j)*XAlA(j,i)
+      enddo
+      XAlA_Vl(i) = temp
+      XAlA_Wl(i) = temp1
+      Vk_XAlA(i) = temp2
+      Wk_XAlA(i) = temp3
+    enddo
+
+    VkXAlAVl = ZERO
+    VkXAlAWl = ZERO
+    WkXAlAWl = ZERO
+    WkXAlAVl = ZERO
+    do i=1,n
+      VkXAlAVl = VkXAlAVl + tvk(i)*XAlA_Vl(i)
+      VkXAlAWl = VkXAlAWl + tvk(i)*XAlA_Wl(i)
+      WkXAlAWl = WkXAlAWl + twk(i)*XAlA_Wl(i)
+      WkXAlAVl = WkXAlAVl + twk(i)*XAlA_Vl(i)
+    enddo
+  !!!!! END RVk & RWk part of M-matelem !!!!
+
+  !!!!! RVl part of M-matelem !!!!
+    AkX = ZERO
+    do i=1,n
+      do j=1,n
+        temp = ZERO
+        do k=1,n
+          temp = temp + tAk(i,k)*X(k,j)
+        enddo
+        AkX(i,j) = temp
+      enddo
+    enddo
+
+    AAkX = ZERO
+    do i=1,n
+      do j=1,n
+        temp = ZERO
+        do k=1,n
+          temp = temp + inv_tAkl(i,k)*AkX(k,j)
+        enddo
+        AAkX(i,j) = temp
+      enddo
+    enddo
+
+    do i=1,n
+      temp = ZERO
+      temp1 = ZERO
+      do j=1,n
+        temp = temp + AAkX(i,j)*tvl(j)
+        temp1 = temp1 + AAkX(i,j)*twl(j)
+      enddo
+      AAkX_Vl(i) = temp
+      AAkX_Wl(i) = temp1
+    enddo
+
+    VkAAkXVl = ZERO
+    VkAAkXWl = ZERO
+    WkAAkXWl = ZERO
+    WkAAkXVl = ZERO
+    do i=1,n
+      VkAAkXVl =  VkAAkXVl + tvk(i)*AAkX_Vl(i)
+      VkAAkXWl = VkAAkXWl + tvk(i)*AAkX_Wl(i)
+      WkAAkXWl = WkAAkXWl + twk(i)*AAkX_Wl(i)
+      WkAAkXVl = WkAAkXVl + twk(i)*AAkX_Vl(i)
+    enddo
+  !!!!! END RVl part of M-matelem !!!!
+
+  !!!!! D2 terms !!!!
+    do i=1,n
+      temp = ZERO
+      temp1 = ZERO
+      do j=1,n
+        temp = temp + X(i,j)*tvl(j)
+        temp1 = temp1 + X(i,j)*twl(j)
+      enddo
+      X_Vl(i) = temp
+      X_Wl(i) = temp1
+    enddo
+
+    VkXVl = ZERO
+    VkXWl = ZERO
+    WkXWl = ZERO
+    WkXVl = ZERO
+    do i=1,n
+      VkXVl = VkXVl + tvk(i)*X_Vl(i)
+      VkXWl = VkXWl + tvk(i)*X_Wl(i)
+      WkXWl = WkXWl + tWk(i)*X_Wl(i)
+      WkXVl = WkXVl + tWk(i)*X_Vl(i)
+    enddo
+
+  !!!!! END D2 terms !!!!
+
+    if (p==q) then
+      !Common part
+      gamma = inv_tAkl(p,p)
+      gamma = ONE/sqrt(gamma)
+      !Q part
+      Xij = AXsA(p, p)
+      jijAvk = tvkinv_tAkl(p)
+      jijAvl = inv_tAkltvl(p)
+      jijAwk = twkinv_tAkl(p)
+      jijAwl = inv_tAkltwl(p)
+      jijAXsAvl = AXsA_Vl(p)
+      jijAXsAvk = Vk_AXsA(p)
+      jijAXsAwl = AXsA_Wl(p)
+      jijAXsAwk = Wk_AXsA(p)
+      !RVk part
+      VkXAlAjij = Vk_XAlA(p)
+      !RWk part
+      WkXAlAjij = Wk_XAlA(p)
+      ! RVl part
+      jijAAkXvl = AAkX_Vl(p)
+      jijAAkXWl = AAkX_Wl(p)
+    else
+      !Common part
+      gamma = inv_tAkl(p,p) + inv_tAkl(q,q) - inv_tAkl(p,q) - inv_tAkl(q,p)
+      gamma = ONE/sqrt(gamma)
+      !Q part
+      Xij = AXsA(p,p) + AXsA(q,q) - AXsA(p,q) - AXsA(q,p)
+      jijAvk = tvkinv_tAkl(p) - tvkinv_tAkl(q)
+      jijAvl = inv_tAkltvl(p) - inv_tAkltvl(q)
+      jijAwk = twkinv_tAkl(p) - twkinv_tAkl(q)
+      jijAwl = inv_tAkltwl(p) - inv_tAkltwl(q)
+      jijAXsAvl = AXsA_Vl(p) - AXsA_Vl(q)
+      jijAXsAvk = Vk_AXsA(p) - Vk_AXsA(q)
+      jijAXsAwl = AXsA_Wl(p) - AXsA_Wl(q)
+      jijAXsAwk = Wk_AXsA(p) - Wk_AXsA(q)
+      !RVk part
+      VkXAlAjij = Vk_XAlA(p) - Vk_XAlA(q)
+      !RWk part
+      WkXAlAjij = Wk_XAlA(p) - Wk_XAlA(q)
+      ! RVl part
+      jijAAkXvl = AAkX_Vl(p) - AAkX_Vl(q)
+      jijAAkXWl = AAkX_Wl(p) - AAkX_Wl(q)
+    endif
+
+    commonFactor = Glob_PiRaised3n2/(sqrt(Glob_Pi)*det_tAkl*sqrt(det_tAkl))
+
+    !Q-part
+    Vij = jijAvk * jijAvl
+    VijX = jijAvk * jijAXsAvl
+    VXij = jijAvl * jijAXsAvk
+    VijXij = jijAvk * Xij * jijAvl
+
+    Wij = jijAwk * jijAwl
+    WijX = jijAwk * jijAXsAwl
+    WXij = jijAwl * jijAXsAwk
+    WijXij = jijAwk * Xij * jijAwl
+
+    tVij = jijAvk * jijAwl
+    tVijX = jijAvk * jijAXsAwl
+    tVXij = jijAwl * jijAXsAvk
+    tVijXij = jijAvk * Xij * jijAwl
+
+    tWij = jijAwk * jijAvl
+    tWijX = jijAwk * jijAXsAvl
+    tWXij = jijAvl * jijAXsAwk
+    tWijXij = jijAwk * Xij * jijAvl
+
+    I11 = trXs*V*W + trXs*tV*tW
+    I12 = VX*W + tVX*tW
+    I13 = V*WX + tV*tWX
+    I1 = (THREEHALF*I11 + I12 + I13)*gamma
+
+    I21 = (Xij*V*W + trXs*Vij*W + trXs*V*Wij) + (Xij*tV*tW + trXs*tVij*tW + trXs*tV*tWij)
+    I22 = (VijX*W + VXij*W + VX*Wij) + (tVijX*tW + tVXij*tW + tVX*tWij)
+    I23 = (V*WijX + V*WXij + Vij*WX) + (tV*tWijX + tV*tWXij + tVij*tWX)
+    I2 = -(THREEHALF*I21 + I22 + I23)*gamma**3/THREE
+
+    I31 = (Xij*Vij*W + Xij*V*Wij + trXs*Vij*Wij) + (Xij*tVij*tW + Xij*tV*tWij + trXs*tVij*tWij)
+    I32 = (VijXij*W + VijX*Wij + VXij*Wij) + (tVijXij*tW + tVijX*tWij + tVXij*tWij)
+    I33 = (V*WijXij + Vij*WijX + Vij*WXij) + (tV*tWijXij + tVij*tWijX + tVij*tWXij)
+    I3 = (THREEHALF*I31 + I32 + I33)*gamma**5/FIVE
+
+    I41 = Xij*Vij*Wij + Xij*tVij*tWij
+    I42 = VijXij*Wij + tVijXij*tWij
+    I43 = Vij*WijXij +  tVij*tWijXij
+    I4 = -(THREEHALF*I41 + I42 + I43)*gamma**7/SEVEN
+
+    Qans = (I1 + I2 + I3 + I4)*TWO*commonFactor
+
+    !RVk-part of M-matelem
+    RVk1 = gamma*(VkXAlAVl*W +VkXAlAWl*tW)
+    RVk2 = -gamma**3/THREE*(VkXAlAjij*jijAvl*W + VkXAlAVl*Wij + &
+                            VkXAlAjij*jijAWl*tW + VkXAlAWl*tWij)
+    RVk3 = gamma**5/FIVE*(VkXAlAjij*jijAvl*Wij + VkXAlAjij*jijAWl*tWij)
+    RVk = -(RVk1 + RVk2 + RVk3)*commonFactor
+
+    !RWk-part of M-matelem
+    RWk1 = gamma*(V*WkXAlAWl + tV*WkXAlAVl)
+    RWk2 = -gamma**3/THREE*(Vij*WkXAlAWl + V*WkXAlAjij*jijAWl + &
+                            tVij*WkXAlAVl + tV*WkXAlAjij*jijAVl)
+    RWk3 = gamma**5/FIVE*(Vij*WkXAlAjij*jijAWl + tVij*WkXAlAjij*jijAVl)
+    RWk = -(RWk1 + RWk2 + RWk3)*commonFactor
+
+    !RVl-part of M-matelem
+    RVl1 = gamma*(VkAAkXVl*W + tV*WkAAkXVl)
+    RVl2 = -gamma**3/THREE*(jijAVk*jijAAkXVl*W + VkAAkXVl*Wij + &
+                            jijAVk*jijAWl*WkAAkXVl +  tV*jijAWk*jijAAkXVl)
+    RVl3 = gamma**5/FIVE*(jijAVk*jijAAkXVl*Wij + &
+                          tVij*jijAWk*jijAAkXVl)
+
+    RVl = -(RVl1 + RVl2 + RVl3)*Glob_PiRaised3n2/(sqrt(Glob_Pi)*det_tAkl*sqrt(det_tAkl))
+
+    !RWl-part of M-matelem
+    RWl1 = gamma*(V*WkAAkXWl + VkAAkXWl*tW)
+    RWl2 = -gamma**3/THREE*(Vij*WkAAkXWl + V*jijAWk*jijAAkXWl + &
+                            jijAVk*jijAAkXWl*tW + VkAAkXWl*tWij)
+    RWl3 = gamma**5/FIVE*(Vij*jijAWk*jijAAkXWl + jijAVk*jijAAkXWl*tWij)
+    RWl = -(RWl1 + RWl2 + RWl3)*Glob_PiRaised3n2/(sqrt(Glob_Pi)*det_tAkl*sqrt(det_tAkl))
+    !END RWl-part of M-matelem !
+
+    !D2 part
+    DTwo1 = VkXWl*(gamma*tW - ONE/THREE*(gamma**3) * jijAwk * jijAVl)
+    DTwo2 = WkXVl*(gamma*tV - ONE/THREE*(gamma**3) * jijAVk * jijAWl)
+    DTwo3 = VkXVl*(gamma*W - ONE/THREE*(gamma**3) * jijAWk * jijAWl)
+    DTwo4 = WkXWl*(gamma*V - ONE/THREE*(gamma**3) * jijAVk * jijAVl)
+    DTwo = (DTwo1 + DTwo2 + DTwo3 + DTwo4)*commonFactor
+
+    ME_d_X_over_rij_d = Qans + RVk + RVl + RWk + RWl + DTwo
 
   end function ME_d_X_over_rij_d
 
