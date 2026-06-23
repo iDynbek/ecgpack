@@ -1644,8 +1644,13 @@ contains
       write(*,*) '                      T=',T
       write(*,*) '                      V=',V
       write(*,*) '                     MV=',MV
+      write(*,*) '               drach_MV=',drach_MV
       write(*,*) '                 Darwin=',Darwin
-      write(*,*) '                     SSF=',SSF
+      write(*,*) '           drach_Darwin=',drach_Darwin
+      write(*,*) '                     OO=',OO
+      write(*,*) '                    SSF=',SSF
+      write(*,*) '              drach_SSF=',drach_SSF
+
 
       write(2,'(a)',advance='no') '                      H '
       call writerealadv(2,H)
@@ -1657,10 +1662,18 @@ contains
       call writerealadv(2,V)
       write(2,'(a)',advance='no') '                     MV '
       call writerealadv(2,MV)
+      write(2,'(a)',advance='no') '               drach_MV '
+      call writerealadv(2,drach_MV)
       write(2,'(a)',advance='no') '                 Darwin '
       call writerealadv(2,Darwin)
+      write(2,'(a)',advance='no') '           drach_Darwin '
+      call writerealadv(2,drach_Darwin)
+      write(2,'(a)',advance='no') '                     OO '
+      call writerealadv(2,OO)
       write(2,'(a)',advance='no') '                    SSF '
       call writerealadv(2,SSF)
+      write(2,'(a)',advance='no') '              drach_SSF '
+      call writerealadv(2,drach_SSF)
 
       if (Glob_NumOfIdentPartSets/=Glob_n+1) then
         write(*,*) '(Warning! These values do not account for indistinguishability of'
