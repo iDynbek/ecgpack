@@ -6,13 +6,13 @@ module workproc
 contains
 
   subroutine Readwf0wf1()
-!Subroutine Readwf0wf1 reads data (number of particle,
-!mass, charge, nonlinear variational
-!parameters and other information) from the wave function
-!file whose name is specIFied by global variable
-!Glob_wf File files.
+  !Subroutine Readwf0wf1 reads data (number of particle,
+  !mass, charge, nonlinear variational
+  !parameters and other information) from the wave function
+  !file whose name is specIFied by global variable
+  !Glob_wf File files.
 
-!Local variables:
+    !Local variables:
     integer        :: OpenFileErr
     integer        :: ReadInt,ReadErr
     integer        :: particle_n0,particle_n1

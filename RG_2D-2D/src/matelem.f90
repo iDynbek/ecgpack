@@ -62,6 +62,14 @@ contains
     real(wp)   inv_tAkltbk(nn),tvlinv_tAkl(nn),tvlinv_tAkltAkM(nn),tvlinv_tAkltAlM(nn)
     real(wp)   tbltbk(nn,nn),tvltvk(nn,nn),tbltvk(nn,nn),tvltbk(nn,nn),tvktbk(nn,nn),tvltbl(nn,nn)
 
+    !Vars to calculate delta-fucntions directly
+    real(wp) :: tau, ttau, myeta, myteta, R1, R2, R3
+    real(wp) :: myalpha, jijAVk, jijAVl, jijAWk, jijAWl
+
+
+
+
+
     n=Glob_n
     np=Glob_np
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
@@ -354,7 +362,7 @@ contains
       rkl(i,i)= temp1*temp3*(ONE+ONETHIRD*term1/(m*temp2) - ONEFIFTH*term2/(THREE*m*temp2*temp2))
       !r2kl(i,i)=Skl*THREEHALF*temp2*(ONE+TWO*ONETHIRD*term1/(m*temp2))
       temp10=temp8/(temp2*temp3)
-      deltarkl(i,i)=temp10*(ONE-term1/(m*temp2)+term2/(THREE*m*temp2*temp2))
+      !deltarkl(i,i)=temp10*(ONE-term1/(m*temp2)+term2/(THREE*m*temp2*temp2))
       !prvalkl(i,i)=PI*temp10*( TWO*(Glob_EulerConst+log(temp2))*(ONE-term1/(m*temp2)+term2/(m*temp2*temp2)) &
       !+ FOUR*(term1-TWO*term2/temp2)/(THREE*m*temp2)+EIGHT*term2/(15*m*temp2*temp2) )
     enddo
@@ -418,8 +426,8 @@ contains
         !r2kl(j,i)=Skl*THREEHALF*temp2*(ONE+TWO*ONETHIRD*term1/(m*temp2))
         !r2kl(i,j)=r2kl(j,i)
         temp10=temp8/(temp2*temp3)
-        deltarkl(j,i)=temp10*(ONE-term1/(m*temp2)+term2/(THREE*m*temp2*temp2))
-        deltarkl(i,j)=deltarkl(j,i)
+        !deltarkl(j,i)=temp10*(ONE-term1/(m*temp2)+term2/(THREE*m*temp2*temp2))
+        !deltarkl(i,j)=deltarkl(j,i)
         !prvalkl(j,i)=PI*temp10*( TWO*(Glob_EulerConst+log(temp2))*(ONE-term1/(m*temp2)+term2/(m*temp2*temp2)) &
         !  + FOUR*(term1-TWO*term2/temp2)/(THREE*m*temp2)+EIGHT*term2/(15*m*temp2*temp2) )
         !prvalkl(i,j)=prvalkl(j,i)
@@ -429,6 +437,44 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! 1/(r_ij*r_pq) is not implemented yet
+tau = tau3                                                                                     !tau
+ttau = tau33   
+myeta =  tau333
+myteta = tau334
+
+!evaluate delta-functions directly
+!V ---- tau
+!tV --- myeta
+!W ---- ttau
+!tW --- myteta
+deltarkl = ZERO
+do i = 1,n 
+  do j = i,n
+    if (i==j) then 
+      myalpha = inv_tAkl(i,i)
+      jijAvk = tvkinv_tAkl(i)
+      jijAvl = inv_tAkltvl(i)
+      jijAwk = tbkinv_tAkl(i)
+      jijAwl = inv_tAkltbl(i)
+    else
+      myalpha = inv_tAkl(i,i) + inv_tAkl(j,j) - inv_tAkl(i,j) - inv_tAkl(j,i)
+      jijAvk = tvkinv_tAkl(i) - tvkinv_tAkl(j)
+      jijAvl = inv_tAkltvl(i) - inv_tAkltvl(j)
+      jijAwk = tbkinv_tAkl(i) - tbkinv_tAkl(j)
+      jijAwl = inv_tAkltbl(i) - inv_tAkltbl(j)
+    endif
+    R1 = (myalpha**2)*(tau*ttau + myeta*myteta)
+    R2 = -myalpha*(jijAvk*jijAvl*ttau + tau*jijAwk*jijAwl+ &
+    jijAvk*jijAwl*myteta + myeta*jijAwk*jijAvl)
+    R3 = TWO*(jijAvk*jijAvl*jijAwk*jijAwl)
+
+    deltarkl(i,j) = (R1 + R2 + R3)*&
+    Glob_Piraised3n2/(FOUR*Glob_Pi*Glob_SqrtPi*(myalpha**3)*sqrt(myalpha)*det_tAkl*sqrt(det_tAkl))
+
+    deltarkl(j,i) = deltarkl(i,j)
+  enddo
+enddo
+
 
 !Evaluating vector-matrix-vector products
 !j^{ij}' inv_tAkl tvl
@@ -2858,7 +2904,7 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)+(t_XJV5+t_J
 
   end subroutine spinPreCalc
 
-  subroutine spinDependentMatrixElements(selectTransition, m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pket, &
+  subroutine spinDependentMatrixElements(m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pket, &
                                          SOspinME, SSNCspinME, SSNCmassChargeCoefficient, SOmassChargeCoefficient, &
                                          AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, &
                                          SSNCkl, SO1kl, SO2kl, AMM1kl, AMM2kl, AMM1finkl, AMM2finkl)
@@ -2880,7 +2926,7 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)+(t_XJV5+t_J
     !         1 and 2 stay for spin-same orbit and spin-another orbit contributions
 
     !Arguments
-    integer,intent(in)       :: m_k, m_l, mm_k, mm_l, selectTransition
+    integer,intent(in)       :: m_k, m_l, mm_k, mm_l
     real(wp),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
     real(wp),intent(in)   :: Pket(Glob_n,Glob_n)
 
@@ -3051,8 +3097,8 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)+(t_XJV5+t_J
     enddo
 
     !common factor (ONEHALF - for consistent normalization with Skl)
-    if (selectTransition == 1) commonFactor = Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
-    if (selectTransition == 2) commonFactor = SQRT(THREE) / TWO * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
+    if (Glob_selectTransition == 1) commonFactor = Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
+    if (Glob_selectTransition == 2) commonFactor = SQRT(THREE) / TWO * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
 
     SO1kl = ZERO
     SO2kl = ZERO
@@ -3242,7 +3288,7 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)+(t_XJV5+t_J
         AMM2kl = AMM2kl + SOspinME(indexI) * AMMmassChargeCoefficient(indexI, indexJ, 4) * temp1
         AMM2finkl = AMM2finkl + SOspinME(indexI) * AMMfinmassChargeCoefficient(indexI, indexJ, 4) * temp1
 
-        if (selectTransition == 2 .or. indexJ <= indexI .or. abs(SSNCspinME(indexI, indexJ)) < localEps ) cycle
+        if (Glob_selectTransition == 2 .or. indexJ <= indexI .or. abs(SSNCspinME(indexI, indexJ)) < localEps ) cycle
         !SSNC term
         !g1010
         t1 = jiAklinvVk * jiAklinvVl + jjAklinvVk * jjAklinvVl - jiAklinvVk * jjAklinvVl - jjAklinvVk * jiAklinvVl
