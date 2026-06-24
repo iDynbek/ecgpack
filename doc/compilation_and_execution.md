@@ -2,7 +2,31 @@
 
 ## Compilation
 
-To compile any selected code (e.g. `RG_0S`) using a specific toolchain and options one can go to the code directory (e.g. `RG_0S/`) and run the `make` command with the corresponding arguments. Please look at the header of the `Makefile` in the code directory as it provides a brief explanation of the arguments and gives a few examples.
+To compile any selected code (e.g. `RG_0S`) using a specific toolchain and options one can go to the code directory (e.g. `RG_0S/`) and run the `make` command with the corresponding arguments. Please look at the header of the `Makefile` in the code directory as it provides a brief explanation of the arguments.
+
+Here are examples of how one can compile ECGPACK codes:
+
+```bash
+cd RG_0S
+make release COMPILER=gfortran MACHINE=linux-generic PREC=10 LINALG=netlib EXEFILE=mybinaryfile 
+```
+
+```bash
+cd RG_1P
+make debug COMPILER=ifort MACHINE=linux-generic PREC=8 LINALG=mkl EXEFILE=mybinaryfile 
+```
+
+```bash
+cd RG_2D
+make release COMPILER=ifx PREC=16 LINALG=netlib EXEFILE=mybinaryfile 
+```
+
+```bash
+cd RG_2P
+make release COMPILER=nvfortran LINALG=lblas EXEFILE=mybinaryfile 
+```
+
+Note that even though the option `COMPILER` here specifies a Fortran compiler name, what is actually called under the hood is the corresponding MPI wrapper (`mpif90`, `mpiifort`, etc).  
 
 ### Precision
 Each code in the ECGPACK collection can be compiled with a different working precision (real kind) specified by the user (provided there is compiler and hardware architecture support) as an argument in the `make` command: 
@@ -26,7 +50,7 @@ Therefore, quadruple precision (which is roughly a factor of ~100 slower than do
 
 All ECGPACK codes are written in standard Fortran, use standard MPI calls and therefore, in principle, should be portable to any hardware and can be build with any Fortran compiler and MPI library. At present, however, they are routinely run and tested only on x86 hardware in Linux environemnt. The following compilers/toolchains/precisions are supported and included in Makefiles:
 
-Toolchain | Compiler | MPI wrapper | MPI | Precision (real kind) | Allows MPI parallelism |
+Toolchain kind | Compiler | MPI wrapper | MPI | Precision (real kind) | Allows MPI parallelism |
 | :---: | :---: | :---: | :---: | :---: | :---: |
 GNU | gfortran | mpif90 | OpenMPI | 8  | yes |
 GNU | gfortran | mpif90 | OpenMPI | 10 | yes |
@@ -38,7 +62,9 @@ Intel | ifx | mpiifx | Intel MPI | 16 | yes |
 Nvidia | nvfortran | mpif90 | CUDA-aware MPI (based on OpenMPI) | 8 | yes |
 | | | | | |
 
-Note that at present the codes compiled with gfortran that use quadruple precision can only be executed in serial mode. This is a limitation of OpenMPI. A workaround is possible but has not been implemented yet.  
+Note that at present the codes compiled with gfortran that use quadruple precision can only be executed in serial mode. This is a limitation of OpenMPI. A workaround is possible but has not been implemented yet.
+
+To use Fortran compilers and MPI wrappers other than those listed above, the user needs to modify the Makefile accordingly.
 
 ### Linear algebra libraries
 
@@ -46,7 +72,7 @@ All energy codes (`CG_0S`, `RG_0S`, `RG_1P`, `RG_2D`, `RG_2P`) as an option can 
 
 * `LINALG=netlib` (default) - The bundled, lightly modified netlib reference BLAS/LAPACK subroutines are compiled from source (files `src/BLAS.f` and `src/LAPACK.f`). No external LAPACK/BLAS library is required in this case.
 * `LINALG=mkl` - Intel Math Kernel Library (MKL).
-* `LINALG=lblas` - An optimized BLAS/LAPACK exposed through the `-llapack -lblas` symbolic links
+* `LINALG=lblas` - An optimized BLAS/LAPACK exposed through the `-llapack -lblas` symbolic links. For example, if an NVHPC module is loaded last, this will lead to linking against BLAS/LAPACK that comes with NVIDIA HPC SDK. If an Easybuild's module `foss/2025b` is loaded last it will result in routing through FlexiBLAS, which will back-end directly into OpenBLAS.
 * `LINALG=openblas` - OpenBLAS library is used through the `-lopenblas` link flag.
 * `LINALG=aocl` - AMD Optimizing CPU Libraries (AOCL-BLAS and AOCL-LAPACK).
 
@@ -60,7 +86,34 @@ The number of particles is hardcoded in files `src/wp_def_*.f90` (here `*` stand
 
 ### Batch compilation of multiple code variants
 
-The easiest way to compile all or some number of selected codes in **one step** on a specific machine/OS using specific toolchains, precision, etc. is to invoke the `build.bash` script located in the root directory. This script requires arguments. **Please read its source or run it with no arguments** to see instructions regarding how to run it properly. When this script is run, it will save all individual binaries in directory `ecgpack/bin/<toolchainname>/<configuration>`, where `<toolchainname>` (e.g. `systemdefault`) is the name of the toolchain specified and `<configuration>` can be either `debug` (slow and unoptimized binary suitable for debugging) or `release` (fast and optimized binary suitable for production work). The binary files will be named `<code_name>_N<particle_number>_P<precision>_<linalg>` (e.g. `RG_0S_N4_P8_netlib` - `RG_0S` code, 4 particles, double precision, bundled netlib BLAS/LAPACK). The `<linalg>` suffix records the selected linear algebra library (`netlib`, `mkl`, `lblas`, `openblas`, or `aocl`) and is always present.
+The easiest way to compile all or some number of selected codes (basis type, number of particles, precisions, external libraries, etc.) in **one step** on a specific machine/OS using specific toolchains is to invoke the `build.bash` script located in the root directory. This script requires arguments. **Please read its source or run it with no arguments** to see instructions regarding how to run it properly. When this script is run, it will automatically move all individual binaries built to directory `ecgpack/bin/<toolchainname>/<configuration>`, where `<toolchainname>` (e.g. `systemdefault`) is the name of the toolchain specified and `<configuration>` can be either `debug` (slow and unoptimized binary suitable for debugging) or `release` (fast and optimized binary suitable for production work). The binary files will be named `<code_name>_N<particle_number>_P<precision>_<linalg>` (e.g. `RG_0S_N4_P8_netlib` - for `RG_0S` code, 4 particles, double precision, bundled netlib BLAS/LAPACK). The `<linalg>` suffix stands for the selected linear algebra library (`netlib`, `mkl`, `lblas`, `openblas`, or `aocl`) and is always present.
+
+An example of executing the `build.bash` script to build production (optimized) binaries for `RG_0S` and `RG_1P` codes using double and extended precision and bundled BLAS/LAPACK source for the case of 4,5, and 6 particles:
+
+```bash
+./build.bash machine=linux-generic toolchain=systemdefault config=release code=RG_0S,RG_1P nparticles=4,5,6 precision=8,10 linalg=netlib
+```
+
+Note that `systemdefault` toolchain assumes that the system's default `mpif90` wrapper is accessible out of the box without loading any environment modules - regardless of the underlying compiler or MPI implementation it wraps.
+
+Script `build.bash` can use some common toolchains available in HPC systems/environments that are deployed with `Easybuild` - an open-source software management tool for scientific software, compilers, MPI libraries, BLAS/LAPACK libraries, and related packages. The following `Easybuild` toolchains can be invoked:
+
+Toolchain argument in `make` | Easybuild module | Description |
+| :---: | :---: | :---: |
+systemdefault  | n/a | Default compiler and MPI on a given system referenced by `mpif90` |
+foss-2025b | foss/2025b | GNU Compiler Collection based compiler toolchain |
+foss-2025a | foss/2025a | GNU Compiler Collection based compiler toolchain |
+foss-2024a | foss/2024a | GNU Compiler Collection based compiler toolchain |
+foss-2023b | foss/2023b | GNU Compiler Collection based compiler toolchain |
+intel-2025b | intel/2025b | Intel compilers and libraries |
+intel-2025a | intel/2025a | Intel compilers and libraries |
+intel-2024a | intel/2024a | Intel compilers and libraries |  
+intel-2023b | intel/2023b | Intel compilers and libraries |
+nvhpc-25.9 | NVHPC/25.9-CUDA-12.9.1 | Nvidia compilers and libraries included in NVHPC SDK |
+nvhpc-25.3 | NVHPC/25.3-CUDA-12.8.0 | Nvidia compilers and libraries included in NVHPC SDK |
+| | |
+
+Users can certainly easily modify `build.bash` to suit their own environment.
 
 ## Execution
 
