@@ -32,7 +32,7 @@ contains
     character(len = *), intent(in) :: spatialYoung
     integer, dimension(n, n, nFactorial), intent(in) :: permutationMatrices
 
-    integer, dimension(n), intent(out) :: parities
+    integer, dimension(n), intent(inout) :: parities
     integer, dimension(:, :), allocatable, intent(out) :: primitives
     real(kind = wp), dimension(:), allocatable, intent(out) :: finalSpinFunction
     integer, intent(out) :: numberOfPrimitives
@@ -277,17 +277,6 @@ contains
     allocate(tmpSpinFunctionB(numberOfPrimitives))
     allocate(tmpSpinFunctionC(numberOfPrimitives))
 
-    exist = .false.
-    if (Glob_ProcID == 0) then
-      inquire(file="spinData.txt", exist=exist)
-      if (exist) then
-        open(newunit=io, file="spinData.txt", status="old", position="append", action="write")
-      else
-        open(newunit=io, file="spinData.txt", status="new", action="write")
-      end if
-      write(io, '("Se from Young string =" , 1x, f6.3)') real(SeDoubled, kind=wp) * 0.5
-      close(io)
-    endif
 
     tmpSpinFunctionA = finalSpinFunction(:)
 
@@ -312,9 +301,14 @@ contains
     test = (sqrt(FOUR * test + ONE) - ONE) * ONEHALF
 
     if (Glob_ProcID == 0) then
-
-      open(newunit=io, file="spinData.txt", status="old", action="write", position = "append")
-      write(io, '(a)') '==========================================='
+      if (Glob_spinFileWasOpened) then
+          open(newunit=io, file="spinData.txt", status="old", action="write", position = "append")
+      else
+          open(newunit=io, file="spinData.txt", status="replace", action="write")
+      endif
+      Glob_spinFileWasOpened = .true.
+      
+      write(io, '("Se from Young string =" , 1x, f6.3)') real(SeDoubled, kind=wp) * 0.5
       write(io, '(a, a)') "chi = ", trim(adjustl(spinFunctionString))
       write(io, '("S calculated         =" , 1x, f6.3)') test
       write(io, '(a)') "C_SO_J, C_SS_J:"
@@ -338,6 +332,7 @@ contains
 
       write(io,*) ''
       write(io,*) ''
+      write(io, '(a)') '==========================================='
       close(io)
     endif
 
@@ -510,73 +505,6 @@ contains
       endif
 
     enddo ! all permutations
-
-    !Output some quantities for test purposes:
-
-    if (Glob_ProcID == 0) then
-
-      open(newunit=io, file="spinData.txt", status="old", action="write", position = "append")
-
-      !permutation matrices
-      write(io, *) "permutationMatrices"
-      do ptr=1,nFactorial
-        write(io, *) 'ptr = ', ptr
-        do i=1,n
-          write(io, *) permutationMatrices(i, :, ptr)
-        enddo
-        write(io, *) ''
-      enddo
-
-      ! spin free 0
-      write(io, '("<chi0 | 1 | P^s_{a} chi0>:")')
-      write(io, *) 'ptr  ', 'spinFreeME  '
-      do ptr = 1, nFactorial
-        write(io, '(i3, 2x, f6.3)') ptr, spinFreeME(ptr, 1)
-      enddo
-      write(io,*) ''
-
-      ! spin free 1
-      ! write(io, '("<chi1 | 1 | P^s_{a} chi1>:")')
-      ! write(io, *) 'ptr  ', 'spinFreeME  '
-      ! do ptr = 1, nFactorial
-      !   write(io, '(i3, 2x, f6.3)') ptr, spinFreeME(ptr, 2)
-      ! enddo
-      ! write(io,*) ''
-
-      ! S+
-      !write(io, '("<chi1 | S+ | P^s_{a} chi0>:")')
-      !do ptr = 1, nFactorial
-      !    write(io, *) 'ptr  '
-      !   do k = 1, n
-      !     write(io, '(i3, 2x, f6.3)') ptr, SiPlusME(k, ptr)
-      !   enddo
-      ! enddo
-      !write(io,*) ''
-
-      !  Sz
-      write(io, '("<chi1 | Si+ | P^s_{a} chi0>:")')
-      do ptr = 1, nFactorial
-        write(io, *) 'ptr  '
-        do k = 1, n
-          write(io, '(i3, 2x, f6.3)') ptr, SiPlusME(k, ptr)
-        enddo
-      enddo
-      write(io,*) ''
-
-      !SSNCspinME
-      write(io, '("<chi1 | SSNC | P^s_{a} chi0>:")')
-      do ptr = 1, nFactorial
-        do i = 1, n
-          do j = i + 1, n
-            write(io, '(i3, 2x, i3, 2x, i3, 2x, f6.3)') ptr, i, j, SSNCspinME(i, j, ptr)
-          enddo
-        enddo
-      enddo
-      write(io,*) ''
-
-      close(io)
-
-    endif
 
   end subroutine getSpinOpMeanValues
 
@@ -1696,7 +1624,7 @@ contains
 
     integer, intent(in) :: n, nFactorial
     integer, dimension(n, n, nFactorial), intent(out) :: matrices
-    integer, dimension(nFactorial), intent(out) :: parities
+    integer, dimension(nFactorial), intent(inout) :: parities
 
     ! local variables
     integer :: i, ptr, tmp, j

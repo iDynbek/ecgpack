@@ -361,7 +361,8 @@ contains
   end subroutine overlapMatrixElementsLP
 
   subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, SOmassChargeCoefficient, &
-              AMMmassChargeCoefficient, ketMatrix, spatialYoung0, spatialYoung1, SSNCspinME, SiMinusME, SiPlusME, SziME, spinFreeME)
+              AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, ketMatrix, &
+              spatialYoung0, spatialYoung1, SSNCspinME, SiMinusME, SiPlusME, SziME, spinFreeME)
     use spinStuff
     implicit none
 
@@ -371,7 +372,7 @@ contains
 
     !output vars:
     real(wp), dimension(nFactorial), intent(out) :: parityFactor
-    real(wp), dimension(n, n, 4), intent(out) :: SOmassChargeCoefficient, AMMmassChargeCoefficient
+    real(wp), dimension(n, n, 4), intent(out) :: SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinMassChargeCoefficient
     real(wp), dimension(n, n), intent(out) :: SSNCmassChargeCoefficient
     real(wp), dimension(n, n, nFactorial), intent(out) :: ketMatrix
     real(wp), dimension(n, n, nFactorial), intent(out) :: SSNCspinME
@@ -415,15 +416,24 @@ contains
       enddo
     enddo
 
-    AMMmassChargeCoefficient = ZERO
+     AMMmassChargeCoefficient = ZERO
+    AMMFinmassChargeCoefficient = ZERO
     do i = 1, n
       AMMmassChargeCoefficient(i, i, 1) = -ONEHALF * Glob_PseudoCharge0 * Glob_PseudoCharge(i) / Glob_Mass(i + 1)**TWO
+      AMMFinmassChargeCoefficient(i, i, 1) = -ONEHALF * Glob_PseudoCharge0 * Glob_PseudoCharge(i) / Glob_Mass(i + 1) * &
+                                             (ONE / Glob_Mass(1) + ONE / Glob_Mass(i + 1))
+    enddo
+
+    do i = 1, n
+      AMMFinmassChargeCoefficient(i, i, 2) = -ONEHALF * Glob_PseudoCharge0 * Glob_PseudoCharge(i) / &
+                                             (Glob_Mass(i + 1) * Glob_Mass(1))
     enddo
 
     do i = 1, n
       do j = 1, n
         AMMmassChargeCoefficient(i, j, 3) = -ONEHALF * Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
                                             (Glob_Mass(i + 1) * Glob_Mass(j + 1))
+        AMMFinmassChargeCoefficient(i, j, 3) = AMMmassChargeCoefficient(i, j, 3)
       enddo
     enddo
 
@@ -431,6 +441,7 @@ contains
       do j = 1, n
         AMMmassChargeCoefficient(i, j, 4) = -ONEHALF * Glob_PseudoCharge(i) * Glob_PseudoCharge(j) / &
                                             (Glob_Mass(i + 1)**TWO)
+        AMMFinmassChargeCoefficient(i, j, 4) = AMMmassChargeCoefficient(i, j, 4)
       enddo
     enddo
 
@@ -486,9 +497,10 @@ contains
 
   end subroutine spinPreCalc
 
-  subroutine spinDependentMatrixElements(selectTransition, m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pket, &
+  subroutine spinDependentMatrixElements(m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pket, &
                                          SOspinME, SSNCspinME, SSNCmassChargeCoefficient, SOmassChargeCoefficient, &
-                                         AMMmassChargeCoefficient, SSNCkl, SO1kl, SO2kl, AMM1kl, AMM2kl)
+                                         AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, &
+                                         SSNCkl, SO1kl, SO2kl, AMM1kl, AMM2kl, AMM1Finkl, AMM2Finkl)
     !This subroutine computes symmetry adapted matrix element
     !with two real L=1 correlated Gaussians. These matrix element
     !is used in calculations of expectation values.
@@ -507,11 +519,11 @@ contains
     !         1 and 2 stay for spin-same orbit and spin-another orbit contributions
 
     !Arguments
-    integer,intent(in)       :: m_k, m_l, mm_k, mm_l, selectTransition
+    integer,intent(in)       :: m_k, m_l, mm_k, mm_l
     real(wp),intent(in)   :: vechLk(Glob_np), vechLl(Glob_np)
     real(wp),intent(in)   :: Pket(Glob_n,Glob_n)
 
-    real(wp), intent(out)  :: SO1kl, SO2kl, AMM1kl, AMM2kl, SSNCkl
+    real(wp), intent(out)  :: SO1kl, SO2kl, AMM1kl, AMM2kl, AMM1Finkl, AMM2Finkl, SSNCkl
     !Parameters (These are needed to declare static arrays. Using static
     !arrays makes the function call a little faster in comparison with
     !the case when arrays are dynamically allocated in stack)
@@ -521,6 +533,7 @@ contains
                                 SOspinME(Glob_n), &
                                 SOmassChargeCoefficient(Glob_n, Glob_n, 4), &
                                 AMMmassChargeCoefficient(Glob_n, Glob_n, 4), &
+                                AMMFinmassChargeCoefficient(Glob_n, Glob_n, 4), &
                                 SSNCmassChargeCoefficient(Glob_n, Glob_n)
 
     !Local variables
@@ -676,21 +689,22 @@ contains
       if (abs(Pket(mm_l, i) - 1.d0) < 1.d-13) pmm_l = i
     enddo
 
+
     ! 3P - > 1D: in commonfactorSO (1/sqrt(2)) - for consistent normalization with Skl (P-state) x 1/sqrt(2) from spin-tensor part)
     ! 3P - > 3D: in common factorSO (1/sqrt(2)) - for consistent normalization with Skl (P-state) x _(-(5/6)) from
     ! reduced matelem
     ! 3P - > 3D: in common factorSS (1/sqrt(2)) - for consistent normalization with Skl (P-state) x 1/sqrt(2) -
     ! (H_SS)_-1 prefactor x (1/sqrt(6)) - (H_SS)_0 prefactor x (3/sqrt(5/2)) - from reduced matelem
     commonFactorSS = 0
-    if (selectTransition == 1) commonFactorSO = ONEHALF * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
-    if (selectTransition == 2) then
+    if (Glob_selectTransition == 1) commonFactorSO = ONEHALF * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
+    if (Glob_selectTransition == 2) then
       commonFactorSO = -sqrt(FIVE / (12._wp)) * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
       commonFactorSS = sqrt(15._wp) / TWO * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
     endif
-    if (selectTransition == 3) then
+    if (Glob_selectTransition == 3) then
       commonFactorSO=-ONEHALF * sqrt(FIVE / THREE) * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
     endif
-    if (selectTransition == 4) then
+    if (Glob_selectTransition == 4) then
       commonFactorSO = ONEHALF * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
       commonFactorSS = ONEHALF * Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
     endif
@@ -702,6 +716,9 @@ contains
 
     AMM1kl = ZERO
     AMM2kl = ZERO
+
+    AMM1Finkl = ZERO
+    AMM2Finkl = ZERO
 
     WkAklinvWl = inv_tAkl(pmm_k, pmm_l)
     WkAklinvVl = inv_tAkl(pmm_k, pm_l)
@@ -766,6 +783,7 @@ contains
 
       SO1kl = SO1kl + SOspinME(indexI) * SOmassChargeCoefficient(indexI, indexI, 1) * temp1
       AMM1kl = AMM1kl + SOspinME(indexI) * AMMmassChargeCoefficient(indexI, indexI, 1) * temp1
+      AMM1Finkl = AMM1Finkl + SOspinME(indexI) * AMMFinmassChargeCoefficient(indexI, indexI, 1) * temp1
 
       ! these traces are needed for spin-other orbit contribution and SSNC
       do indexJ = 1, n
@@ -820,6 +838,7 @@ contains
         temp1 =  temp0101 + temp0110 -temp1010 - temp1001
 
         SO2kl = SO2kl + SOspinME(indexI) * SOmassChargeCoefficient(indexI, indexI, 2) * temp1
+        AMM2Finkl = AMM2Finkl + SOspinME(indexI) * AMMFinmassChargeCoefficient(indexI, indexI, 2) * temp1
 
          !! III term -> f[ij, jj]
         t1 = jjAkAklinvVl * (jjAklinvVk - jiAklinvVk) + jjAlAklinvVk * (jjAklinvVl - jiAklinvVl)
@@ -849,6 +868,7 @@ contains
 
         SO2kl = SO2kl + SOspinME(indexI) * SOmassChargeCoefficient(indexI, indexJ, 3) * temp1
         AMM2kl = AMM2kl + SOspinME(indexI) * AMMmassChargeCoefficient(indexI, indexJ, 3) * temp1
+        AMM2Finkl = AMM2Finkl + SOspinME(indexI) * AMMFinmassChargeCoefficient(indexI, indexJ, 3) * temp1
 
          !! IV term -> f[ij, ii] (i <->j of the III term)
         t1 = jiAkAklinvVl * (jiAklinvVk - jjAklinvVk) + jiAlAklinvVk * (jiAklinvVl - jjAklinvVl)
@@ -878,10 +898,11 @@ contains
 
         SO2kl = SO2kl + SOspinME(indexI) * SOmassChargeCoefficient(indexI, indexJ, 4) * temp1
         AMM2kl = AMM2kl + SOspinME(indexI) * AMMmassChargeCoefficient(indexI, indexJ, 4) * temp1
+        AMM2Finkl = AMM2Finkl + SOspinME(indexI) * AMMFinmassChargeCoefficient(indexI, indexJ, 4) * temp1
 
          !!SSNC term
         !only 3P -> 3D transition contributes, indexI > indexJ
-        if (selectTransition == 1 .or. selectTransition == 3 .or. &
+        if (Glob_selectTransition == 1 .or. Glob_selectTransition == 3 .or. &
             indexJ <= indexI .or. abs(SSNCspinME(indexI, indexJ)) < localEps ) cycle
 
         !SSNC term
@@ -920,6 +941,8 @@ contains
     SO2kl = SO2kl * commonFactorSO
     AMM1kl = AMM1kl * commonFactorSO
     AMM2kl = AMM2kl * commonFactorSO
+    AMM1Finkl = AMM1Finkl * commonFactorSO
+    AMM2Finkl = AMM2Finkl * commonFactorSO
 
   end subroutine spinDependentMatrixElements
 
