@@ -62,10 +62,10 @@ program main
     write(*,'(A)') '   Velocity Gauge:        '
     write(*,'(A)') '  ------------------------'
     write(*,*)
-    write(*,'(4X,A)',advance='no') '< Po | P(z) | Pe >  ='
+    write(*,'(4X,A)',advance='no') '< Po | P(x) | Pe >  ='
     call writerealadv(6,Glob_ExpVals2)
     write(*,'(4X,A)') '< Po | P(y) | Pe >  =  0.0'
-    write(*,'(4X,A)') '< Po | P(x) | Pe >  =  0.0'
+    write(*,'(4X,A)') '< Po | P(z) | Pe >  =  0.0'
 
     write(*,*)
     write(*,*)
