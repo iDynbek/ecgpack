@@ -28,19 +28,22 @@ make release COMPILER=nvfortran LINALG=lblas EXEFILE=mybinaryfile
 
 Note that even though the option `COMPILER` here specifies a Fortran compiler name, what is actually called under the hood is the corresponding MPI wrapper (`mpif90`, `mpiifort`, etc).  
 
+To clean the source directory of any object and module files one can run `make clean` or `make cleaner` commands.
+
 ### Precision
-Each code in the ECGPACK collection can be compiled with a different working precision (real kind) specified by the user (provided there is compiler and hardware architecture support) as an argument in the `make` command: 
+
+Each code in the ECGPACK collection can be compiled with a different working precision (real kind) specified by the user (provided there is compiler and hardware architecture support) as an argument in the `make` command:
 
 * `PREC=8` - fp64 (double precision). This is universally supported by all Fortran compilers on pretty much any hardware.
-* `PREC=10` - fp80 (extended precision). Native hardware support is available on x86 CPUs only. At precsent the only Fortran compiler that supports it is gfortran. 
+* `PREC=10` - fp80 (extended precision). Native hardware support is available on x86 CPUs only. At precsent the only Fortran compiler that supports it is gfortran.
 * `PREC=16` - fp128 (quadruple precision). This precision has no native hardware support on modern CPU architectures (except IBM Power) but it is supported by some compilers in the form of emulation.
 
 Because calculations with fp128 floating-point numbers (even if compilers support it) use emulation on pretty much any modern CPUs, they are very slow. As a rule of thumb, the speed of computations and memory allocation requirements of the codes in this collection on x86 CPUs scale as follows:
 
 | Precision | CPU time (relative) | Memory amount (relative) |
 | :---: | :---: | :---: |
-| fp64  | x 1 | x 1 |
-| fp80  | x 5 | x 2 |
+| fp64 | x 1 | x 1 |
+| fp80 | x 5 | x 2 |
 | fp128 | x 100 | x 2 |
 | | | |
 
@@ -50,17 +53,17 @@ Therefore, quadruple precision (which is roughly a factor of ~100 slower than do
 
 All ECGPACK codes are written in standard Fortran, use standard MPI calls and therefore, in principle, should be portable to any hardware and can be build with any Fortran compiler and MPI library. At present, however, they are routinely run and tested only on x86 hardware in Linux environemnt. The following compilers/toolchains/precisions are supported and included in Makefiles:
 
-Toolchain kind | Compiler | MPI wrapper | MPI | Precision (real kind) | Allows MPI parallelism |
+| Toolchain kind | Compiler | MPI wrapper | MPI | Precision (real kind) | Allows MPI parallelism |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-GNU | gfortran | mpif90 | OpenMPI | 8  | yes |
-GNU | gfortran | mpif90 | OpenMPI | 10 | yes |
-GNU | gfortran | mpif90 | OpenMPI | 16 | no |
-Intel | ifort | mpiifort | Intel MPI | 8 | yes |
-Intel | ifort | mpiifort | Intel MPI | 16 | yes |
-Intel | ifx | mpiifx| Intel MPI | 8 | yes |
-Intel | ifx | mpiifx | Intel MPI | 16 | yes |
-Nvidia | nvfortran | mpif90 | CUDA-aware MPI (based on OpenMPI) | 8 | yes |
-| | | | | |
+| GNU | gfortran | mpif90 | OpenMPI | 8  | yes |
+| GNU | gfortran | mpif90 | OpenMPI | 10 | yes |
+| GNU | gfortran | mpif90 | OpenMPI | 16 | no |
+| Intel | ifort | mpiifort | Intel MPI | 8 | yes |
+| Intel | ifort | mpiifort | Intel MPI | 16 | yes |
+| Intel | ifx | mpiifx| Intel MPI | 8 | yes |
+| Intel | ifx | mpiifx | Intel MPI | 16 | yes |
+| Nvidia | nvfortran | mpif90 | CUDA-aware MPI (based on OpenMPI) | 8 | yes |
+| | | | | | |
 
 Note that at present the codes compiled with gfortran that use quadruple precision can only be executed in serial mode. This is a limitation of OpenMPI. A workaround is possible but has not been implemented yet.
 
@@ -98,20 +101,20 @@ Note that `systemdefault` toolchain assumes that the system's default `mpif90` w
 
 Script `build.bash` can use some common toolchains available in HPC systems/environments that are deployed with `Easybuild` - an open-source software management tool for scientific software, compilers, MPI libraries, BLAS/LAPACK libraries, and related packages. The following `Easybuild` toolchains can be invoked:
 
-Toolchain argument in `make` | Easybuild module | Description |
+| Toolchain argument in `make` | Easybuild module | Description |
 | :---: | :---: | :---: |
-systemdefault  | n/a | Default compiler and MPI on a given system referenced by `mpif90` |
-foss-2025b | foss/2025b | GNU Compiler Collection based compiler toolchain |
-foss-2025a | foss/2025a | GNU Compiler Collection based compiler toolchain |
-foss-2024a | foss/2024a | GNU Compiler Collection based compiler toolchain |
-foss-2023b | foss/2023b | GNU Compiler Collection based compiler toolchain |
-intel-2025b | intel/2025b | Intel compilers and libraries |
-intel-2025a | intel/2025a | Intel compilers and libraries |
-intel-2024a | intel/2024a | Intel compilers and libraries |  
-intel-2023b | intel/2023b | Intel compilers and libraries |
-nvhpc-25.9 | NVHPC/25.9-CUDA-12.9.1 | Nvidia compilers and libraries included in NVHPC SDK |
-nvhpc-25.3 | NVHPC/25.3-CUDA-12.8.0 | Nvidia compilers and libraries included in NVHPC SDK |
-| | |
+| systemdefault  | n/a | Default compiler and MPI on a given system referenced by `mpif90` |
+| foss-2025b | foss/2025b | GNU Compiler Collection based compiler toolchain |
+| foss-2025a | foss/2025a | GNU Compiler Collection based compiler toolchain |
+| foss-2024a | foss/2024a | GNU Compiler Collection based compiler toolchain |
+| foss-2023b | foss/2023b | GNU Compiler Collection based compiler toolchain |
+| intel-2025b | intel/2025b | Intel compilers and libraries |
+| intel-2025a | intel/2025a | Intel compilers and libraries |
+| intel-2024a | intel/2024a | Intel compilers and libraries |  
+| intel-2023b | intel/2023b | Intel compilers and libraries |
+| nvhpc-25.9 | NVHPC/25.9-CUDA-12.9.1 | Nvidia compilers and libraries included in NVHPC SDK |
+| nvhpc-25.3 | NVHPC/25.3-CUDA-12.8.0 | Nvidia compilers and libraries included in NVHPC SDK |
+| | | |
 
 Users can certainly easily modify `build.bash` to suit their own environment.
 
@@ -123,9 +126,10 @@ Any compiled binary file can be executed using multiple MPI processes in a stand
 mpirun -np <NPROCS> <BINARYFILE>
 ```
 
-For example, suppose a user has compiled all codes with a help of `build.bash` script (invoking the `systemdefault` toolchain, which on most Linux machines means `gfortran` compiler with `OpenMPI`). Then the user creates a work directory `ecgpack/jobs/test` for a test calculation of a 4-particle system with the `RG_0S` ($L=0$) basis and places a relevant input file `inout.txt` in that directory. To launch a test calculation with double precision using 12 CPU cores the execution command should be
+For example, suppose a user has compiled all codes with a help of `build.bash` script (invoking the `systemdefault` toolchain, which on most Linux machines means `gfortran` compiler with `OpenMPI`). Then the user creates a work directory `ecgpack/jobs/test` for a test calculation of a 4-particle system with the `RG_0S` basis (states with $L=0$ angular momentum quantum number) and places a relevant input file `inout.txt` in that directory. To launch a calculation with double precision using 32 CPU cores the execution command will look as follows:
+
 ```bash
-mpirun -np 12 ../../bin/systemdefault/release/RG_0S_N4_P8_netlib
+mpirun -np 32 ../../bin/systemdefault/release/RG_0S_N4_P8_netlib
 ```
 
-Note that the input file `inout.txt` (as well as other relevant files, if any) should be located in the same directory where the execution of the code takes place.
+Note that the input file `inout.txt` (as well as other relevant files, if any) should be located in the same directory where the execution of the binary file takes place.

@@ -21,7 +21,7 @@ For theoretical background and mathematical notations please see [Theoretical ba
 The ECGPACK project repository has the following directory structure:
 
 | Directory | Description |
-| -------- | -------- |
+| --- | --- |
 | `ecgpack/` | Root directory |
 | `ecgpack/CG_0S/` | The code for energy and wavefunction calculations with complex spherically symmetric Gaussians ($L=0$, even parity) that have the form $$\phi_k=\exp [ \mathbf{r}' (C_k \otimes \mathbf{I}) \mathbf{r}]=\exp [ \mathbf{r}' ((A_k+i B_k) \otimes \mathbf{I}) \mathbf{r}].$$ The CG_0S code is currently a work in progress and lags behind the corresponding RG_0S code in terms of features and the quality of the implementation. |
 | `ecgpack/RG_0S/` | The code for energy and wavefunction calculations with real spherically symmetric Gaussians ($L=0$, even parity) that have the form $$\phi_k=\exp [ \mathbf{r}' (A_k \otimes \mathbf{I}) \mathbf{r}].$$ |
@@ -47,7 +47,7 @@ The ECGPACK project repository has the following directory structure:
 All codes can be divided into three main groups:
 
 | Group name | List of Codes | Description |
-| -------- | -------- | -------- |
+| --- | --- | --- |
 | Energy and wavefunctions codes | `CG_0S`, `RG_0S`, `RG_1P`, `RG_2D`, `RG_2P` | Generation of ECG basis sets for states of different angular-momentum/parity. They can compute energies, expectation values, particle distributions, and save wave functions |
 | Transition dipole codes | `RG_0S-1P`, `RG_1P-2D`, `RG_1P-2P`, `RG_1P-1P` | Calculation of off-diagonal matrix elements of the transition dipole moment operator in the length and velocity gauges. |
 | Fine structure coupling codes | `RG_0S-2D`, `RG_0S-2P`, `RG_1P-1P`, `RG_2D-2D`, `RG_2P-2D`, `RG_2P-2P` | Calculations of off-diagonal matrix elements of the spin–orbit interaction and non-contact spin–spin interaction |
@@ -62,7 +62,7 @@ Each code directory also contains a subdirectory called `sample_input`. These co
 There are several files located in the project's root directory `ecgpack/`. Their description is provided below:
 
 | File | Description |
-| -------- | -------- |
+| --- | --- |
 | `README.md` | This repository manual file |
 | `AUTHORS.md` | List of contributors |
 | `CLAUDE.md` | Configuration file for Anthropic Claude Code to establish persistent project context | 

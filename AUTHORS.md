@@ -5,6 +5,7 @@
 Sergiy Bubin
 
 ## Contributors
+
 Below is a list of individuals (in alphabetical order) who have made direct contributions to the codebase of the ECGPACK project since its inception around 2006–2007:
 
 * [Amir Bralin](https://orcid.org/0009-0008-0675-2824)
