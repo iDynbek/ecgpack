@@ -109,24 +109,23 @@ contains
         ErrorInDataFile=.true.
       EndIF
 
-!        comparing the number of particle in Glob_WFfile0 and Glob_WFfile1 files
+!     comparing the number of particle in Glob_WFfile0 and Glob_WFfile1 files
       IF (particle_n0/=particle_n1) then
         write(*,*) ' '
         write(*,*) 'the number of particles in initial and final states is not the same !!!'
         write(*,*) ' '
         ErrorInDataFile=.true.
       Else
-        IF (Glob_n/=Glob_MaxAllowedNumOfPseudoParticles) then
+        IF (particle_n0/=Glob_MaxAllowedNumOfPseudoParticles) then
           write(*,*) ' '
           write (*,*) 'The version of the code you are running was compiled for the case'
           write (*,*) 'when the number of particles in the system is equal to', &
             Glob_MaxAllowedNumOfParticles
-          write (*,*) 'while the number of particles specIFied in the wave function files is',Glob_n+1
+          write (*,*) 'while the number of particles specIFied in the wave function files is',particle_n0+1
           write (*,*) 'Please make appropriate changes. Program will now stop.'
           write(*,*) ' '
           ErrorInDataFile=.true.
         EndIF
-!                Glob_n=particle_n0=particle_n1
         Glob_n=particle_n0
       EndIF
 
@@ -1218,19 +1217,18 @@ contains
 !local variables
     integer :: i, j, n, a, ptr, k, npt, counter
     integer :: nFactorial
-    integer :: selectTransition
     real(wp) :: Skk, temp1, temp2
     real(wp), allocatable, dimension(:, :, :) :: ketYMatrix
     real(wp), allocatable, dimension(:, :) :: SiPlusME, SiMinusME, SziME
-    real(wp), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient
+    real(wp), allocatable, dimension(:, :, :) :: SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinMassChargeCoefficient
     real(wp), allocatable, dimension(:) :: parityFactor, diagS_0, diagS_1, diagS_test_0, diagS_test_1
     real(wp), allocatable, dimension(:, :) :: spinFreeME, SOspinME, spinCoeff
-    real(wp) :: SO1kl, SO2kl, SO1, SO2, AMM1, AMM2, AMM1kl, AMM2kl, factor
+    real(wp) :: SO1kl, SO2kl, SO1, SO2, AMM1, AMM2, AMM1Fin, AMM2Fin, &
+    AMM1kl, AMM2kl, AMM1finkl, AMM2finkl, factor
 
-!selectTransition = 1 -- calculate 3P -> 1S matelem
-!selectTransition = 2 -- calculate 3P -> 3S matelem
-!selectTransition = 3 -- calculate 4P -> 2S matelem
-    selectTransition = 3
+    !selectTransition = 1 -- calculate 3P -> 1S matelem
+    !selectTransition = 2 -- calculate 3P -> 3S matelem
+    !selectTransition = 3 -- calculate 4P -> 2S matelem
 
     n = Glob_n
     npt = Glob_npt
@@ -1241,6 +1239,7 @@ contains
 
     allocate(SOmassChargeCoefficient(n, n, 4))
     allocate(AMMmassChargeCoefficient(n, n, 4))
+    allocate(AMMFinMassChargeCoefficient(n, n, 4))
     allocate(parityFactor(nFactorial))
 
     allocate(ketYMatrix(1 : n, 1 : n, nFactorial))
@@ -1251,15 +1250,15 @@ contains
     allocate(SOspinME(n, nFactorial))
     allocate(spinCoeff(nFactorial, 2))
 
-    call spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMMmassChargeCoefficient, &
+    call spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinMassChargeCoefficient, &
                      ketYMatrix, Glob_YOperatorString0, Glob_YOperatorString1, SiMinusME, SiPlusME, SziME, spinFreeME)
 
     SOspinME = ZERO
-    if (selectTransition == 1) then
+    if (Glob_selectTransition == 1) then
       SOspinME = SiPlusME
-    else if (selectTransition == 2) then
+    else if (Glob_selectTransition == 2) then
       SOspinME = SziME
-    else if (selectTransition == 3) then
+    else if (Glob_selectTransition == 3) then
       SOspinME = SiPlusME
     else
       call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop "incorrect selectTransition value"
@@ -1297,6 +1296,8 @@ contains
     SO2 = ZERO
     AMM1 = ZERO
     AMM2 = ZERO
+    AMM1Fin = ZERO
+    AMM2Fin = ZERO
 
     counter = 0
     do i = 1, Glob_CurrBasisSize1
@@ -1306,10 +1307,10 @@ contains
           factor = Glob_c1(i) * Glob_c0(j) / sqrt(diagS_1(i)*diagS_0(j))
           do a = 1, nFactorial ! Permutations from S_n introduced by A operator
 
-            call spinDependentMatrixElements(selectTransition, Glob_Index(i,1),Glob_Index(i,2), Glob_NonlinParam1(1 : npt, i), &
+            call spinDependentMatrixElements(Glob_Index(i,1),Glob_Index(i,2), Glob_NonlinParam1(1 : npt, i), &
                                              Glob_NonlinParam0(1 : npt, j), ketYMatrix(1 : n, 1 : n, a), &
                                              SOspinME(1 : n, a), SOmassChargeCoefficient, AMMmassChargeCoefficient, &
-                                             SO1kl, SO2kl, AMM1kl, AMM2kl)
+                                             AMMFinMassChargeCoefficient, SO1kl, SO2kl, AMM1kl, AMM2kl, AMM1finkl, AMM2finkl)
 
             SO1 = SO1 + parityFactor(a) * factor * SO1kl
             SO2 = SO2 + parityFactor(a) * factor * SO2kl
@@ -1317,6 +1318,10 @@ contains
             ! (they are shown in spinData.txt)
             AMM1 = AMM1 + parityFactor(a) * factor * AMM1kl
             AMM2 = AMM2 + parityFactor(a) * factor * AMM2kl
+
+            
+            AMM1Fin = AMM1Fin + parityFactor(a) * factor * AMM1finkl
+            AMM2Fin = AMM2Fin + parityFactor(a) * factor * AMM2finkl
 
           enddo ! Permutations from S_n
         endif ! ProcID check
@@ -1341,6 +1346,14 @@ contains
     call MPI_ALLREDUCE(temp1, temp2, 1, MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
     AMM2 = temp2
 
+    temp1 = AMM1Fin 
+    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+    AMM1Fin = temp2
+
+    temp1 = AMM2Fin 
+    call MPI_ALLREDUCE(temp1, temp2, 1, MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+    AMM2Fin = temp2
+
 !Printing results
     if (Glob_ProcID==0) then
 
@@ -1351,6 +1364,8 @@ contains
       write(*,*) '                    SO2=',SO2
       write(*,*) '                   AMM1=',AMM1
       write(*,*) '                   AMM2=',AMM2
+      write(*,*) '                AMM1Fin=',AMM1Fin
+      write(*,*) '                AMM2Fin=',AMM2Fin
 
       write(*,*)
 
@@ -1358,16 +1373,22 @@ contains
       write(*,*) '        (alpha^2)*SO2=', SO2*(Glob_FineStructConst**2)
       write(*,*) '       (alpha^2)*AMM1=', AMM1*(Glob_FineStructConst**2)
       write(*,*) '       (alpha^2)*AMM2=', AMM2*(Glob_FineStructConst**2)
+      write(*,*) '    (alpha^2)*AMM1Fin=', AMM1Fin*(Glob_FineStructConst**2)
+      write(*,*) '    (alpha^2)*AMM2Fin=', AMM2Fin*(Glob_FineStructConst**2)
 
       write(2,*) '                    SO1=',SO1
       write(2,*) '                    SO2=',SO2
       write(2,*) '                   AMM1=',AMM1
       write(2,*) '                   AMM2=',AMM2
+      write(2,*) '                AMM1Fin=',AMM1Fin
+      write(2,*) '                AMM2Fin=',AMM2Fin
 
       write(2,*) '        (alpha^2)*SO1=', SO1*(Glob_FineStructConst**2)
       write(2,*) '        (alpha^2)*SO2=', SO2*(Glob_FineStructConst**2)
       write(2,*) '       (alpha^2)*AMM1=', AMM1*(Glob_FineStructConst**2)
       write(2,*) '       (alpha^2)*AMM2=', AMM2*(Glob_FineStructConst**2)
+      write(2,*) '    (alpha^2)*AMM1Fin=', AMM1Fin*(Glob_FineStructConst**2)
+      write(2,*) '    (alpha^2)*AMM2Fin=', AMM2Fin*(Glob_FineStructConst**2)
 
     endif
 

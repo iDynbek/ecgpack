@@ -326,5 +326,9 @@ integer  :: Glob_CurrBasisSize1
 !from 0 to Glob_NumOfProcs-1
   integer     Glob_MPIErrCode !Error code for MPI routines
 
+  integer :: Glob_selectTransition !Select the transition for which the transition amplitude is computed
+  logical :: Glob_spinFileWasOpened=.false. !Whether the file containing spin functions was opened successfully
+
+
 end module globvars
 

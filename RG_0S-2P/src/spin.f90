@@ -277,18 +277,6 @@ contains
     allocate(tmpSpinFunctionB(numberOfPrimitives))
     allocate(tmpSpinFunctionC(numberOfPrimitives))
 
-    exist = .false.
-    if (Glob_ProcID == 0) then
-      inquire(file="spinData.txt", exist=exist)
-      if (exist) then
-        open(newunit=io, file="spinData.txt", status="old", position="append", action="write")
-      else
-        open(newunit=io, file="spinData.txt", status="new", action="write")
-      end if
-      write(io, '("Se from Young string =" , 1x, f6.3)') real(SeDoubled, kind=wp) * 0.5
-      close(io)
-    endif
-
     tmpSpinFunctionA = finalSpinFunction(:)
 
     call showSpinFunction(spinFunctionsArray(:, 1), primitives, n, numberOfPrimitives, spinFunctionString)
@@ -310,11 +298,15 @@ contains
     enddo
 
     test = (sqrt(FOUR * test + ONE) - ONE) * ONEHALF
-
     if (Glob_ProcID == 0) then
-
-      open(newunit=io, file="spinData.txt", status="old", action="write", position = "append")
-      write(io, '(a)') '==========================================='
+      if (Glob_spinFileWasOpened) then
+          open(newunit=io, file="spinData.txt", status="old", action="write", position = "append")
+      else
+          open(newunit=io, file="spinData.txt", status="replace", action="write")
+      endif
+      Glob_spinFileWasOpened = .true.
+      
+      write(io, '("Se from Young string =" , 1x, f6.3)') real(SeDoubled, kind=wp) * 0.5
       write(io, '(a, a)') "chi = ", trim(adjustl(spinFunctionString))
       write(io, '("S calculated         =" , 1x, f6.3)') test
       write(io, '(a)') "C_SO_J, C_SS_J:"
@@ -338,8 +330,10 @@ contains
 
       write(io,*) ''
       write(io,*) ''
+      write(io, '(a)') '==========================================='
       close(io)
     endif
+
 
   end subroutine getSpinFunction
 
@@ -438,62 +432,6 @@ contains
       end select
 
     enddo ! all permutations
-
-    !Output some quantities for test purposes:
-
-    if (Glob_ProcID == 0) then
-
-      open(newunit=io, file="spinData.txt", status="old", action="write", position = "append")
-
-      !permutation matrices
-      write(io, *) "permutationMatrices"
-      do ptr=1,nFactorial
-        write(io, *) 'ptr = ', ptr
-        do i=1,n
-          write(io, *) permutationMatrices(i, :, ptr)
-        enddo
-        write(io, *) ''
-      enddo
-
-      ! spin free 0
-      write(io, '("<chi0 | 1 | P^s_{a} chi0>:")')
-      write(io, *) 'ptr  ', 'spinFreeME  '
-      do ptr = 1, nFactorial
-        write(io, '(i3, 2x, f6.3)') ptr, spinFreeME(ptr, 1)
-      enddo
-      write(io,*) ''
-
-      ! spin free 1
-      ! write(io, '("<chi1 | 1 | P^s_{a} chi1>:")')
-      ! write(io, *) 'ptr  ', 'spinFreeME  '
-      ! do ptr = 1, nFactorial
-      !   write(io, '(i3, 2x, f6.3)') ptr, spinFreeME(ptr, 2)
-      ! enddo
-      ! write(io,*) ''
-
-      ! S+
-      !write(io, '("<chi1 | S+ | P^s_{a} chi0>:")')
-      !do ptr = 1, nFactorial
-      !    write(io, *) 'ptr  '
-      !   do k = 1, n
-      !     write(io, '(i3, 2x, f6.3)') ptr, SiPlusME(k, ptr)
-      !   enddo
-      ! enddo
-      !write(io,*) ''
-
-      !  Sz
-      write(io, '("<chi1 | Sz | P^s_{a} chi0>:")')
-      do ptr = 1, nFactorial
-        write(io, *) 'ptr  '
-        do k = 1, n
-          write(io, '(i3, 2x, f6.3)') ptr, SziME(k, ptr)
-        enddo
-      enddo
-      write(io,*) ''
-
-      close(io)
-
-    endif
 
   end subroutine getSpinOpMeanValues
 
