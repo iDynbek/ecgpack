@@ -109,24 +109,23 @@ contains
         ErrorInDataFile=.true.
       EndIF
 
-!        comparing the number of particle in Glob_WFfile0 and Glob_WFfile1 files
+!     comparing the number of particle in Glob_WFfile0 and Glob_WFfile1 files
       IF (particle_n0/=particle_n1) then
         write(*,*) ' '
         write(*,*) 'the number of particles in initial and final states is not the same !!!'
         write(*,*) ' '
         ErrorInDataFile=.true.
       Else
-        IF (Glob_n/=Glob_AllowedNumOfPseudoParticles) then
+        IF (particle_n0/=Glob_MaxAllowedNumOfPseudoParticles) then
           write(*,*) ' '
           write (*,*) 'The version of the code you are running was compiled for the case'
           write (*,*) 'when the number of particles in the system is equal to', &
-            Glob_AllowedNumOfParticles
-          write (*,*) 'while the number of particles specIFied in the wave function files is',Glob_n+1
+            Glob_MaxAllowedNumOfParticles
+          write (*,*) 'while the number of particles specIFied in the wave function files is',particle_n0+1
           write (*,*) 'Please make appropriate changes. Program will now stop.'
           write(*,*) ' '
           ErrorInDataFile=.true.
         EndIF
-!                Glob_n=particle_n0=particle_n1
         Glob_n=particle_n0
       EndIF
 
@@ -1306,10 +1305,10 @@ contains
       open(2,file=Glob_ExpValFileName,status='replace')
 
       write(*,*) '                    SSNC=', SSNC
-      write(*,*) '        (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
+      write(*,*) '          (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
 
       write(2,*) '                    SSNC=', SSNC
-      write(2,*) '        (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
+      write(2,*) '          (alpha^2)*SSNC=', SSNC*(Glob_FineStructConst**2)
 
     endif
 
