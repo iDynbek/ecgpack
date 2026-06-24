@@ -59,10 +59,10 @@ if (Glob_ProcID==0) then
     ErrorInDataFile=.true.
   endif
 endif 
-if (Glob_n>Glob_MaxAllowedNumOfPseudoParticles) then
+if (Glob_n>Glob_AllowedNumOfPseudoParticles) then
   if (Glob_ProcID==0) then
     write (*,*) 'The version of the code you are running was compiled for the case'
-    write (*,*) 'when the number of pseudoparticles is smaller or equal to', Glob_MaxAllowedNumOfPseudoParticles
+    write (*,*) 'when the number of pseudoparticles is smaller or equal to', Glob_AllowedNumOfPseudoParticles
     write (*,*) 'while in the number of pseudoparticles in the system specified by'
     write (*,*) 'the input file is',Glob_n
     write (*,*) 'Please make appropriate changes. Program will now stop.'
@@ -2737,7 +2737,7 @@ subroutine ReverseFuncOrder(fb,fe)
 !Arguments:
 integer  fb,fe
 !Local variables:
-real(dprec) temp(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+real(dprec) temp(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
 integer i,j,f,t,fbm,fep
 
 f=(fe-fb+1)/2 !integer division!

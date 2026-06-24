@@ -323,8 +323,8 @@ for toolchain_value in ${toolchain_list[@]}; do
             counter_attempted_builds=$((counter_attempted_builds+1))
             # Make a copy of the original file src/wp_def_${precision_value}.f90
             cp -f src/wp_def_${precision_value}.f90 src/wp_def_temporary.f90
-            # Replace "Glob_MaxAllowedNumOfParticles=..." with "Glob_MaxAllowedNumOfParticles=${nparticles_value}" in file src/wp_def_${precision_value}.f90
-            sed -i "s/Glob_MaxAllowedNumOfParticles=[0-9]\+/Glob_MaxAllowedNumOfParticles=${nparticles_value}/g" src/wp_def_${precision_value}.f90
+            # Replace "Glob_AllowedNumOfParticles=..." with "Glob_AllowedNumOfParticles=${nparticles_value}" in file src/wp_def_${precision_value}.f90
+            sed -i "s/Glob_AllowedNumOfParticles=[0-9]\+/Glob_AllowedNumOfParticles=${nparticles_value}/g" src/wp_def_${precision_value}.f90
             # Replace "MPI_DPREC=..." with "MPI_DPREC=${MPI_REALX_name}" in file src/wp_def_${precision_value}.f90
             sed -i "s/MPI_DPREC=[^ ][^ ]*/MPI_DPREC=${MPI_REALX_name}/g" src/wp_def_${precision_value}.f90
             # Build the code

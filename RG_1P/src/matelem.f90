@@ -46,7 +46,7 @@ contains
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     integer,parameter :: nnp=nn*(nn+1)/2
 
 !Local variables
@@ -824,7 +824,7 @@ contains
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     integer,parameter :: nnp=nn*(nn+1)/2
 
 !Local variables
@@ -1962,7 +1962,7 @@ contains
 !Input:
 !   W :: n x n real matrix
 
-    integer, parameter :: nn = Glob_MaxAllowedNumOfPseudoParticles
+    integer, parameter :: nn = Glob_AllowedNumOfPseudoParticles
     real(wp)           W(nn, nn), t
     integer               i,j,n
 
@@ -2005,7 +2005,7 @@ contains
 !      inv_tau3 :: scalar, inv_tau3 = 1/tau3 = 1/tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
     real(wp)   ME_rXr
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Arguments:
     real(wp)   X(nn,nn),inv_tAkl(nn,nn),inv_tAkltvl(nn),tvkinv_tAkl(nn),inv_tau3,Skl
 !Local variables:
@@ -2049,7 +2049,7 @@ contains
 !      inv_tau3 :: scalar, inv_tau3 = 1/tau3 = 1/tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
     real(wp)   ME_rXr_rYr
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Arguments:
     real(wp)   X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn),inv_tAkltvl(nn),tvkinv_tAkl(nn),inv_tau3,Skl
 !Local variables:
@@ -2137,7 +2137,7 @@ contains
 !      inv_tau3 :: scalar, inv_tau3 = 1/tau3 = 1/tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
     real(wp)   ME_dWd2
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Arguments:
     real(wp)   W(nn,nn),tAk(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn)
     integer       tvk(nn),tvl(nn)
@@ -2276,7 +2276,7 @@ contains
 !      inv_tau3 :: scalar, inv_tau3 = 1/tau3 = 1/tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
     real(wp)   ME_dWd21
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Arguments:
     real(wp)   X(nn,nn),Glob_B(nn,nn),tAk(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn)
     integer       tvk(nn),tvl(nn)
@@ -2402,7 +2402,7 @@ contains
 
   function ME_dXd(X,tvk,tvl,inv_tAkltvl,inv_tAkl,tAk,tAl,inv_tAkltAl,Skl,tau3)
     real(wp)   ME_dXd
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     real(wp)   X(nn,nn),tAk(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn),inv_tAkltAl(nn,nn)
     integer       i,j,n,k,tvk(nn),tvl(nn)
     real(wp)   inv_tAkltAlX(nn,nn),inv_tAkltAlXtAk(nn,nn),tvkinv_tAkltAlX(nn),inv_tAkltvl(nn)
@@ -2455,7 +2455,7 @@ contains
 !           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
     real(wp)   SG_ME_rXr_over_rij
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Arguments:
     real(wp)   X(nn,nn),inv_tAkl(nn,nn)
     integer       i,j
@@ -2530,7 +2530,7 @@ contains
 !           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
     real(wp)   SG_ME_rXr_rYr_over_rij
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Arguments:
     real(wp)   X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn)
     integer       i,j
@@ -2655,7 +2655,7 @@ contains
 !           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
     real(wp)   ME_rXr_over_rij
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Arguments:
     real(wp)   X(nn,nn),inv_tAkl(nn,nn)
     integer       i,j,tvk(nn),tvl(nn)
@@ -2754,7 +2754,7 @@ contains
 !           t_V :: scalar, t_V = tau3 = tr[inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
     real(wp)   ME_rXr_rYr_over_rij
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Arguments:
     real(wp)   X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn)
     integer       i,j,tvk(nn),tvl(nn)
@@ -2970,7 +2970,7 @@ contains
 !       tr_AJAV :: scalar, tr_AJAV = eta2(i,j) = tr[inv_tAkl*Jij*inv_tAkl*tvl*tvk']
 !           Skl :: scalar, overlap Skl=<\tilde phi_k|\tilde phi_l>
     real(wp)   ME_d_X_over_rij_d
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Arguments:
     real(wp)   X(nn,nn),tAk(nn,nn),tAl(nn,nn),inv_tAkl(nn,nn)
     integer       i,j,tvk(nn),tvl(nn)
@@ -3339,7 +3339,7 @@ contains
     !Parameters (These are needed to declare static arrays. Using static
     !arrays makes the function call a little faster in comparison with
     !the case when arrays are dynamically allocated in stack)
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     integer,parameter :: nnp=nn*(nn+1)/2
     real(wp),intent(in)   :: SSNCspinME(Glob_n, Glob_n, numberOfSpinFunctions), &
                                 SziME(Glob_n, numberOfSpinFunctions), &
@@ -3679,7 +3679,7 @@ contains
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     integer,parameter :: nnp=nn*(nn+1)/2
 
 !Local variables

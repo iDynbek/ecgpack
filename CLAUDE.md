@@ -45,7 +45,7 @@ Key build parameters:
 - `LINALG` — selects which BLAS/LAPACK implementation to link against (default `netlib`). `netlib` compiles the bundled, lightly modified reference `src/BLAS.f`/`src/LAPACK.f` and adds no extra link flags; `mkl` (Intel MKL — compiler-dependent `-lmkl_*` flags), `lblas` (`-llapack -lblas`), `openblas` (`-lopenblas`), and `aocl` (AMD AOCL `-lflame -lblis …`) instead link an external optimized library and skip the bundled sources. Only `PREC=8` honors the optimized choices; for `PREC=10`/`16` only `LINALG=netlib` is supported (any other value leaves the build unsupported). In the off-diagonal codes `LINALG` is accepted but a no-op (they link no BLAS/LAPACK). The bundled `src/BLAS.f`/`src/LAPACK.f` and the `BARE_OBJS_LPKBLS` object list are compiled only when `LINALG=netlib`.
 - `COMPILER` (`gfortran`→`mpif90`, `ifort`→`mpiifort`, `ifx`→`mpiifx`, `nvfortran`→`mpif90`) and `MACHINE` select compiler flags. Supported machines are hardcoded in both `build.bash` and the Makefiles; adding a machine means editing both.
 
-Note: the **number of particles is compiled in**, not a runtime argument. `build.bash` does an in-place `sed` on `src/wp_def_<PREC>.f90` to set `Glob_MaxAllowedNumOfParticles`, builds, then restores the original from `wp_def_temporary.f90`. A binary built for N particles rejects input files with a different particle count.
+Note: the **number of particles is compiled in**, not a runtime argument. `build.bash` does an in-place `sed` on `src/wp_def_<PREC>.f90` to set `Glob_AllowedNumOfParticles`, builds, then restores the original from `wp_def_temporary.f90`. A binary built for N particles rejects input files with a different particle count.
 
 ## Running
 
@@ -63,7 +63,7 @@ Within each `src/`, the module compile/dependency order (see the Makefile) is:
 
 `wp_def_<PREC>` → `globvars` → `misc`, `linalg`, `spin` → `matelem` → `matform` → `workproc` → `main`
 
-- **`wp_def_<PREC>.f90`** — defines the working-precision kind (`wp`), `Glob_MaxAllowedNumOfParticles`, and the MPI real type. Edited at build time by `build.bash` (see above).
+- **`wp_def_<PREC>.f90`** — defines the working-precision kind (`wp`), `Glob_AllowedNumOfParticles`, and the MPI real type. Edited at build time by `build.bash` (see above).
 - **`globvars.f90`** — all global state (the `Glob_*` variables: masses, charges, basis, matrices) and physical/numeric constants.
 - **`linalg.f90`** — linear-algebra wrappers over BLAS/LAPACK. `BLAS.f`/`LAPACK.f` are bundled, lightly modified netlib reference sources used only when `LINALG=netlib`. `dmng.f` (lightly modified TOMS nonlinear minimizer) and `X1MACH.f90` (machine constants) support the optimizer.
 - **`spin.f90`** — spin algebra and permutational-symmetry projection.

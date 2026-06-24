@@ -16,8 +16,8 @@ contains
     integer        :: OpenFileErr
     integer        :: ReadInt,ReadErr
     integer        :: particle_n0,particle_n1
-    real(wp)    :: Mass0(Glob_MaxAllowedNumOfParticles),Mass1(Glob_MaxAllowedNumOfParticles)
-    real(wp)    :: PseudoCharge0(Glob_MaxAllowedNumOfParticles),PseudoCharge1(Glob_MaxAllowedNumOfParticles)
+    real(wp)    :: Mass0(Glob_AllowedNumOfParticles),Mass1(Glob_AllowedNumOfParticles)
+    real(wp)    :: PseudoCharge0(Glob_AllowedNumOfParticles),PseudoCharge1(Glob_AllowedNumOfParticles)
     real(wp)    :: PseudoCharge00,PseudoCharge01
     real(wp)    :: ReadReal0,ReadReal1
     real(wp)    :: RepulsionScalingParamPlus0,RepulsionScalingParamPlus1
@@ -116,11 +116,11 @@ contains
         write(*,*) ' '
         ErrorInDataFile=.true.
       Else
-        IF (particle_n0/=Glob_MaxAllowedNumOfPseudoParticles) then
+        IF (particle_n0/=Glob_AllowedNumOfPseudoParticles) then
           write(*,*) ' '
           write (*,*) 'The version of the code you are running was compiled for the case'
           write (*,*) 'when the number of particles in the system is equal to', &
-            Glob_MaxAllowedNumOfParticles
+            Glob_AllowedNumOfParticles
           write (*,*) 'while the number of particles specIFied in the wave function files is',particle_n0+1
           write (*,*) 'Please make appropriate changes. Program will now stop.'
           write(*,*) ' '
@@ -1017,12 +1017,12 @@ contains
 !alpha = sqrt( 0.5 * (m0^3 + m_k^3)/(m0*m_k*(m0 + m_k)^2) )
     Glob_dmva2 = (m0**3 + mk**3)/(TWO*m0*mk*(m0+mk)**2)
 !Glob_dmvB(i,i) = (beta^2 + gamma_i^2)/(alpha^2 * M_ii) - M_ii
-    Glob_dmvB(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
+    Glob_dmvB(1:Glob_AllowedNumOfPseudoParticles,1:Glob_AllowedNumOfPseudoParticles)=ZERO
     Do i=1,n
       mi=Glob_Mass(i+1)
       Glob_dmvB(i,i)=( (m0**3+mi**3)*mk*(m0+mk)**2 - (m0**3+mk**3)*mi*(m0+mi)**2 ) / ( TWO*(m0+mi)*(m0**3+mk**3)*m0*mi**2 )
     EndDo
-    Glob_dmvM(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
+    Glob_dmvM(1:Glob_AllowedNumOfPseudoParticles,1:Glob_AllowedNumOfPseudoParticles)=ZERO
     Glob_dmvM(1:n,1:n)=Glob_MassMatrix(1:n,1:n)
     Glob_dmvMB=Glob_dmvM+Glob_dmvB
 

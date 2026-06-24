@@ -36,7 +36,7 @@ contains
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 
 !Local variables
     real(wp),allocatable,dimension(:)         :: vechLl
@@ -202,7 +202,7 @@ contains
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     integer,parameter :: nnp=nn*(nn+1)/2
 
 !Local variables
@@ -469,7 +469,7 @@ contains
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
-    integer,parameter            :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter            :: nn=Glob_AllowedNumOfPseudoParticles
     integer,parameter            :: nnp=nn*(nn+1)/2
 
 !Local variables

@@ -53,7 +53,7 @@ integer,intent(in)          :: gradflag
 !Parameters (These are needed to declare static arrays. Using static 
 !arrays makes the function call a little faster in comparison with 
 !the case when arrays are dynamically allocated in stack)
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 integer,parameter :: nnp=nn*(nn+1)/2
 
 !Local variables
@@ -763,11 +763,11 @@ function ME_rXr_over_rij(X,i,j,invCkl,ME_1_over_rij,TrCJ)
 !        invCkl :: n x n complex matrix where the inverse of Ck+tCl is stored
 ! ME_1_over_rij :: the value of <phi_k| 1/r_{ij} |phi_l> matrix element 
 !          TrCJ :: the value of Tr[invCkl Jij]
-!Note that n=Glob_n and nn=Glob_MaxAllowedNumOfPseudoParticles. Although
+!Note that n=Glob_n and nn=Glob_AllowedNumOfPseudoParticles. Although
 !all arrays (both arguments and local ones) are static and have dimension
 !nn x nn, only n x n subarrays are referenced. 
 complex(dprec) ME_rXr_over_rij
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 
 !Arguments:
 complex(dprec) X(nn,nn),invCkl(nn,nn),ME_1_over_rij,TrCJ
@@ -832,11 +832,11 @@ function ME_rXr_rYr_over_rij(X,Y,i,j,invCkl,ME_1_over_rij,TrCJ)
 !        invCkl :: n x n complex matrix where the inverse of Ck+tCl is stored
 ! ME_1_over_rij :: the value of <phi_k| 1/r_{ij} |phi_l> matrix element 
 !          TrCJ :: the value of Tr[invCkl Jij]
-!Note that n=Glob_n and nn=Glob_MaxAllowedNumOfPseudoParticles. Although
+!Note that n=Glob_n and nn=Glob_AllowedNumOfPseudoParticles. Although
 !all arrays (both arguments and local ones) are static and have dimension
 !nn x nn, only n x n subarrays are referenced. 
 complex(dprec) ME_rXr_rYr_over_rij
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 
 !Arguments:
 complex(dprec) X(nn,nn),Y(nn,nn),invCkl(nn,nn),ME_1_over_rij,TrCJ
@@ -1006,7 +1006,7 @@ logical,intent(in)          :: AreCorrFuncNeeded,ArePartDensNeeded
 !Parameters (These are needed to declare static arrays. Using static 
 !arrays makes the function call a little faster in comparison with 
 !the case when arrays are dynamically allocated in stack)
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 integer,parameter :: nnp=nn*(nn+1)/2
 
 !Local variables
@@ -1985,7 +1985,7 @@ end subroutine MatrixElementsForExpcVals
 
 function trace(k,M)
 complex(dprec) trace
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 complex(dprec) M(nn,nn)
 integer i
 trace=ZERO
@@ -1997,7 +1997,7 @@ end function trace
 
 function ME_dXd_dYd(X,Y,invCkl,tCk,tCl,Skl)
 complex(dprec) ME_dXd_dYd
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 complex(dprec) X(nn,nn),Y(nn,nn),invCkl(nn,nn),tCk(nn,nn),tCl(nn,nn),Skl,M(nn,nn),MM(nn,nn),Z(nn,nn)
 integer i,j,n
 complex(dprec) tr1,tr2,tr3,tr4,tr5
@@ -2017,7 +2017,7 @@ end function ME_dXd_dYd
 
 function ME_dXd(X,invCkl,tCl,Skl)
 complex(dprec) ME_dXd
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 complex(dprec) X(nn,nn),invCkl(nn,nn),tCl(nn,nn),Skl,M(nn,nn)
 integer i,j,n
 complex(dprec) tr1,tr2
@@ -2031,7 +2031,7 @@ end function ME_dXd
 
 function ME_dXd_over_rij(X,i,j,invCkl,tCl,ME_1_over_rij,TrCJ)
 complex(dprec) ME_dXd_over_rij
-integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 complex(dprec) X(nn,nn),invCkl(nn,nn),tCl(nn,nn),ME_1_over_rij,TrCJ
 integer i,j,n
 complex(dprec) M(nn,nn),Z(nn,nn)

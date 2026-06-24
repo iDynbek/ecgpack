@@ -127,8 +127,8 @@ contains
 !Local variables :
     integer     k,l,i,kk,ll,ii,j,q
     integer     kstart,lstart,kstop,lstop,n,np,np1,npt,nb
-    real(wp) Paramk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
-    real(wp) Paraml(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
+    real(wp) Paramk(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1)/2)
+    real(wp) Paraml(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1)/2)
     integer     mk,ml
     real(wp) Skl,Hkl
     real(wp) Ssum,Hsum
@@ -243,15 +243,15 @@ contains
 !Local variables :
     integer     k,l,i,kk,ll,ii,j,q
     integer     kstart,lstart,kstop,lstop,n,np,npt,npt2,nb
-    real(wp) Paramk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
-    real(wp) Paraml(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2)
+    real(wp) Paramk(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1)/2)
+    real(wp) Paraml(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1)/2)
     integer     mk,ml
     real(wp) Skl,Hkl
     real(wp) Ssum,Hsum
-    real(wp) Dk(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-    real(wp) Dl(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-    real(wp) Dksum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
-    real(wp) Dlsum(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) Dk(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
+    real(wp) Dl(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
+    real(wp) Dksum(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
+    real(wp) Dlsum(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
     logical     grad_l
 
     n=Glob_n

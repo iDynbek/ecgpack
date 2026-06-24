@@ -138,11 +138,11 @@ contains
     endif
     call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     call MPI_BCAST(Glob_BasisTypeSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    if (Glob_n/=Glob_MaxAllowedNumOfPseudoParticles) then
+    if (Glob_n/=Glob_AllowedNumOfPseudoParticles) then
       if (Glob_ProcID==0) then
         write (*,*) 'The version of the code you are running was compiled for the case'
         write (*,*) 'when the number of particles in the system is equal to', &
-          Glob_MaxAllowedNumOfParticles
+          Glob_AllowedNumOfParticles
         write (*,*) 'while the number of particles specified in the input file is',Glob_n+1
         write (*,*) 'Please make appropriate changes. Program will now stop.'
       endif
@@ -2942,7 +2942,7 @@ contains
 !Arguments:
     integer  fb,fe
 !Local variables:
-    real(wp) temp(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) temp(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
     integer i,j,f,t,fbm,fep
 
     f=(fe-fb+1)/2 !integer division!

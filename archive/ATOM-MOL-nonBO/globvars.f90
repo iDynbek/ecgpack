@@ -40,7 +40,7 @@ Glob_FineStructConst=7.2973525376E-03_dprec          !CODATA 2006 value
 !Global parameters
 !=============================================================
 
-integer,parameter :: Glob_MaxAllowedNumOfPseudoParticles=5
+integer,parameter :: Glob_AllowedNumOfPseudoParticles=5
 !This is the maximal allowed number of pseudoparticles. If needed,
 !this number can be increased. But it is not recommended to use
 !a number that is larger than necessary as it may affect the
@@ -63,7 +63,7 @@ integer       Glob_npt
 
 !Glob_np_MaxAllowed and Glob_npt_MaxAllowed determine the 
 !maximal allowed values for Glob_np and Glob_npt 
-integer,parameter :: Glob_np_MaxAllowed=Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2
+integer,parameter :: Glob_np_MaxAllowed=Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1)/2
 integer,parameter :: Glob_npt_MaxAllowed=2*Glob_np_MaxAllowed 
 
 real(dprec)   Glob_2raised3n2  !2^(3n/2)

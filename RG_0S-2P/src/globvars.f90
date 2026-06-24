@@ -33,8 +33,8 @@ module globvars
 !=============================================================
 
 !Maximal number of pseudoparticles allowed
-  integer,parameter :: Glob_MaxAllowedNumOfPseudoParticles= &
-                       Glob_MaxAllowedNumOfParticles-1
+  integer,parameter :: Glob_AllowedNumOfPseudoParticles= &
+                       Glob_AllowedNumOfParticles-1
 
 !=============================================================
 !Global variables
@@ -54,7 +54,7 @@ module globvars
 !Glob_np_MaxAllowed and Glob_npt_MaxAllowed determine the
 !maximal allowed values for Glob_np and Glob_npt
   integer,parameter :: Glob_np_MaxAllowed= &
-                       Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1)/2
+                       Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1)/2
   integer,parameter :: Glob_npt_MaxAllowed=Glob_np_MaxAllowed
 
   real(wp)   Glob_2Raised3n2  !2^(3n/2)
@@ -76,9 +76,9 @@ module globvars
 !Glob_dmvB, Glob_dmvM, and Glob_dmvMB are constant diagonal matrices used in
 !the evaluation of drachmanized mass-velocity correction. their elements depend
 !of the masses of particles
-  real(wp)   Glob_dmvM(Glob_MaxAllowedNumOfPseudoParticles,Glob_MaxAllowedNumOfPseudoParticles)
-  real(wp)   Glob_dmvB(Glob_MaxAllowedNumOfPseudoParticles,Glob_MaxAllowedNumOfPseudoParticles)
-  real(wp)   Glob_dmvMB(Glob_MaxAllowedNumOfPseudoParticles,Glob_MaxAllowedNumOfPseudoParticles)
+  real(wp)   Glob_dmvM(Glob_AllowedNumOfPseudoParticles,Glob_AllowedNumOfPseudoParticles)
+  real(wp)   Glob_dmvB(Glob_AllowedNumOfPseudoParticles,Glob_AllowedNumOfPseudoParticles)
+  real(wp)   Glob_dmvMB(Glob_AllowedNumOfPseudoParticles,Glob_AllowedNumOfPseudoParticles)
 
 !Glob_PseudoCharge is the charges of pseudoparticles, qi
   real(wp),allocatable,dimension(:),save ::  Glob_PseudoCharge

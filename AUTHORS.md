@@ -5,7 +5,7 @@
 Sergiy Bubin
 
 ## Contributors
-List of individuals (in alphabetical order) who have made direct contibutions to the code base of the ECGPACK project since its inception around 2006-2007:
+Below is a list of individuals (in alphabetical order) who have made direct contributions to the codebase of the ECGPACK project since its inception around 2006–2007:
 
 * [Amir Bralin](https://orcid.org/0009-0008-0675-2824)
 
@@ -23,7 +23,9 @@ List of individuals (in alphabetical order) who have made direct contibutions to
 
 * Aidynbek Tussipzhan
 
-The following individuals have made conceptual contributions and their ideas about numerical implementation have been adopted in the code:
+## Concept contributors
+
+The following individuals have made conceptual contributions, and their ideas regarding numerical implementation have been adopted within the code:
 
 * [Ludwik Adamowicz](https://orcid.org/0000-0001-9557-0484)
 

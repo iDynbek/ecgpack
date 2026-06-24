@@ -76,11 +76,11 @@ contains
     endif
     call MPI_BCAST(Glob_n,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     call MPI_BCAST(Glob_BasisTypeSupplied,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    if (Glob_n/=Glob_MaxAllowedNumOfPseudoParticles) then
+    if (Glob_n/=Glob_AllowedNumOfPseudoParticles) then
       if (Glob_ProcID==0) then
         write (*,*) 'The version of the code you are running was compiled for the case'
         write (*,*) 'when the number of particles in the system is equal to', &
-          Glob_MaxAllowedNumOfParticles
+          Glob_AllowedNumOfParticles
         write (*,*) 'while the number of particles specified in the input file is',Glob_n+1
         write (*,*) 'Please make appropriate changes. Program will now stop.'
       endif
@@ -953,7 +953,7 @@ contains
     Glob_dmva21 = (m0**3 + ml**3)/(TWO*m0*ml*(m0+ml)**2)
     Glob_dmva22 = (m0**3 + mh**3)/(TWO*m0*mh*(m0+mh)**2)
 !Glob_dmva2 = (m0**2)/(TWO*mh*(m0+mh)**2)
-    Glob_dmvB(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
+    Glob_dmvB(1:Glob_AllowedNumOfPseudoParticles,1:Glob_AllowedNumOfPseudoParticles)=ZERO
 !if (.not. Glob_ArePseudoParticleMassesTheSame) then
 !  do i=1,n
 !    if (i == indexh) cycle
@@ -968,7 +968,7 @@ contains
 !    enddo
 !  enddo
 !endif
-    Glob_dmvM(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
+    Glob_dmvM(1:Glob_AllowedNumOfPseudoParticles,1:Glob_AllowedNumOfPseudoParticles)=ZERO
     Glob_dmvM(1:n,1:n)=Glob_MassMatrix(1:n,1:n)
 !Glob_dmvMB=Glob_dmvM+Glob_dmvB
 
@@ -3156,7 +3156,7 @@ contains
 !Arguments:
     integer  fb,fe
 !Local variables:
-    real(wp) temp(Glob_MaxAllowedNumOfPseudoParticles*(Glob_MaxAllowedNumOfPseudoParticles+1))
+    real(wp) temp(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
     integer i,j,f,t,fbm,fep
 
     f=(fe-fb+1)/2 !integer division!

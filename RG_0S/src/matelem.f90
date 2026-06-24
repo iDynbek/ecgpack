@@ -41,7 +41,7 @@ contains
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     integer,parameter :: nnp=nn*(nn+1)/2
 
 !Local variables
@@ -674,7 +674,7 @@ contains
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 
 !Local variables
     integer           n, np
@@ -1603,7 +1603,7 @@ contains
   function trace(k,M)
     real(wp) trace
     integer k
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     real(wp) M(nn,nn)
     integer i
     trace=ZERO
@@ -1639,11 +1639,11 @@ contains
 !        inv_tAkl :: n x n real matrix where the inverse of Ak+tAl is stored
 ! ME_1_over_rij :: the value of <phi_k| 1/r_{ij} |phi_l> matrix element
 !          TrAJ :: the value of Tr[inv_tAkl Jij]
-!Note that n=Glob_n and nn=Glob_MaxAllowedNumOfPseudoParticles. Although
+!Note that n=Glob_n and nn=Glob_AllowedNumOfPseudoParticles. Although
 !all arrays (both arguments and local ones) are static and have dimension
 !nn x nn, only n x n subarrays are referenced.
     real(wp) ME_rXr_over_rij
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 
 !Arguments:
     real(wp)  X(nn,nn),inv_tAkl(nn,nn),ME_1_over_rij,TrAJ
@@ -1706,10 +1706,10 @@ contains
 !          TrAJ :: the values of Tr[inv_tAkl Jij]
 !Output:
 !            ME :: n x n real matrix where all computed matrix elements are returned
-!Note that n=Glob_n and nn=Glob_MaxAllowedNumOfPseudoParticles. Although
+!Note that n=Glob_n and nn=Glob_AllowedNumOfPseudoParticles. Although
 !all arrays (both arguments and local ones) are static and have dimension
 !nn x nn, only n x n subarrays are referenced.
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 
 !Arguments:
     real(wp)  X(nn,nn),inv_tAkl(nn,nn),rmkl(Glob_n,Glob_n),TrAJ(nn,nn),ME(nn,nn)
@@ -1779,11 +1779,11 @@ contains
 !        inv_tAkl :: n x n real matrix where the inverse of Ak+tAl is stored
 ! ME_1_over_rij :: the value of <phi_k| 1/r_{ij} |phi_l> matrix element
 !          TrAJ :: the value of Tr[inv_tAkl Jij]
-!Note that n=Glob_n and nn=Glob_MaxAllowedNumOfPseudoParticles. Although
+!Note that n=Glob_n and nn=Glob_AllowedNumOfPseudoParticles. Although
 !all arrays (both arguments and local ones) are static and have dimension
 !nn x nn, only n x n subarrays are referenced.
     real(wp) ME_rXr_rYr_over_rij
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 
 !Arguments:
     real(wp)  X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn),ME_1_over_rij,TrAJ
@@ -1894,7 +1894,7 @@ contains
   function myME_dXd_dYd(X,Y,inv_tAkl,tAk,tAl,det_tAkl)
 
     real(wp) myME_dXd_dYd, det_tAkl
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     real(wp) X(nn,nn),Y(nn,nn),inv_tAkl(nn,nn),tAk(nn,nn),tAl(nn,nn)
 
 !Local variables:
@@ -2037,7 +2037,7 @@ contains
   function myME_dXd(X,inv_tAkl,tAl,det_tAkl)
 
     real(wp) myME_dXd, det_tAkl
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     real(wp) X(nn,nn),inv_tAkl(nn,nn),tAl(nn,nn)
 
 !Local variables:
@@ -2110,13 +2110,13 @@ contains
 !      inv_tAkl :: n x n real matrix where the inverse of Ak+tAl is stored
 ! ME_1_over_rij :: the value of <phi_k| 1/r_{ij} |phi_l> matrix element
 !          TrAJ :: the value of Tr[inv_tAkl Jij]
-!Note that n=Glob_n and nn=Glob_MaxAllowedNumOfPseudoParticles. Although
+!Note that n=Glob_n and nn=Glob_AllowedNumOfPseudoParticles. Although
 !all arrays (both arguments and local ones) are static and have dimension
 !nn x nn, only n x n subarrays are referenced.
 
 !Input parameters:
     real(wp) myME_over_rij_dXd, det_tAkl
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     real(wp) :: X(nn,nn),inv_tAkl(nn,nn),tAl(nn,nn)
     integer p,q
 
@@ -2226,12 +2226,12 @@ contains
 !      inv_tAkl :: n x n real matrix where the inverse of Ak+tAl is stored
 ! ME_1_over_rij :: the value of <phi_k| 1/r_{ij} |phi_l> matrix element
 !          TrAJ :: the value of Tr[inv_tAkl Jij]
-!Note that n=Glob_n and nn=Glob_MaxAllowedNumOfPseudoParticles. Although
+!Note that n=Glob_n and nn=Glob_AllowedNumOfPseudoParticles. Although
 !all arrays (both arguments and local ones) are static and have dimension
 !nn x nn, only n x n subarrays are referenced.
 !Input parameters:
     real(wp) ME_1_over_rij_dXd
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     real(wp) X(nn,nn),inv_tAkl(nn,nn),tAl(nn,nn),ME_1_over_rij,TrAJ
 !Local variables:
     integer i,j,p,q,k,n
@@ -2281,11 +2281,11 @@ contains
 !          TrAJ :: the values of Tr[inv_tAkl Jij]
 !Output:
 !            ME :: n x n real matrix where all computed matrix elements are returned
-!Note that n=Glob_n and nn=Glob_MaxAllowedNumOfPseudoParticles. Although
+!Note that n=Glob_n and nn=Glob_AllowedNumOfPseudoParticles. Although
 !all arrays (both arguments and local ones) are static and have dimension
 !nn x nn, only n x n subarrays are referenced.
 !Input parameters:
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     real(wp) X(nn,nn),inv_tAkl(nn,nn),tAl(nn,nn),rmkl(Glob_n,Glob_n),TrAJ(nn,nn)
     real(wp) ME(nn,nn)
 !Local variables:
@@ -2330,7 +2330,7 @@ contains
 !!Old, slow, and simple version
 !function ME_1_over_rij_dXd(X,i,j,inv_tAkl,tAl,ME_1_over_rij,TrCJ)
 !real(wp) ME_1_over_rij_dXd
-!integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+!integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !real(wp) X(nn,nn),inv_tAkl(nn,nn),tAl(nn,nn),ME_1_over_rij,TrCJ
 !integer i,j,n
 !real(wp) M(nn,nn),Z(nn,nn)
@@ -2440,7 +2440,7 @@ contains
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     integer,parameter :: nnp=nn*(nn+1)/2
 
 !Local variables

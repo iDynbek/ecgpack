@@ -1445,7 +1445,7 @@ CONTAINS
 !alpha = sqrt( 0.5 * (m0^3 + m_k^3)/(m0*m_k*(m0 + m_k)^2) )
     Glob_dmva2 = (m0**3 + mk**3)/(TWO*m0*mk*(m0+mk)**2)
 !Glob_dmvB(i,i) = (beta^2 + gamma_i^2)/(alpha^2 * M_ii) - M_ii
-    Glob_dmvB(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
+    Glob_dmvB(1:Glob_AllowedNumOfPseudoParticles,1:Glob_AllowedNumOfPseudoParticles)=ZERO
 
     DO i=1,n
 
@@ -1454,7 +1454,7 @@ CONTAINS
 
     ENDDO
 
-    Glob_dmvM(1:Glob_MaxAllowedNumOfPseudoParticles,1:Glob_MaxAllowedNumOfPseudoParticles)=ZERO
+    Glob_dmvM(1:Glob_AllowedNumOfPseudoParticles,1:Glob_AllowedNumOfPseudoParticles)=ZERO
     Glob_dmvM(1:n,1:n)=Glob_MassMatrix(1:n,1:n)
     Glob_dmvMB=Glob_dmvM+Glob_dmvB
 

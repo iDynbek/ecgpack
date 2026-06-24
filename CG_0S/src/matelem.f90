@@ -42,7 +42,7 @@ contains
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     integer,parameter :: nnp=nn*(nn+1)/2
 
 !Local variables
@@ -783,7 +783,7 @@ contains
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     integer,parameter :: nnp=nn*(nn+1)/2
 
 !Local variables
@@ -1764,7 +1764,7 @@ contains
 
   function trace(k,M)
     complex(wp) trace
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     complex(wp) M(nn,nn)
     integer i
     trace=COMPLEXZERO
@@ -1800,11 +1800,11 @@ contains
 !        invCkl :: n x n complex matrix where the inverse of Ck+tCl is stored
 ! ME_1_over_rij :: the value of <phi_k| 1/r_{ij} |phi_l> matrix element
 !          TrCJ :: the value of Tr[invCkl Jij]
-!Note that n=Glob_n and nn=Glob_MaxAllowedNumOfPseudoParticles. Although
+!Note that n=Glob_n and nn=Glob_AllowedNumOfPseudoParticles. Although
 !all arrays (both arguments and local ones) are static and have dimension
 !nn x nn, only n x n subarrays are referenced.
     complex(wp) ME_rXr_over_rij
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 
 !Arguments:
     complex(wp) X(nn,nn),invCkl(nn,nn),ME_1_over_rij,TrCJ
@@ -1867,10 +1867,10 @@ contains
 !          TrCJ :: the value of Tr[invCkl Jij]
 !Output:
 !            ME :: n x n complex matrix where all computed matrix elements are returned
-!Note that n=Glob_n and nn=Glob_MaxAllowedNumOfPseudoParticles. Although
+!Note that n=Glob_n and nn=Glob_AllowedNumOfPseudoParticles. Although
 !all arrays (both arguments and local ones) are static and have dimension
 !nn x nn, only n x n subarrays are referenced.
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 
 !Arguments:
     complex(wp)  X(nn,nn),invCkl(nn,nn),rmkl(Glob_n,Glob_n),TrCJ(nn,nn),ME(nn,nn)
@@ -1940,11 +1940,11 @@ contains
 !        invCkl :: n x n complex matrix where the inverse of Ck+tCl is stored
 ! ME_1_over_rij :: the value of <phi_k| 1/r_{ij} |phi_l> matrix element
 !          TrCJ :: the value of Tr[invCkl Jij]
-!Note that n=Glob_n and nn=Glob_MaxAllowedNumOfPseudoParticles. Although
+!Note that n=Glob_n and nn=Glob_AllowedNumOfPseudoParticles. Although
 !all arrays (both arguments and local ones) are static and have dimension
 !nn x nn, only n x n subarrays are referenced.
     complex(wp) ME_rXr_rYr_over_rij
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 
 !Arguments:
     complex(wp) X(nn,nn),Y(nn,nn),invCkl(nn,nn),ME_1_over_rij,TrCJ
@@ -2054,7 +2054,7 @@ contains
 
   function ME_dXd_dYd(X,Y,invCkl,tCk,tCl,Skl)
     complex(wp) ME_dXd_dYd
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     complex(wp) X(nn,nn),Y(nn,nn),invCkl(nn,nn),tCk(nn,nn),tCl(nn,nn)
     complex(wp) Skl,M(nn,nn),MM(nn,nn),Z(nn,nn)
     integer i,j,n
@@ -2075,7 +2075,7 @@ contains
 
   function ME_dXd(X,invCkl,tCl,Skl)
     complex(wp) ME_dXd
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     complex(wp) X(nn,nn),invCkl(nn,nn),tCl(nn,nn),Skl,M(nn,nn)
     integer i,j,n
     complex(wp) tr1,tr2
@@ -2089,7 +2089,7 @@ contains
 
   function ME_dXd_over_rij(X,i,j,invCkl,tCl,ME_1_over_rij,TrCJ)
     complex(wp) ME_dXd_over_rij
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     complex(wp) X(nn,nn),invCkl(nn,nn),tCl(nn,nn),ME_1_over_rij,TrCJ
     integer i,j,n
     complex(wp) M(nn,nn),Z(nn,nn)
@@ -2103,7 +2103,7 @@ contains
 
   function ME_rXr(X,Overlap,inv_tCkl)
     complex(wp) ME_rXr
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Arguments:
     complex(wp) X(nn,nn),Overlap,inv_tCkl(nn,nn)
 !Local variables
@@ -2125,7 +2125,7 @@ contains
 
   function ME_rXr_rYr(X,Y,Overlap,inv_tCkl)
     complex(wp) ME_rXr_rYr
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Arguments:
     complex(wp) X(nn,nn),Y(nn,nn),Overlap,inv_tCkl(nn,nn)
 !Local variables
@@ -2165,7 +2165,7 @@ contains
 
   function ME_rXr_rYr_rZr(X,Y,Z,Overlap,inv_tCkl)
     complex(wp) ME_rXr_rYr_rZr
-    integer,parameter :: nn=Glob_MaxAllowedNumOfPseudoParticles
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Arguments:
     complex(wp) X(nn,nn),Y(nn,nn),Z(nn,nn),Overlap,inv_tCkl(nn,nn)
 !Local variables
