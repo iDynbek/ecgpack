@@ -80,4 +80,4 @@ The energy codes read and write a single input/output file named `inout.txt` loc
 
 ## Use of Microsoft Visual Studio Code
 
-For editing, compiling, debugging, and browsing the code locally, we recommend using Microsoft Visual Studio Code (VS Code). This ECGPACK repository includes pre-configured JSON settings for the editor. If you are new to VS Code, a quick-start guide is available in the documentation folder: [Use of Microsoft Visual Studio Code](doc/use_of_visual_studio_code.md).
+For editing, compiling, debugging, and browsing the code locally, we recommend using Microsoft Visual Studio Code. This ECGPACK repository includes pre-configured JSON settings for the editor. If you are new to VS Code, a quick-start guide is available in the documentation folder: [Use of Microsoft Visual Studio Code](doc/use_of_visual_studio_code.md).
