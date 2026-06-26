@@ -76,7 +76,6 @@ The input file `inout.txt` consists of four sections: header, list of commands, 
 | **Command List** | Contains a list of actions that need to be performed. |
 | **History** | Lists the energy values that were obtained at each basis size when the basis was being built, as well as the number of optimization steps that were performed (e.g. number of objective function evaluations, number of optimization cycles). |
 | **Basis functions** | Contains parameters of basis functions, one function per line. |
-| | |
 
 When calculations begin from scratch, only the header and command list need to be supplied in the input file.
 
@@ -139,7 +138,6 @@ The description of all header keywords, in the order they appear in input file, 
 | `BEST_EIGVAL_TOL` | required | The value of the best relative accuracy obtained by the inverse iteration eigenvalue solver in the course of the entire calculation since it started from scratch or since this value was reset. This value does not change anything and is used for monitoring only. <br> *Example* : `BEST_EIGVAL_TOL 0.2351296478907559E-14` |
 | `WORST_EIGVAL_TOL` | required | The value of the worst relative accuracy obtained by the inverse iteration eigenvalue solver in the course of the entire calculation since it started from scratch or since this value was reset. This value does not change anything and is used for monitoring only. <br> *Example* : `WORST_EIGVAL_TOL 0.9999931369150333E-12` |
 | `GENERATOR_PARAM` | required | List of three parameters (let us call them $p_1$ , $p_2$ , and $p_3$ ) which define the shape of the master distribution used at the stage of stochastic selection of new basis functions. This master distribution is a sum of two distributions: one comes with a weight factor of $p_1$ (so that the first supplied parameter must lie between `0.0` and `1.0`), the other with a weight factor $1-p_1$ . The first distribution samples independently each nonlinear variational parameter $\alpha_i$ of existing basis functions (based on a normal distribution centered at $a_i$ and width given by $a_i p_2$ ). The second distribution samples all nonlinear parameters of a new basis function by scaling the parameters of an existing function by $s$ , where $s$ is distributed normally with a center at $1.0$ and width given by $p_3$ (negative values of $s$ are discarded). <br> *Example* :  `GENERATOR_PARAM  0.7 1.0 3.0` |
-| | | |
 
 ### Command list
 
@@ -186,7 +184,6 @@ Grows the basis by stochastic selection of new basis functions followed by optim
 | `200` | integer | Maximum number of energy evaluations in the optimization of the nonlinear parameters of the best new candidate(s) that follows the stochastic selection. It should not be too small (e.g. 3-5), as little or no progress will be made by the minimizer, nor too large (typically a few hundred is enough), so that time is not wasted when the minimization gets stuck. The proper value depends on how many functions are added at once and on the number of particles in the system. |
 | `0.95` | real | Pair overlap threshold. A new basis function is not added if its overlap (absolute value of $S_{ij}$ ) with any other basis function exceeds the threshold. This prevents building nearly linearly dependent basis sets. Setting this to zero or a negative value disables the check. |
 | `3.0` | real | Linear coefficient threshold (for coefficients in front of normalized basis functions). A new basis function is not added if the resulting linear coefficient of any function exceeds the threshold by magnitude (because ECG basis functions form a non-orthogonal basis, the linear coefficients can be greater than `1.0`). This prevents near linear dependencies that manifest as several functions having huge coefficients of opposite sign. Setting this to zero or a negative value disables the check. |
-| | | |
 
 #### 2. `OPT_CYCLE`
 
@@ -211,7 +208,6 @@ Performs a cyclic optimization of the current basis, optimizing one or several f
 | `0.95` | real | Pair overlap threshold for the penalty function. If an overlap $S_{ij}$ exceeds the threshold, a smooth quadratic penalty is added to the objective function. Setting this to a value equal to or greater than `1.0` or smaller than `0.0` disables the penalty. |
 | `3.0` | real | Linear coefficient threshold (for coefficients in front of normalized basis functions). The optimized parameters are not stored if any resulting linear coefficient exceeds the threshold by magnitude. Setting this to zero or a negative value disables the check. |
 | `10` | integer | Saving frequency: the updated basis is written to the input/output file after each block of this many cycle steps. For large systems, where calculations are more expensive, `1` is a good choice. For small systems (e.g. 3 particles) and small basis sizes a small value such as `1` may result in excessive disk writing; a value of `5` or `10` is generally a good choice then. |
-| | | |
 
 #### 3. `FULL_OPT1`
 
@@ -235,7 +231,6 @@ Performs a full (i.e. simultaneous) optimization of the nonlinear parameters of 
 | `60` | integer | Time interval, in seconds, between successive saves of the current best basis in the input/output file (e.g. 60 means every minute). |
 | `60` | integer | Time interval, in seconds, between successive saves of the Hessian matrix (e.g. 60 means every minute). Note that the Hessian may require a large amount of storage (see the note above). |
 | `none` | string | Name of the file where the Hessian matrix is stored. Any name is acceptable except `none` (also `None`, `NONE`), which disables Hessian storage altogether. Storing the Hessian allows a more efficient restart after a break or failure, since the Hessian approximation does not need to be rebuilt from multiple gradient evaluations; for very small bases this is unnecessary, while for very large bases it may require prohibitive storage. |
-| | | |
 
 #### 4. `EXPC_VALS`
 
@@ -251,7 +246,6 @@ Computes expectation values for the current basis.
 | :--- | :---: | :--- |
 | `I` | character | Eigenvalue solver type, `G` or `I` (see the note above). |
 | `5` | integer | Current basis size (must match the actual basis size). |
-| | | |
 
 #### 5. `DENSITIES`
 
@@ -271,7 +265,6 @@ Computes densities of particles in the center-of-mass frame as well as pair corr
 | `cf.dat` | string | Output file with the computed pair correlation functions $g_i$ and $g_{ij}$. |
 | `dens_grid.dat` | string | Input file with the grid of points at which the particle densities are evaluated (same format as `cf_grid.dat`; the same file may be used for both). |
 | `dens.dat` | string | Output file with the computed densities $\rho_i$ in the center-of-mass frame. |
-| | | |
 
 #### 6. `MOMT_DENS`
 
@@ -291,7 +284,6 @@ Computes momentum densities of particles in the center-of-mass frame as well as 
 | `mom_cf.dat` | string | Output file with the computed momentum pair correlation functions. |
 | `mom_dens_grid.dat` | string | Input file with the grid of points at which the momentum densities are evaluated (same format as `cf_grid.dat`; the same file may be used for both). |
 | `mom_dens.dat` | string | Output file with the computed momentum densities in the center-of-mass frame. |
-| | | |
 
 #### 7. `SAVE_FILE`
 
@@ -307,7 +299,6 @@ Saves the current basis into a separate file. Unlike most commands, `SAVE_FILE` 
 | :--- | :---: | :--- |
 | `5` | integer | Current basis size (must match the actual basis size). |
 | `inout_He_1Se-01-00005.txt` | string | Name of the file where the basis is stored, written in the current working directory. It is best to use a unique, self-explanatory name (indicating the system, state/term symbol, eigenvalue number, and basis size) rather than `inout.txt` or the name of an existing file, which would be overwritten. |
-| | | |
 
 #### 8. `SAVE_HSWF`
 
@@ -329,7 +320,6 @@ Saves the Hamiltonian and overlap matrices, the eigenvector of linear coefficien
 | `S.txt` | string | Name of the file where the overlap matrix is stored, or `none` to skip it. |
 | `eigvec.txt` | string | Name of the file where the eigenvector of linear coefficients is stored (normalized so that $v'Sv=1$), or `none` to skip it. |
 | `wf.txt` | string | Name of the file where the full wave function is stored, including both the linear coefficients and the nonlinear parameters of all basis functions, or `none` to skip it. |
-| | | |
 
 #### 9. `ELIM_LCFN`
 
@@ -347,7 +337,6 @@ Eliminates basis functions whose contribution to the energy is small, i.e. those
 | `5` | integer | Current basis size (must match the actual basis size). |
 | `1.0E-4` | real | Linear coefficient threshold. Functions whose linear coefficient (in front of the normalized function) is smaller than this value by magnitude are eliminated. |
 | `inout_reduced.txt` | string | Name of the file where the reduced basis is stored. |
-| | | |
 
 #### 10. `ELIM_LND1`
 
@@ -365,7 +354,6 @@ Eliminates linearly dependent functions. It checks pair linear dependency only, 
 | `5` | integer | Current basis size (must match the actual basis size). |
 | `0.99` | real | Pair linear dependency threshold. A function is removed if its overlap (absolute value, computed with normalized functions) with any earlier function exceeds this value. |
 | `inout_reduced.txt` | string | Name of the file where the reduced basis is stored. |
-| | | |
 
 #### 11. `SEPR_LND1`
 
@@ -384,7 +372,6 @@ Does the same linear dependency detection as `ELIM_LND1`, but instead of discard
 | `0.99` | real | Linear dependency threshold (see `ELIM_LND1`). Functions whose overlap exceeds this value are separated rather than removed. |
 | `0.1` | real | Separation parameter $s$ controlling the random shift of the nonlinear parameters of the affected functions. |
 | `inout_separated.txt` | string | Name of the file where the resulting basis is stored. |
-| | | |
 
 #### 12. `SEPR_FLCF`
 
@@ -403,7 +390,6 @@ Randomly perturbs the nonlinear parameters of basis functions whose linear coeff
 | `3.0` | real | Linear coefficient threshold. Functions whose linear coefficient (in front of the normalized function) exceeds this value by magnitude are separated. |
 | `0.1` | real | Separation parameter $s$ controlling the random shift of the nonlinear parameters of the affected functions. |
 | `inout_separated.txt` | string | Name of the file where the resulting basis is stored. |
-| | | |
 
 ### History
 
@@ -435,7 +421,6 @@ The columns, from left to right, are:
 | 3 | integer | The number of cyclic optimization cycles (`OPT_CYCLE`) that have already been completed at this basis size. It is used to resume a cyclic optimization at the correct cycle if the calculation is restarted. |
 | 4 | integer | The function number at which the last completed optimization step began at this basis size. It is used to resume a cyclic optimization at the correct function within a cycle if the calculation is restarted. |
 | 5 | integer | The number of energy evaluations already spent on full optimization (`FULL_OPT1`) at this basis size. It is used to enforce the maximum-number-of-energy-evaluations limit across restarts. |
-| | | |
 
 All three integer counters are reset to zero whenever a new function is added at a given basis size (e.g. by `BASIS_ENL`), and a value of zero therefore indicates that no cyclic or full optimization has yet been performed at that basis size.
 

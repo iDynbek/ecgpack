@@ -45,7 +45,6 @@ Because calculations with fp128 floating-point numbers (even if compilers suppor
 | fp64 | x 1 | x 1 |
 | fp80 | x 5 | x 2 |
 | fp128 | x 100 | x 2 |
-| | | |
 
 Therefore, quadruple precision (which is roughly a factor of ~100 slower than double precision) should be used only in special cases where it is absolutely necessary and feasible.
 
@@ -63,7 +62,6 @@ All ECGPACK codes are written in standard Fortran, use standard MPI calls and th
 | Intel | ifx | mpiifx| Intel MPI | 8 | yes |
 | Intel | ifx | mpiifx | Intel MPI | 16 | yes |
 | Nvidia | nvfortran | mpif90 | CUDA-aware MPI (based on OpenMPI) | 8 | yes |
-| | | | | | |
 
 Note that at present the codes compiled with gfortran that use quadruple precision can only be executed in serial mode. This is a limitation of OpenMPI. A workaround is possible but has not been implemented yet.
 
@@ -114,7 +112,6 @@ Script `build.bash` can use some common toolchains available in HPC systems/envi
 | intel-2023b | intel/2023b | Intel compilers and libraries |
 | nvhpc-25.9 | NVHPC/25.9-CUDA-12.9.1 | Nvidia compilers and libraries included in NVHPC SDK |
 | nvhpc-25.3 | NVHPC/25.3-CUDA-12.8.0 | Nvidia compilers and libraries included in NVHPC SDK |
-| | | |
 
 Users can certainly easily modify `build.bash` to suit their own environment.
 

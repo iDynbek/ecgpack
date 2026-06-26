@@ -42,7 +42,6 @@ The ECGPACK project repository has the following directory structure:
 | `ecgpack/doc/` | Directory containing manuals and documentation |
 | `ecgpack/jobs/` | Work directory for calculations (may be created by user) |
 | `ecgpack/utilities/` | Various utilities and scripts |
-| | |
 
 All codes can be divided into three main groups:
 
@@ -51,7 +50,6 @@ All codes can be divided into three main groups:
 | Energy and wavefunctions codes | `CG_0S`, `RG_0S`, `RG_1P`, `RG_2D`, `RG_2P` | Generation of ECG basis sets for states of different angular-momentum/parity. They can compute energies, expectation values, particle distributions, and save wave functions |
 | Transition dipole codes | `RG_0S-1P`, `RG_1P-2D`, `RG_1P-2P`, `RG_1P-1P` | Calculation of off-diagonal matrix elements of the transition dipole moment operator in the length and velocity gauges. |
 | Fine structure coupling codes | `RG_0S-2D`, `RG_0S-2P`, `RG_1P-1P`, `RG_2D-2D`, `RG_2P-2D`, `RG_2P-2P` | Calculations of off-diagonal matrix elements of the spin–orbit interaction and non-contact spin–spin interaction |
-| | | |
 
 Each code directory contains a `Makefile` and a subdirectory `src` with the actual source. The source structure and the structure of the makefiles for the cades within each group are very similar. Each directory with a code also contains an subdirectory `.vscode` with standard JSON configuration files for Microsoft Visual Studio Code (VS Code). These are user-independent and provide the capability to build and debug each code in its directory using VS Code.
 
@@ -68,7 +66,6 @@ There are several files located in the project's root directory `ecgpack/`. Thei
 | `CLAUDE.md` | Configuration file for Anthropic Claude Code to establish persistent project context | 
 | `build.bash` | A Bash-script for batch compilation of multiple codes corresponding to a different number of particles, toolchains, configurations, precision, etc. It is convenient for building a large number of different binaries that are later used in production calculations. The generated binaries are automatically moved to directory `/ecgpack/bin`. For more information run this script in a terminal without arguments or read its header. |
 | `.code-workspace` | A JSON configuration file for Microsoft Visual Studio Code (VS Code) that contains information used to group separate code project directories into a single, unified workspace that can be opened in VS Code. |
-| | |
 
 ## Compilation and execution
 
