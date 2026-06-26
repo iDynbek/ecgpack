@@ -79,13 +79,13 @@ All energy codes (`CG_0S`, `RG_0S`, `RG_1P`, `RG_2D`, `RG_2P`) as an option can 
 * `LINALG=openblas` - OpenBLAS library is used through the `-lopenblas` link flag.
 * `LINALG=aocl` - AMD Optimizing CPU Libraries (AOCL-BLAS and AOCL-LAPACK).
 
-Note that an optimized BLAS/LAPACK library can be used only when `PREC=8`. For `PREC=10` and `PREC=16` only `LINALG=netlib` option is available, because vendor-provided optimized BLAS/LAPACK libraries do not support extended or quadruple precision. In the off-diagonal matrix-element codes the `LINALG` argument is accepted for convenience in the `make` command but it has no effect because those codes do not use and do not link any BLAS/LAPACK library.
+Note that an optimized BLAS/LAPACK library can be used only when `PREC=8`. For `PREC=10` and `PREC=16` only the `LINALG=netlib` option is available, because vendor-provided optimized BLAS/LAPACK libraries do not support extended or quadruple precision. In the off-diagonal matrix-element codes the `LINALG` argument is accepted for convenience in the `make` command but it has no effect because those codes do not use and do not link any BLAS/LAPACK library.
 
 ### Number of particles
 
 It is very important to keep in mind that the number of particles is hardcoded at compile-time rather than passed as a runtime argument. An executable compiled for a specific number of particles will fail to run if the input file specifies a different count. This design constraint is strictly enforced for performance optimization, ensuring the code runs at maximum efficiency.
 
-The number of particles is hardcoded in files `src/wp_def_*.f90` (here `*` stands for precision - 8,10, or 16) by setting the value of parameter `Glob_AllowedNumOfParticles` accordingly. The batch-compile script `build.bash` does it automatically.
+The number of particles is hardcoded in files `src/wp_def_*.f90` (here `*` stands for precision - 8, 10, or 16) by setting the value of parameter `Glob_AllowedNumOfParticles` accordingly. The batch-compile script `build.bash` does it automatically.
 
 ### Batch compilation of multiple code variants
 
@@ -133,3 +133,22 @@ mpirun -np 32 ../../bin/systemdefault/release/RG_0S_N4_P8_netlib
 ```
 
 Note that the input file `inout.txt` (as well as other relevant files, if any) should be located in the same directory where the execution of the binary file takes place.
+
+## Note on parallel scaling
+
+In ECG calculations, two major computational bottlenecks typically consume the most time:
+
+1. Evaluation of matrix elements
+2. Solving the generalized eigenvalue problem (typically by updating the solution obtained in the previous step of the calculation)
+
+The distribution of time between these two tasks varies significantly depending on the calculation type, basis set, number of particles (especially identical ones), basis size, and network interconnect speed.
+
+Which task dominates largely determines the parallel scalability of the simulation:
+
+* Task #1 (Matrix Elements): Highly parallelizable ("embarrassingly parallel"), showing excellent scaling with the number of MPI processes.
+* Task #2 (Eigenvalue Problem): Scales significantly worse due to communication overhead and other factors.
+
+Consequently, parallel efficiency is highly system-dependent:
+
+* Poor Scaling: Systems with a small number of particles (e.g., 3) but large bases (thousands of functions). Here, Task #2 dominates, leading to poor MPI scaling. In this case it makes little sense to use more than a few CPU cores in calculations.
+* Linear Scaling: Systems with 6 or more electrons and reasonable basis sizes. Here, Task #1 dominates heavily, resulting in nearly linear scaling even across hundreds of MPI processes and multiple nodes, provided a fast network interconnect is used (e.g. Infiniband NDR).
