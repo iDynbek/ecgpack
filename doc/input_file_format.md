@@ -2,14 +2,14 @@
 
 Table of Contents:
 
-- [Basic structure of the input file](#1-basic-structure-of-the-input-file)
-- [Input file sections](#2-input-file-sections)
+- [Basic structure of the input file](#basic-structure-of-the-input-file)
+- [Input file sections](#input-file-sections)
   - [Header](#header)
   - [Command list](#command-list)
   - [History](#history)
   - [Basis functions](#basis-functions)
-- [Creating input files](#3-creating-input-files)
-- [Restarting calculations that generate a basis](#4-restarting-calculations-that-generate-a-basis)
+- [Creating input files](#creating-input-files)
+- [Restarting calculations that generate or optimize a basis](#restarting-calculations-that-generate-or-optimize-a-basis)
 
 ## A short example of an input file
 
@@ -161,7 +161,7 @@ Each command contains a number of integer, real, character, or string arguments 
 
 Most commands begin with a one-character **eigenvalue solver type**, which can be either `G` or `I`:
 
-- `G` selects the LAPACK routine `DSYGVX`, which first reduces the definite generalized symmetric eigenvalue problem to a standard symmetric eigenvalue problem and then solves it. When `G` is used, the targeted root is set by the header keyword `WHICH_EIGENVALUE` (the header values `CURRENT_ENERGY` and `EIGVAL_TOLERANCE` are not referenced). The `G` option for the eigenvalue solver is safe in the sense that it prevents unintended root switching (it always targets a specific eigenvalue), which is particularly important for the case of small basis sizes, when the total wave function may still undergo considerable change in the process of its optimization. However, the 'G' option is extremely slow when it comes to updating the solution in the case of large basis sizes, which is what is done routinely in `BASIS_ENL`, `OPT_CYCLE`, and `FULL_OPT1` (see the descriptions of these commands below). Efficient generation of large ECG basis sets is essentially impossible when using the `G` option.
+- `G` selects the LAPACK routine `DSYGVX`, which first reduces the definite generalized symmetric eigenvalue problem to a standard symmetric eigenvalue problem and then solves it. When `G` is used, the targeted root is set by the header keyword `WHICH_EIGENVALUE` (the header values `CURRENT_ENERGY` and `EIGVAL_TOLERANCE` are not referenced). The `G` option for the eigenvalue solver is safe in the sense that it prevents unintended root switching (it always targets a specific eigenvalue), which is particularly important for the case of small basis sizes, when the total wave function may still undergo considerable change in the process of its optimization. However, the `G` option is extremely slow when it comes to updating the solution in the case of large basis sizes, which is what is done routinely in `BASIS_ENL`, `OPT_CYCLE`, and `FULL_OPT1` (see the descriptions of these commands below). Efficient generation of large ECG basis sets is essentially impossible when using the `G` option.
 - `I` selects the iterative solver based on the inverse iteration method. When `I` is used, the solver relies on the header values `CURRENT_ENERGY`, `EIGVAL_TOLERANCE`, and `INVITPARAMETER` (it targets the eigenvalue close to `CURRENT_ENERGY` $\times$ `INVITPARAMETER`), and `WHICH_EIGENVALUE` is not referenced. The `I` option is much faster than `G`. When it comes to updating the eigenvector/eigenvalue routinely (as is done in `BASIS_ENL`, `OPT_CYCLE`, and `FULL_OPT1`) it may be several orders of magnitude faster. The reason for this is that updating the solution in the inverse iteration approach scales as $\mathcal{O}(K^2)$ , where $K$ is the basis size. Using the `G` option that calls standard LAPACK eigensolver results in $\mathcal{O}(K^3)$ scaling.
 
 This eigenvalue solver type argument is not repeated in detail for each command below.
@@ -469,7 +469,7 @@ When a large basis needs to be generated it requires multiple actions (e.g. basi
 
 Directory `ecgpack/utilities/input_file_manipulation` contains a Python script `ecg_input_file_generator.py` that can be invoked to generate an input file for a desired system with a long list of repeated actions. One can modify this script as needed.
 
-## Restarting calculations that generate a basis
+## Restarting calculations that generate or optimize a basis
 
 As the program saves/overwrites the input file `inout.txt` regularly when the basis is extended or optimized, restarting calculations from the point where they were terminated is trivial and automatic. The only exception may take place when one invokes the full optimization (command `FULL_OPT1`). A proper restart of the full optimization requires regular saving of the Hessian into a file. The user can do this by replacing `none` (which means no Hessian file saving) with the name of the file, e.g.
 
@@ -477,4 +477,4 @@ As the program saves/overwrites the input file `inout.txt` regularly when the ba
 
 It should be kept in mind, however, that saving a Hessian in the case of large basis sets may take an enormous amount of disk space. So this option should be used with caution.
 
-If the Hessian was not saved, the full optimization will still resume, but it may not proceed as efficiently as it was proceeding before termination because the information about the Hessian approximation that was build previously was lost.
+If the Hessian was not saved, the full optimization will still resume, but it may not proceed as efficiently as it was proceeding before termination because the information about the Hessian approximation that was built previously was lost.
