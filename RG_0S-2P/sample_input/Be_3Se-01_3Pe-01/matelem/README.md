@@ -49,7 +49,7 @@ For the supplied sample wave functions, the calculation completes within a few s
 
 ## Output files
 
-The results are written to: file `expvals.txt`.
+The results are written to file `expvals.txt`.
 An auxiliary file, `spinData.txt`, contains the spin wave functions of the initial and final states used in the calculation.
 
 ## Additional notes

@@ -37,7 +37,7 @@ $$
 \langle {}^{4}P_{J=5/2} | \mathcal{H} | {}^{2}D_{J=5/2} \rangle.
 $$
 
-Here, $\mathcal{H}$ denotes either the spin-dependent part of the Breit–Pauli Hamiltonian. 
+Here, $\mathcal{H}$ denotes the spin-dependent part of the Breit–Pauli Hamiltonian. 
 
 ### Example
 
@@ -59,19 +59,19 @@ For the supplied sample wave functions, the calculation completes within a few s
 
 ## Output files
 
-The results are written to file `expvals.txt` An auxiliary file, `spinData.txt`, contains the spin wave functions of the initial and final states.
+The results are written to file `expvals.txt`. An auxiliary file, `spinData.txt`, contains the spin wave functions of the initial and final states.
 
 ## Additional notes
 
 1. For calculations of
 
 $$
-\langle {}^{3}D_{J=2} | \mathcal{H} | {}^{1}D_{J=2} \rangle,
+\langle {}^{3}P_{J=2} | \mathcal{H} | {}^{1}D_{J=2} \rangle,
 $$
 
 the input files must contain:
 
-* `wf_state0.txt` — the wave function $|{}^{3}D\rangle$;
+* `wf_state0.txt` — the wave function $|{}^{3}P\rangle$;
 * `wf_state1.txt` — the wave function $|{}^{1}D\rangle$.
 
 

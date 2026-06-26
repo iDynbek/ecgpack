@@ -1,4 +1,4 @@
-# $P^o \rightarrow D^e$ Transition Dipole Moment Calculation (Lithium atom)
+# $P^o \rightarrow P^e$ Transition Dipole Moment Calculation (Beryllium atom)
 
 ## Description
 

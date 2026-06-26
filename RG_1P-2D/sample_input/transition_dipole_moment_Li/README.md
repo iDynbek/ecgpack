@@ -176,7 +176,7 @@ $$
 f^{\mathrm{V}} = 0.641\,963\,386.
 $$
 
-For comparison, high-accuracy nonrelativistic reference value for the infinite-nuclear-mass lithium atom, obtained using Hylleraas-type wave functions, is:
+For comparison, a high-accuracy nonrelativistic reference value for the infinite-nuclear-mass lithium atom, obtained using Hylleraas-type wave functions, is:
 
 $$
 f^{\mathrm{L}}_{\mathrm{ref}} = 0.638\,568\,129.

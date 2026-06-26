@@ -2,7 +2,7 @@
 
 ## Input files
 
-The sample files `wf_state0.txt` and `wf_state1.txt` contain the wave functions of the lowest and second-lowest lithium $^3P^{e}$ states, respectively.
+The sample files `wf_state0.txt` and `wf_state1.txt` contain the wave functions of the lowest and second-lowest beryllium $^3P^{e}$ states, respectively.
 
 These files are extracted from the general-format input files using the `RG_2P` code.
 

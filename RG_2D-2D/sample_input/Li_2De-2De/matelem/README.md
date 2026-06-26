@@ -41,7 +41,7 @@ $$
 $$
 
 ```text
-SPIN XP_XP
+SPIN XD_XD
 ```
 
 ## Execution

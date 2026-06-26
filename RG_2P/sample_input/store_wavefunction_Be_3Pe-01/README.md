@@ -2,7 +2,7 @@
 
 ## Description
 
-The sample `inout.txt` file in this directory defines a basis of 100 ECG functions for the lowest $^3P^e$ state of the Beryllium atom (assuming infinite nuclear mass). 
+The sample `inout.txt` file in this directory defines a basis of 100 ECG functions for the lowest $^3P^e$ state of the beryllium atom (assuming infinite nuclear mass). 
 Running it generates the wave-function expansion and writes it to a separate file whose name is specified in the input (`wavefunction.txt`).
 
 On a single CPU core, the calculation takes approximately 2-3 seconds in double precision (gfortran compiler, AMD Ryzen 7 7800X3D).

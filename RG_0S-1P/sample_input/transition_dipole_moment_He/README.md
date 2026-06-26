@@ -178,7 +178,7 @@ $$
 f^{\mathrm{V}} = 0.253\,352\,828.
 $$
 
-For comparison, high-accuracy nonrelativistic reference value for the infinite-nuclear-mass helium atom, obtained using Hylleraas-type wave functions, is:
+For comparison, a high-accuracy nonrelativistic reference value for the infinite-nuclear-mass helium atom, obtained using Hylleraas-type wave functions, is:
 
 $$
 f^{\mathrm{L}}_{\mathrm{ref}} = 0.276\,1647.

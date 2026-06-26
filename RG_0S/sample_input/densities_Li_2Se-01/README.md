@@ -5,7 +5,7 @@ The calculations should take roughly 2-3 seconds on a single CPU core when doubl
 
 The instruction that is used in `inout.txt` to run calculations of distributions has the following format:  
 `DENSITIES I 100 cf_grid.dat cf.dat dens_grid.dat dens.dat`  
-Here `cf_grid.dat` and `dens_grid.dat` are files that contain the 1D grids where the correlation functions and densities need to be computed. In principle, the grids for both the correlation functions and densities could come from the same file (e.g. `grid.dat`) if the expected range of all distributions is comparable. The grids do not need to be uniform. The points do not have to be sorted in an increasing order.
+Here `cf_grid.dat` and `dens_grid.dat` are files that contain the 1D grids where the correlation functions and densities need to be computed. In principle, the grids for both the correlation functions and densities could come from the same file (e.g. `grid.dat`) if the expected range of all distributions is comparable. The grids do not need to be uniform. The points do not have to be sorted in increasing order.
 
 For atomic systems with a finite-mass nucleus, such as Li, the density of the first particle (nucleus) is expected to be highly localized around the origin (center of mass), $r=0$. In other words, the effective range of the nuclear distribution is about 3 orders of magnitude shorter than that for electrons. If both the electronic and nuclear densities are needed then the calculations can be arranged in two ways:  
 
