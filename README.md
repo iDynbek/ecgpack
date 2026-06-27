@@ -61,9 +61,10 @@ There are several files located in the project's root directory `ecgpack/`. Thei
 
 | File | Description |
 | --- | --- |
-| `README.md` | This repository manual file |
-| `AUTHORS.md` | List of contributors |
-| `CLAUDE.md` | Configuration file for Anthropic Claude Code to establish persistent project context | 
+| `README.md` | This repository manual file. |
+| `AGENTS.md` | Configuration rules for AI coding agents and autonomous workflows (e.g. OpenAI Codex). |
+| `AUTHORS.md` | List of ECGPACK contributors. |
+| `CLAUDE.md` | Configuration and system instructions for Anthropic's Claude Code CLI. |
 | `build.bash` | A Bash-script for batch compilation of multiple codes corresponding to a different number of particles, toolchains, configurations, precision, etc. It is convenient for building a large number of different binaries that are later used in production calculations. The generated binaries are automatically moved to directory `/ecgpack/bin`. For more information run this script in a terminal without arguments or read its header. |
 | `.code-workspace` | A JSON configuration file for Microsoft Visual Studio Code (VS Code) that contains information used to group separate code project directories into a single, unified workspace that can be opened in VS Code. |
 
