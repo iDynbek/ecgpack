@@ -10,7 +10,34 @@ module matform
 #endif
   implicit none
 
+#ifdef USE_CUDA
+  !GPU matrix-element chunking cap (max pairs per GPU call). Initialized once at
+  !first use from env ECG_GPU_BATCH (default 16384), broadcast from rank 0 so
+  !every MPI rank chunks identically -> the per-chunk MPI_ALLREDUCE calls stay
+  !collective. Bounds host+device memory at large K by never staging the whole
+  !K(K+1)/2 pair triangle at once (the previous large-K out-of-memory wall).
+  !0 = not yet initialized.
+  integer, save :: gpu_batch_cap = 0
+#endif
+
 contains
+
+#ifdef USE_CUDA
+  subroutine InitGPUBatchCap()
+!Set gpu_batch_cap once (rank 0 reads env ECG_GPU_BATCH, then broadcasts).
+    character(64) :: envval
+    integer       :: ios, val
+    gpu_batch_cap = 16384
+    if (Glob_ProcID==0) then
+      call get_environment_variable('ECG_GPU_BATCH', envval, status=ios)
+      if (ios==0) then
+        read(envval,*,iostat=ios) val
+        if ((ios==0).and.(val>0)) gpu_batch_cap = val
+      endif
+    endif
+    call MPI_BCAST(gpu_batch_cap,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  end subroutine InitGPUBatchCap
+#endif
 
   subroutine StoreHS(i,j,Hij,Sij)
 !Routine StoreHS stores calculated matrix elements of the
@@ -143,7 +170,7 @@ contains
     real(wp)  Dk(2),Dl(2)
 #ifdef USE_CUDA
 !GPU batch temporaries (allocated only when Glob_UseGPU)
-    integer              :: npairs_gpu, ipair_gpu
+    integer              :: npairs_gpu, ipair_gpu, nf_gpu, ip_gpu, batch_gpu
     integer, allocatable :: k_list_gpu(:), l_list_gpu(:)
     real(wp), allocatable :: Hout_gpu(:), Sout_gpu(:)
     real(wp), allocatable :: Hout_gpu_r(:), Sout_gpu_r(:)
@@ -167,38 +194,47 @@ contains
 
 #ifdef USE_CUDA
     if (Glob_UseGPU) then
-      !One GPU call covers the entire [Nmin,Nmax] range.
+      !Process the [Nmin,Nmax] pair triangle in fixed-size chunks so neither
+      !host nor device memory scales with the full K(K+1)/2 list. Every rank
+      !uses the same gpu_batch_cap, so the per-chunk MPI_ALLREDUCE stays collective.
+      if (gpu_batch_cap==0) call InitGPUBatchCap()
       npairs_gpu = Nmax*(Nmax+1)/2 - (Nmin-1)*Nmin/2
-      allocate(k_list_gpu(npairs_gpu), l_list_gpu(npairs_gpu))
-      allocate(Hout_gpu(npairs_gpu), Sout_gpu(npairs_gpu))
-      allocate(Hout_gpu_r(npairs_gpu), Sout_gpu_r(npairs_gpu))
+      batch_gpu = min(npairs_gpu, gpu_batch_cap)
+      if ((Glob_ProcID==0).and.(npairs_gpu>batch_gpu)) &
+        write(*,'(1x,a,i0,a,i0,a,i0,a)') 'GPU ME (energy): ',npairs_gpu, &
+          ' pairs in ',(npairs_gpu+batch_gpu-1)/batch_gpu,' chunks of ',batch_gpu,' max'
+      allocate(k_list_gpu(batch_gpu), l_list_gpu(batch_gpu))
+      allocate(Hout_gpu(batch_gpu), Sout_gpu(batch_gpu))
+      allocate(Hout_gpu_r(batch_gpu), Sout_gpu_r(batch_gpu))
       ipair_gpu = 0
+      nf_gpu = 0
       do k=Nmin,Nmax
         do l=k,1,-1
           ipair_gpu = ipair_gpu + 1
-          k_list_gpu(ipair_gpu) = k
-          l_list_gpu(ipair_gpu) = l
-        enddo
-      enddo
-      call gpu_compute_matelem_batch( &
-          Glob_NonlinParam(1:np,1:Nmax), Nmax, &
-          k_list_gpu, l_list_gpu, npairs_gpu, &
-          Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &  !pass by element ref (whole array); a (1:n,1:n,1) section makes nvfortran copy only term 1
-          n, np, Glob_NumOfProcs, Glob_ProcID, &
-          Glob_PiRaised3n2, Glob_MassMatrix(1:n,1:n), &
-          Glob_PseudoCharge(1:n), Glob_PseudoCharge0, &
-          Glob_AttractionScalingParam, Glob_RepulsionScalingParam, &
-          Glob_RepulsionScalingParamPlus, Glob_RepulsionScalingParamMinus, &
-          Hout_gpu, Sout_gpu)
-      call MPI_ALLREDUCE(Hout_gpu, Hout_gpu_r, npairs_gpu, &
-          MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
-      call MPI_ALLREDUCE(Sout_gpu, Sout_gpu_r, npairs_gpu, &
-          MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
-      ipair_gpu = 0
-      do k=Nmin,Nmax
-        do l=k,1,-1
-          ipair_gpu = ipair_gpu + 1
-          call StoreHS(k, l, Hout_gpu_r(ipair_gpu), Sout_gpu_r(ipair_gpu))
+          nf_gpu = nf_gpu + 1
+          k_list_gpu(nf_gpu) = k
+          l_list_gpu(nf_gpu) = l
+          if ((nf_gpu==batch_gpu).or.(ipair_gpu==npairs_gpu)) then
+            call gpu_compute_matelem_batch( &
+                Glob_NonlinParam(1:np,1:Nmax), Nmax, &
+                k_list_gpu, l_list_gpu, nf_gpu, &
+                Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &  !pass by element ref (whole array); a (1:n,1:n,1) section makes nvfortran copy only term 1
+                n, np, Glob_NumOfProcs, Glob_ProcID, &
+                Glob_PiRaised3n2, Glob_MassMatrix(1:n,1:n), &
+                Glob_PseudoCharge(1:n), Glob_PseudoCharge0, &
+                Glob_AttractionScalingParam, Glob_RepulsionScalingParam, &
+                Glob_RepulsionScalingParamPlus, Glob_RepulsionScalingParamMinus, &
+                Hout_gpu, Sout_gpu)
+            call MPI_ALLREDUCE(Hout_gpu, Hout_gpu_r, nf_gpu, &
+                MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+            call MPI_ALLREDUCE(Sout_gpu, Sout_gpu_r, nf_gpu, &
+                MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+            do ip_gpu=1,nf_gpu
+              call StoreHS(k_list_gpu(ip_gpu), l_list_gpu(ip_gpu), &
+                  Hout_gpu_r(ip_gpu), Sout_gpu_r(ip_gpu))
+            enddo
+            nf_gpu = 0
+          endif
         enddo
       enddo
       deallocate(k_list_gpu, l_list_gpu, Hout_gpu, Sout_gpu, Hout_gpu_r, Sout_gpu_r)
@@ -391,7 +427,7 @@ contains
     real(wp) Dlsum(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
     logical     grad_l
 #ifdef USE_CUDA
-    integer              :: npairs_gpu, ipair_gpu
+    integer              :: npairs_gpu, ipair_gpu, nf_gpu, ip_gpu, batch_gpu
     integer, allocatable :: k_list_gpu(:), l_list_gpu(:), grad_l_gpu(:)
     real(wp), allocatable :: Hout_gpu(:), Sout_gpu(:)
     real(wp), allocatable :: Hout_gpu_r(:), Sout_gpu_r(:)
@@ -407,51 +443,62 @@ contains
 
 #ifdef USE_CUDA
     if (Glob_UseGPU) then
+      !Chunk the [Nmin,Nmax] pair triangle so the (npt2 x pairs) gradient
+      !buffers never scale with the full K(K+1)/2 list (the large-K OOM).
+      !Same gpu_batch_cap on every rank keeps the per-chunk ALLREDUCEs collective.
+      if (gpu_batch_cap==0) call InitGPUBatchCap()
       npairs_gpu = Nmax*(Nmax+1)/2 - (Nmin-1)*Nmin/2
-      allocate(k_list_gpu(npairs_gpu), l_list_gpu(npairs_gpu), grad_l_gpu(npairs_gpu))
-      allocate(Hout_gpu(npairs_gpu), Sout_gpu(npairs_gpu))
-      allocate(Hout_gpu_r(npairs_gpu), Sout_gpu_r(npairs_gpu))
-      allocate(Dkout_gpu(npt2,npairs_gpu), Dlout_gpu(npt2,npairs_gpu))
-      allocate(Dkout_gpu_r(npt2,npairs_gpu), Dlout_gpu_r(npt2,npairs_gpu))
+      batch_gpu = min(npairs_gpu, gpu_batch_cap)
+      if ((Glob_ProcID==0).and.(npairs_gpu>batch_gpu)) &
+        write(*,'(1x,a,i0,a,i0,a,i0,a)') 'GPU ME (grad): ',npairs_gpu, &
+          ' pairs in ',(npairs_gpu+batch_gpu-1)/batch_gpu,' chunks of ',batch_gpu,' max'
+      allocate(k_list_gpu(batch_gpu), l_list_gpu(batch_gpu), grad_l_gpu(batch_gpu))
+      allocate(Hout_gpu(batch_gpu), Sout_gpu(batch_gpu))
+      allocate(Hout_gpu_r(batch_gpu), Sout_gpu_r(batch_gpu))
+      allocate(Dkout_gpu(npt2,batch_gpu), Dlout_gpu(npt2,batch_gpu))
+      allocate(Dkout_gpu_r(npt2,batch_gpu), Dlout_gpu_r(npt2,batch_gpu))
       ipair_gpu = 0
+      nf_gpu = 0
       do k=Nmin,Nmax
         do l=k,1,-1
           ipair_gpu = ipair_gpu + 1
-          k_list_gpu(ipair_gpu) = k
-          l_list_gpu(ipair_gpu) = l
+          nf_gpu = nf_gpu + 1
+          k_list_gpu(nf_gpu) = k
+          l_list_gpu(nf_gpu) = l
           if ((l>Glob_nfru).and.(l/=k)) then
-            grad_l_gpu(ipair_gpu) = 1
+            grad_l_gpu(nf_gpu) = 1
           else
-            grad_l_gpu(ipair_gpu) = 0
+            grad_l_gpu(nf_gpu) = 0
           endif
-        enddo
-      enddo
-      Dkout_gpu = ZERO; Dlout_gpu = ZERO
-      call gpu_compute_matelem_and_deriv_batch( &
-          Glob_NonlinParam(1:np,1:Nmax), Nmax, &
-          k_list_gpu, l_list_gpu, grad_l_gpu, npairs_gpu, &
-          Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &  !pass by element ref (whole array); a (1:n,1:n,1) section makes nvfortran copy only term 1
-          n, np, Glob_NumOfProcs, Glob_ProcID, &
-          Glob_PiRaised3n2, Glob_MassMatrix(1:n,1:n), &
-          Glob_PseudoCharge(1:n), Glob_PseudoCharge0, &
-          Glob_AttractionScalingParam, Glob_RepulsionScalingParam, &
-          Glob_RepulsionScalingParamPlus, Glob_RepulsionScalingParamMinus, &
-          Hout_gpu, Sout_gpu, Dkout_gpu, Dlout_gpu)
-      call MPI_ALLREDUCE(Hout_gpu,  Hout_gpu_r,  npairs_gpu, &
-          MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
-      call MPI_ALLREDUCE(Sout_gpu,  Sout_gpu_r,  npairs_gpu, &
-          MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
-      call MPI_ALLREDUCE(Dkout_gpu, Dkout_gpu_r, npairs_gpu*npt2, &
-          MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
-      if (Glob_nfo>1) &
-      call MPI_ALLREDUCE(Dlout_gpu, Dlout_gpu_r, npairs_gpu*npt2, &
-          MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
-      ipair_gpu = 0
-      do k=Nmin,Nmax
-        do l=k,1,-1
-          ipair_gpu = ipair_gpu + 1
-          call StoreHSD(k, l, Hout_gpu_r(ipair_gpu), Sout_gpu_r(ipair_gpu), &
-              Dkout_gpu_r(1:npt2,ipair_gpu), Dlout_gpu_r(1:npt2,ipair_gpu))
+          if ((nf_gpu==batch_gpu).or.(ipair_gpu==npairs_gpu)) then
+            Dkout_gpu(1:npt2,1:nf_gpu) = ZERO
+            Dlout_gpu(1:npt2,1:nf_gpu) = ZERO
+            call gpu_compute_matelem_and_deriv_batch( &
+                Glob_NonlinParam(1:np,1:Nmax), Nmax, &
+                k_list_gpu, l_list_gpu, grad_l_gpu, nf_gpu, &
+                Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &  !pass by element ref (whole array); a (1:n,1:n,1) section makes nvfortran copy only term 1
+                n, np, Glob_NumOfProcs, Glob_ProcID, &
+                Glob_PiRaised3n2, Glob_MassMatrix(1:n,1:n), &
+                Glob_PseudoCharge(1:n), Glob_PseudoCharge0, &
+                Glob_AttractionScalingParam, Glob_RepulsionScalingParam, &
+                Glob_RepulsionScalingParamPlus, Glob_RepulsionScalingParamMinus, &
+                Hout_gpu, Sout_gpu, Dkout_gpu, Dlout_gpu)
+            call MPI_ALLREDUCE(Hout_gpu,  Hout_gpu_r,  nf_gpu, &
+                MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+            call MPI_ALLREDUCE(Sout_gpu,  Sout_gpu_r,  nf_gpu, &
+                MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+            call MPI_ALLREDUCE(Dkout_gpu, Dkout_gpu_r, nf_gpu*npt2, &
+                MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+            if (Glob_nfo>1) &
+            call MPI_ALLREDUCE(Dlout_gpu, Dlout_gpu_r, nf_gpu*npt2, &
+                MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+            do ip_gpu=1,nf_gpu
+              call StoreHSD(k_list_gpu(ip_gpu), l_list_gpu(ip_gpu), &
+                  Hout_gpu_r(ip_gpu), Sout_gpu_r(ip_gpu), &
+                  Dkout_gpu_r(1:npt2,ip_gpu), Dlout_gpu_r(1:npt2,ip_gpu))
+            enddo
+            nf_gpu = 0
+          endif
         enddo
       enddo
       deallocate(k_list_gpu, l_list_gpu, grad_l_gpu)
