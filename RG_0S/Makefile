@@ -247,8 +247,8 @@ ifeq ($(USE_CUDA), yes)
     $(error USE_CUDA=yes is only supported with PREC=8)
   endif
   export FCFLAGS+=-DUSE_CUDA
-  export LINKFLAGS+=-cuda -c++libs
-  export CUDA_OBJS=$(CONFIG)/matelem_cuda.o
+  export LINKFLAGS+=-cuda -c++libs -cudalib=cusolver,cublas
+  export CUDA_OBJS=$(CONFIG)/matelem_cuda.o $(CONFIG)/eigen_cuda.o
   export BARE_OBJS+=matelem_gpu.o
   export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
   GPU_DEP=$(CONFIG)/matelem_gpu.o
@@ -355,13 +355,17 @@ $(CONFIG)/matelem_cuda.o: $(SRC_DIR)/matelem_cuda.cu
 	$(NVCC) -c $(SRC_DIR)/matelem_cuda.cu -o $(CONFIG)/matelem_cuda.o \
 	  -O3 -arch=$(CUDA_ARCH) --compiler-options '-fPIC'
 
+$(CONFIG)/eigen_cuda.o: $(SRC_DIR)/eigen_cuda.cu
+	$(NVCC) -c $(SRC_DIR)/eigen_cuda.cu -o $(CONFIG)/eigen_cuda.o \
+	  -O3 -arch=$(CUDA_ARCH) --compiler-options '-fPIC'
+
 $(CONFIG)/matelem_acc.o: $(SRC_DIR)/matelem_acc.f90 $(CONFIG)/globvars.o
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem_acc.f90 -o $(CONFIG)/matelem_acc.o
 
 $(CONFIG)/matform.o: $(SRC_DIR)/matform.f90 $(CONFIG)/matelem.o $(GPU_DEP) $(ACC_DEP)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matform.f90 -o $(CONFIG)/matform.o
 
-$(CONFIG)/workproc.o: $(SRC_DIR)/workproc.f90 $(CONFIG)/misc.o $(CONFIG)/linalg.o $(CONFIG)/matform.o $(CONFIG)/matelem.o $(CONFIG)/dmng.o $(OBJS_LPKBLS)
+$(CONFIG)/workproc.o: $(SRC_DIR)/workproc.f90 $(CONFIG)/misc.o $(CONFIG)/linalg.o $(CONFIG)/matform.o $(CONFIG)/matelem.o $(CONFIG)/dmng.o $(GPU_DEP) $(OBJS_LPKBLS)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/workproc.f90 -o $(CONFIG)/workproc.o
 
 $(CONFIG)/main.o: $(SRC_DIR)/main.f90 $(CONFIG)/workproc.o $(GPU_DEP)

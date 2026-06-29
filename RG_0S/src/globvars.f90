@@ -388,6 +388,7 @@ module globvars
 !=============================================================
 !GPU backend enable flag (set at run time by the USE_GPU keyword)
   logical :: Glob_UseGPU=.false.
+  logical :: Glob_UseGPUEig=.false.
 !OpenACC: tracks whether constant device data (YHYMatr/coeff) is resident
   logical :: Glob_AccConstLoaded=.false.
 !=============================================================

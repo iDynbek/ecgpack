@@ -9,6 +9,17 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
+#include <time.h>
+
+// --- error checking: turn silent OOM / launch failures into file:line aborts ---
+#define CUDA_CHECK(call) do {                                              \
+    cudaError_t _e = (call);                                               \
+    if (_e != cudaSuccess) {                                               \
+        fprintf(stderr, "CUDA error %s:%d: %s\n",                         \
+                __FILE__, __LINE__, cudaGetErrorString(_e));               \
+        fflush(stderr); abort();                                          \
+    } } while (0)
 
 #define NN 7                    // max pseudoparticles
 #define TWO_OVER_SQRTPI 1.1283791670955126
@@ -590,9 +601,101 @@ __global__ void matelem_batch_grad_kernel(
 }
 
 // ---------------------------------------------------------------------------
-// extern "C" entry points
+// Persistent device context.
+//
+// The matrix-element entry points are called once per gradient/energy
+// evaluation inside the nonlinear optimizer (workproc.f90 -> dmng), i.e.
+// hundreds–thousands of times per optimization window. The original code
+// cudaMalloc'd ~12 buffers, re-uploaded *all* inputs (including data that is
+// constant for the whole run), launched, then cudaFree'd everything on every
+// call. cudaMalloc/cudaFree are synchronous, device-serializing ops, so that
+// per-call churn dominated latency for the small batches the optimizer issues.
+//
+// Here device buffers are cached and grown on demand (mirroring eigen_cuda.cu /
+// the preallocated Glob_WorkForDSYGVX on the CPU side), and the run-constant
+// inputs (YHYMatr, YHYCoeff, massmat, charge) are uploaded only once.
+//
+// The legacy per-call path is preserved and selectable at runtime with
+//   ECG_GPU_PERSIST=0   (default: 1 = persistent)
+// so the two implementations can be A/B compared from the same binary. Set
+//   ECG_GPU_PROFILE=1   to print accumulated time/call counts at finalize.
 // ---------------------------------------------------------------------------
+typedef struct {
+    double *d_NLP, *d_YHYMatr, *d_YHYCoeff, *d_massmat, *d_charge;
+    double *d_H, *d_S, *d_Dk, *d_Dl;
+    int    *d_klist, *d_llist, *d_grfl;
+    size_t  c_NLP, c_YHYMatr, c_YHYCoeff, c_massmat, c_charge;
+    size_t  c_H, c_S, c_Dk, c_Dl;
+    size_t  c_klist, c_llist, c_grfl;
+    int     constants_uploaded;     // YHYMatr/YHYCoeff/massmat/charge resident?
+} MatElemCtx;
+
+static MatElemCtx g_me = {0};
+
+// Accumulated wall-clock profiling (host timer brackets full sync'd GPU work).
+static double  g_prof_energy = 0.0, g_prof_grad = 0.0;
+static long    g_calls_energy = 0,  g_calls_grad = 0;
+
+// ECG_GPU_PERSIST: 1 (default) = cache+grow buffers; 0 = legacy malloc/free per call.
+static int me_persist(void) {
+    static int m = -1;
+    if (m < 0) { const char *e = getenv("ECG_GPU_PERSIST"); m = (e && e[0]=='0') ? 0 : 1; }
+    return m;
+}
+static int me_profile(void) {
+    static int m = -1;
+    if (m < 0) { const char *e = getenv("ECG_GPU_PROFILE"); m = (e && e[0]=='1') ? 1 : 0; }
+    return m;
+}
+static double me_now(void) {
+    struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec + 1.0e-9*(double)ts.tv_nsec;
+}
+
+// Grow a cached buffer to >= `need` elements; reallocs only when capacity is
+// exceeded. In legacy mode capacities are reset to 0 after each call (see
+// me_release_buffers), so this allocates fresh every time, reproducing the
+// original behavior exactly.
+static void me_grow_d(double **p, size_t *cap, size_t need) {
+    if (*cap >= need) return;
+    if (*p) CUDA_CHECK(cudaFree(*p));
+    CUDA_CHECK(cudaMalloc((void**)p, need*sizeof(double)));
+    *cap = need;
+}
+static void me_grow_i(int **p, size_t *cap, size_t need) {
+    if (*cap >= need) return;
+    if (*p) CUDA_CHECK(cudaFree(*p));
+    CUDA_CHECK(cudaMalloc((void**)p, need*sizeof(int)));
+    *cap = need;
+}
+
+// Free all cached device buffers and reset the context.
+static void me_release_buffers(void) {
+    double *dp[] = { g_me.d_NLP, g_me.d_YHYMatr, g_me.d_YHYCoeff, g_me.d_massmat,
+                     g_me.d_charge, g_me.d_H, g_me.d_S, g_me.d_Dk, g_me.d_Dl };
+    for (unsigned i = 0; i < sizeof(dp)/sizeof(dp[0]); i++) if (dp[i]) cudaFree(dp[i]);
+    int *ip[] = { g_me.d_klist, g_me.d_llist, g_me.d_grfl };
+    for (unsigned i = 0; i < sizeof(ip)/sizeof(ip[0]); i++) if (ip[i]) cudaFree(ip[i]);
+    MatElemCtx z = {0};
+    g_me = z;
+}
+
 extern "C" {
+
+void gpu_matelem_finalize_(void) {
+    if (me_profile()) {
+        fprintf(stderr,
+            "gpu_matelem: energy %ld calls, %.4f s (%.1f us/call); "
+            "grad %ld calls, %.4f s (%.1f us/call) [persist=%d]\n",
+            g_calls_energy, g_prof_energy,
+            g_calls_energy ? 1.0e6*g_prof_energy/g_calls_energy : 0.0,
+            g_calls_grad, g_prof_grad,
+            g_calls_grad ? 1.0e6*g_prof_grad/g_calls_grad : 0.0,
+            me_persist());
+        fflush(stderr);
+    }
+    me_release_buffers();
+}
 
 void gpu_init_(int *local_rank)
 {
@@ -612,7 +715,12 @@ void gpu_init_(int *local_rank)
         printf("gpu_init: NOTE: consumer GPU — FP64 rate ~1/32 of FP32\n");
 }
 
-void gpu_finalize_(void) { cudaDeviceReset(); }
+void gpu_finalize_(void) {
+    void gpu_eig_finalize_(void);
+    gpu_matelem_finalize_();
+    gpu_eig_finalize_();
+    cudaDeviceReset();
+}
 
 // ---- Batched energy-only (replaces ComputeMatElem inner j-loop) ----
 // NonlinParam: (np, Nmax) Fortran col-major
@@ -633,48 +741,49 @@ void gpu_compute_matelem_batch_(
 {
     int npairs = *npairs_in, Nmax = *Nmax_in;
     int nn = *n_in, nnp = *np_in, T = *NumYHYTerms_in;
+    int persist = me_persist(), profile = me_profile();
+    double t0 = profile ? me_now() : 0.0;
 
-    double *d_NLP, *d_YHYMatr, *d_YHYCoeff, *d_massmat, *d_charge;
-    double *d_H, *d_S;
-    int    *d_klist, *d_llist;
+    // Ensure capacity (allocates only on growth in persistent mode).
+    me_grow_d(&g_me.d_NLP,     &g_me.c_NLP,     (size_t)Nmax*nnp);
+    me_grow_d(&g_me.d_YHYMatr, &g_me.c_YHYMatr, (size_t)nn*nn*T);
+    me_grow_d(&g_me.d_YHYCoeff,&g_me.c_YHYCoeff,(size_t)T);
+    me_grow_d(&g_me.d_massmat, &g_me.c_massmat, (size_t)nn*nn);
+    me_grow_d(&g_me.d_charge,  &g_me.c_charge,  (size_t)nn);
+    me_grow_d(&g_me.d_H,       &g_me.c_H,       (size_t)npairs);
+    me_grow_d(&g_me.d_S,       &g_me.c_S,       (size_t)npairs);
+    me_grow_i(&g_me.d_klist,   &g_me.c_klist,   (size_t)npairs);
+    me_grow_i(&g_me.d_llist,   &g_me.c_llist,   (size_t)npairs);
 
-    cudaMalloc(&d_NLP,     (size_t)Nmax*nnp*sizeof(double));
-    cudaMalloc(&d_YHYMatr, (size_t)nn*nn*T*sizeof(double));
-    cudaMalloc(&d_YHYCoeff,(size_t)T*sizeof(double));
-    cudaMalloc(&d_massmat, (size_t)nn*nn*sizeof(double));
-    cudaMalloc(&d_charge,  (size_t)nn*sizeof(double));
-    cudaMalloc(&d_H,       (size_t)npairs*sizeof(double));
-    cudaMalloc(&d_S,       (size_t)npairs*sizeof(double));
-    cudaMalloc(&d_klist,   (size_t)npairs*sizeof(int));
-    cudaMalloc(&d_llist,   (size_t)npairs*sizeof(int));
+    // Per-call inputs (change every call): always uploaded.
+    CUDA_CHECK(cudaMemcpy(g_me.d_NLP,   NonlinParam, (size_t)Nmax*nnp*sizeof(double), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(g_me.d_klist, k_list,      (size_t)npairs*sizeof(int),      cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(g_me.d_llist, l_list,      (size_t)npairs*sizeof(int),      cudaMemcpyHostToDevice));
 
-    cudaMemset(d_H, 0, npairs*sizeof(double));
-    cudaMemset(d_S, 0, npairs*sizeof(double));
-
-    cudaMemcpy(d_NLP,      NonlinParam, (size_t)Nmax*nnp*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_YHYMatr,  YHYMatr,    (size_t)nn*nn*T*sizeof(double),   cudaMemcpyHostToDevice);
-    cudaMemcpy(d_YHYCoeff, YHYCoeff,   (size_t)T*sizeof(double),         cudaMemcpyHostToDevice);
-    cudaMemcpy(d_massmat,  massmat,    (size_t)nn*nn*sizeof(double),     cudaMemcpyHostToDevice);
-    cudaMemcpy(d_charge,   charge,     (size_t)nn*sizeof(double),        cudaMemcpyHostToDevice);
-    cudaMemcpy(d_klist,    k_list,     (size_t)npairs*sizeof(int),       cudaMemcpyHostToDevice);
-    cudaMemcpy(d_llist,    l_list,     (size_t)npairs*sizeof(int),       cudaMemcpyHostToDevice);
+    // Run-constant inputs: uploaded once (every call in legacy mode).
+    if (!g_me.constants_uploaded) {
+        CUDA_CHECK(cudaMemcpy(g_me.d_YHYMatr,  YHYMatr,  (size_t)nn*nn*T*sizeof(double), cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(g_me.d_YHYCoeff, YHYCoeff, (size_t)T*sizeof(double),       cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(g_me.d_massmat,  massmat,  (size_t)nn*nn*sizeof(double),   cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(g_me.d_charge,   charge,   (size_t)nn*sizeof(double),      cudaMemcpyHostToDevice));
+        g_me.constants_uploaded = 1;
+    }
 
     int threads = min(T, 1024);
     matelem_batch_energy_kernel<<<npairs, threads>>>(
-        d_NLP, d_klist, d_llist, d_YHYMatr, d_YHYCoeff,
+        g_me.d_NLP, g_me.d_klist, g_me.d_llist, g_me.d_YHYMatr, g_me.d_YHYCoeff,
         T, nn, nnp, *NumOfProcs_in, *ProcID_in,
-        *piraised3n2, d_massmat, d_charge, *charge0,
+        *piraised3n2, g_me.d_massmat, g_me.d_charge, *charge0,
         *attr_scale, *rep_scale, *rep_plus, *rep_minus,
-        d_H, d_S
+        g_me.d_H, g_me.d_S
     );
-    cudaDeviceSynchronize();
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaMemcpy(Hout, g_me.d_H, npairs*sizeof(double), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(Sout, g_me.d_S, npairs*sizeof(double), cudaMemcpyDeviceToHost));
 
-    cudaMemcpy(Hout, d_H, npairs*sizeof(double), cudaMemcpyDeviceToHost);
-    cudaMemcpy(Sout, d_S, npairs*sizeof(double), cudaMemcpyDeviceToHost);
-
-    cudaFree(d_NLP); cudaFree(d_YHYMatr); cudaFree(d_YHYCoeff);
-    cudaFree(d_massmat); cudaFree(d_charge);
-    cudaFree(d_H); cudaFree(d_S); cudaFree(d_klist); cudaFree(d_llist);
+    if (!persist) me_release_buffers();
+    if (profile) { g_prof_energy += me_now() - t0; g_calls_energy++; }
 }
 
 // ---- Batched energy+gradient (replaces ComputeMatElemAndDeriv inner j-loop) ----
@@ -699,60 +808,62 @@ void gpu_compute_matelem_and_deriv_batch_(
     int npairs = *npairs_in, Nmax = *Nmax_in;
     int nn = *n_in, nnp = *np_in, T = *NumYHYTerms_in;
     int npt2 = 2 * nnp;
+    int persist = me_persist(), profile = me_profile();
+    double t0 = profile ? me_now() : 0.0;
 
-    double *d_NLP, *d_YHYMatr, *d_YHYCoeff, *d_massmat, *d_charge;
-    double *d_H, *d_S, *d_Dk, *d_Dl;
-    int    *d_klist, *d_llist, *d_grfl;
+    // Ensure capacity (allocates only on growth in persistent mode).
+    me_grow_d(&g_me.d_NLP,     &g_me.c_NLP,     (size_t)Nmax*nnp);
+    me_grow_d(&g_me.d_YHYMatr, &g_me.c_YHYMatr, (size_t)nn*nn*T);
+    me_grow_d(&g_me.d_YHYCoeff,&g_me.c_YHYCoeff,(size_t)T);
+    me_grow_d(&g_me.d_massmat, &g_me.c_massmat, (size_t)nn*nn);
+    me_grow_d(&g_me.d_charge,  &g_me.c_charge,  (size_t)nn);
+    me_grow_d(&g_me.d_H,       &g_me.c_H,       (size_t)npairs);
+    me_grow_d(&g_me.d_S,       &g_me.c_S,       (size_t)npairs);
+    me_grow_d(&g_me.d_Dk,      &g_me.c_Dk,      (size_t)npairs*npt2);
+    me_grow_d(&g_me.d_Dl,      &g_me.c_Dl,      (size_t)npairs*npt2);
+    me_grow_i(&g_me.d_klist,   &g_me.c_klist,   (size_t)npairs);
+    me_grow_i(&g_me.d_llist,   &g_me.c_llist,   (size_t)npairs);
+    me_grow_i(&g_me.d_grfl,    &g_me.c_grfl,    (size_t)npairs);
 
-    cudaMalloc(&d_NLP,     (size_t)Nmax*nnp*sizeof(double));
-    cudaMalloc(&d_YHYMatr, (size_t)nn*nn*T*sizeof(double));
-    cudaMalloc(&d_YHYCoeff,(size_t)T*sizeof(double));
-    cudaMalloc(&d_massmat, (size_t)nn*nn*sizeof(double));
-    cudaMalloc(&d_charge,  (size_t)nn*sizeof(double));
-    cudaMalloc(&d_H,       (size_t)npairs*sizeof(double));
-    cudaMalloc(&d_S,       (size_t)npairs*sizeof(double));
-    cudaMalloc(&d_Dk,      (size_t)npairs*npt2*sizeof(double));
-    cudaMalloc(&d_Dl,      (size_t)npairs*npt2*sizeof(double));
-    cudaMalloc(&d_klist,   (size_t)npairs*sizeof(int));
-    cudaMalloc(&d_llist,   (size_t)npairs*sizeof(int));
-    cudaMalloc(&d_grfl,    (size_t)npairs*sizeof(int));
+    // d_Dl entries of non-grad_l pairs are never written by the kernel, so they
+    // must be zeroed here. d_H/d_S/d_Dk are fully overwritten -> no memset.
+    CUDA_CHECK(cudaMemset(g_me.d_Dl, 0, (size_t)npairs*npt2*sizeof(double)));
 
-    cudaMemset(d_H,  0, npairs*sizeof(double));
-    cudaMemset(d_S,  0, npairs*sizeof(double));
-    cudaMemset(d_Dk, 0, (size_t)npairs*npt2*sizeof(double));
-    cudaMemset(d_Dl, 0, (size_t)npairs*npt2*sizeof(double));
+    // Per-call inputs (change every call): always uploaded.
+    CUDA_CHECK(cudaMemcpy(g_me.d_NLP,   NonlinParam, (size_t)Nmax*nnp*sizeof(double), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(g_me.d_klist, k_list,      (size_t)npairs*sizeof(int),      cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(g_me.d_llist, l_list,      (size_t)npairs*sizeof(int),      cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(g_me.d_grfl,  grad_l_list, (size_t)npairs*sizeof(int),      cudaMemcpyHostToDevice));
 
-    cudaMemcpy(d_NLP,      NonlinParam, (size_t)Nmax*nnp*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_YHYMatr,  YHYMatr,    (size_t)nn*nn*T*sizeof(double),   cudaMemcpyHostToDevice);
-    cudaMemcpy(d_YHYCoeff, YHYCoeff,   (size_t)T*sizeof(double),         cudaMemcpyHostToDevice);
-    cudaMemcpy(d_massmat,  massmat,    (size_t)nn*nn*sizeof(double),     cudaMemcpyHostToDevice);
-    cudaMemcpy(d_charge,   charge,     (size_t)nn*sizeof(double),        cudaMemcpyHostToDevice);
-    cudaMemcpy(d_klist,    k_list,     (size_t)npairs*sizeof(int),       cudaMemcpyHostToDevice);
-    cudaMemcpy(d_llist,    l_list,     (size_t)npairs*sizeof(int),       cudaMemcpyHostToDevice);
-    cudaMemcpy(d_grfl,     grad_l_list,(size_t)npairs*sizeof(int),       cudaMemcpyHostToDevice);
+    // Run-constant inputs: uploaded once (every call in legacy mode).
+    if (!g_me.constants_uploaded) {
+        CUDA_CHECK(cudaMemcpy(g_me.d_YHYMatr,  YHYMatr,  (size_t)nn*nn*T*sizeof(double), cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(g_me.d_YHYCoeff, YHYCoeff, (size_t)T*sizeof(double),       cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(g_me.d_massmat,  massmat,  (size_t)nn*nn*sizeof(double),   cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(g_me.d_charge,   charge,   (size_t)nn*sizeof(double),      cudaMemcpyHostToDevice));
+        g_me.constants_uploaded = 1;
+    }
 
     // Shared memory: H(1) + S(1) + Dk(2np) + Dl(2np) = 2 + 4*np doubles
     size_t smem = (2 + 4*nnp) * sizeof(double);
     int threads = min(T, 1024);
     matelem_batch_grad_kernel<<<npairs, threads, smem>>>(
-        d_NLP, d_klist, d_llist, d_grfl,
-        d_YHYMatr, d_YHYCoeff,
+        g_me.d_NLP, g_me.d_klist, g_me.d_llist, g_me.d_grfl,
+        g_me.d_YHYMatr, g_me.d_YHYCoeff,
         T, nn, nnp, *NumOfProcs_in, *ProcID_in,
-        *piraised3n2, d_massmat, d_charge, *charge0,
+        *piraised3n2, g_me.d_massmat, g_me.d_charge, *charge0,
         *attr_scale, *rep_scale, *rep_plus, *rep_minus,
-        d_H, d_S, d_Dk, d_Dl
+        g_me.d_H, g_me.d_S, g_me.d_Dk, g_me.d_Dl
     );
-    cudaDeviceSynchronize();
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaMemcpy(Hout,  g_me.d_H,  npairs*sizeof(double),               cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(Sout,  g_me.d_S,  npairs*sizeof(double),               cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(Dkout, g_me.d_Dk, (size_t)npairs*npt2*sizeof(double),  cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(Dlout, g_me.d_Dl, (size_t)npairs*npt2*sizeof(double),  cudaMemcpyDeviceToHost));
 
-    cudaMemcpy(Hout,  d_H,  npairs*sizeof(double),        cudaMemcpyDeviceToHost);
-    cudaMemcpy(Sout,  d_S,  npairs*sizeof(double),        cudaMemcpyDeviceToHost);
-    cudaMemcpy(Dkout, d_Dk, (size_t)npairs*npt2*sizeof(double), cudaMemcpyDeviceToHost);
-    cudaMemcpy(Dlout, d_Dl, (size_t)npairs*npt2*sizeof(double), cudaMemcpyDeviceToHost);
-
-    cudaFree(d_NLP); cudaFree(d_YHYMatr); cudaFree(d_YHYCoeff);
-    cudaFree(d_massmat); cudaFree(d_charge);
-    cudaFree(d_H); cudaFree(d_S); cudaFree(d_Dk); cudaFree(d_Dl);
-    cudaFree(d_klist); cudaFree(d_llist); cudaFree(d_grfl);
+    if (!persist) me_release_buffers();
+    if (profile) { g_prof_grad += me_now() - t0; g_calls_grad++; }
 }
 
 } // extern "C"

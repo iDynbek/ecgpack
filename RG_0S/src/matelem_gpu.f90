@@ -68,6 +68,20 @@ interface
     real(c_double), intent(out) :: Dkout(*), Dlout(*)
   end subroutine gpu_compute_matelem_and_deriv_batch
 
+  !cuSOLVER generalized symmetric-definite eigensolver (cusolverDnDsygvdx).
+  !jobz_vec: 1 = eigenvectors, 0 = eigenvalue only. Solves H x = lambda S x,
+  !returns the iwhich-th (1-based, ascending) eigenvalue in eval and, when
+  !jobz_vec/=0, its eigenvector in Z (normalized x^T S x = 1, as DSYGVX).
+  subroutine gpu_dsygvx(jobz_vec, n, H, ldH, S, ldS, iwhich, eval, Z, info) &
+      bind(C, name="gpu_dsygvx_")
+    use iso_c_binding
+    integer(c_int), intent(in)    :: jobz_vec, n, ldH, ldS, iwhich
+    real(c_double), intent(inout) :: H(*), S(*)
+    real(c_double), intent(out)   :: eval
+    real(c_double), intent(out)   :: Z(*)
+    integer(c_int), intent(out)   :: info
+  end subroutine gpu_dsygvx
+
 end interface
 
 end module matelem_gpu

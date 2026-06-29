@@ -4,6 +4,9 @@ module workproc
   use matform
   use matelem
   use linalg
+#ifdef USE_CUDA
+  use matelem_gpu
+#endif
   implicit none
 
 contains
@@ -280,6 +283,14 @@ contains
       endif
     endif
     call MPI_BCAST(Glob_UseGPU,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+#ifdef USE_CUDA
+    if (Glob_ProcID==0) then
+      call get_environment_variable('ECG_GPU_EIG',ReadChar,status=i)
+      Glob_UseGPUEig=Glob_UseGPU.and.(i==0).and.(ReadChar(1:1)=='1')
+      if (Glob_UseGPUEig) write(*,'(1x,a)') 'GPU eigensolver (cuSOLVER) ENABLED'
+    endif
+    call MPI_BCAST(Glob_UseGPUEig,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+#endif
 
     if (Glob_ProcID==0) then
       read(1,'(a70)')   ReadChar(1:70)
@@ -2081,10 +2092,19 @@ contains
       enddo
       if (Glob_ProcID==0) then
         call system_clock(tprof0)
+#ifdef USE_CUDA
+        if (Glob_UseGPUEig) then
+          call gpu_dsygvx(0,Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
+                          Glob_WhichEigenvalue,EVs(1),Z,ErrorCode)
+        else
+#endif
         call DSYGVX(1,'N','I','U',Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,   &
                     ZERO,ZERO,Glob_WhichEigenvalue,Glob_WhichEigenvalue,Glob_AbsTolForDSYGVX, &
                     NumOfEigvalsFound,EVs,Z,Nmax,Glob_WorkForDSYGVX,  &
                     Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
+#ifdef USE_CUDA
+        endif
+#endif
         call ProfAccum(tprof0,.true.)
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
@@ -2149,10 +2169,19 @@ contains
       enddo
       if (Glob_ProcID==0) then
         call system_clock(tprof0)
+#ifdef USE_CUDA
+        if (Glob_UseGPUEig) then
+          call gpu_dsygvx(1,Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
+                          Glob_WhichEigenvalue,EVs(1),Glob_c,ErrorCode)
+        else
+#endif
         call   DSYGVX(1,'V','I','U',Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,   &
                       ZERO,ZERO,Glob_WhichEigenvalue,Glob_WhichEigenvalue,Glob_AbsTolForDSYGVX, &
                       NumOfEigvalsFound,EVs,Glob_c,Nmax,Glob_WorkForDSYGVX,  &
                       Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
+#ifdef USE_CUDA
+        endif
+#endif
         call ProfAccum(tprof0,.true.)
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
@@ -2247,10 +2276,19 @@ contains
 
       if (Glob_ProcID==0) then
         call system_clock(tprof0)
+#ifdef USE_CUDA
+        if (Glob_UseGPUEig) then
+          call gpu_dsygvx(1,nfa,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
+                          Glob_WhichEigenvalue,EVs(1),Glob_c,ErrorCode)
+        else
+#endif
         call   DSYGVX(1,'V','I','U',nfa,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,   &
                       ZERO,ZERO,Glob_WhichEigenvalue,Glob_WhichEigenvalue,Glob_AbsTolForDSYGVX, &
                       NumOfEigvalsFound,EVs,Glob_c,nfa,Glob_WorkForDSYGVX,  &
                       Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
+#ifdef USE_CUDA
+        endif
+#endif
         call ProfAccum(tprof0,.true.)
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
