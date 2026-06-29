@@ -2,6 +2,12 @@ module matform
 !Module matform contains procedures that form Hamiltonian
 !and overlap matrices and related routines
   use matelem
+#ifdef USE_CUDA
+  use matelem_gpu
+#endif
+#ifdef USE_OPENACC
+  use matelem_acc
+#endif
   implicit none
 
 contains
@@ -135,12 +141,141 @@ contains
 !of subroutine MatrixElements. Thus, one can set some small size
 !for them
     real(wp)  Dk(2),Dl(2)
+#ifdef USE_CUDA
+!GPU batch temporaries (allocated only when Glob_UseGPU)
+    integer              :: npairs_gpu, ipair_gpu
+    integer, allocatable :: k_list_gpu(:), l_list_gpu(:)
+    real(wp), allocatable :: Hout_gpu(:), Sout_gpu(:)
+    real(wp), allocatable :: Hout_gpu_r(:), Sout_gpu_r(:)
+#endif
+#ifdef USE_OPENACC
+!OpenACC batch temporaries
+    integer              :: npairs_acc, ip_acc, qa, ja, ka, la
+    integer, allocatable :: k_list_acc(:), l_list_acc(:)
+    real(wp), allocatable :: Hout_acc(:), Sout_acc(:)
+    real(wp), allocatable :: Hout_acc_r(:), Sout_acc_r(:)
+    real(wp) :: Hkl_a, Skl_a, Hs_a, Ss_a
+    real(wp) :: massM(Glob_n,Glob_n), chg(Glob_n)
+    real(wp) :: chg0, pir, ats, rps, rpp, rpm
+#endif
 
     n=Glob_n
     np=Glob_np
     np1=np+1
     npt=Glob_npt
     nb=Glob_HSBuffLen
+
+#ifdef USE_CUDA
+    if (Glob_UseGPU) then
+      !One GPU call covers the entire [Nmin,Nmax] range.
+      npairs_gpu = Nmax*(Nmax+1)/2 - (Nmin-1)*Nmin/2
+      allocate(k_list_gpu(npairs_gpu), l_list_gpu(npairs_gpu))
+      allocate(Hout_gpu(npairs_gpu), Sout_gpu(npairs_gpu))
+      allocate(Hout_gpu_r(npairs_gpu), Sout_gpu_r(npairs_gpu))
+      ipair_gpu = 0
+      do k=Nmin,Nmax
+        do l=k,1,-1
+          ipair_gpu = ipair_gpu + 1
+          k_list_gpu(ipair_gpu) = k
+          l_list_gpu(ipair_gpu) = l
+        enddo
+      enddo
+      call gpu_compute_matelem_batch( &
+          Glob_NonlinParam(1:np,1:Nmax), Nmax, &
+          k_list_gpu, l_list_gpu, npairs_gpu, &
+          Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &  !pass by element ref (whole array); a (1:n,1:n,1) section makes nvfortran copy only term 1
+          n, np, Glob_NumOfProcs, Glob_ProcID, &
+          Glob_PiRaised3n2, Glob_MassMatrix(1:n,1:n), &
+          Glob_PseudoCharge(1:n), Glob_PseudoCharge0, &
+          Glob_AttractionScalingParam, Glob_RepulsionScalingParam, &
+          Glob_RepulsionScalingParamPlus, Glob_RepulsionScalingParamMinus, &
+          Hout_gpu, Sout_gpu)
+      call MPI_ALLREDUCE(Hout_gpu, Hout_gpu_r, npairs_gpu, &
+          MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+      call MPI_ALLREDUCE(Sout_gpu, Sout_gpu_r, npairs_gpu, &
+          MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+      ipair_gpu = 0
+      do k=Nmin,Nmax
+        do l=k,1,-1
+          ipair_gpu = ipair_gpu + 1
+          call StoreHS(k, l, Hout_gpu_r(ipair_gpu), Sout_gpu_r(ipair_gpu))
+        enddo
+      enddo
+      deallocate(k_list_gpu, l_list_gpu, Hout_gpu, Sout_gpu, Hout_gpu_r, Sout_gpu_r)
+    else
+#endif
+#ifdef USE_OPENACC
+    if (Glob_UseGPU) then
+      !OpenACC single-source GPU path: the same Fortran MatrixElements_energy_acc
+      !runs on the device, one gang/vector per (k,l) pair.
+      npairs_acc = Nmax*(Nmax+1)/2 - (Nmin-1)*Nmin/2
+      allocate(k_list_acc(npairs_acc), l_list_acc(npairs_acc))
+      allocate(Hout_acc(npairs_acc), Sout_acc(npairs_acc))
+      allocate(Hout_acc_r(npairs_acc), Sout_acc_r(npairs_acc))
+      ip_acc = 0
+      do ka=Nmin,Nmax
+        do la=ka,1,-1
+          ip_acc = ip_acc + 1
+          k_list_acc(ip_acc) = ka
+          l_list_acc(ip_acc) = la
+        enddo
+      enddo
+      massM = Glob_MassMatrix(1:n,1:n)
+      chg   = Glob_PseudoCharge(1:n)
+      chg0  = Glob_PseudoCharge0
+      pir   = Glob_PiRaised3n2
+      ats   = Glob_AttractionScalingParam
+      rps   = Glob_RepulsionScalingParam
+      rpp   = Glob_RepulsionScalingParamPlus
+      rpm   = Glob_RepulsionScalingParamMinus
+      !One-time: park the constant permutation data on the device so it is not
+      !re-copied on every call (it never changes during a run).
+      if (.not. Glob_AccConstLoaded) then
+        !$acc enter data copyin(Glob_YHYMatr, Glob_YHYCoeff)
+        Glob_AccConstLoaded = .true.
+      endif
+      !Parallelize BOTH axes: gang over (k,l) pairs, vector over permutation terms
+      !(reduction), mirroring the hand-CUDA block-per-pair / thread-per-term layout.
+      !$acc parallel loop gang &
+      !$acc   copyin(Glob_NonlinParam(1:np,1:Nmax), k_list_acc, l_list_acc, massM, chg) &
+      !$acc   copyout(Hout_acc, Sout_acc) &
+      !$acc   present(Glob_YHYMatr, Glob_YHYCoeff) &
+      !$acc   private(ka, la, Hs_a, Ss_a, qa)
+      do ip_acc = 1, npairs_acc
+        ka = k_list_acc(ip_acc)
+        la = l_list_acc(ip_acc)
+        Hs_a = ZERO; Ss_a = ZERO
+        qa = (ip_acc-1)*Glob_NumYHYTerms - 1
+        !$acc loop vector reduction(+:Hs_a,Ss_a) private(Hkl_a, Skl_a)
+        do ja = 1, Glob_NumYHYTerms
+          if (mod(qa+ja, Glob_NumOfProcs) == Glob_ProcID) then
+            call MatrixElements_energy_acc( &
+                Glob_NonlinParam(1:np,ka), Glob_NonlinParam(1:np,la), &
+                Glob_YHYMatr(1:n,1:n,ja), n, np, &
+                pir, massM, chg, chg0, ats, rps, rpp, rpm, Hkl_a, Skl_a)
+            Hs_a = Hs_a + Glob_YHYCoeff(ja)*Hkl_a
+            Ss_a = Ss_a + Glob_YHYCoeff(ja)*Skl_a
+          endif
+        enddo
+        Hout_acc(ip_acc) = Hs_a
+        Sout_acc(ip_acc) = Ss_a
+      enddo
+      !$acc end parallel loop
+      call MPI_ALLREDUCE(Hout_acc, Hout_acc_r, npairs_acc, &
+          MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+      call MPI_ALLREDUCE(Sout_acc, Sout_acc_r, npairs_acc, &
+          MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+      ip_acc = 0
+      do ka=Nmin,Nmax
+        do la=ka,1,-1
+          ip_acc = ip_acc + 1
+          call StoreHS(ka, la, Hout_acc_r(ip_acc), Sout_acc_r(ip_acc))
+        enddo
+      enddo
+      deallocate(k_list_acc, l_list_acc, Hout_acc, Sout_acc, Hout_acc_r, Sout_acc_r)
+    else
+#endif
+
     Glob_HklBuff1(1:nb)=ZERO
     Glob_SklBuff1(1:nb)=ZERO
     i=0
@@ -215,6 +350,13 @@ contains
       enddo
     endif
 
+#ifdef USE_OPENACC
+    endif  !Glob_UseGPU
+#endif
+#ifdef USE_CUDA
+    endif  !Glob_UseGPU
+#endif
+
   end subroutine ComputeMatElem
 
   subroutine ComputeMatElemAndDeriv(Nmin,Nmax)
@@ -248,12 +390,75 @@ contains
     real(wp) Dksum(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
     real(wp) Dlsum(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
     logical     grad_l
+#ifdef USE_CUDA
+    integer              :: npairs_gpu, ipair_gpu
+    integer, allocatable :: k_list_gpu(:), l_list_gpu(:), grad_l_gpu(:)
+    real(wp), allocatable :: Hout_gpu(:), Sout_gpu(:)
+    real(wp), allocatable :: Hout_gpu_r(:), Sout_gpu_r(:)
+    real(wp), allocatable :: Dkout_gpu(:,:), Dlout_gpu(:,:)
+    real(wp), allocatable :: Dkout_gpu_r(:,:), Dlout_gpu_r(:,:)
+#endif
 
     n=Glob_n
     np=Glob_np
     npt=Glob_npt
     npt2=np*2
     nb=Glob_HSBuffLen
+
+#ifdef USE_CUDA
+    if (Glob_UseGPU) then
+      npairs_gpu = Nmax*(Nmax+1)/2 - (Nmin-1)*Nmin/2
+      allocate(k_list_gpu(npairs_gpu), l_list_gpu(npairs_gpu), grad_l_gpu(npairs_gpu))
+      allocate(Hout_gpu(npairs_gpu), Sout_gpu(npairs_gpu))
+      allocate(Hout_gpu_r(npairs_gpu), Sout_gpu_r(npairs_gpu))
+      allocate(Dkout_gpu(npt2,npairs_gpu), Dlout_gpu(npt2,npairs_gpu))
+      allocate(Dkout_gpu_r(npt2,npairs_gpu), Dlout_gpu_r(npt2,npairs_gpu))
+      ipair_gpu = 0
+      do k=Nmin,Nmax
+        do l=k,1,-1
+          ipair_gpu = ipair_gpu + 1
+          k_list_gpu(ipair_gpu) = k
+          l_list_gpu(ipair_gpu) = l
+          if ((l>Glob_nfru).and.(l/=k)) then
+            grad_l_gpu(ipair_gpu) = 1
+          else
+            grad_l_gpu(ipair_gpu) = 0
+          endif
+        enddo
+      enddo
+      Dkout_gpu = ZERO; Dlout_gpu = ZERO
+      call gpu_compute_matelem_and_deriv_batch( &
+          Glob_NonlinParam(1:np,1:Nmax), Nmax, &
+          k_list_gpu, l_list_gpu, grad_l_gpu, npairs_gpu, &
+          Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &  !pass by element ref (whole array); a (1:n,1:n,1) section makes nvfortran copy only term 1
+          n, np, Glob_NumOfProcs, Glob_ProcID, &
+          Glob_PiRaised3n2, Glob_MassMatrix(1:n,1:n), &
+          Glob_PseudoCharge(1:n), Glob_PseudoCharge0, &
+          Glob_AttractionScalingParam, Glob_RepulsionScalingParam, &
+          Glob_RepulsionScalingParamPlus, Glob_RepulsionScalingParamMinus, &
+          Hout_gpu, Sout_gpu, Dkout_gpu, Dlout_gpu)
+      call MPI_ALLREDUCE(Hout_gpu,  Hout_gpu_r,  npairs_gpu, &
+          MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+      call MPI_ALLREDUCE(Sout_gpu,  Sout_gpu_r,  npairs_gpu, &
+          MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+      call MPI_ALLREDUCE(Dkout_gpu, Dkout_gpu_r, npairs_gpu*npt2, &
+          MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+      if (Glob_nfo>1) &
+      call MPI_ALLREDUCE(Dlout_gpu, Dlout_gpu_r, npairs_gpu*npt2, &
+          MPI_WP, MPI_SUM, MPI_COMM_WORLD, Glob_MPIErrCode)
+      ipair_gpu = 0
+      do k=Nmin,Nmax
+        do l=k,1,-1
+          ipair_gpu = ipair_gpu + 1
+          call StoreHSD(k, l, Hout_gpu_r(ipair_gpu), Sout_gpu_r(ipair_gpu), &
+              Dkout_gpu_r(1:npt2,ipair_gpu), Dlout_gpu_r(1:npt2,ipair_gpu))
+        enddo
+      enddo
+      deallocate(k_list_gpu, l_list_gpu, grad_l_gpu)
+      deallocate(Hout_gpu, Sout_gpu, Hout_gpu_r, Sout_gpu_r)
+      deallocate(Dkout_gpu, Dlout_gpu, Dkout_gpu_r, Dlout_gpu_r)
+    else
+#endif
 
     Glob_HklBuff1(1:nb)=ZERO
     Glob_SklBuff1(1:nb)=ZERO
@@ -354,6 +559,10 @@ contains
         enddo
       enddo
     endif
+
+#ifdef USE_CUDA
+    endif  !Glob_UseGPU
+#endif
 
   end subroutine ComputeMatElemAndDeriv
 
