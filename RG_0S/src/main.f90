@@ -268,7 +268,7 @@ program main
     write(*,*) '================ PROFILING SUMMARY ================'
     write(*,'(1x,a,f12.3,a,i12,a)') 'Matrix-element build : ',Glob_TimeME, &
         ' s over ',Glob_CntME,' calls'
-    write(*,'(1x,a,f12.3,a,i12,a)') 'DSYGVX eigensolve    : ',Glob_TimeEIG, &
+    write(*,'(1x,a,f12.3,a,i12,a)') 'Eigensolve (G:DSYGVX/I:GSEPIIS): ',Glob_TimeEIG, &
         ' s over ',Glob_CntEIG,' calls'
     if (Glob_TimeME+Glob_TimeEIG>0.0_wp) &
       write(*,'(1x,a,f6.2,a,f6.2,a)') 'Share                : ME ', &
