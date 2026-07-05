@@ -887,7 +887,7 @@ contains
     real(wp)   ::  EMatr(nn,nn), KMatr(nn,nn), DMatr(nn,nn), FMatr(nn,nn), GMatr(nn,nn)
 
     isOOklNeeded = .true.
-    local_eps_for_xx = 1.d-6
+    local_eps_for_xx = 1.0e-6_wp
     n=Glob_n
     np=Glob_np
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
@@ -5717,7 +5717,7 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)+(t_XJV5+t_J
 
     integer :: indexI, indexJ ! indices enumerating particles from H_SO and AMM operators
 
-    localEps = 1.d-14 ! if the corresponding spin mean value is less then localEps, we don't calculate the spatial part
+    localEps = 1.0e-14_wp ! if the corresponding spin mean value is less then localEps, we don't calculate the spatial part
 
 ! basically copy-paste from the old ExpecVals subroutine
     n=Glob_n
@@ -5837,8 +5837,8 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)+(t_XJV5+t_J
     pm_l = m_l
     pmm_l = mm_l
     do i = 1, n
-      if (abs(Pket(m_l, i) - 1.d0) < 1.d-13) pm_l = i
-      if (abs(Pket(mm_l, i) - 1.d0) < 1.d-13) pmm_l = i
+      if (abs(Pket(m_l, i) - 1.0_wp) < 1.0e-13_wp) pm_l = i
+      if (abs(Pket(mm_l, i) - 1.0_wp) < 1.0e-13_wp) pmm_l = i
     enddo
 
     commonFactor = Glob_PiRaised3n2 / (Glob_SqrtPi * det_tAkl * sqrt(det_tAkl))
