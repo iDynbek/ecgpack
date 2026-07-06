@@ -19,14 +19,27 @@ to master's conventions:
 
 | Component | Source files | Runtime switch |
 |---|---|---|
-| CUDA matrix-element backend (energy + gradient) | `src/matelem_cuda.cu`, `src/matelem_gpu.f90`, `matform.f90` | `ECG_GPU=1` env var |
-| cuSOLVER generalized eigensolver (method **G**) | `src/eigen_cuda.cu`, `matelem_gpu.f90`, `workproc.f90` | `ECG_GPU_EIG=1` |
+| CUDA matrix-element backend (energy + gradient) | `src/matelem_cuda.cu`, `src/matelem_gpu.f90`, `src/gpu_backend.f90` | `ECG_GPU=1` env var |
+| cuSOLVER generalized eigensolver (method **G**) | `src/eigen_cuda.cu`, `matelem_gpu.f90`, `gpu_backend.f90`, `workproc.f90` | `ECG_GPU_EIG=1` |
 | Phase 0 — CUDA error checking | `matelem_cuda.cu`, `eigen_cuda.cu` | always on |
 | Phase 1 — persistent device context | `matelem_cuda.cu` | `ECG_GPU_PERSIST` (default on) |
-| Phase 2 — matrix-element batch chunking | `matform.f90` | `ECG_GPU_BATCH` (default 16384) |
+| Phase 2 — matrix-element batch chunking | `gpu_backend.f90` | `ECG_GPU_BATCH` (default 16384) |
 
 The matrix-element build is MPI-parallel (per-rank partial sums + `MPI_ALLREDUCE`);
 the eigensolve runs on rank 0.
+
+### Module layout — where the GPU code lives
+All GPU-specific Fortran is isolated so the shared sources stay minimal and a
+CPU build never sees it. `matelem_gpu.f90` is only the `iso_c_binding`
+declarations; `gpu_backend.f90` (compiled only under `USE_CUDA`) owns the
+run-time selection, device-context lifecycle, the chunked matrix-element builds,
+and the eigensolver dispatch. The shared sources carry only guarded touchpoints:
+`main.f90` calls `gpu_backend_init()` once (collective); `matform.f90` early-returns
+to `gpu_build_HS`/`gpu_build_HS_deriv` when `gpu_active()` (its CPU pair-loops are
+otherwise byte-identical to master); `workproc.f90` routes the method-G solve to
+the GPU when `gpu_eig_active()`. `gpu_backend` hands results back to matform's
+`StoreHS`/`StoreHSD` via procedure-argument callbacks, so it needs no dependency
+on matform. `globvars.f90` carries no GPU state at all.
 
 ---
 
@@ -89,10 +102,11 @@ Use `mpirun --bind-to none` on shabyt to avoid an HPC-X cpu-binding error.
 
 ### 4.1 CUDA matrix-element backend
 `matelem_cuda.cu` contains the device kernels for the energy and energy+gradient
-matrix elements; `matelem_gpu.f90` is the `iso_c_binding` interface; `matform.f90`
-dispatches to them when `Glob_UseGPU` is set. Each basis-function pair is a CUDA
-block; threads accumulate the contributions of the Y⁺Y operator terms. This is the
-dominant speedup for heavier atoms (≈40× for Carbon in earlier benchmarks).
+matrix elements; `matelem_gpu.f90` is the `iso_c_binding` interface; `gpu_backend.f90`
+drives the chunked build, and `matform.f90` early-returns to it when `gpu_active()`.
+Each basis-function pair is a CUDA block; threads accumulate the contributions of
+the Y⁺Y operator terms. This is the dominant speedup for heavier atoms (≈40× for
+Carbon in earlier benchmarks).
 
 ### 4.2 cuSOLVER GPU eigensolver (method G)
 `eigen_cuda.cu` wraps `cusolverDnDsygvdx` (divide-and-conquer, index range) — the

@@ -5,7 +5,7 @@ module workproc
   use matelem
   use linalg
 #ifdef USE_CUDA
-  use matelem_gpu
+  use gpu_backend
 #endif
   implicit none
 
@@ -271,10 +271,10 @@ contains
     call MPI_BCAST(Glob_RG_s1,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     call MPI_BCAST(Glob_RG_s2,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
-    !The GPU backend is selected at run time by environment variables, NOT by a
-    !keyword in inout.txt, so input/output decks stay toolchain-agnostic. For
-    !backward compatibility, silently consume a stray USE_GPU line if an older
-    !deck still carries one (it no longer has any effect).
+    !The GPU backend is selected at run time by environment variables (see
+    !gpu_backend_init), NOT by a keyword in inout.txt, so input/output decks stay
+    !toolchain-agnostic. For backward compatibility, silently consume a stray
+    !USE_GPU line if an older deck still carries one (it no longer has any effect).
     if (Glob_ProcID==0) then
       read(1,*,iostat=ReadErr) ReadChar(1:7)
       if ((ReadErr/=0).or.(ReadChar(1:7)/='USE_GPU')) then
@@ -283,21 +283,6 @@ contains
         Line=Line+1
       endif
     endif
-#ifdef USE_CUDA
-    !GPU backend selection (only meaningful in a USE_CUDA build):
-    !  ECG_GPU=1      -> route matrix-element builds to the CUDA backend
-    !  ECG_GPU_EIG=1  -> also solve method-G eigenproblems on the GPU (implies ECG_GPU)
-    if (Glob_ProcID==0) then
-      call get_environment_variable('ECG_GPU',ReadChar,status=i)
-      Glob_UseGPU=(i==0).and.(ReadChar(1:1)=='1')
-      if (Glob_UseGPU) write(*,'(1x,a)') 'GPU matrix-element backend ENABLED (ECG_GPU=1)'
-      call get_environment_variable('ECG_GPU_EIG',ReadChar,status=i)
-      Glob_UseGPUEig=Glob_UseGPU.and.(i==0).and.(ReadChar(1:1)=='1')
-      if (Glob_UseGPUEig) write(*,'(1x,a)') 'GPU eigensolver (cuSOLVER) ENABLED (ECG_GPU_EIG=1)'
-    endif
-    call MPI_BCAST(Glob_UseGPU,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    call MPI_BCAST(Glob_UseGPUEig,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-#endif
 
     if (Glob_ProcID==0) then
       read(1,'(a70)')   ReadChar(1:70)
@@ -2095,7 +2080,7 @@ contains
       enddo
       if (Glob_ProcID==0) then
 #ifdef USE_CUDA
-        if (Glob_UseGPUEig) then
+        if (gpu_eig_active()) then
           call gpu_dsygvx(0,Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
                           Glob_WhichEigenvalue,EVs(1),Z,ErrorCode)
         else
@@ -2167,7 +2152,7 @@ contains
       enddo
       if (Glob_ProcID==0) then
 #ifdef USE_CUDA
-        if (Glob_UseGPUEig) then
+        if (gpu_eig_active()) then
           call gpu_dsygvx(1,Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
                           Glob_WhichEigenvalue,EVs(1),Glob_c,ErrorCode)
         else
@@ -2269,7 +2254,7 @@ contains
 
       if (Glob_ProcID==0) then
 #ifdef USE_CUDA
-        if (Glob_UseGPUEig) then
+        if (gpu_eig_active()) then
           call gpu_dsygvx(1,nfa,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
                           Glob_WhichEigenvalue,EVs(1),Glob_c,ErrorCode)
         else

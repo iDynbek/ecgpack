@@ -243,9 +243,9 @@ ifeq ($(USE_CUDA), yes)
   export FCFLAGS+=-DUSE_CUDA
   export LINKFLAGS+=-cuda -c++libs -cudalib=cusolver,cublas
   export CUDA_OBJS=$(CONFIG)/matelem_cuda.o $(CONFIG)/eigen_cuda.o
-  export BARE_OBJS+=matelem_gpu.o
+  export BARE_OBJS+=matelem_gpu.o gpu_backend.o
   export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
-  GPU_DEP=$(CONFIG)/matelem_gpu.o
+  GPU_DEP=$(CONFIG)/matelem_gpu.o $(CONFIG)/gpu_backend.o
 endif
 
 .PHONY: release debug all clean cleaner cleanest cleandebug cleanrelease ptarg
@@ -327,6 +327,9 @@ $(CONFIG)/matelem.o: $(SRC_DIR)/matelem.f90 $(CONFIG)/globvars.o $(CONFIG)/spin.
 
 $(CONFIG)/matelem_gpu.o: $(SRC_DIR)/matelem_gpu.f90
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem_gpu.f90 -o $(CONFIG)/matelem_gpu.o
+
+$(CONFIG)/gpu_backend.o: $(SRC_DIR)/gpu_backend.f90 $(CONFIG)/globvars.o $(CONFIG)/matelem_gpu.o
+	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/gpu_backend.f90 -o $(CONFIG)/gpu_backend.o
 
 $(CONFIG)/matelem_cuda.o: $(SRC_DIR)/matelem_cuda.cu
 	$(NVCC) -c $(SRC_DIR)/matelem_cuda.cu -o $(CONFIG)/matelem_cuda.o \

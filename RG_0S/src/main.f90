@@ -2,7 +2,7 @@ program main
 
   use workproc
 #ifdef USE_CUDA
-  use matelem_gpu
+  use gpu_backend
 #endif
   implicit none
 
@@ -25,12 +25,12 @@ program main
     write (*,*)
   endif
 
+#ifdef USE_CUDA
+  call gpu_backend_init()   !env-select the GPU backend + bring up the device context (collective)
+#endif
   call ReadIOFile()
   if (Glob_IsOptCycleScripted) call ReadBlackList()
   call ProgramDataInit()
-#ifdef USE_CUDA
-  if (Glob_UseGPU) call gpu_init(Glob_ProcID)
-#endif
 
 !Seed the random number generators
   call random_seed()
@@ -251,7 +251,6 @@ program main
       endif
 
     endselect
-
   enddo
 
   if (Glob_ProcID==0) then
@@ -271,9 +270,6 @@ program main
     write(*,*) 'Program has stopped'
   endif
 
-#ifdef USE_CUDA
-  if (Glob_UseGPU) call gpu_finalize()
-#endif
   call MPI_FINALIZE(Glob_MPIErrCode)
 
 end program main

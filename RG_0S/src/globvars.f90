@@ -385,12 +385,6 @@ module globvars
   integer  :: Glob_EnergyGBCounter=0
   integer  :: Glob_EnergyIACounter=0
   integer  :: Glob_EnergyIBCounter=0
-!=============================================================
-!GPU backend enable flags (set at run time by the ECG_GPU / ECG_GPU_EIG
-!environment variables; only take effect in a USE_CUDA build)
-  logical :: Glob_UseGPU=.false.
-  logical :: Glob_UseGPUEig=.false.
-!=============================================================
 !Glob_InvItTempCounter1 and Glob_InvItTempCounter1 are used
 !for calculating the average number of inverse iterations
 !in certain cycles (when Glob_GSEPSolutionMethod='I')

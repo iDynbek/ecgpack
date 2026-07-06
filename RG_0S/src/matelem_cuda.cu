@@ -699,6 +699,12 @@ void gpu_matelem_finalize_(void) {
 
 void gpu_init_(int *local_rank)
 {
+    /* Register device teardown to run automatically at process exit, so the
+       Fortran side never has to call gpu_finalize_ explicitly (keeps main.f90
+       free of GPU lifecycle code). Guarded against repeated gpu_init_ calls. */
+    static int finalize_registered = 0;
+    void gpu_finalize_(void);
+    if (!finalize_registered) { atexit(gpu_finalize_); finalize_registered = 1; }
     int ndev = 0;
     cudaGetDeviceCount(&ndev);
     if (ndev == 0) { fprintf(stderr, "gpu_init: no CUDA devices\n"); return; }
