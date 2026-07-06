@@ -2,7 +2,7 @@ module matelem_cuf
 !SPIKE (single-source CUDA Fortran): GPU matrix-element kernels that call the
 !SHARED MatrixElements device routine in matelem.f90 -- NO duplicated physics.
 !The per-element math lives once, in matelem.f90, compiled as host,device.
-!Compiled only with -DUSE_CUF (nvfortran -cuda).
+!Compiled only with -DUSE_CUDA (nvfortran -cuda).
 !
 !Constants are passed as kernel arguments (mass/charge as contiguous device
 !arrays, scalars by value) rather than via constant memory, which avoids any

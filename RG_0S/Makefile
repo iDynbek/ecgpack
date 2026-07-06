@@ -64,11 +64,7 @@ CUDA_ARCH_shabyt = sm_70
 CUDA_ARCH_aurora = sm_86
 CUDA_ARCH = $(or $(CUDA_ARCH_$(MACHINE)),sm_86)
 
-# USE_CUF (SPIKE): replace the CUDA C++ *energy* kernel with a native CUDA Fortran
-# one (src/matelem_cuf.f90, nvfortran -cuda). Layers on top of USE_CUDA (the
-# gradient build + cuSOLVER eigensolver stay C++), so it A/Bs just the energy
-# kernel. CUF_GPU is the -gpu=ccXX arch, derived from CUDA_ARCH (sm_70 -> cc70).
-USE_CUF=no
+# CUF_GPU is the nvfortran -gpu=ccXX arch, derived from CUDA_ARCH (sm_70 -> cc70).
 CUF_GPU=$(subst sm_,cc,$(CUDA_ARCH))
 # CUF_MAXREG: cap registers/thread for the GPU device code. nvfortran otherwise
 # hoards up to 254 regs for the kernels + the shared MatrixElements they call,
@@ -260,9 +256,10 @@ ifeq ($(USE_CUDA), yes)
   # Native CUDA Fortran GPU build: the whole backend (matrix-element kernels,
   # device lifecycle, and the cuSOLVER eigensolver) lives in matelem_cuf.f90,
   # compiled by nvfortran -cuda. No nvcc, no .cu, no iso_c_binding shim, no C++
-  # runtime; cuSOLVER/cuBLAS are linked for the Fortran eigensolver. The USE_CUF
-  # macro guards the attributes(host,device) on MatrixElements + the CUF dispatch.
-  export FCFLAGS+=-DUSE_CUDA -DUSE_CUF -cuda -gpu=$(CUF_GPU),maxregcount:$(CUF_MAXREG)
+  # runtime; cuSOLVER/cuBLAS are linked for the Fortran eigensolver. -DUSE_CUDA
+  # guards BOTH the GPU backend (gpu_backend.f90 + the dispatch touchpoints) and the
+  # attributes(host,device) on MatrixElements so the shared physics is device-capable.
+  export FCFLAGS+=-DUSE_CUDA -cuda -gpu=$(CUF_GPU),maxregcount:$(CUF_MAXREG)
   export LINKFLAGS+=-cuda -gpu=$(CUF_GPU),maxregcount:$(CUF_MAXREG) -cudalib=cusolver,cublas
   export BARE_OBJS+=gpu_backend.o matelem_cuf.o
   export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)

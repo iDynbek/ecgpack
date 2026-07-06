@@ -6,7 +6,7 @@ module matelem
 
 contains
 
-#ifdef USE_CUF
+#ifdef USE_CUDA
   attributes(host,device) &
 #endif
   subroutine MatrixElements(n, np, vechLk, vechLl, P, mass, charge, charge0, &
@@ -1636,7 +1636,7 @@ contains
 ! host,device variant with the scaling constants passed in (device code cannot
 ! read the Glob_* module globals). Used by MatrixElements so that routine can run
 ! on the GPU; the plain ScaledChargeProd above still serves the host-only callers.
-#ifdef USE_CUF
+#ifdef USE_CUDA
   attributes(host,device) &
 #endif
   function ScaledChargeProdD(q1,q2,attr,rep,repp,repm)
