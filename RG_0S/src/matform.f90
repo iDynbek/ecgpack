@@ -169,7 +169,11 @@ contains
         q=(i-1)*Glob_NumYHYTerms-1
         do j=1,Glob_NumYHYTerms
           if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-            call MatrixElements(Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j),Hkl,Skl,Dk,Dl,.false.,.false.)
+            call MatrixElements(n,np,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+                                Glob_MassMatrix(1:n,1:n),Glob_PseudoCharge(1:n),Glob_PseudoCharge0, &
+                                Glob_SqrtPi,Glob_PiRaised3n2,Glob_AttractionScalingParam, &
+                                Glob_RepulsionScalingParam,Glob_RepulsionScalingParamPlus, &
+                                Glob_RepulsionScalingParamMinus,Hkl,Skl,Dk,Dl,.false.,.false.)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl
           endif
@@ -300,7 +304,11 @@ contains
         q=(i-1)*Glob_NumYHYTerms-1
         do j=1,Glob_NumYHYTerms
           if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-            call MatrixElements(Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j),Hkl,Skl,Dk,Dl,.true.,grad_l)
+            call MatrixElements(n,np,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+                                Glob_MassMatrix(1:n,1:n),Glob_PseudoCharge(1:n),Glob_PseudoCharge0, &
+                                Glob_SqrtPi,Glob_PiRaised3n2,Glob_AttractionScalingParam, &
+                                Glob_RepulsionScalingParam,Glob_RepulsionScalingParamPlus, &
+                                Glob_RepulsionScalingParamMinus,Hkl,Skl,Dk,Dl,.true.,grad_l)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl
             Dksum(1:npt2)=Dksum(1:npt2)+Glob_YHYCoeff(j)*Dk(1:npt2)

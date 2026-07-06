@@ -6,7 +6,11 @@ module matelem
 
 contains
 
-  subroutine MatrixElements(vechLk, vechLl, P, &
+#ifdef USE_CUF
+  attributes(host,device) &
+#endif
+  subroutine MatrixElements(n, np, vechLk, vechLl, P, mass, charge, charge0, &
+                            sqrtpi, pir3n2, attr, rep, repp, repm, &
                             Hkl, Skl, Dk, Dl, grad_k, grad_l)
 !This subroutine computes symmetry adapted matrix element with
 !two real L=0 correlated Gaussians:
@@ -32,11 +36,17 @@ contains
 !           Dl=(dHkldvechLl,dSkldvechLl)
 
 !Arguments
-    real(wp),intent(in)      :: vechLk(Glob_np), vechLl(Glob_np)
-    real(wp),intent(in)      :: P(Glob_n,Glob_n)
+!  (Physics constants are passed in rather than read from the Glob_* module
+!   globals so this routine can also run as CUDA Fortran device code -- device
+!   code cannot read host module variables. The bodies are unchanged.)
+    integer,intent(in),value :: n, np
+    real(wp),intent(in)      :: vechLk(np), vechLl(np)
+    real(wp),intent(in)      :: P(n,n)
+    real(wp),intent(in)      :: mass(n,n), charge(n)
+    real(wp),intent(in),value :: charge0, sqrtpi, pir3n2, attr, rep, repp, repm
     real(wp),intent(out)     :: Skl,Hkl
-    real(wp),intent(out)     :: Dk(2*Glob_np),Dl(2*Glob_np)
-    logical,intent(in)          :: grad_k, grad_l
+    real(wp),intent(out)     :: Dk(2*np),Dl(2*np)
+    logical,intent(in),value    :: grad_k, grad_l
 
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
@@ -45,7 +55,6 @@ contains
     integer,parameter :: nnp=nn*(nn+1)/2
 
 !Local variables
-    integer           n, np
     real(wp)       dHkldvechLk(nnp), dHkldvechLl(nnp)
     real(wp)       dSkldvechLk(nnp), dSkldvechLl(nnp)
     real(wp)       Lk(nn,nn), Ll(nn,nn), inv_Lk(nn,nn), inv_Ll(nn,nn)
@@ -62,8 +71,6 @@ contains
     real(wp)       Tkl, Vkl
     integer           i, j, k, kk, kkk, q, t, indx
 
-    n=Glob_n
-    np=Glob_np
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
     indx=0
     do i=1,n
@@ -176,7 +183,7 @@ contains
 
 !temp1=abs(det_Ll*det_Lk)/det_tAkl
 !Skl=Glob_2Raised3n2*temp1*sqrt(temp1)
-    Skl=Glob_PiRaised3n2/(det_tAkl*sqrt(det_tAkl))  !new line
+    Skl=pir3n2/(det_tAkl*sqrt(det_tAkl))  !new line
 
 !Doing multiplication W2=inv_tAkl*tAl
     do i=1,n
@@ -194,7 +201,7 @@ contains
       do j=1,n
         temp1=ZERO
         do k=1,n
-          temp1=temp1+W2(j,k)*Glob_MassMatrix(k,i)
+          temp1=temp1+W2(j,k)*mass(k,i)
         enddo
         inv_tAkltAlM(j,i)=temp1
       enddo
@@ -214,14 +221,14 @@ contains
 !Evaluating potential energy, Vkl, and tr[invCkl*Jij]^(-3/2)
 !The lower triangle of array trinvCklJij32
 !will contain the corresponding quantities.
-    temp1=(TWO/Glob_SqrtPi)*Skl
+    temp1=(TWO/sqrtpi)*Skl
     Vkl=ZERO
     do i=1,n
       temp3=inv_tAkl(i,i)
       temp4=sqrt(temp3)
       tr_inv_tAklJij32(i,i)=1/(temp4*temp3)
       temp5=temp1/temp4
-      Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge0)*temp5
+      Vkl=Vkl+ScaledChargeProdD(charge(i),charge0,attr,rep,repp,repm)*temp5
     enddo
     do i=1,n
       do j=i+1,n
@@ -229,7 +236,7 @@ contains
         temp4=sqrt(temp3)
         tr_inv_tAklJij32(j,i)=1/(temp4*temp3)
         temp5=temp1/temp4
-        Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*temp5
+        Vkl=Vkl+ScaledChargeProdD(charge(i),charge(j),attr,rep,repp,repm)*temp5
       enddo
     enddo
 
@@ -356,7 +363,7 @@ contains
         do j=1,n
           temp1=ZERO
           do k=1,n
-            temp1=temp1+Ak(i,k)*Glob_MassMatrix(k,j)
+            temp1=temp1+Ak(i,k)*mass(k,j)
           enddo
           W1(i,j)=temp1
         enddo
@@ -559,9 +566,9 @@ contains
           !Calculating ij-terms of the sums in the expressions for
           !the dVkldvechLk and dVkldvechLl
           if (i==j) then
-            temp1=ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*tr_inv_tAklJij32(i,i)
+            temp1=ScaledChargeProdD(charge0,charge(i),attr,rep,repp,repm)*tr_inv_tAklJij32(i,i)
           else
-            temp1=ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*tr_inv_tAklJij32(i,j)
+            temp1=ScaledChargeProdD(charge(i),charge(j),attr,rep,repp,repm)*tr_inv_tAklJij32(i,j)
           endif
           if (grad_k) then
             indx=0
@@ -589,7 +596,7 @@ contains
       enddo
       !Multiplying by common factors and getting the final
       !result for the gradient of Vkl
-      temp1=(TWO/Glob_SqrtPi)*Skl
+      temp1=(TWO/sqrtpi)*Skl
       if (grad_k) dHkldvechLk(1:np)=dHkldvechLk(1:np)+(Vkl/Skl)*dSkldvechLk(1:np)+temp1*WVcLk(1:np)
       if (grad_l) dHkldvechLl(1:np)=dHkldvechLl(1:np)+(Vkl/Skl)*dSkldvechLl(1:np)+temp1*WVcLl(1:np)
     endif
@@ -1625,6 +1632,27 @@ contains
       endif
     endif
   end function ScaledChargeProd
+
+! host,device variant with the scaling constants passed in (device code cannot
+! read the Glob_* module globals). Used by MatrixElements so that routine can run
+! on the GPU; the plain ScaledChargeProd above still serves the host-only callers.
+#ifdef USE_CUF
+  attributes(host,device) &
+#endif
+  function ScaledChargeProdD(q1,q2,attr,rep,repp,repm)
+    real(wp) ScaledChargeProdD,x
+    real(wp),value :: q1,q2,attr,rep,repp,repm
+    x=q1*q2
+    if (x<0.0_wp) then
+      ScaledChargeProdD=x*attr
+    else
+      if ((q1>0.0_wp).and.(q2>0.0_wp)) then
+        ScaledChargeProdD=x*rep*repp
+      else
+        ScaledChargeProdD=x*rep*repm
+      endif
+    endif
+  end function ScaledChargeProdD
 
   function ME_rXr_over_rij(X,i,j,inv_tAkl,ME_1_over_rij,TrAJ)
 !Function ME_rXr_over_rij computes the following
