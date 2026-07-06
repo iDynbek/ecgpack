@@ -52,9 +52,9 @@ LINALG=netlib
 #
 #   make release COMPILER=nvfortran MACHINE=shabyt USE_CUDA=yes LINALG=netlib   # arch from MACHINE
 #
-# USE_CUDA: build the native CUDA Fortran GPU backend (src/matelem_cuf.f90,
-# nvfortran -cuda) -- matrix-element kernels, device lifecycle, and the cuSOLVER
-# eigensolver, all Fortran. No nvcc / no C++.
+# USE_CUDA: build the native CUDA Fortran GPU backend (src/gpu_backend.f90,
+# nvfortran -cuda) -- orchestration, matrix-element kernels, device lifecycle, and
+# the cuSOLVER eigensolver, all Fortran in one module. No nvcc / no C++.
 USE_CUDA=no
 # CUDA_ARCH: the GPU compute capability passed to nvcc (-arch=sm_XX). It defaults
 # from MACHINE so you don't have to remember it per host; override by passing
@@ -245,7 +245,6 @@ export OBJS+=$(OBJS_LPKBLS)
 # the nvcc object needs. Requires COMPILER=nvfortran and PREC=8.
 export CUDA_OBJS=
 GPU_DEP=
-CUF_DEP=
 ifeq ($(USE_CUDA), yes)
   ifneq ($(COMPILER), nvfortran)
     $(error USE_CUDA=yes requires COMPILER=nvfortran)
@@ -253,19 +252,19 @@ ifeq ($(USE_CUDA), yes)
   ifneq ($(PREC), 8)
     $(error USE_CUDA=yes is only supported with PREC=8)
   endif
-  # Native CUDA Fortran GPU build: the whole backend (matrix-element kernels,
-  # device lifecycle, and the cuSOLVER eigensolver) lives in matelem_cuf.f90,
-  # compiled by nvfortran -cuda. No nvcc, no .cu, no iso_c_binding shim, no C++
-  # runtime; cuSOLVER/cuBLAS are linked for the Fortran eigensolver. -DUSE_CUDA
-  # guards BOTH the GPU backend (gpu_backend.f90 + the dispatch touchpoints) and the
+  # Native CUDA Fortran GPU build: the whole backend -- run-time orchestration,
+  # the matrix-element kernels + host launchers, the device lifecycle, and the
+  # cuSOLVER eigensolver -- lives in one module, gpu_backend.f90, compiled by
+  # nvfortran -cuda. No nvcc, no .cu, no iso_c_binding shim, no C++ runtime;
+  # cuSOLVER/cuBLAS are linked for the Fortran eigensolver. -DUSE_CUDA guards BOTH
+  # the backend (gpu_backend.f90 + the dispatch touchpoints) and the
   # attributes(host,device) on MatrixElements so the shared physics is device-capable.
   export FCFLAGS+=-DUSE_CUDA -cuda -gpu=$(CUF_GPU),maxregcount:$(CUF_MAXREG)
   export LINKFLAGS+=-cuda -gpu=$(CUF_GPU),maxregcount:$(CUF_MAXREG) -cudalib=cusolver,cublas
-  export BARE_OBJS+=gpu_backend.o matelem_cuf.o
+  export BARE_OBJS+=gpu_backend.o
   export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
-  GPU_DEP=$(CONFIG)/gpu_backend.o $(CONFIG)/matelem_cuf.o
-  CUF_DEP=$(CONFIG)/matelem_cuf.o
-  GPUBACK_MODDEP=$(CONFIG)/matelem_cuf.o
+  GPU_DEP=$(CONFIG)/gpu_backend.o
+  GPUBACK_MODDEP=$(CONFIG)/matelem.o
 endif
 
 .PHONY: release debug all clean cleaner cleanest cleandebug cleanrelease ptarg
@@ -344,9 +343,6 @@ $(CONFIG)/misc.o: $(SRC_DIR)/misc.f90 $(CONFIG)/globvars.o
 
 $(CONFIG)/matelem.o: $(SRC_DIR)/matelem.f90 $(CONFIG)/globvars.o $(CONFIG)/spin.o
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem.f90 -o $(CONFIG)/matelem.o
-
-$(CONFIG)/matelem_cuf.o: $(SRC_DIR)/matelem_cuf.f90 $(CONFIG)/globvars.o $(CONFIG)/matelem.o
-	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem_cuf.f90 -o $(CONFIG)/matelem_cuf.o
 
 $(CONFIG)/gpu_backend.o: $(SRC_DIR)/gpu_backend.f90 $(CONFIG)/globvars.o $(GPUBACK_MODDEP)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/gpu_backend.f90 -o $(CONFIG)/gpu_backend.o
