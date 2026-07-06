@@ -14,7 +14,8 @@ module matelem_cuf
   private
   public :: cuf_compute_matelem_batch, cuf_compute_matelem_deriv_batch
 
-  integer, parameter :: NN = Glob_AllowedNumOfPseudoParticles
+  integer, parameter :: NN  = Glob_AllowedNumOfPseudoParticles
+  integer, parameter :: NNP = NN*(NN+1)/2       !max packed vech length; Dk/Dl are 2*np long (np=n(n+1)/2)
 
 contains
 
@@ -35,7 +36,7 @@ contains
     real(wp), shared :: sh_H, sh_S
     integer  :: pair_idx, j, qbase, k0, l0, istat
     real(wp) :: Hkl, Skl, coeff
-    real(wp) :: dDk(2*NN), dDl(2*NN)   !unused energy-path gradient outputs
+    real(wp) :: dDk(2*NNP), dDl(2*NNP)   !unused energy-path gradient outputs
 
     pair_idx = blockIdx%x
     j        = threadIdx%x
@@ -117,9 +118,9 @@ contains
     real(wp), value  :: charge0, sqrtpi, pir3n2, attr, rep, repp, repm
     real(wp)         :: Hout(*), Sout(*), Dkout(*), Dlout(*)   !Dk/Dl slabs (2*np,npairs) flattened
     real(wp), shared :: sh_H, sh_S
-    real(wp), shared :: sh_Dk(2*NN), sh_Dl(2*NN)
+    real(wp), shared :: sh_Dk(2*NNP), sh_Dl(2*NNP)
     integer  :: pair_idx, j, qbase, k0, l0, istat, q, npt2, nthr
-    real(wp) :: Hkl, Skl, coeff, Dk(2*NN), Dl(2*NN)
+    real(wp) :: Hkl, Skl, coeff, Dk(2*NNP), Dl(2*NNP)
     logical  :: gl
 
     pair_idx = blockIdx%x
