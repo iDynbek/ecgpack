@@ -252,43 +252,7 @@ program main
 
     endselect
 
-    !PROFILING: after each BBOP step, report basis size K and the
-    !cumulative / last-single wall time in matrix-element builds vs
-    !the DSYGVX eigensolve (added for CUDA-acceleration study).
-    if (Glob_ProcID==0) then
-      write(*,'(1x,a,i4,1x,a,a,i6,a,f10.3,a,f10.3,a,e11.3,a,e11.3)') &
-        'PROF step',i,Glob_BBOP(i)%Action,' K=',Glob_CurrBasisSize, &
-        ' | cumME=',Glob_TimeME,'s cumEIG=',Glob_TimeEIG, &
-        's | lastME=',Glob_LastME,'s lastEIG=',Glob_LastEIG
-    endif
   enddo
-
-  if (Glob_ProcID==0) then
-    write(*,*)
-    write(*,*) '================ PROFILING SUMMARY ================'
-    write(*,'(1x,a,f12.3,a,i12,a)') 'Matrix-element build : ',Glob_TimeME, &
-        ' s over ',Glob_CntME,' calls'
-    write(*,'(1x,a,f12.3,a,i12,a)') 'Eigensolve (G:DSYGVX/I:GSEPIIS): ',Glob_TimeEIG, &
-        ' s over ',Glob_CntEIG,' calls'
-    if (Glob_TimeME+Glob_TimeEIG>0.0_wp) &
-      write(*,'(1x,a,f6.2,a,f6.2,a)') 'Share                : ME ', &
-        100*Glob_TimeME/(Glob_TimeME+Glob_TimeEIG),'%   EIG ', &
-        100*Glob_TimeEIG/(Glob_TimeME+Glob_TimeEIG),'%'
-    write(*,*) '--- MatrixElements internal phase breakdown ---'
-    if (Glob_ProfRate>0 .and. (Glob_TkE+Glob_TkSTg+Glob_TkVg)>0) then
-      write(*,'(1x,a,f10.3,a,f6.2,a)') 'Energy path        : ', &
-        real(Glob_TkE,wp)/real(Glob_ProfRate,wp),' s  (', &
-        100.0*real(Glob_TkE,wp)/real(Glob_TkE+Glob_TkSTg+Glob_TkVg,wp),'%)'
-      write(*,'(1x,a,f10.3,a,f6.2,a)') 'S/T-gradient path  : ', &
-        real(Glob_TkSTg,wp)/real(Glob_ProfRate,wp),' s  (', &
-        100.0*real(Glob_TkSTg,wp)/real(Glob_TkE+Glob_TkSTg+Glob_TkVg,wp),'%)'
-      write(*,'(1x,a,f10.3,a,f6.2,a)') 'Vkl-gradient path  : ', &
-        real(Glob_TkVg,wp)/real(Glob_ProfRate,wp),' s  (', &
-        100.0*real(Glob_TkVg,wp)/real(Glob_TkE+Glob_TkSTg+Glob_TkVg,wp),'%)'
-    endif
-    write(*,*) '==================================================='
-    write(*,*)
-  endif
 
   if (Glob_ProcID==0) then
     if (Glob_UseSwapFile) then

@@ -24,7 +24,6 @@ to master's conventions:
 | Phase 0 — CUDA error checking | `matelem_cuda.cu`, `eigen_cuda.cu` | always on |
 | Phase 1 — persistent device context | `matelem_cuda.cu` | `ECG_GPU_PERSIST` (default on) |
 | Phase 2 — matrix-element batch chunking | `matform.f90` | `ECG_GPU_BATCH` (default 16384) |
-| Method-I profiling instrumentation | `workproc.f90`, `main.f90` | always on (near-zero cost) |
 
 The matrix-element build is MPI-parallel (per-rank partial sums + `MPI_ALLREDUCE`);
 the eigensolve runs on rank 0.
@@ -78,9 +77,6 @@ by nvfortran, to avoid linking a system BLAS against nvfortran).
 For a 2-GPU node, run `mpirun -np 2` with `--gres=gpu:2`; device = `rank % nGPUs`.
 Use `mpirun --bind-to none` on shabyt to avoid an HPC-X cpu-binding error.
 
-The program also prints a **PROFILING SUMMARY** at the end: total time and call
-counts for the matrix-element build vs the eigensolve, and their percentage split.
-
 ---
 
 ## 4. Changes and optimizations in detail
@@ -124,11 +120,6 @@ identically. Rank 0 logs the pair/chunk counts when chunking engages. With Phase
 grow-on-demand device buffers, **host and device memory are now bounded by the chunk
 size at any K**. Chunking is numerically exact: each pair's element is independent and
 the per-element `ALLREDUCE` sum is unchanged by grouping.
-
-### 4.6 Method-I profiling instrumentation
-The profiling timers previously wrapped only the method-G routines. `EnergyIA`/`IAM`/`IB`
-now time their `ComputeMatElem[AndDeriv]` (as ME) and `GSEPIIS` (as eigensolve) calls,
-so a method-I run reports a real ME-vs-eigensolve split.
 
 ---
 
@@ -174,6 +165,10 @@ Method-I ME-vs-eigensolve split (Carbon K≈205–210, single-rank V100, GPU ME 
 
 The method-I production path is **eigensolve-bound** even with the GPU ME kernel
 active, and the eigensolve is serial (rank-0 only) — see §7.
+
+> The per-call `system_clock` instrumentation used to produce this table is kept
+> **off this branch** to keep the production energy/eigensolve routines clean; it
+> lives on branch `gpu-profiling` (rebase it on when you need to re-measure).
 
 ---
 

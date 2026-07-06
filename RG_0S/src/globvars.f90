@@ -390,20 +390,6 @@ module globvars
   logical :: Glob_UseGPU=.false.
   logical :: Glob_UseGPUEig=.false.
 !=============================================================
-!PROFILING accumulators (added for CUDA-acceleration study).
-!Glob_TimeME / Glob_TimeEIG  = cumulative wall time (seconds)
-!  spent in matrix-element builds and in the DSYGVX eigensolve.
-!Glob_LastME / Glob_LastEIG  = time of the most recent single op.
-!Glob_CntME  / Glob_CntEIG   = number of times each was invoked.
-!=============================================================
-  real(wp) :: Glob_TimeME=0.0_wp, Glob_TimeEIG=0.0_wp
-  real(wp) :: Glob_LastME=0.0_wp, Glob_LastEIG=0.0_wp
-  integer(8)  :: Glob_CntME=0, Glob_CntEIG=0
-!Phase breakdown inside MatrixElements: energy path, S/T-gradient
-!path, and the Vkl-gradient (particle-pair) path. Accumulated in
-!raw system_clock ticks to keep per-call overhead minimal; divided
-!by Glob_ProfRate (the clock rate) at report time.
-  integer(8)  :: Glob_TkE=0, Glob_TkSTg=0, Glob_TkVg=0, Glob_ProfRate=1
 !Glob_InvItTempCounter1 and Glob_InvItTempCounter1 are used
 !for calculating the average number of inverse iterations
 !in certain cycles (when Glob_GSEPSolutionMethod='I')
@@ -566,27 +552,5 @@ module globvars
 
   real(wp), external :: DLAMCH
   integer, external  :: ILAENV
-
-contains
-
-!=============================================================
-!Profiling helper (added for CUDA-acceleration study).
-!Given a start tick t0 (from system_clock), accumulate the
-!elapsed wall time into the matrix-element bucket (isEig=.false.)
-!or the eigensolve bucket (isEig=.true.).
-!=============================================================
-subroutine ProfAccum(t0,isEig)
-  integer(8),intent(in) :: t0
-  logical,intent(in)    :: isEig
-  integer(8)            :: t1,rate
-  real(wp)           :: dt
-  call system_clock(t1,rate)
-  dt=real(t1-t0,wp)/real(rate,wp)
-  if (isEig) then
-    Glob_TimeEIG=Glob_TimeEIG+dt; Glob_LastEIG=dt; Glob_CntEIG=Glob_CntEIG+1
-  else
-    Glob_TimeME=Glob_TimeME+dt; Glob_LastME=dt; Glob_CntME=Glob_CntME+1
-  endif
-end subroutine ProfAccum
 
 end module globvars
