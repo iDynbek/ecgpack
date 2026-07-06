@@ -70,6 +70,15 @@ CUDA_ARCH = $(or $(CUDA_ARCH_$(MACHINE)),sm_86)
 # kernel. CUF_GPU is the -gpu=ccXX arch, derived from CUDA_ARCH (sm_70 -> cc70).
 USE_CUF=no
 CUF_GPU=$(subst sm_,cc,$(CUDA_ARCH))
+# CUF_MAXREG: cap registers/thread for the GPU device code. nvfortran otherwise
+# hoards up to 254 regs for the kernels + the shared MatrixElements they call,
+# which starves occupancy (~12%) and runs ~9-12% slower than the hand-tuned C++
+# kernel. Capping to 128 lifts occupancy and matches/beats nvcc (measured on V100,
+# Carbon: energy kernel 254regs=+12%, 128regs=+0.5%, 96regs=-2.4%). This is a
+# global -gpu cap (not per-kernel launch_bounds) BECAUSE MatrixElements is a
+# separate non-inlined device function: launch_bounds only limits the kernel
+# entry, so its 254-reg callee would fail nvlink; the flag caps both uniformly.
+CUF_MAXREG=128
 
 # Set the default name for the generated executable file
 EXEFILE=ecg
@@ -253,8 +262,8 @@ ifeq ($(USE_CUDA), yes)
   # compiled by nvfortran -cuda. No nvcc, no .cu, no iso_c_binding shim, no C++
   # runtime; cuSOLVER/cuBLAS are linked for the Fortran eigensolver. The USE_CUF
   # macro guards the attributes(host,device) on MatrixElements + the CUF dispatch.
-  export FCFLAGS+=-DUSE_CUDA -DUSE_CUF -cuda -gpu=$(CUF_GPU)
-  export LINKFLAGS+=-cuda -gpu=$(CUF_GPU) -cudalib=cusolver,cublas
+  export FCFLAGS+=-DUSE_CUDA -DUSE_CUF -cuda -gpu=$(CUF_GPU),maxregcount:$(CUF_MAXREG)
+  export LINKFLAGS+=-cuda -gpu=$(CUF_GPU),maxregcount:$(CUF_MAXREG) -cudalib=cusolver,cublas
   export BARE_OBJS+=gpu_backend.o matelem_cuf.o
   export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
   GPU_DEP=$(CONFIG)/gpu_backend.o $(CONFIG)/matelem_cuf.o
