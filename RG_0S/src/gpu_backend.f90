@@ -169,6 +169,17 @@ contains
         if ((nf==batch).or.(ipair==npairs)) then
           Dkout(1:npt2,1:nf)=ZERO
           Dlout(1:npt2,1:nf)=ZERO
+#ifdef USE_CUF
+          call cuf_compute_matelem_deriv_batch( &                         !SPIKE: CUDA Fortran gradient kernel
+              Glob_NonlinParam(1:np,1:Nmax), Nmax, k_list, l_list, grad_l, nf, &
+              Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &
+              n, np, Glob_NumOfProcs, Glob_ProcID, &
+              Glob_PiRaised3n2, Glob_MassMatrix(1:n,1:n), &
+              Glob_PseudoCharge(1:n), Glob_PseudoCharge0, &
+              Glob_AttractionScalingParam, Glob_RepulsionScalingParam, &
+              Glob_RepulsionScalingParamPlus, Glob_RepulsionScalingParamMinus, &
+              Hout, Sout, Dkout, Dlout)
+#else
           call gpu_compute_matelem_and_deriv_batch( &
               Glob_NonlinParam(1:np,1:Nmax), Nmax, k_list, l_list, grad_l, nf, &
               Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &  !whole array by element ref (see note in gpu_build_HS)
@@ -178,6 +189,7 @@ contains
               Glob_AttractionScalingParam, Glob_RepulsionScalingParam, &
               Glob_RepulsionScalingParamPlus, Glob_RepulsionScalingParamMinus, &
               Hout, Sout, Dkout, Dlout)
+#endif
           call MPI_ALLREDUCE(Hout, Hout_r, nf,      MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           call MPI_ALLREDUCE(Sout, Sout_r, nf,      MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           call MPI_ALLREDUCE(Dkout,Dkout_r,nf*npt2, MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
