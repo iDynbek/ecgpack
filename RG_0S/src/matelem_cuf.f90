@@ -270,7 +270,7 @@ contains
     endif
     istat = cusolverDnDsygvdx(hdl, CUSOLVER_EIG_TYPE_1, jobz, &
         CUSOLVER_EIG_RANGE_I, uplo, n, dA, n, dB, n, 0.0_wp, 0.0_wp, &
-        iwhich, iwhich, meig, dW, dwork, lwork, dinfo)
+        iwhich, iwhich, meig, dW, dwork, lwork, dinfo(1))
     istat = cudaDeviceSynchronize()
 
     info_out = dinfo(1)          !D2H scalar
