@@ -8,11 +8,14 @@ module matelem_cuf
 !arrays, scalars by value) rather than via constant memory, which avoids any
 !leading-dimension mismatch when handing them to MatrixElements' mass(n,n).
   use cudafor
+  use cublas
+  use cusolverDn
   use matelem,  only: MatrixElements
   use globvars, only: wp, Glob_AllowedNumOfPseudoParticles
   implicit none
   private
   public :: cuf_compute_matelem_batch, cuf_compute_matelem_deriv_batch
+  public :: gpu_init, gpu_finalize, gpu_dsygvx
 
   integer, parameter :: NN  = Glob_AllowedNumOfPseudoParticles
   integer, parameter :: NNP = NN*(NN+1)/2       !max packed vech length; Dk/Dl are 2*np long (np=n(n+1)/2)
@@ -204,5 +207,82 @@ contains
     Hout = d_H; Sout = d_S; Dkout = d_Dk; Dlout = d_Dl
     deallocate(d_Nonlin, d_YHY, d_coeff, d_mass, d_charge, d_k, d_l, d_gl, d_H, d_S, d_Dk, d_Dl)
   end subroutine cuf_compute_matelem_deriv_batch
+
+  !===========================================================================
+  ! Device lifecycle (replaces gpu_init_/gpu_finalize_ in matelem_cuda.cu).
+  !===========================================================================
+  subroutine gpu_init(local_rank)
+    integer :: local_rank
+    integer :: ndev, dev, istat
+    type(cudaDeviceProp) :: prop
+    istat = cudaGetDeviceCount(ndev)
+    if (ndev <= 0) then
+      write(*,*) 'gpu_init: no CUDA devices'; return
+    endif
+    dev   = mod(local_rank, ndev)
+    istat = cudaSetDevice(dev)
+    istat = cudaGetDeviceProperties(prop, dev)
+    write(*,'(1x,a,i0,a,i0,a,a)') 'gpu_init: rank ',local_rank,' -> device ',dev,' ',trim(prop%name)
+  end subroutine gpu_init
+
+  subroutine gpu_finalize()
+    integer :: istat
+    istat = cudaDeviceReset()
+  end subroutine gpu_finalize
+
+  !===========================================================================
+  ! cuSOLVER generalized symmetric eigensolver (replaces eigen_cuda.cu).
+  ! Solves H x = lambda S x (itype 1), returns the iwhich-th eigenvalue and,
+  ! if jobz_vec/=0, its eigenvector. Handle + device buffers cached across calls.
+  !===========================================================================
+  subroutine gpu_dsygvx(jobz_vec, n, H, ldH, S, ldS, iwhich, eval, Z, info_out)
+    integer  :: jobz_vec, n, ldH, ldS, iwhich, info_out
+    real(wp) :: H(ldH,n), S(ldS,n), eval, Z(*)
+    real(wp), device, allocatable, save :: dA(:,:), dB(:,:), dW(:), dwork(:)
+    integer,  device, allocatable, save :: dinfo(:)
+    type(cusolverDnHandle), save :: hdl
+    logical, save :: created = .false.
+    integer, save :: cap_n = 0, cap_work = 0
+    integer :: istat, lwork, meig, jobz, uplo
+    real(wp) :: hA(n,n), hB(n,n), hZ(n), hW1(1)   !host staging (device<->host via cudaMemcpy)
+    integer  :: hinfo(1)
+
+    if (.not. created) then
+      istat = cusolverDnCreate(hdl)
+      allocate(dinfo(1))
+      created = .true.
+    endif
+    if (n > cap_n) then
+      if (allocated(dA)) deallocate(dA, dB, dW)
+      allocate(dA(n,n), dB(n,n), dW(n)); cap_n = n
+    endif
+    hA(1:n,1:n) = H(1:n,1:n)      !host de-stride (ld -> n), then explicit H2D
+    hB(1:n,1:n) = S(1:n,1:n)
+    istat = cudaMemcpy(dA, hA, n*n)   !array-section device assignment ICEs nvfortran -> use cudaMemcpy
+    istat = cudaMemcpy(dB, hB, n*n)
+
+    jobz = CUSOLVER_EIG_MODE_NOVECTOR
+    if (jobz_vec /= 0) jobz = CUSOLVER_EIG_MODE_VECTOR
+    uplo = CUBLAS_FILL_MODE_UPPER
+
+    istat = cusolverDnDsygvdx_bufferSize(hdl, CUSOLVER_EIG_TYPE_1, jobz, &
+        CUSOLVER_EIG_RANGE_I, uplo, n, dA, n, dB, n, 0.0_wp, 0.0_wp, &
+        iwhich, iwhich, meig, dW, lwork)
+    if (lwork > cap_work) then
+      if (allocated(dwork)) deallocate(dwork)
+      allocate(dwork(lwork)); cap_work = lwork
+    endif
+    istat = cusolverDnDsygvdx(hdl, CUSOLVER_EIG_TYPE_1, jobz, &
+        CUSOLVER_EIG_RANGE_I, uplo, n, dA, n, dB, n, 0.0_wp, 0.0_wp, &
+        iwhich, iwhich, meig, dW, dwork, lwork, dinfo(1))
+    istat = cudaDeviceSynchronize()
+
+    istat = cudaMemcpy(hinfo, dinfo, 1); info_out = hinfo(1)   !D2H
+    istat = cudaMemcpy(hW1, dW, 1);      eval     = hW1(1)     !selected eigenvalue (first of meig)
+    if (jobz_vec /= 0) then
+      istat = cudaMemcpy(hZ, dA, n)      !D2H first column of A (the eigenvector)
+      Z(1:n) = hZ(1:n)
+    endif
+  end subroutine gpu_dsygvx
 
 end module matelem_cuf

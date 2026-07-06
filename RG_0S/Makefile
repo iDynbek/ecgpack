@@ -52,10 +52,10 @@ LINALG=netlib
 #
 #   make release COMPILER=nvfortran MACHINE=shabyt USE_CUDA=yes LINALG=netlib   # arch from MACHINE
 #
-# USE_CUDA: the energy/gradient kernels in matelem_cuda.cu are compiled by nvcc
-# and linked into the nvfortran-built program.
+# USE_CUDA: build the native CUDA Fortran GPU backend (src/matelem_cuf.f90,
+# nvfortran -cuda) -- matrix-element kernels, device lifecycle, and the cuSOLVER
+# eigensolver, all Fortran. No nvcc / no C++.
 USE_CUDA=no
-NVCC=nvcc
 # CUDA_ARCH: the GPU compute capability passed to nvcc (-arch=sm_XX). It defaults
 # from MACHINE so you don't have to remember it per host; override by passing
 # CUDA_ARCH=... explicitly for any other GPU.
@@ -240,6 +240,7 @@ export OBJS+=$(OBJS_LPKBLS)
 # the nvcc object needs. Requires COMPILER=nvfortran and PREC=8.
 export CUDA_OBJS=
 GPU_DEP=
+CUF_DEP=
 ifeq ($(USE_CUDA), yes)
   ifneq ($(COMPILER), nvfortran)
     $(error USE_CUDA=yes requires COMPILER=nvfortran)
@@ -247,27 +248,18 @@ ifeq ($(USE_CUDA), yes)
   ifneq ($(PREC), 8)
     $(error USE_CUDA=yes is only supported with PREC=8)
   endif
-  export FCFLAGS+=-DUSE_CUDA
-  export LINKFLAGS+=-cuda -c++libs -cudalib=cusolver,cublas
-  export CUDA_OBJS=$(CONFIG)/matelem_cuda.o $(CONFIG)/eigen_cuda.o
-  export BARE_OBJS+=matelem_gpu.o gpu_backend.o
+  # Native CUDA Fortran GPU build: the whole backend (matrix-element kernels,
+  # device lifecycle, and the cuSOLVER eigensolver) lives in matelem_cuf.f90,
+  # compiled by nvfortran -cuda. No nvcc, no .cu, no iso_c_binding shim, no C++
+  # runtime; cuSOLVER/cuBLAS are linked for the Fortran eigensolver. The USE_CUF
+  # macro guards the attributes(host,device) on MatrixElements + the CUF dispatch.
+  export FCFLAGS+=-DUSE_CUDA -DUSE_CUF -cuda -gpu=$(CUF_GPU)
+  export LINKFLAGS+=-cuda -gpu=$(CUF_GPU) -cudalib=cusolver,cublas
+  export BARE_OBJS+=gpu_backend.o matelem_cuf.o
   export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
-  GPU_DEP=$(CONFIG)/matelem_gpu.o $(CONFIG)/gpu_backend.o
-endif
-
-# CUDA Fortran energy kernel (USE_CUF=yes, SPIKE). Requires USE_CUDA=yes and
-# COMPILER=nvfortran; the whole build gets -cuda so the module and its <<<>>>
-# launch compile, and matelem_cuf.o is added to the link.
-ifeq ($(USE_CUF), yes)
-  ifneq ($(USE_CUDA), yes)
-    $(error USE_CUF=yes requires USE_CUDA=yes)
-  endif
-  export FCFLAGS+=-DUSE_CUF -cuda -gpu=$(CUF_GPU)
-  export LINKFLAGS+=-cuda -gpu=$(CUF_GPU)
-  export BARE_OBJS+=matelem_cuf.o
-  export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
-  GPU_DEP+=$(CONFIG)/matelem_cuf.o
+  GPU_DEP=$(CONFIG)/gpu_backend.o $(CONFIG)/matelem_cuf.o
   CUF_DEP=$(CONFIG)/matelem_cuf.o
+  GPUBACK_MODDEP=$(CONFIG)/matelem_cuf.o
 endif
 
 .PHONY: release debug all clean cleaner cleanest cleandebug cleanrelease ptarg
@@ -347,22 +339,11 @@ $(CONFIG)/misc.o: $(SRC_DIR)/misc.f90 $(CONFIG)/globvars.o
 $(CONFIG)/matelem.o: $(SRC_DIR)/matelem.f90 $(CONFIG)/globvars.o $(CONFIG)/spin.o
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem.f90 -o $(CONFIG)/matelem.o
 
-$(CONFIG)/matelem_gpu.o: $(SRC_DIR)/matelem_gpu.f90
-	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem_gpu.f90 -o $(CONFIG)/matelem_gpu.o
-
 $(CONFIG)/matelem_cuf.o: $(SRC_DIR)/matelem_cuf.f90 $(CONFIG)/globvars.o $(CONFIG)/matelem.o
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem_cuf.f90 -o $(CONFIG)/matelem_cuf.o
 
-$(CONFIG)/gpu_backend.o: $(SRC_DIR)/gpu_backend.f90 $(CONFIG)/globvars.o $(CONFIG)/matelem_gpu.o $(CUF_DEP)
+$(CONFIG)/gpu_backend.o: $(SRC_DIR)/gpu_backend.f90 $(CONFIG)/globvars.o $(GPUBACK_MODDEP)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/gpu_backend.f90 -o $(CONFIG)/gpu_backend.o
-
-$(CONFIG)/matelem_cuda.o: $(SRC_DIR)/matelem_cuda.cu
-	$(NVCC) -c $(SRC_DIR)/matelem_cuda.cu -o $(CONFIG)/matelem_cuda.o \
-	  -O3 -arch=$(CUDA_ARCH) --compiler-options '-fPIC'
-
-$(CONFIG)/eigen_cuda.o: $(SRC_DIR)/eigen_cuda.cu
-	$(NVCC) -c $(SRC_DIR)/eigen_cuda.cu -o $(CONFIG)/eigen_cuda.o \
-	  -O3 -arch=$(CUDA_ARCH) --compiler-options '-fPIC'
 
 $(CONFIG)/matform.o: $(SRC_DIR)/matform.f90 $(CONFIG)/matelem.o $(GPU_DEP)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matform.f90 -o $(CONFIG)/matform.o
