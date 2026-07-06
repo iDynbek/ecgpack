@@ -44,19 +44,19 @@ PREC=8
 # quadruple precision. For PREC=10 and PREC=16 the value of LINALG must be netlib.
 LINALG=netlib
 
-# GPU backends. BOTH require COMPILER=nvfortran (the NVIDIA HPC SDK): the host
-# Fortran is compiled by nvfortran for either backend, so there is a single GPU
-# toolchain (nvfortran + nvcc + HPC-X MPI). Load the nvhpc module first. GPU builds
-# are PREC=8 only and use LINALG=netlib so the bundled reference BLAS/LAPACK are
+# GPU backend. Requires COMPILER=nvfortran (the NVIDIA HPC SDK): the host Fortran
+# and the device kernels are both compiled by nvfortran -cuda, so there is a single
+# toolchain (nvfortran + HPC-X MPI). Load the nvhpc module first. GPU builds are
+# PREC=8 only and use LINALG=netlib so the bundled reference BLAS/LAPACK are
 # compiled by nvfortran (avoids linking a system optimized library against nvfortran).
 #
 #   make release COMPILER=nvfortran MACHINE=shabyt USE_CUDA=yes LINALG=netlib   # arch from MACHINE
 #
 # USE_CUDA: build the native CUDA Fortran GPU backend (src/gpu_backend.f90,
 # nvfortran -cuda) -- orchestration, matrix-element kernels, device lifecycle, and
-# the cuSOLVER eigensolver, all Fortran in one module. No nvcc / no C++.
+# the cuSOLVER eigensolver, all Fortran in one module.
 USE_CUDA=no
-# CUDA_ARCH: the GPU compute capability passed to nvcc (-arch=sm_XX). It defaults
+# CUDA_ARCH: the GPU compute capability (nvfortran -gpu=ccXX). It defaults
 # from MACHINE so you don't have to remember it per host; override by passing
 # CUDA_ARCH=... explicitly for any other GPU.
 #   sm_70 = V100 (shabyt)   sm_80 = A100   sm_86 = RTX 3060 Ti (aurora)   sm_90 = H100
@@ -68,9 +68,9 @@ CUDA_ARCH = $(or $(CUDA_ARCH_$(MACHINE)),sm_86)
 CUF_GPU=$(subst sm_,cc,$(CUDA_ARCH))
 # CUF_MAXREG: cap registers/thread for the GPU device code. nvfortran otherwise
 # hoards up to 254 regs for the kernels + the shared MatrixElements they call,
-# which starves occupancy (~12%) and runs ~9-12% slower than the hand-tuned C++
-# kernel. Capping to 128 lifts occupancy and matches/beats nvcc (measured on V100,
-# Carbon: energy kernel 254regs=+12%, 128regs=+0.5%, 96regs=-2.4%). This is a
+# which starves occupancy (~12%). Capping to 128 lifts occupancy and speeds the
+# kernels up (measured on V100, Carbon energy kernel, total time relative to the
+# 254-reg default: 128regs=-10%, 96regs=-13%; 72regs=-8% as spilling takes over). This is a
 # global -gpu cap (not per-kernel launch_bounds) BECAUSE MatrixElements is a
 # separate non-inlined device function: launch_bounds only limits the kernel
 # entry, so its 254-reg callee would fail nvlink; the flag caps both uniformly.
@@ -240,9 +240,8 @@ export BARE_OBJS=wp_def_$(PREC).o X1MACH.o dmng.o globvars.o misc.o linalg.o \
 export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS))
 export OBJS+=$(OBJS_LPKBLS)
 
-# CUDA backend (USE_CUDA=yes). The nvfortran-built program links the nvcc-compiled
-# kernel object; -cuda pulls in the CUDA runtime and -c++libs the C++ runtime that
-# the nvcc object needs. Requires COMPILER=nvfortran and PREC=8.
+# CUDA backend (USE_CUDA=yes). nvfortran -cuda compiles the device kernels and pulls
+# in the CUDA runtime; -cudalib links cuSOLVER/cuBLAS. Requires COMPILER=nvfortran and PREC=8.
 export CUDA_OBJS=
 GPU_DEP=
 ifeq ($(USE_CUDA), yes)
@@ -255,8 +254,7 @@ ifeq ($(USE_CUDA), yes)
   # Native CUDA Fortran GPU build: the whole backend -- run-time orchestration,
   # the matrix-element kernels + host launchers, the device lifecycle, and the
   # cuSOLVER eigensolver -- lives in one module, gpu_backend.f90, compiled by
-  # nvfortran -cuda. No nvcc, no .cu, no iso_c_binding shim, no C++ runtime;
-  # cuSOLVER/cuBLAS are linked for the Fortran eigensolver. -DUSE_CUDA guards BOTH
+  # nvfortran -cuda. cuSOLVER/cuBLAS are linked for the eigensolver. -DUSE_CUDA guards BOTH
   # the backend (gpu_backend.f90 + the dispatch touchpoints) and the
   # attributes(host,device) on MatrixElements so the shared physics is device-capable.
   export FCFLAGS+=-DUSE_CUDA -cuda -gpu=$(CUF_GPU),maxregcount:$(CUF_MAXREG)
