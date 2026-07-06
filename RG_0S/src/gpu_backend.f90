@@ -9,9 +9,10 @@ module gpu_backend
 !matform's StoreHS/StoreHSD through procedure arguments, so this module does not
 !depend on matform (which would be circular) yet reuses its storage routines.
   use globvars      !Glob_* state, MPI symbols, wp / MPI_WP (via wp_def)
-  use matelem_gpu   !ISO_C_BINDING interfaces to matelem_cuda.cu / eigen_cuda.cu
 #ifdef USE_CUF
-  use matelem_cuf   !SPIKE: native CUDA Fortran energy kernel (replaces the C++ one)
+  use matelem_cuf   !native CUDA Fortran GPU backend (kernels + lifecycle + eigensolver)
+#else
+  use matelem_gpu   !ISO_C_BINDING interfaces to matelem_cuda.cu / eigen_cuda.cu
 #endif
   implicit none
   private
