@@ -23,7 +23,7 @@ module load NVHPC/25.9-CUDA-12.9.1
 
 HERE=$(pwd)
 BIN=$HERE/ecg_bin
-BASE=$HERE/base.txt          # 201-basis deck whose single step is "EXPC_VALS G 201" (with USE_GPU present)
+BASE=$HERE/base.txt          # 201-basis deck whose single step is "EXPC_VALS G 201" (no GPU keyword; GPU is env-selected)
 RES=$HERE/results.txt
 : > "$RES"
 
@@ -34,8 +34,10 @@ run_cfg() {
   rm -rf "$d"; mkdir -p "$d"; cd "$d"
   cp "$BIN" ./ecg_bin
   cp "$BASE" ./inout.txt
-  [ "$usegpu" = no ] && sed -i '/^ USE_GPU/d' inout.txt
-  env "$@" mpirun --bind-to none -np "$np" ./ecg_bin > out.log 2>&1 &
+  sed -i '/^ *USE_GPU/d' inout.txt          # keep the deck pristine; GPU is selected by env now
+  local gpuenv=""
+  [ "$usegpu" = yes ] && gpuenv="ECG_GPU=1"  # opt in to the CUDA backend for this run
+  env $gpuenv "$@" mpirun --bind-to none -np "$np" ./ecg_bin > out.log 2>&1 &
   local pid=$!
   local i
   for i in $(seq 1 180); do

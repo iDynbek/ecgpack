@@ -50,14 +50,19 @@ LINALG=netlib
 # are PREC=8 only and use LINALG=netlib so the bundled reference BLAS/LAPACK are
 # compiled by nvfortran (avoids linking a system optimized library against nvfortran).
 #
-#   make release COMPILER=nvfortran MACHINE=shabyt USE_CUDA=yes    CUDA_ARCH=sm_70  LINALG=netlib
+#   make release COMPILER=nvfortran MACHINE=shabyt USE_CUDA=yes LINALG=netlib   # arch from MACHINE
 #
 # USE_CUDA: the energy/gradient kernels in matelem_cuda.cu are compiled by nvcc
-# (CUDA_ARCH = sm_70 V100 / sm_80 A100 / sm_86 RTX 3060 Ti) and linked into the
-# nvfortran-built program.
+# and linked into the nvfortran-built program.
 USE_CUDA=no
 NVCC=nvcc
-CUDA_ARCH=sm_86
+# CUDA_ARCH: the GPU compute capability passed to nvcc (-arch=sm_XX). It defaults
+# from MACHINE so you don't have to remember it per host; override by passing
+# CUDA_ARCH=... explicitly for any other GPU.
+#   sm_70 = V100 (shabyt)   sm_80 = A100   sm_86 = RTX 3060 Ti (aurora)   sm_90 = H100
+CUDA_ARCH_shabyt = sm_70
+CUDA_ARCH_aurora = sm_86
+CUDA_ARCH = $(or $(CUDA_ARCH_$(MACHINE)),sm_86)
 
 # Set the default name for the generated executable file
 EXEFILE=ecg
@@ -67,7 +72,7 @@ SRC_DIR=./src
 
 # Set compiler flags for each machine and compiler type (for both release and debug builds).
 
-ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon puma ocelote elgato),)
+ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt aurora muon puma ocelote elgato),)
   # gfortran and Open MPI (default on most Linux systems)
   ifeq ($(COMPILER), gfortran)
     FC=mpif90
@@ -279,7 +284,7 @@ cleanest:
 ptarg:
 	@echo CONFIG=$(CONFIG)
 ifeq ($(COMPILER_SUPPORTED), yes)
-	@echo Using COMPILER=$(COMPILER) MACHINE=$(MACHINE) PREC=$(PREC) LINALG=$(LINALG) EXEFILE=$(CONFIG)/$(EXEFILE)
+	@echo Using COMPILER=$(COMPILER) MACHINE=$(MACHINE) PREC=$(PREC) LINALG=$(LINALG) EXEFILE=$(CONFIG)/$(EXEFILE)$(if $(filter yes,$(USE_CUDA)), USE_CUDA=yes CUDA_ARCH=$(CUDA_ARCH),)
 else
 	@echo Error - there is no support for COMPILER=$(COMPILER) MACHINE=$(MACHINE) PREC=$(PREC) LINALG=$(LINALG)
 	@false

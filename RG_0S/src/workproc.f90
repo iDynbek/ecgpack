@@ -271,24 +271,31 @@ contains
     call MPI_BCAST(Glob_RG_s1,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     call MPI_BCAST(Glob_RG_s2,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
+    !The GPU backend is selected at run time by environment variables, NOT by a
+    !keyword in inout.txt, so input/output decks stay toolchain-agnostic. For
+    !backward compatibility, silently consume a stray USE_GPU line if an older
+    !deck still carries one (it no longer has any effect).
     if (Glob_ProcID==0) then
       read(1,*,iostat=ReadErr) ReadChar(1:7)
       if ((ReadErr/=0).or.(ReadChar(1:7)/='USE_GPU')) then
-        Glob_UseGPU=.false.
         backspace 1
       else
-        Glob_UseGPU=.true.
-        write(*,'(1x,a7)') ReadChar(1:7)
         Line=Line+1
       endif
     endif
-    call MPI_BCAST(Glob_UseGPU,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 #ifdef USE_CUDA
+    !GPU backend selection (only meaningful in a USE_CUDA build):
+    !  ECG_GPU=1      -> route matrix-element builds to the CUDA backend
+    !  ECG_GPU_EIG=1  -> also solve method-G eigenproblems on the GPU (implies ECG_GPU)
     if (Glob_ProcID==0) then
+      call get_environment_variable('ECG_GPU',ReadChar,status=i)
+      Glob_UseGPU=(i==0).and.(ReadChar(1:1)=='1')
+      if (Glob_UseGPU) write(*,'(1x,a)') 'GPU matrix-element backend ENABLED (ECG_GPU=1)'
       call get_environment_variable('ECG_GPU_EIG',ReadChar,status=i)
       Glob_UseGPUEig=Glob_UseGPU.and.(i==0).and.(ReadChar(1:1)=='1')
-      if (Glob_UseGPUEig) write(*,'(1x,a)') 'GPU eigensolver (cuSOLVER) ENABLED'
+      if (Glob_UseGPUEig) write(*,'(1x,a)') 'GPU eigensolver (cuSOLVER) ENABLED (ECG_GPU_EIG=1)'
     endif
+    call MPI_BCAST(Glob_UseGPU,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     call MPI_BCAST(Glob_UseGPUEig,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 #endif
 
@@ -663,7 +670,6 @@ contains
       call writereal(1,Glob_RG_p1)
       call writereal(1,Glob_RG_s1)
       call writerealadv(1,Glob_RG_s2)
-      if (Glob_UseGPU) write(1,'(1x,a7)') 'USE_GPU'
       write(1,*) '=============================='
       i=Glob_CurrBasisSize
       write(1,'(1x,i6)',advance='no')  i

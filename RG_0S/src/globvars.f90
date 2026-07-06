@@ -386,7 +386,8 @@ module globvars
   integer  :: Glob_EnergyIACounter=0
   integer  :: Glob_EnergyIBCounter=0
 !=============================================================
-!GPU backend enable flag (set at run time by the USE_GPU keyword)
+!GPU backend enable flags (set at run time by the ECG_GPU / ECG_GPU_EIG
+!environment variables; only take effect in a USE_CUDA build)
   logical :: Glob_UseGPU=.false.
   logical :: Glob_UseGPUEig=.false.
 !=============================================================

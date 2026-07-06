@@ -19,7 +19,7 @@ to master's conventions:
 
 | Component | Source files | Runtime switch |
 |---|---|---|
-| CUDA matrix-element backend (energy + gradient) | `src/matelem_cuda.cu`, `src/matelem_gpu.f90`, `matform.f90` | `USE_GPU` deck line |
+| CUDA matrix-element backend (energy + gradient) | `src/matelem_cuda.cu`, `src/matelem_gpu.f90`, `matform.f90` | `ECG_GPU=1` env var |
 | cuSOLVER generalized eigensolver (method **G**) | `src/eigen_cuda.cu`, `matelem_gpu.f90`, `workproc.f90` | `ECG_GPU_EIG=1` |
 | Phase 0 — CUDA error checking | `matelem_cuda.cu`, `eigen_cuda.cu` | always on |
 | Phase 1 — persistent device context | `matelem_cuda.cu` | `ECG_GPU_PERSIST` (default on) |
@@ -47,12 +47,18 @@ with preprocessing: gfortran `-cpp`, ifort/ifx `-fpp`, nvfortran `-Mpreprocess`.
 # load NVHPC (>=25.3; see the 24.9 caveat below) — its bundled HPC-X mpif90 wraps nvfortran
 module load NVHPC/25.9-CUDA-12.9.1
 make release COMPILER=nvfortran MACHINE=shabyt PREC=8 LINALG=netlib \
-     USE_CUDA=yes CUDA_ARCH=sm_70 EXEFILE=ecg_cuda      # sm_70 V100 / sm_80 A100 / sm_86 RTX 3060 Ti
+     USE_CUDA=yes EXEFILE=ecg_cuda          # CUDA_ARCH inferred from MACHINE (shabyt -> sm_70)
 ```
 `USE_CUDA=yes` compiles `matelem_cuda.cu` + `eigen_cuda.cu` with nvcc, adds
 `-DUSE_CUDA`, and links `-cuda -c++libs -cudalib=cusolver,cublas`. GPU builds are
 `PREC=8` only and use `LINALG=netlib` (the bundled reference BLAS/LAPACK compiled
 by nvfortran, to avoid linking a system BLAS against nvfortran).
+
+**`CUDA_ARCH` defaults from `MACHINE`** so you don't have to remember the compute
+capability per host: `MACHINE=shabyt` → `sm_70` (V100), `MACHINE=aurora` → `sm_86`
+(RTX 3060 Ti), anything else → `sm_86`. Override for any other GPU by passing
+`CUDA_ARCH=sm_80` (A100), `sm_90` (H100), etc. The chosen arch is echoed at the
+top of the build.
 
 ### Toolchain caveats
 - **Use NVHPC ≥ 25.3.** nvfortran **24.9 ICEs** compiling `linalg.f90`
@@ -68,8 +74,8 @@ by nvfortran, to avoid linking a system BLAS against nvfortran).
 
 | Control | Where | Default | Effect |
 |---|---|---|---|
-| `USE_GPU` | deck line, immediately after `GENERATOR_PARAM` | off | Route the matrix-element build to the GPU (CUDA). Read positionally by the parser. |
-| `ECG_GPU_EIG` | env var | `0` | `1` = solve method-**G** eigenproblems on the GPU (cuSOLVER) instead of LAPACK `DSYGVX`. |
+| `ECG_GPU` | env var | `0` | `1` = route the matrix-element build to the CUDA backend. No `inout.txt` keyword — decks stay toolchain-agnostic. (No effect in a non-`USE_CUDA` build.) |
+| `ECG_GPU_EIG` | env var | `0` | `1` = solve method-**G** eigenproblems on the GPU (cuSOLVER) instead of LAPACK `DSYGVX`. Implies `ECG_GPU`. |
 | `ECG_GPU_PERSIST` | env var | `1` | `1` = persistent/grown device buffers (Phase 1); `0` = legacy malloc/free per call (for A/B). |
 | `ECG_GPU_PROFILE` | env var | `0` | `1` = print accumulated GPU time / call counts at finalize. |
 | `ECG_GPU_BATCH` | env var | `16384` | Max pairs per GPU matrix-element chunk (Phase 2). Read on rank 0, broadcast to all ranks. |
