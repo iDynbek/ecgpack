@@ -206,7 +206,7 @@ contains
 
   ! ==========================================================================
   !  (2) DEVICE CODE -- kernels, host launchers, lifecycle, eigensolver
-  !  (formerly the separate module matelem_cuf; all private except gpu_dsygvx)
+  !  (all private except gpu_dsygvx)
   ! ==========================================================================
 
   !Energy kernel: one block per (k,l) pair; threads STRIDE over the permutation
