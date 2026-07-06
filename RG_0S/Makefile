@@ -350,7 +350,7 @@ $(CONFIG)/matelem.o: $(SRC_DIR)/matelem.f90 $(CONFIG)/globvars.o $(CONFIG)/spin.
 $(CONFIG)/matelem_gpu.o: $(SRC_DIR)/matelem_gpu.f90
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem_gpu.f90 -o $(CONFIG)/matelem_gpu.o
 
-$(CONFIG)/matelem_cuf.o: $(SRC_DIR)/matelem_cuf.f90 $(CONFIG)/globvars.o
+$(CONFIG)/matelem_cuf.o: $(SRC_DIR)/matelem_cuf.f90 $(CONFIG)/globvars.o $(CONFIG)/matelem.o
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem_cuf.f90 -o $(CONFIG)/matelem_cuf.o
 
 $(CONFIG)/gpu_backend.o: $(SRC_DIR)/gpu_backend.f90 $(CONFIG)/globvars.o $(CONFIG)/matelem_gpu.o $(CUF_DEP)
