@@ -19,6 +19,12 @@ module matelem_cuf
 
   integer, parameter :: NN  = Glob_AllowedNumOfPseudoParticles
   integer, parameter :: NNP = NN*(NN+1)/2       !max packed vech length; Dk/Dl are 2*np long (np=n(n+1)/2)
+  integer, parameter :: CUF_BLK = 128           !threads/block. The term loop STRIDES, so block size is
+                                                 !independent of NumYHYTerms. The shared single-source
+                                                 !MatrixElements costs ~254 regs/thread on device; 254*128 <
+                                                 !65536 (V100 per-block reg limit), so heavy atoms (large
+                                                 !NumYHYTerms, e.g. Carbon=720) launch instead of failing.
+                                                 !One-thread-per-term busted this at ~258 terms.
 
 contains
 
@@ -42,17 +48,16 @@ contains
     real(wp) :: dDk(2*NNP), dDl(2*NNP)   !unused energy-path gradient outputs
 
     pair_idx = blockIdx%x
-    j        = threadIdx%x
-    if (j==1) then
+    if (threadIdx%x==1) then
       sh_H=0.0_wp; sh_S=0.0_wp
     endif
     call syncthreads()
 
-    if (j <= nterms) then
-      qbase = (pair_idx-1)*nterms - 1        !matches Fortran q=(i-1)*nterms-1
+    qbase = (pair_idx-1)*nterms - 1          !matches Fortran q=(i-1)*nterms-1
+    k0    = k_list(pair_idx)                 !pair-only: hoist out of the term loop
+    l0    = l_list(pair_idx)
+    do j = threadIdx%x, nterms, blockDim%x   !STRIDED: block size independent of nterms
       if (mod(qbase+j, nprocs) == procid) then
-        k0 = k_list(pair_idx)
-        l0 = l_list(pair_idx)
         call MatrixElements(n, np, NonlinParam(1,k0), NonlinParam(1,l0), &
                             YHYMatr((j-1)*n*n+1), mass, charge, charge0, &
                             sqrtpi, pir3n2, attr, rep, repp, repm, &
@@ -61,10 +66,10 @@ contains
         istat = atomicadd(sh_H, coeff*Hkl)
         istat = atomicadd(sh_S, coeff*Skl)
       endif
-    endif
+    enddo
     call syncthreads()
 
-    if (j==1) then
+    if (threadIdx%x==1) then
       Hout(pair_idx)=sh_H; Sout(pair_idx)=sh_S
     endif
   end subroutine me_energy_kernel
@@ -87,6 +92,7 @@ contains
     real(wp), device, allocatable :: d_mass(:,:), d_charge(:)
     integer,  device, allocatable :: d_k(:), d_l(:)
     real(wp) :: sqrtpi
+    integer  :: blk, istat
 
     sqrtpi = sqrt(4.0_wp*atan(1.0_wp))
     allocate(d_Nonlin(np,Kmax), d_YHY(n*n*nterms), d_coeff(nterms))
@@ -96,9 +102,13 @@ contains
     d_mass = mass; d_charge = charge
     d_k = k_list; d_l = l_list
 
-    call me_energy_kernel<<<npairs, nterms>>>(d_Nonlin, np, Kmax, d_k, d_l, &
+    blk = min(nterms, CUF_BLK)
+    call me_energy_kernel<<<npairs, blk>>>(d_Nonlin, np, Kmax, d_k, d_l, &
         d_YHY, d_coeff, nterms, n, nprocs, procid, &
         d_mass, d_charge, charge0, sqrtpi, pir3n2, attr, rep, repp, repm, d_H, d_S)
+    istat = cudaGetLastError()
+    if (istat /= cudaSuccess) write(*,'(1x,a,a)') &
+        'FATAL cuf_compute_matelem_batch: energy kernel launch failed: ',trim(cudaGetErrorString(istat))
 
     Hout = d_H; Sout = d_S
     deallocate(d_Nonlin, d_YHY, d_coeff, d_mass, d_charge, d_k, d_l, d_H, d_S)
@@ -127,23 +137,22 @@ contains
     logical  :: gl
 
     pair_idx = blockIdx%x
-    j        = threadIdx%x
     nthr     = blockDim%x
     npt2     = 2*np
-    if (j==1) then
+    if (threadIdx%x==1) then
       sh_H=0.0_wp; sh_S=0.0_wp
     endif
-    do q=j,npt2,nthr          !stride-init the shared gradient slabs
+    do q=threadIdx%x,npt2,nthr    !stride-init the shared gradient slabs
       sh_Dk(q)=0.0_wp; sh_Dl(q)=0.0_wp
     enddo
     call syncthreads()
 
-    if (j <= nterms) then
-      qbase = (pair_idx-1)*nterms - 1
+    qbase = (pair_idx-1)*nterms - 1
+    k0    = k_list(pair_idx)                !pair-only: hoist out of the term loop
+    l0    = l_list(pair_idx)
+    gl    = (grad_l_flag(pair_idx)==1)
+    do j = threadIdx%x, nterms, nthr        !STRIDED: block size independent of nterms
       if (mod(qbase+j, nprocs) == procid) then
-        k0 = k_list(pair_idx)
-        l0 = l_list(pair_idx)
-        gl = (grad_l_flag(pair_idx)==1)
         call MatrixElements(n, np, NonlinParam(1,k0), NonlinParam(1,l0), &
                             YHYMatr((j-1)*n*n+1), mass, charge, charge0, &
                             sqrtpi, pir3n2, attr, rep, repp, repm, &
@@ -156,13 +165,13 @@ contains
           if (gl) istat = atomicadd(sh_Dl(q), coeff*Dl(q))
         enddo
       endif
-    endif
+    enddo
     call syncthreads()
 
-    if (j==1) then
+    if (threadIdx%x==1) then
       Hout(pair_idx)=sh_H; Sout(pair_idx)=sh_S
     endif
-    do q=j,npt2,nthr          !stride-write the slabs back to global
+    do q=threadIdx%x,npt2,nthr    !stride-write the slabs back to global
       Dkout((pair_idx-1)*npt2+q)=sh_Dk(q)
       Dlout((pair_idx-1)*npt2+q)=sh_Dl(q)
     enddo
@@ -187,7 +196,7 @@ contains
     real(wp), device, allocatable :: d_mass(:,:), d_charge(:), d_Dk(:), d_Dl(:)
     integer,  device, allocatable :: d_k(:), d_l(:), d_gl(:)
     real(wp) :: sqrtpi
-    integer  :: npt2
+    integer  :: npt2, blk, istat
 
     npt2   = 2*np
     sqrtpi = sqrt(4.0_wp*atan(1.0_wp))
@@ -199,10 +208,14 @@ contains
     d_mass = mass; d_charge = charge
     d_k = k_list; d_l = l_list; d_gl = grad_l_flag
 
-    call me_grad_kernel<<<npairs, nterms>>>(d_Nonlin, np, Kmax, d_k, d_l, d_gl, &
+    blk = min(nterms, CUF_BLK)
+    call me_grad_kernel<<<npairs, blk>>>(d_Nonlin, np, Kmax, d_k, d_l, d_gl, &
         d_YHY, d_coeff, nterms, n, nprocs, procid, &
         d_mass, d_charge, charge0, sqrtpi, pir3n2, attr, rep, repp, repm, &
         d_H, d_S, d_Dk, d_Dl)
+    istat = cudaGetLastError()
+    if (istat /= cudaSuccess) write(*,'(1x,a,a)') &
+        'FATAL cuf_compute_matelem_deriv_batch: grad kernel launch failed: ',trim(cudaGetErrorString(istat))
 
     Hout = d_H; Sout = d_S; Dkout = d_Dk; Dlout = d_Dl
     deallocate(d_Nonlin, d_YHY, d_coeff, d_mass, d_charge, d_k, d_l, d_gl, d_H, d_S, d_Dk, d_Dl)
