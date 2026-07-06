@@ -51,7 +51,6 @@ LINALG=netlib
 # compiled by nvfortran (avoids linking a system optimized library against nvfortran).
 #
 #   make release COMPILER=nvfortran MACHINE=shabyt USE_CUDA=yes    CUDA_ARCH=sm_70  LINALG=netlib
-#   make release COMPILER=nvfortran MACHINE=shabyt USE_OPENACC=yes OPENACC_ARCH=cc70 LINALG=netlib
 #
 # USE_CUDA: the energy/gradient kernels in matelem_cuda.cu are compiled by nvcc
 # (CUDA_ARCH = sm_70 V100 / sm_80 A100 / sm_86 RTX 3060 Ti) and linked into the
@@ -59,11 +58,6 @@ LINALG=netlib
 USE_CUDA=no
 NVCC=nvcc
 CUDA_ARCH=sm_86
-
-# USE_OPENACC: the whole program is compiled with nvfortran -acc; the device routine
-# lives in matelem_acc.f90. OPENACC_ARCH = cc70 V100 / cc80 A100 / cc86 RTX 3060 Ti.
-USE_OPENACC=no
-OPENACC_ARCH=cc70
 
 # Set the default name for the generated executable file
 EXEFILE=ecg
@@ -151,9 +145,9 @@ ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt muon puma
       endif
     endif
   endif
-  # NVIDIA HPC SDK (nvfortran) and Open MPI. Also the host toolchain for the GPU
-  # backends (USE_CUDA / USE_OPENACC); -Mpreprocess handles the #ifdef directives
-  # in matform.f90 and the -DUSE_CUDA/-DUSE_OPENACC flags those backends add.
+  # NVIDIA HPC SDK (nvfortran) and Open MPI. Also the host toolchain for the CUDA
+  # backend (USE_CUDA); -Mpreprocess handles the #ifdef directives in matform.f90
+  # and the -DUSE_CUDA flag the backend adds.
   ifeq ($(COMPILER), nvfortran)
     FC=mpif90
     export MPICOMPFLAGS=
@@ -229,11 +223,6 @@ export BARE_OBJS=wp_def_$(PREC).o X1MACH.o dmng.o globvars.o misc.o linalg.o \
 export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS))
 export OBJS+=$(OBJS_LPKBLS)
 
-# Guard: the two GPU backends are mutually exclusive.
-ifeq ($(USE_CUDA)$(USE_OPENACC), yesyes)
-  $(error USE_CUDA=yes and USE_OPENACC=yes are mutually exclusive - pick one)
-endif
-
 # CUDA backend (USE_CUDA=yes). The nvfortran-built program links the nvcc-compiled
 # kernel object; -cuda pulls in the CUDA runtime and -c++libs the C++ runtime that
 # the nvcc object needs. Requires COMPILER=nvfortran and PREC=8.
@@ -252,23 +241,6 @@ ifeq ($(USE_CUDA), yes)
   export BARE_OBJS+=matelem_gpu.o
   export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
   GPU_DEP=$(CONFIG)/matelem_gpu.o
-endif
-
-# OpenACC backend (USE_OPENACC=yes). Adds the -acc directives on top of the nvfortran
-# base; the device routine lives in matelem_acc.o. Requires COMPILER=nvfortran and PREC=8.
-ACC_DEP=
-ifeq ($(USE_OPENACC), yes)
-  ifneq ($(COMPILER), nvfortran)
-    $(error USE_OPENACC=yes requires COMPILER=nvfortran)
-  endif
-  ifneq ($(PREC), 8)
-    $(error USE_OPENACC=yes is only supported with PREC=8)
-  endif
-  export FCFLAGS+=-DUSE_OPENACC -acc -gpu=$(OPENACC_ARCH)
-  export LINKFLAGS+=-acc -gpu=$(OPENACC_ARCH)
-  export BARE_OBJS+=matelem_acc.o
-  export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
-  ACC_DEP=$(CONFIG)/matelem_acc.o
 endif
 
 .PHONY: release debug all clean cleaner cleanest cleandebug cleanrelease ptarg
@@ -359,10 +331,7 @@ $(CONFIG)/eigen_cuda.o: $(SRC_DIR)/eigen_cuda.cu
 	$(NVCC) -c $(SRC_DIR)/eigen_cuda.cu -o $(CONFIG)/eigen_cuda.o \
 	  -O3 -arch=$(CUDA_ARCH) --compiler-options '-fPIC'
 
-$(CONFIG)/matelem_acc.o: $(SRC_DIR)/matelem_acc.f90 $(CONFIG)/globvars.o
-	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem_acc.f90 -o $(CONFIG)/matelem_acc.o
-
-$(CONFIG)/matform.o: $(SRC_DIR)/matform.f90 $(CONFIG)/matelem.o $(GPU_DEP) $(ACC_DEP)
+$(CONFIG)/matform.o: $(SRC_DIR)/matform.f90 $(CONFIG)/matelem.o $(GPU_DEP)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matform.f90 -o $(CONFIG)/matform.o
 
 $(CONFIG)/workproc.o: $(SRC_DIR)/workproc.f90 $(CONFIG)/misc.o $(CONFIG)/linalg.o $(CONFIG)/matform.o $(CONFIG)/matelem.o $(CONFIG)/dmng.o $(GPU_DEP) $(OBJS_LPKBLS)

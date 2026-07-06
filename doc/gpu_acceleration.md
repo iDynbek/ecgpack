@@ -13,14 +13,13 @@ the validation experiments and their results, and the known gaps.
 
 ## 1. What the branch consolidates
 
-`gpu-integration` = current `master` merged with the CUDA/OpenACC GPU backend,
+`gpu-integration` = current `master` merged with the CUDA GPU backend,
 plus the GPU eigensolver and three CUDA memory/robustness phases, all reconciled
 to master's conventions:
 
 | Component | Source files | Runtime switch |
 |---|---|---|
 | CUDA matrix-element backend (energy + gradient) | `src/matelem_cuda.cu`, `src/matelem_gpu.f90`, `matform.f90` | `USE_GPU` deck line |
-| OpenACC matrix-element backend (energy, prototype) | `src/matelem_acc.f90` | `USE_GPU` (OpenACC build) |
 | cuSOLVER generalized eigensolver (method **G**) | `src/eigen_cuda.cu`, `matelem_gpu.f90`, `workproc.f90` | `ECG_GPU_EIG=1` |
 | Phase 0 — CUDA error checking | `matelem_cuda.cu`, `eigen_cuda.cu` | always on |
 | Phase 1 — persistent device context | `matelem_cuda.cu` | `ECG_GPU_PERSIST` (default on) |
@@ -56,12 +55,6 @@ make release COMPILER=nvfortran MACHINE=shabyt PREC=8 LINALG=netlib \
 `PREC=8` only and use `LINALG=netlib` (the bundled reference BLAS/LAPACK compiled
 by nvfortran, to avoid linking a system BLAS against nvfortran).
 
-### OpenACC GPU build (mutually exclusive with CUDA)
-```bash
-make release COMPILER=nvfortran MACHINE=shabyt PREC=8 LINALG=netlib \
-     USE_OPENACC=yes OPENACC_ARCH=cc70 EXEFILE=ecg_acc
-```
-
 ### Toolchain caveats
 - **Use NVHPC ≥ 25.3.** nvfortran **24.9 ICEs** compiling `linalg.f90`
   (`Lowering Error: bad ast optype`). 25.9 and 26.3 compile it fine.
@@ -76,7 +69,7 @@ make release COMPILER=nvfortran MACHINE=shabyt PREC=8 LINALG=netlib \
 
 | Control | Where | Default | Effect |
 |---|---|---|---|
-| `USE_GPU` | deck line, immediately after `GENERATOR_PARAM` | off | Route the matrix-element build to the GPU (CUDA or OpenACC). Read positionally by the parser. |
+| `USE_GPU` | deck line, immediately after `GENERATOR_PARAM` | off | Route the matrix-element build to the GPU (CUDA). Read positionally by the parser. |
 | `ECG_GPU_EIG` | env var | `0` | `1` = solve method-**G** eigenproblems on the GPU (cuSOLVER) instead of LAPACK `DSYGVX`. |
 | `ECG_GPU_PERSIST` | env var | `1` | `1` = persistent/grown device buffers (Phase 1); `0` = legacy malloc/free per call (for A/B). |
 | `ECG_GPU_PROFILE` | env var | `0` | `1` = print accumulated GPU time / call counts at finalize. |
@@ -99,31 +92,27 @@ dispatches to them when `Glob_UseGPU` is set. Each basis-function pair is a CUDA
 block; threads accumulate the contributions of the Y⁺Y operator terms. This is the
 dominant speedup for heavier atoms (≈40× for Carbon in earlier benchmarks).
 
-### 4.2 OpenACC backend
-`matelem_acc.f90` is a single-source OpenACC port of the energy path (prototype),
-built with `USE_OPENACC=yes`. Mutually exclusive with the CUDA backend.
-
-### 4.3 cuSOLVER GPU eigensolver (method G)
+### 4.2 cuSOLVER GPU eigensolver (method G)
 `eigen_cuda.cu` wraps `cusolverDnDsygvdx` (divide-and-conquer, index range) — the
 GPU analogue of LAPACK `DSYGVX`. Enabled with `ECG_GPU_EIG=1`; the three method-G
 `DSYGVX` call sites in `workproc.f90` (`EnergyGA`/`EnergyGB`) dispatch to it. Only
 method **G** is covered (method I uses inverse iteration — see §6). Buffers are
 cached and grown on demand.
 
-### 4.4 Phase 0 — error checking
+### 4.3 Phase 0 — error checking
 `CUDA_CHECK` / `CUSOLVER_CHECK` macros wrap every allocation, copy, and solve, plus
 `cudaGetLastError` + `cudaDeviceSynchronize` after kernels. Turns silent OOM /
 launch failures into `file:line` aborts with the requested byte count. No behaviour
 change.
 
-### 4.5 Phase 1 — persistent device context
+### 4.4 Phase 1 — persistent device context
 Replaces the per-call `cudaMalloc`/upload/launch/`cudaFree` pattern with cached,
 grow-on-demand device buffers. Run-invariant inputs (Y⁺Y operator, masses, charges)
 are uploaded once. Eliminates the ~10–12 serializing alloc/free round-trips per call
 that dominated latency for the small batches the optimizer issues. Legacy path kept
 under `ECG_GPU_PERSIST=0` for A/B comparison.
 
-### 4.6 Phase 2 — batch chunking (large-K OOM fix)
+### 4.5 Phase 2 — batch chunking (large-K OOM fix)
 Previously both GPU matrix-element paths staged the **entire** K(K+1)/2 pair triangle
 in one allocation, so a full rebuild at large K blew out host and device memory (the
 gradient buffers, sized `npt2 × npairs`, were ~tens of GB at K≈14000). Both
@@ -136,7 +125,7 @@ grow-on-demand device buffers, **host and device memory are now bounded by the c
 size at any K**. Chunking is numerically exact: each pair's element is independent and
 the per-element `ALLREDUCE` sum is unchanged by grouping.
 
-### 4.7 Method-I profiling instrumentation
+### 4.6 Method-I profiling instrumentation
 The profiling timers previously wrapped only the method-G routines. `EnergyIA`/`IAM`/`IB`
 now time their `ComputeMatElem[AndDeriv]` (as ME) and `GSEPIIS` (as eigensolve) calls,
 so a method-I run reports a real ME-vs-eigensolve split.
@@ -219,4 +208,3 @@ bit-identical generation energies.
 - **Phase 3 (resident H/S + in-place eigensolve)** — prerequisite for the large-K
   single-GPU pipeline; collides with the multi-rank partial-sum model (single-rank first).
 - **Other codes.** GPU support exists only in `RG_0S`.
-- **OpenACC backend** is an energy-only prototype.
