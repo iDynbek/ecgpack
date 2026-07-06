@@ -10,6 +10,9 @@ module gpu_backend
 !depend on matform (which would be circular) yet reuses its storage routines.
   use globvars      !Glob_* state, MPI symbols, wp / MPI_WP (via wp_def)
   use matelem_gpu   !ISO_C_BINDING interfaces to matelem_cuda.cu / eigen_cuda.cu
+#ifdef USE_CUF
+  use matelem_cuf   !SPIKE: native CUDA Fortran energy kernel (replaces the C++ one)
+#endif
   implicit none
   private
 
@@ -101,6 +104,17 @@ contains
         ipair=ipair+1; nf=nf+1
         k_list(nf)=k; l_list(nf)=l
         if ((nf==batch).or.(ipair==npairs)) then
+#ifdef USE_CUF
+          call cuf_compute_matelem_batch( &                              !SPIKE: CUDA Fortran energy kernel
+              Glob_NonlinParam(1:np,1:Nmax), Nmax, k_list, l_list, nf, &
+              Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &
+              n, np, Glob_NumOfProcs, Glob_ProcID, &
+              Glob_PiRaised3n2, Glob_MassMatrix(1:n,1:n), &
+              Glob_PseudoCharge(1:n), Glob_PseudoCharge0, &
+              Glob_AttractionScalingParam, Glob_RepulsionScalingParam, &
+              Glob_RepulsionScalingParamPlus, Glob_RepulsionScalingParamMinus, &
+              Hout, Sout)
+#else
           call gpu_compute_matelem_batch( &
               Glob_NonlinParam(1:np,1:Nmax), Nmax, k_list, l_list, nf, &
               Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &  !whole array by element ref (a (:,:,1) section makes nvfortran copy only term 1)
@@ -110,6 +124,7 @@ contains
               Glob_AttractionScalingParam, Glob_RepulsionScalingParam, &
               Glob_RepulsionScalingParamPlus, Glob_RepulsionScalingParamMinus, &
               Hout, Sout)
+#endif
           call MPI_ALLREDUCE(Hout,Hout_r,nf,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           call MPI_ALLREDUCE(Sout,Sout_r,nf,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           do ip=1,nf

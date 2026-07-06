@@ -64,6 +64,13 @@ CUDA_ARCH_shabyt = sm_70
 CUDA_ARCH_aurora = sm_86
 CUDA_ARCH = $(or $(CUDA_ARCH_$(MACHINE)),sm_86)
 
+# USE_CUF (SPIKE): replace the CUDA C++ *energy* kernel with a native CUDA Fortran
+# one (src/matelem_cuf.f90, nvfortran -cuda). Layers on top of USE_CUDA (the
+# gradient build + cuSOLVER eigensolver stay C++), so it A/Bs just the energy
+# kernel. CUF_GPU is the -gpu=ccXX arch, derived from CUDA_ARCH (sm_70 -> cc70).
+USE_CUF=no
+CUF_GPU=$(subst sm_,cc,$(CUDA_ARCH))
+
 # Set the default name for the generated executable file
 EXEFILE=ecg
 
@@ -248,6 +255,21 @@ ifeq ($(USE_CUDA), yes)
   GPU_DEP=$(CONFIG)/matelem_gpu.o $(CONFIG)/gpu_backend.o
 endif
 
+# CUDA Fortran energy kernel (USE_CUF=yes, SPIKE). Requires USE_CUDA=yes and
+# COMPILER=nvfortran; the whole build gets -cuda so the module and its <<<>>>
+# launch compile, and matelem_cuf.o is added to the link.
+ifeq ($(USE_CUF), yes)
+  ifneq ($(USE_CUDA), yes)
+    $(error USE_CUF=yes requires USE_CUDA=yes)
+  endif
+  export FCFLAGS+=-DUSE_CUF -cuda -gpu=$(CUF_GPU)
+  export LINKFLAGS+=-cuda -gpu=$(CUF_GPU)
+  export BARE_OBJS+=matelem_cuf.o
+  export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
+  GPU_DEP+=$(CONFIG)/matelem_cuf.o
+  CUF_DEP=$(CONFIG)/matelem_cuf.o
+endif
+
 .PHONY: release debug all clean cleaner cleanest cleandebug cleanrelease ptarg
 
 release:
@@ -328,7 +350,10 @@ $(CONFIG)/matelem.o: $(SRC_DIR)/matelem.f90 $(CONFIG)/globvars.o $(CONFIG)/spin.
 $(CONFIG)/matelem_gpu.o: $(SRC_DIR)/matelem_gpu.f90
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem_gpu.f90 -o $(CONFIG)/matelem_gpu.o
 
-$(CONFIG)/gpu_backend.o: $(SRC_DIR)/gpu_backend.f90 $(CONFIG)/globvars.o $(CONFIG)/matelem_gpu.o
+$(CONFIG)/matelem_cuf.o: $(SRC_DIR)/matelem_cuf.f90 $(CONFIG)/globvars.o
+	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem_cuf.f90 -o $(CONFIG)/matelem_cuf.o
+
+$(CONFIG)/gpu_backend.o: $(SRC_DIR)/gpu_backend.f90 $(CONFIG)/globvars.o $(CONFIG)/matelem_gpu.o $(CUF_DEP)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/gpu_backend.f90 -o $(CONFIG)/gpu_backend.o
 
 $(CONFIG)/matelem_cuda.o: $(SRC_DIR)/matelem_cuda.cu
