@@ -240,7 +240,6 @@ export OBJS+=$(OBJS_LPKBLS)
 # the nvcc object needs. Requires COMPILER=nvfortran and PREC=8.
 export CUDA_OBJS=
 GPU_DEP=
-CUF_DEP=
 ifeq ($(USE_CUDA), yes)
   ifneq ($(COMPILER), nvfortran)
     $(error USE_CUDA=yes requires COMPILER=nvfortran)
@@ -249,27 +248,26 @@ ifeq ($(USE_CUDA), yes)
     $(error USE_CUDA=yes is only supported with PREC=8)
   endif
   export FCFLAGS+=-DUSE_CUDA
-  export BARE_OBJS+=gpu_backend.o
-ifeq ($(USE_CUF), yes)
-  # Native CUDA Fortran GPU build: kernels + lifecycle + eigensolver all in
-  # matelem_cuf.f90 (nvfortran -cuda). No nvcc, no .cu, no iso_c_binding shim,
-  # no C++ runtime; cuSOLVER/cuBLAS still linked for the Fortran eigensolver.
-  export FCFLAGS+=-DUSE_CUF -cuda -gpu=$(CUF_GPU)
-  export LINKFLAGS+=-cuda -gpu=$(CUF_GPU) -cudalib=cusolver,cublas
-  export BARE_OBJS+=matelem_cuf.o
-  GPU_DEP=$(CONFIG)/gpu_backend.o $(CONFIG)/matelem_cuf.o
-  CUF_DEP=$(CONFIG)/matelem_cuf.o
-  GPUBACK_MODDEP=$(CONFIG)/matelem_cuf.o
-else
-  # CUDA C++ GPU build: nvcc kernels (matelem_cuda.cu, eigen_cuda.cu) linked via
-  # the iso_c_binding shim matelem_gpu.f90; -c++libs pulls in the C++ runtime.
   export LINKFLAGS+=-cuda -c++libs -cudalib=cusolver,cublas
   export CUDA_OBJS=$(CONFIG)/matelem_cuda.o $(CONFIG)/eigen_cuda.o
-  export BARE_OBJS+=matelem_gpu.o
-  GPU_DEP=$(CONFIG)/matelem_gpu.o $(CONFIG)/gpu_backend.o
-  GPUBACK_MODDEP=$(CONFIG)/matelem_gpu.o
-endif
+  export BARE_OBJS+=matelem_gpu.o gpu_backend.o
   export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
+  GPU_DEP=$(CONFIG)/matelem_gpu.o $(CONFIG)/gpu_backend.o
+endif
+
+# CUDA Fortran energy kernel (USE_CUF=yes, SPIKE). Requires USE_CUDA=yes and
+# COMPILER=nvfortran; the whole build gets -cuda so the module and its <<<>>>
+# launch compile, and matelem_cuf.o is added to the link.
+ifeq ($(USE_CUF), yes)
+  ifneq ($(USE_CUDA), yes)
+    $(error USE_CUF=yes requires USE_CUDA=yes)
+  endif
+  export FCFLAGS+=-DUSE_CUF -cuda -gpu=$(CUF_GPU)
+  export LINKFLAGS+=-cuda -gpu=$(CUF_GPU)
+  export BARE_OBJS+=matelem_cuf.o
+  export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
+  GPU_DEP+=$(CONFIG)/matelem_cuf.o
+  CUF_DEP=$(CONFIG)/matelem_cuf.o
 endif
 
 .PHONY: release debug all clean cleaner cleanest cleandebug cleanrelease ptarg
@@ -355,7 +353,7 @@ $(CONFIG)/matelem_gpu.o: $(SRC_DIR)/matelem_gpu.f90
 $(CONFIG)/matelem_cuf.o: $(SRC_DIR)/matelem_cuf.f90 $(CONFIG)/globvars.o $(CONFIG)/matelem.o
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matelem_cuf.f90 -o $(CONFIG)/matelem_cuf.o
 
-$(CONFIG)/gpu_backend.o: $(SRC_DIR)/gpu_backend.f90 $(CONFIG)/globvars.o $(GPUBACK_MODDEP)
+$(CONFIG)/gpu_backend.o: $(SRC_DIR)/gpu_backend.f90 $(CONFIG)/globvars.o $(CONFIG)/matelem_gpu.o $(CUF_DEP)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/gpu_backend.f90 -o $(CONFIG)/gpu_backend.o
 
 $(CONFIG)/matelem_cuda.o: $(SRC_DIR)/matelem_cuda.cu
