@@ -293,6 +293,10 @@ program main
     write(*,*)
   endif
 
+#ifdef USE_CUDA
+  call gpu_finalize()   !release cuSOLVER handle + device buffers, reset device
+#endif
+
   call MPI_FINALIZE(Glob_MPIErrCode)
 
 end program main

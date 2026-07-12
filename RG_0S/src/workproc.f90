@@ -8894,31 +8894,36 @@ contains
       if (Glob_ProcID==0) then
         write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
         call system_clock(tprof0)
+#ifdef USE_CUDA
+        if (gpu_eig_active()) then
+          !cuSOLVER path: returns the WhichEigenvalue-th eigenpair directly.
+          !This is what makes fixed-basis method-G measurable on the GPU.
+          call gpu_dsygvx(1,cbs,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
+                          Glob_WhichEigenvalue,Evalue,Glob_c,ErrorCode)
+          NumOfEigvalsFound=1; Eigvals(1)=Evalue
+        else
+#endif
         call DSYGVX(1,'V','I','U',cbs,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,  &
                     ZERO,ZERO,1,NumOfEigvecs,Glob_AbsTolForDSYGVX, &
                     NumOfEigvalsFound,Eigvals,Eigvecs,cbs,Glob_WorkForDSYGVX,Glob_LWorkForDSYGVX, &
                     Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
+        Evalue=Eigvals(Glob_WhichEigenvalue)
+        Glob_c(1:cbs)=Eigvecs(1:cbs,Glob_WhichEigenvalue)
+#ifdef USE_CUDA
+        endif
+#endif
         call ProfAccum(tprof0,.true.)
-        !SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
-!$      VL, VU, IL, IU, ABSTOL,
-!$      M, W, Z, LDZ, WORK, LWORK,
-!$      IWORK, IFAIL, INFO )
       endif
       call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       if (ErrorCode/=0) then
         if (Glob_ProcID==0) then
           write(*,*) 'failed'
           write(*,*) &
-            'Error in ExpectationValues: routine DSYGVX failed with error code',ErrorCode
+            'Error in ExpectationValues: eigensolver failed with error code',ErrorCode
         endif
         call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
       endif
-
-      !sending the eigenvalue and the eigenvector to all processes
-      if (Glob_ProcID==0) then
-        Evalue=Eigvals(Glob_WhichEigenvalue)
-        Glob_c(1:cbs)=Eigvecs(1:cbs,Glob_WhichEigenvalue)
-      endif
+      !eigenvalue and eigenvector already set on rank 0 above; broadcast them
       call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       call MPI_BCAST(Glob_c,cbs,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       Glob_CurrEnergy=Evalue
@@ -8983,6 +8988,11 @@ contains
         'BENCH K=',cbs,' E=',Glob_CurrEnergy, &
         ' cumME=',Glob_TimeME,'s cumEIG=',Glob_TimeEIG, &
         's lastME=',Glob_LastME,'s lastEIG=',Glob_LastEIG
+      !Free the two K*K giants (the only large allocations -- ~3.6 GB at K=15000).
+      !The remaining setup scratch is O(K) or n^4 (tens of KB) and is reclaimed at
+      !process exit, since benchmark decks are single-step by construction.
+      if (allocated(Glob_H)) deallocate(Glob_H)
+      if (allocated(Glob_S)) deallocate(Glob_S)
       return
     endif
 
