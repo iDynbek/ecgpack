@@ -548,4 +548,44 @@ module globvars
   real(wp), external :: DLAMCH
   integer, external  :: ILAENV
 
+!=============================================================
+!PROFILING accumulators (added for the CUDA-acceleration study).
+!Glob_TimeME / Glob_TimeEIG = cumulative wall time (seconds) spent
+!  in matrix-element builds and in the eigensolve, respectively.
+!Glob_LastME / Glob_LastEIG = time of the most recent single op.
+!Glob_CntME  / Glob_CntEIG  = number of times each was invoked.
+!These measure the ME-vs-eigensolve split that decides whether a
+!GPU method-I eigensolve is worth building. See ProfAccum below.
+!=============================================================
+  real(wp)   :: Glob_TimeME=0.0_wp, Glob_TimeEIG=0.0_wp
+  real(wp)   :: Glob_LastME=0.0_wp, Glob_LastEIG=0.0_wp
+  integer(8) :: Glob_CntME=0, Glob_CntEIG=0
+!Module-level scratch tick used by the system_clock/ProfAccum wraps.
+!Safe as a shared scalar: each wrap is serial within a rank (no
+!nesting between a system_clock and its matching ProfAccum) and MPI
+!ranks are separate processes with their own copy.
+  integer(8) :: tprof0=0
+
+contains
+
+!=============================================================
+!Profiling helper (added for the CUDA-acceleration study).
+!Given a start tick t0 (from system_clock), accumulate the
+!elapsed wall time into the matrix-element bucket (isEig=.false.)
+!or the eigensolve bucket (isEig=.true.).
+!=============================================================
+subroutine ProfAccum(t0,isEig)
+  integer(8),intent(in) :: t0
+  logical,intent(in)    :: isEig
+  integer(8)            :: t1,rate
+  real(wp)              :: dt
+  call system_clock(t1,rate)
+  dt=real(t1-t0,wp)/real(rate,wp)
+  if (isEig) then
+    Glob_TimeEIG=Glob_TimeEIG+dt; Glob_LastEIG=dt; Glob_CntEIG=Glob_CntEIG+1
+  else
+    Glob_TimeME=Glob_TimeME+dt; Glob_LastME=dt; Glob_CntME=Glob_CntME+1
+  endif
+end subroutine ProfAccum
+
 end module globvars

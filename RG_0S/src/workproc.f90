@@ -2058,7 +2058,9 @@ contains
     integer        NumOfEigvalsFound
     integer        IFAIL(1)
 
-    if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
+    if (AreMatElemNeeded) then
+      call system_clock(tprof0); call ComputeMatElem(Nmin,Nmax); call ProfAccum(tprof0,.false.)
+    endif
     if (Nmax==1) then
       EnergyGA=Glob_diagH(1)
       ErrorCode=0
@@ -2079,6 +2081,7 @@ contains
         Glob_S(i,i)=ONE
       enddo
       if (Glob_ProcID==0) then
+        call system_clock(tprof0)
 #ifdef USE_CUDA
         if (gpu_eig_active()) then
           call gpu_dsygvx(0,Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
@@ -2095,6 +2098,7 @@ contains
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
 !$      LWORK, IWORK, IFAIL, INFO )
+        call ProfAccum(tprof0,.true.)
         Evalue=EVs(1)
       endif
       if (Glob_OverlapPenaltyAllowed) call ComputeOverlapPenalty(Glob_MaxOverlapPenalty, &
@@ -2129,7 +2133,9 @@ contains
     integer        NumOfEigvalsFound
     integer        IFAIL(1)
 
-    if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
+    if (AreMatElemNeeded) then
+      call system_clock(tprof0); call ComputeMatElem(Nmin,Nmax); call ProfAccum(tprof0,.false.)
+    endif
     if (Nmax==1) then
       EnergyGAM=Glob_diagH(1)
       Glob_c(1)=ONE
@@ -2151,6 +2157,7 @@ contains
         Glob_S(i,i)=ONE
       enddo
       if (Glob_ProcID==0) then
+        call system_clock(tprof0)
 #ifdef USE_CUDA
         if (gpu_eig_active()) then
           call gpu_dsygvx(1,Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
@@ -2167,6 +2174,7 @@ contains
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
 !$      LWORK, IWORK, IFAIL, INFO )
+        call ProfAccum(tprof0,.true.)
         Evalue=EVs(1)
       endif
       if (Glob_OverlapPenaltyAllowed) call ComputeOverlapPenalty(Glob_MaxOverlapPenalty, &
@@ -2229,7 +2237,9 @@ contains
     npt=Glob_npt
     nfru=Glob_nfru
 
-    if (AreMatElemNeeded) call ComputeMatElemAndDeriv(nfru+1,nfa)
+    if (AreMatElemNeeded) then
+      call system_clock(tprof0); call ComputeMatElemAndDeriv(nfru+1,nfa); call ProfAccum(tprof0,.false.)
+    endif
 
     if (nfa==1) then
       Evalue=Glob_diagH(1)/Glob_diagS(1)
@@ -2253,6 +2263,7 @@ contains
       enddo
 
       if (Glob_ProcID==0) then
+        call system_clock(tprof0)
 #ifdef USE_CUDA
         if (gpu_eig_active()) then
           call gpu_dsygvx(1,nfa,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
@@ -2269,6 +2280,7 @@ contains
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
 !$      LWORK, IWORK, IFAIL, INFO )
+        call ProfAccum(tprof0,.true.)
         Evalue=EVs(1)
       endif
       call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -2335,17 +2347,21 @@ contains
     real(wp)    Evalue
     integer        NumOfIterations
 
-    if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
+    if (AreMatElemNeeded) then
+      call system_clock(tprof0); call ComputeMatElem(Nmin,Nmax); call ProfAccum(tprof0,.false.)
+    endif
     if (Nmax==1) then
       EnergyIA=Glob_diagH(1)
       NumOfIterations=1
       ErrorCode=0
     else
       Glob_c(1:Nmax)=Glob_LastEigvector(1:Nmax)
+      call system_clock(tprof0)
       call GSEPIIS(Nmin,Nmax,Glob_H,Glob_HSLeadDim,Glob_invD,Glob_S,Glob_HSLeadDim, &
                    Glob_ApproxEnergy,Glob_c,Glob_WorkForGSEPIIS,Glob_EigvalTol, &
                    Evalue,Glob_LastEigvector,Glob_LastEigvalTol,Glob_MaxIterForGSEPIIS, &
                    -1,NumOfIterations,ErrorCode)
+      call ProfAccum(tprof0,.true.)
       !GSEPIIS(k,n,M,nM,invD,B,nB,apprlambda,v,w,Tol, &
       !lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode)
       if (Glob_LastEigvalTol>Glob_WorstEigvalTol) Glob_WorstEigvalTol=Glob_LastEigvalTol
@@ -2383,7 +2399,9 @@ contains
     real(wp)    Evalue
     integer        NumOfIterations
 
-    if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
+    if (AreMatElemNeeded) then
+      call system_clock(tprof0); call ComputeMatElem(Nmin,Nmax); call ProfAccum(tprof0,.false.)
+    endif
     if (Nmax==1) then
       EnergyIAM=Glob_H(1,1)+Glob_ApproxEnergy
       Glob_c(1)=ONE
@@ -2391,10 +2409,12 @@ contains
       ErrorCode=0
     else
       Glob_c(1:Nmax)=Glob_LastEigvector(1:Nmax)
+      call system_clock(tprof0)
       call GSEPIIS(Nmin,Nmax,Glob_H,Glob_HSLeadDim,Glob_invD,Glob_S,Glob_HSLeadDim, &
                    Glob_ApproxEnergy,Glob_c,Glob_WorkForGSEPIIS,Glob_EigvalTol, &
                    Evalue,Glob_LastEigvector,Glob_LastEigvalTol,Glob_MaxIterForGSEPIIS, &
                    0,NumOfIterations,ErrorCode)
+      call ProfAccum(tprof0,.true.)
       !GSEPIIS(k,n,M,nM,invD,B,nB,apprlambda,v,w,Tol, &
       !lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode)
       Glob_c(1:Nmax)=Glob_LastEigvector(1:Nmax)
@@ -2460,7 +2480,9 @@ contains
     npt=Glob_npt
     nfru=Glob_nfru
 
-    if (AreMatElemNeeded) call ComputeMatElemAndDeriv(nfru+1,nfa)
+    if (AreMatElemNeeded) then
+      call system_clock(tprof0); call ComputeMatElemAndDeriv(nfru+1,nfa); call ProfAccum(tprof0,.false.)
+    endif
 
     if (nfa==1) then
       Evalue=Glob_H(1,1)+Glob_ApproxEnergy
@@ -2469,10 +2491,12 @@ contains
       ErrorCode=0
     else
       Glob_c(1:nfa)=Glob_LastEigvector(1:nfa)
+      call system_clock(tprof0)
       call GSEPIIS(nfru+1,nfa,Glob_H,Glob_HSLeadDim,Glob_invD,Glob_S,Glob_HSLeadDim, &
                    Glob_ApproxEnergy,Glob_c,Glob_WorkForGSEPIIS,Glob_EigvalTol, &
                    Evalue,Glob_LastEigvector,Glob_LastEigvalTol,Glob_MaxIterForGSEPIIS, &
                    0,NumOfIterations,ErrorCode)
+      call ProfAccum(tprof0,.true.)
       !GSEPIIS(k,n,M,nM,invD,B,nB,apprlambda,v,w,Tol, &
       !lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode)
       Glob_c(1:nfa)=Glob_LastEigvector(1:nfa)
