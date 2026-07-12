@@ -8530,6 +8530,10 @@ contains
     real(wp)    beta,mu
     logical        AreCorrFuncNeeded,ArePartDensNeeded,AreMCorrFuncNeeded,AreMPartDensNeeded
     logical        IsFile1OK,IsFile3OK
+!Benchmark mode (ECG_BENCH=1): time the fixed-basis ME build + eigensolve
+!and return before the expensive expectation-value suite. Campaign instrument.
+    logical        benchmark
+    character(8)   benchenv
 
 !Local variables used to store temporary data
 !associated with certain expectation values
@@ -8853,12 +8857,23 @@ contains
     allocate(del2kl(n,n,n,n))
     allocate(rmrmkl(n,n,n,n))
 
+!Read ECG_BENCH once (rank 0) and share it. In benchmark mode the routine
+!stops right after the eigensolve (below), skipping property evaluation.
+    benchmark=.false.
+    if (Glob_ProcID==0) then
+      call get_environment_variable('ECG_BENCH', benchenv, status=OpenFileErr)
+      benchmark=(OpenFileErr==0).and.(benchenv(1:1)=='1')
+    endif
+    call MPI_BCAST(benchmark,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+
     call ReadSwapFileAndDistributeData(IsSwapFileOK)
 
     if (.not.IsSwapFileOK) then
       if (Glob_ProcID==0) write(*,'(1x,a52)',advance='no') &
         'Computing Hamiltonian and overlap matrix elements...'
+      call system_clock(tprof0)
       call ComputeMatElem(1,cbs)
+      call ProfAccum(tprof0,.false.)
       if (Glob_ProcID==0) write(*,*) 'done'
     endif
 
@@ -8878,10 +8893,12 @@ contains
 
       if (Glob_ProcID==0) then
         write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
+        call system_clock(tprof0)
         call DSYGVX(1,'V','I','U',cbs,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,  &
                     ZERO,ZERO,1,NumOfEigvecs,Glob_AbsTolForDSYGVX, &
                     NumOfEigvalsFound,Eigvals,Eigvecs,cbs,Glob_WorkForDSYGVX,Glob_LWorkForDSYGVX, &
                     Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
+        call ProfAccum(tprof0,.true.)
         !SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL,
 !$      M, W, Z, LDZ, WORK, LWORK,
@@ -8926,10 +8943,12 @@ contains
         NumOfIterations=1
         ErrorCode=0
       else
+        call system_clock(tprof0)
         call GSEPIIS(1,cbs,Glob_H,Glob_HSLeadDim,Glob_invD,Glob_S,Glob_HSLeadDim, &
                      Glob_ApproxEnergy,Glob_LastEigvector,Glob_WorkForGSEPIIS,Glob_EigvalTol, &
                      Evalue,Glob_c,Glob_LastEigvalTol,Glob_MaxIterForGSEPIIS, &
                      0,NumOfIterations,ErrorCode)
+        call ProfAccum(tprof0,.true.)
         !GSEPIIS(k,n,M,nM,invD,B,nB, &
         !        apprlambda,v,w,Tol, &
         !        lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode)
@@ -8954,6 +8973,17 @@ contains
         write(*,*) 'done'
         write(*,*) 'Energy: ',Evalue
       endif
+    endif
+
+!Benchmark mode: report the fixed-basis energy and the ME/eigensolve wall
+!times, then return before the (expensive, GPU-irrelevant) property suite.
+!NOTE: this returns without deallocating; benchmark decks are single-step.
+    if (benchmark) then
+      if (Glob_ProcID==0) write(*,'(1x,a,i7,a,f18.10,a,f12.4,a,f12.4,a,e12.4,a,e12.4)') &
+        'BENCH K=',cbs,' E=',Glob_CurrEnergy, &
+        ' cumME=',Glob_TimeME,'s cumEIG=',Glob_TimeEIG, &
+        's lastME=',Glob_LastME,'s lastEIG=',Glob_LastEIG
+      return
     endif
 
     if (Glob_ProcID==0) write(*,'(1x,a31)',advance='no') 'Computing expectation values...'
