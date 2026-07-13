@@ -36,6 +36,8 @@ module gpu_backend
   logical, save :: use_eig   = .false.   !ECG_GPU_EIG=1 (implies use_me)
   integer, save :: batch_cap = 16384     !ECG_GPU_BATCH: max pairs per GPU call
   logical, save :: ctx_ready = .false.   !device context successfully initialised
+  logical, save :: use_determ = .false.  !ECG_DETERM=1: deterministic term reduction
+                                         !(ordered, CPU-matching) instead of atomicAdd
 
   !cuSOLVER eigensolver state. Module-scope + save so gpu_finalize can release
   !the handle/buffers and so host staging is heap (NOT K*K automatic stack arrays,
@@ -145,15 +147,18 @@ contains
         read(val,*,iostat=ios) tmp
         if ((ios==0).and.(tmp>0)) batch_cap = tmp
       endif
+      call get_environment_variable('ECG_DETERM', val, status=ios)
+      use_determ = (ios==0).and.(val(1:1)=='1')
       write(*,'(1x,a)')             '---------------- GPU backend ----------------'
-      write(*,'(1x,a,l1,a,l1,a,i0)')'  ME on GPU=',use_me,'   eig on GPU=',use_eig, &
-                                    '   batch=',batch_cap
+      write(*,'(1x,a,l1,a,l1,a,i0,a,l1)')'  ME on GPU=',use_me,'   eig on GPU=',use_eig, &
+                                    '   batch=',batch_cap,'   determ=',use_determ
       if (.not.use_me) write(*,'(1x,a)') '  (GPU disabled: ME and eigensolve run on CPU)'
       write(*,'(1x,a)')             '---------------------------------------------'
     endif
-    call MPI_BCAST(use_me,    1, MPI_LOGICAL, 0, MPI_COMM_WORLD, Glob_MPIErrCode)
-    call MPI_BCAST(use_eig,   1, MPI_LOGICAL, 0, MPI_COMM_WORLD, Glob_MPIErrCode)
-    call MPI_BCAST(batch_cap, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, Glob_MPIErrCode)
+    call MPI_BCAST(use_me,     1, MPI_LOGICAL, 0, MPI_COMM_WORLD, Glob_MPIErrCode)
+    call MPI_BCAST(use_eig,    1, MPI_LOGICAL, 0, MPI_COMM_WORLD, Glob_MPIErrCode)
+    call MPI_BCAST(batch_cap,  1, MPI_INTEGER, 0, MPI_COMM_WORLD, Glob_MPIErrCode)
+    call MPI_BCAST(use_determ, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, Glob_MPIErrCode)
     if (.not.use_me) return
 
     !Bring up the device context on every rank, then agree COLLECTIVELY: if ANY
@@ -304,8 +309,8 @@ contains
   !terms. Each thread calls the shared MatrixElements (grad=false) for its terms.
   attributes(global) subroutine me_energy_kernel(NonlinParam, np, Kmax, &
       k_list, l_list, YHYMatr, YHYCoeff, nterms, n, nprocs, procid, &
-      mass, charge, charge0, sqrtpi, pir3n2, attr, rep, repp, repm, Hout, Sout)
-    integer, value   :: np, Kmax, nterms, n, nprocs, procid
+      mass, charge, charge0, sqrtpi, pir3n2, attr, rep, repp, repm, determ, Hout, Sout)
+    integer, value   :: np, Kmax, nterms, n, nprocs, procid, determ
     real(wp)         :: NonlinParam(np,Kmax)
     integer          :: k_list(*), l_list(*)
     real(wp)         :: YHYMatr(*), YHYCoeff(*)
@@ -313,34 +318,64 @@ contains
     real(wp), value  :: charge0, sqrtpi, pir3n2, attr, rep, repp, repm
     real(wp)         :: Hout(*), Sout(*)
     real(wp), shared :: sh_H, sh_S
+    real(wp), shared :: shm(*)                !dynamic: 2*nterms, deterministic term buffer
     integer  :: pair_idx, j, qbase, k0, l0, istat
-    real(wp) :: Hkl, Skl, coeff
+    real(wp) :: Hkl, Skl, coeff, hsum, ssum
     real(wp) :: dDk(2*NNP), dDl(2*NNP)   !unused energy-path gradient outputs
 
     pair_idx = blockIdx%x
-    if (threadIdx%x==1) then
-      sh_H=0.0_wp; sh_S=0.0_wp
-    endif
-    call syncthreads()
-
     qbase = (pair_idx-1)*nterms - 1          !matches Fortran q=(i-1)*nterms-1
     k0    = k_list(pair_idx)                 !pair-only: hoist out of the term loop
     l0    = l_list(pair_idx)
-    do j = threadIdx%x, nterms, blockDim%x   !STRIDED: block size independent of nterms
-      if (mod(qbase+j, nprocs) == procid) then
-        call MatrixElements(n, np, NonlinParam(1,k0), NonlinParam(1,l0), &
-                            YHYMatr((j-1)*n*n+1), mass, charge, charge0, &
-                            sqrtpi, pir3n2, attr, rep, repp, repm, &
-                            Hkl, Skl, dDk, dDl, .false., .false.)
-        coeff = YHYCoeff(j)
-        istat = atomicadd(sh_H, coeff*Hkl)
-        istat = atomicadd(sh_S, coeff*Skl)
-      endif
-    enddo
-    call syncthreads()
 
-    if (threadIdx%x==1) then
-      Hout(pair_idx)=sh_H; Sout(pair_idx)=sh_S
+    if (determ /= 0) then
+      !DETERMINISTIC: write each term's contribution to shm(j) (non-owned -> 0.0, exact),
+      !then thread 1 sums shm(1..nterms) IN ORDER -- bit-identical to the CPU term loop,
+      !so the result is reproducible run-to-run and matches the CPU sum order.
+      do j = threadIdx%x, nterms, blockDim%x
+        if (mod(qbase+j, nprocs) == procid) then
+          call MatrixElements(n, np, NonlinParam(1,k0), NonlinParam(1,l0), &
+                              YHYMatr((j-1)*n*n+1), mass, charge, charge0, &
+                              sqrtpi, pir3n2, attr, rep, repp, repm, &
+                              Hkl, Skl, dDk, dDl, .false., .false.)
+          coeff = YHYCoeff(j)
+          shm(j)        = coeff*Hkl
+          shm(nterms+j) = coeff*Skl
+        else
+          shm(j)        = 0.0_wp
+          shm(nterms+j) = 0.0_wp
+        endif
+      enddo
+      call syncthreads()
+      if (threadIdx%x==1) then
+        hsum=0.0_wp; ssum=0.0_wp
+        do j=1,nterms
+          hsum = hsum + shm(j)
+          ssum = ssum + shm(nterms+j)
+        enddo
+        Hout(pair_idx)=hsum; Sout(pair_idx)=ssum
+      endif
+    else
+      !FAST (default): atomicAdd reduction -- non-deterministic term order.
+      if (threadIdx%x==1) then
+        sh_H=0.0_wp; sh_S=0.0_wp
+      endif
+      call syncthreads()
+      do j = threadIdx%x, nterms, blockDim%x   !STRIDED: block size independent of nterms
+        if (mod(qbase+j, nprocs) == procid) then
+          call MatrixElements(n, np, NonlinParam(1,k0), NonlinParam(1,l0), &
+                              YHYMatr((j-1)*n*n+1), mass, charge, charge0, &
+                              sqrtpi, pir3n2, attr, rep, repp, repm, &
+                              Hkl, Skl, dDk, dDl, .false., .false.)
+          coeff = YHYCoeff(j)
+          istat = atomicadd(sh_H, coeff*Hkl)
+          istat = atomicadd(sh_S, coeff*Skl)
+        endif
+      enddo
+      call syncthreads()
+      if (threadIdx%x==1) then
+        Hout(pair_idx)=sh_H; Sout(pair_idx)=sh_S
+      endif
     endif
   end subroutine me_energy_kernel
 
@@ -359,7 +394,7 @@ contains
     real(wp), device, allocatable :: d_mass(:,:), d_charge(:)
     integer,  device, allocatable :: d_k(:), d_l(:)
     real(wp) :: sqrtpi
-    integer  :: blk, istat
+    integer  :: blk, istat, determ, shmem
 
     sqrtpi = sqrt(4.0_wp*atan(1.0_wp))
     allocate(d_Nonlin(np,Kmax), d_YHY(n*n*nterms), d_coeff(nterms))
@@ -371,9 +406,11 @@ contains
     call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_batch: H2D staging')
 
     blk = min(nterms, CUF_BLK)
-    call me_energy_kernel<<<npairs, blk>>>(d_Nonlin, np, Kmax, d_k, d_l, &
+    determ = 0; shmem = 0
+    if (use_determ) then; determ = 1; shmem = 2*nterms*8; endif   !2*nterms real*8 dynamic shared
+    call me_energy_kernel<<<npairs, blk, shmem>>>(d_Nonlin, np, Kmax, d_k, d_l, &
         d_YHY, d_coeff, nterms, n, nprocs, procid, &
-        d_mass, d_charge, charge0, sqrtpi, pir3n2, attr, rep, repp, repm, d_H, d_S)
+        d_mass, d_charge, charge0, sqrtpi, pir3n2, attr, rep, repp, repm, determ, d_H, d_S)
     call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_batch: energy kernel launch')
     call cuda_check(cudaDeviceSynchronize(), 'cuf_compute_matelem_batch: energy kernel execution')
 
