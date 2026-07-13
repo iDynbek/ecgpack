@@ -8534,6 +8534,12 @@ contains
 !and return before the expensive expectation-value suite. Campaign instrument.
     logical        benchmark
     character(8)   benchenv
+!Verify mode (ECG_VERIFY=1, method G): dump the full symmetric H, S, the
+!eigenvector and lambda before returning, so a correctness anchor (residual
+!||Hx-lambda*Sx||, x^T S x, CPU-vs-GPU matrix diff) can be computed offline.
+    logical        verify
+    character(8)   verenv
+    real(wp),allocatable :: Hchk(:,:),Schk(:,:)
 
 !Local variables used to store temporary data
 !associated with certain expectation values
@@ -8865,6 +8871,12 @@ contains
       benchmark=(OpenFileErr==0).and.(benchenv(1:1)=='1')
     endif
     call MPI_BCAST(benchmark,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    verify=.false.
+    if (Glob_ProcID==0) then
+      call get_environment_variable('ECG_VERIFY', verenv, status=OpenFileErr)
+      verify=(OpenFileErr==0).and.(verenv(1:1)=='1')
+    endif
+    call MPI_BCAST(verify,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
 
     call ReadSwapFileAndDistributeData(IsSwapFileOK)
 
@@ -8890,6 +8902,15 @@ contains
         enddo
         Glob_S(i,i)=ONE
       enddo
+
+      !Verify: snapshot the full symmetric H, S now, before the (destructive)
+      !CPU DSYGVX solve. cuSOLVER leaves the host copies intact, but snapshot
+      !unconditionally so the offline residual uses identical matrices either way.
+      if (verify) then
+        allocate(Hchk(cbs,cbs),Schk(cbs,cbs))
+        Hchk(1:cbs,1:cbs)=Glob_H(1:cbs,1:cbs)
+        Schk(1:cbs,1:cbs)=Glob_S(1:cbs,1:cbs)
+      endif
 
       if (Glob_ProcID==0) then
         write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
@@ -8927,6 +8948,27 @@ contains
       call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       call MPI_BCAST(Glob_c,cbs,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       Glob_CurrEnergy=Evalue
+
+      !Verify: dump the pre-solve H, S and the eigenpair (x, lambda) to an
+      !unformatted file, then return. The residual ||Hx-lambda*Sx||, x^T S x, and
+      !the CPU-vs-GPU H/S diff are computed offline (see utilities/verify_dump.py).
+      if (verify) then
+        if (Glob_ProcID==0) then
+          open(97,file='verify_dump.bin',form='unformatted',status='replace')
+          write(97) cbs
+          write(97) Evalue
+          write(97) Hchk(1:cbs,1:cbs)
+          write(97) Schk(1:cbs,1:cbs)
+          write(97) Glob_c(1:cbs)
+          close(97)
+          write(*,'(1x,a,i7,a,f18.10,a)') 'VERIFY K=',cbs,' E=',Evalue, &
+            '  -> verify_dump.bin (cbs, lambda, H, S, x)'
+        endif
+        deallocate(Hchk,Schk)
+        if (allocated(Glob_H)) deallocate(Glob_H)
+        if (allocated(Glob_S)) deallocate(Glob_S)
+        return
+      endif
 
       !print the lower part of the spectrum
       if (Glob_ProcID==0) then
