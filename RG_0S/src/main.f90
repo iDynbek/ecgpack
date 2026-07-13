@@ -13,6 +13,8 @@ program main
 !These variables are used to set random number generators
   integer RNSeedSize
   integer,allocatable :: Seed(:)
+  integer       :: seedval, seedios
+  character(32) :: seedstr
 
 !Initialize MPI
   call MPI_INIT(Glob_MPIErrCode)
@@ -37,7 +39,24 @@ program main
   call random_seed(size=RNSeedSize)
   allocate(Seed(RNSeedSize))
   call random_seed(get=Seed(1:RNSeedSize))
-  call system_clock(count=Seed(1))
+!ECG_SEED=<int>: deterministic RNG (all of random_number + drnor_start derive from
+!Seed(1)), so generation runs are reproducible and CPU-vs-GPU growth is comparable.
+!Unset -> seed from the clock, as before.
+  seedval=-1
+  if (Glob_ProcID==0) then
+    call get_environment_variable('ECG_SEED', seedstr, status=seedios)
+    if (seedios==0) read(seedstr,*,iostat=seedios) seedval
+    if (seedios/=0) seedval=-1
+  endif
+  call MPI_BCAST(seedval,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  if (seedval>=0) then
+    do i=1,RNSeedSize          !fill ALL seed elements deterministically -- setting
+      Seed(i)=seedval+37*(i-1)+1   !only Seed(1) leaves the rest OS-random (random_seed
+    enddo                          !(get=) filled them from entropy) -> non-reproducible
+    if (Glob_ProcID==0) write(*,'(1x,a,i0)') 'Deterministic RNG seed ECG_SEED=',seedval
+  else
+    call system_clock(count=Seed(1))
+  endif
   Seed(1:RNSeedSize)=Seed(1:RNSeedSize)+Glob_ProcID
   call random_seed(put=Seed(1:RNSeedSize))
   call random_number(r8)
