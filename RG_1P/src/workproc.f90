@@ -3960,6 +3960,7 @@ contains
         nfru=K
         K=Kstop
       endif
+      call linalg_setparam(K)  !reset linalg flags to account for changes in the basis size
       Glob_nfa=K
       Glob_nfru=nfru
       Glob_nfo=nfo
@@ -4542,7 +4543,6 @@ contains
     call ReadSwapFileAndDistributeData(IsSwapFileOK)
 
 !Calculating the initial energy
-    call linalg_setparam(Glob_CurrBasisSize)
     ErrCode=0
     if (Kstart>1) then
       if (IsSwapFileOK) then
@@ -4579,6 +4579,7 @@ contains
         nfru=K
         K=Kstop
       endif
+      call linalg_setparam(K)  !reset linalg flags to account for changes in the basis size
       Glob_nfa=K
       Glob_nfru=nfru
       Glob_nfo=nfo
@@ -4596,7 +4597,6 @@ contains
           write(*,*) 'Selecting function',K
         endif
       endif
-      call linalg_setparam(K)
       IsOverlapBad=.true.
       IsAnyLinCoeffBad=.true.
       AttemptToGetGoodFunc=1
@@ -5708,7 +5708,6 @@ contains
     endif
 
 !Calculating the initial energy
-    call linalg_setparam(cbs)
     if (IsSwapFileOK) then
       !Getting initial energy
       if (Glob_ProcID==0) write(*,*) 'Solving eigenvalue problem...'
@@ -6716,7 +6715,6 @@ contains
     endif
 
 !Calculating the initial energy
-    call linalg_setparam(Glob_CurrBasisSize)
     if (IsSwapFileOK) then
       if (Glob_ProcID==0) write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
       Glob_CurrEnergy=EnergyIA(1,Glob_CurrBasisSize,.false.,ErrCode)

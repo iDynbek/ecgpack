@@ -1,7 +1,7 @@
-!DEC$ DECLARE
 program main
 
   use workproc
+  implicit none
 
 !Local variables
   integer      i,iw,Kstart,Kstop,Kstep,OpenFileErr,OptimizationType
@@ -53,6 +53,8 @@ program main
   OptimizationType=1
 
   do i=1,Glob_NumOfBBOPSteps
+    call linalg_setparam(Glob_CurrBasisSize)
+
     Glob_CurrBBOPStep=i
     Glob_ApproxEnergy=Glob_CurrEnergy*Glob_InvItParameter
 

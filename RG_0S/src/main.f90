@@ -53,6 +53,8 @@ program main
   OptimizationType=1
 
   do i=1,Glob_NumOfBBOPSteps
+    call linalg_setparam(Glob_CurrBasisSize)
+
     Glob_CurrBBOPStep=i
     Glob_ApproxEnergy=Glob_CurrEnergy*Glob_InvItParameter
 
