@@ -383,7 +383,7 @@ contains
 
     integer :: indexI, indexJ ! indices enumerating particles from H_SO and AMM operators
 
-    localEps = 1.d-14 ! if the corresponding spin mean value is less then localEps, we don't calculate the spatial part
+    localEps = 1.0e-14_wp ! if the corresponding spin mean value is less then localEps, we don't calculate the spatial part
 
     ! basically copy-paste from the old ExpecVals subroutine
     n=Glob_n
@@ -501,7 +501,7 @@ contains
 
     pm_l = m_l
     do i = 1, n
-      if (abs(Pket(m_l, i) - 1.d0) < 1.d-13) then ! for integers it would be == 1
+      if (abs(Pket(m_l, i) - 1.0_wp) < 1.0e-13_wp) then ! for integers it would be == 1
         pm_l = i
         exit
       endif
@@ -1190,7 +1190,7 @@ contains
       temp9=ONE-temp7
       rm2kl(i,i)=temp5*(ONE-2*temp6)/temp2
       rmkl(i,i)=temp1*(ONE-temp6)/temp3
-      Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge0)*rmkl(i,i)
+      Vkl=Vkl+Glob_ScaledPseudoChargeMatrix(i,0)*rmkl(i,i)
       rkl(i,i)=temp1*(ONE+temp6)*temp3
       r2kl(i,i)=Skl*THREEHALF*(ONE+2*temp6)*temp2
       temp10=temp8/(temp2*temp3)
@@ -1231,7 +1231,7 @@ contains
         rm2kl(i,j)=rm2kl(j,i)
         rmkl(j,i)=temp1*(ONE-temp6)/temp3
         rmkl(i,j)=rmkl(j,i)
-        Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*rmkl(j,i)
+        Vkl=Vkl+Glob_ScaledPseudoChargeMatrix(i,j)*rmkl(j,i)
         rkl(j,i)=temp1*(ONE+temp6)*temp3
         rkl(i,j)=rkl(j,i)
         r2kl(j,i)=Skl*THREEHALF*(ONE+2*temp6)*temp2
@@ -1491,20 +1491,20 @@ contains
       do q=p,n
         temp1=ZERO
         do i=1,n
-          temp1=temp1+ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*rmrmkl(p,q,i,i)
+          temp1=temp1+Glob_ScaledPseudoChargeMatrix(0,i)*rmrmkl(p,q,i,i)
           do j=i+1,n
-            temp1=temp1+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*rmrmkl(p,q,i,j)
+            temp1=temp1+Glob_ScaledPseudoChargeMatrix(i,j)*rmrmkl(p,q,i,j)
           enddo
         enddo
         temp4=ZERO
         temp5=ZERO
         if (p==q) then
           temp4=2*Glob_Pi*Glob_MassMatrix(p,p)
-          temp5=ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(p))
+          temp5=Glob_ScaledPseudoChargeMatrix(0,p)
         else
           temp4=2*Glob_Pi*(Glob_MassMatrix(p,p)+Glob_MassMatrix(q,q) &
                       -Glob_MassMatrix(p,q)-Glob_MassMatrix(p,q))
-          temp5=ScaledChargeProd(Glob_PseudoCharge(p),Glob_PseudoCharge(q))
+          temp5=Glob_ScaledPseudoChargeMatrix(p,q)
         endif
 
         !temp2=ME_rXr_over_rij(W2,p,q,inv_tAkl,rmkl(p,q),TrAJ(p,q))
@@ -1526,14 +1526,14 @@ contains
       Darwinkl=Darwinkl+(   &
                 ONE/(Mass_For_Darwin(0)*Mass_For_Darwin(0)) &
                 +ONE/(Mass_For_Darwin(i)*Mass_For_Darwin(i)) &
-                )*ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*deltarkl(i,i)
+                )*Glob_ScaledPseudoChargeMatrix(0,i)*deltarkl(i,i)
     enddo
     do i=1,n
       do j=1,n
         if(j/=i) then
           Darwinkl=Darwinkl+   &
                     ONE/(Mass_For_Darwin(i)*Mass_For_Darwin(i)) &
-                    *ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*deltarkl(i,j)
+                    *Glob_ScaledPseudoChargeMatrix(i,j)*deltarkl(i,j)
         endif
       enddo
     enddo
@@ -1544,14 +1544,14 @@ contains
       drach_Darwinkl=drach_Darwinkl+(   &
                       ONE/(Mass_For_Darwin(0)*Mass_For_Darwin(0)) &
                       +ONE/(Mass_For_Darwin(i)*Mass_For_Darwin(i)) &
-                      )*ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*drach_deltarkl(i,i)
+                      )*Glob_ScaledPseudoChargeMatrix(0,i)*drach_deltarkl(i,i)
     enddo
     do i=1,n
       do j=1,n
         if(j/=i) then
           drach_Darwinkl=drach_Darwinkl+   &
                           ONE/(Mass_For_Darwin(i)*Mass_For_Darwin(i)) &
-                          *ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*drach_deltarkl(i,j)
+                          *Glob_ScaledPseudoChargeMatrix(i,j)*drach_deltarkl(i,j)
         endif
       enddo
     enddo
@@ -1575,11 +1575,11 @@ contains
                 -V2kl-Glob_CurrEnergy0*Glob_CurrEnergy1*Skl+(Glob_CurrEnergy1+Glob_CurrEnergy0)*Vkl+ &
                 Glob_CurrEnergy0*ME_dXd(Glob_dmvB,tvk,tvl,inv_tAkltvl,inv_tAkl,tAk,tAl,inv_tAkltAl,Skl,tau3)!+&
     do i=1,n
-      drach_MVkl=drach_MVkl-ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i)) &
+      drach_MVkl=drach_MVkl-Glob_ScaledPseudoChargeMatrix(0,i) &
                   *ME_d_X_over_rij_d(i,i,Glob_dmvB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl, &
                                      tvkinv_tAkl,trAJ(i,i),tau3,eta2(i,i),Skl)
       do j=i+1,n
-        drach_MVkl=drach_MVkl-ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j)) &
+        drach_MVkl=drach_MVkl-Glob_ScaledPseudoChargeMatrix(i,j) &
                     *ME_d_X_over_rij_d(i,j,Glob_dmvB,tAk,tAl,inv_tAkl,tvk,tvl,inv_tAkltvl, &
                                        tvkinv_tAkl,trAJ(i,j),tau3,eta2(i,j),Skl)
       enddo
@@ -1671,7 +1671,7 @@ contains
         temp5=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W3,W5,inv_tAkl,tau3,Skl)
         temp6=ONETHIRD*SG_ME_rXr_rYr_over_rij(j,j,W6,W7,inv_tAkl,tau3,Skl)
         temp7=-6*(tr1+tr2)*rmkl(j,j)+4*temp1-8*temp2-2*tr4*temp3-2*temp4+4*temp5+4*temp6
-        OOkl=OOkl-temp7*ScaledChargeProd(Glob_PseudoCharge(j),Glob_PseudoCharge0)/Glob_Mass(j+1)
+        OOkl=OOkl-temp7*Glob_ScaledPseudoChargeMatrix(j,0)/Glob_Mass(j+1)
       enddo
     enddo
     OOkl=OOkl/Glob_Mass(1)
@@ -1769,7 +1769,7 @@ contains
         temp6=ONETHIRD*SG_ME_rXr_rYr_over_rij(i,j,W6,W7,inv_tAkl,tau3,Skl)
         temp7=-6*(tr1+tr2)*rmkl(i,j)+4*temp1-8*temp2-2*tr4*temp3-2*temp4+4*temp5+4*temp6
         OOkl=OOkl+&
-              temp7*ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))/(Glob_Mass(i+1)*Glob_Mass(j+1))
+              temp7*Glob_ScaledPseudoChargeMatrix(i,j)/(Glob_Mass(i+1)*Glob_Mass(j+1))
       enddo
     enddo
     OOkl=OOkl/2
@@ -1897,20 +1897,6 @@ contains
     end do
 
   end subroutine symmetrize_matrix
-
-  function ScaledChargeProd(q1,q2)
-    real(wp) ScaledChargeProd,q1,q2,x
-    x=q1*q2
-    if (x<0.0_wp) then
-      ScaledChargeProd=x*Glob_AttractionScalingParam
-    else
-      if ((q1>0.0_wp).and.(q2>0.0_wp)) then
-        ScaledChargeProd=x*Glob_RepulsionScalingParam*Glob_RepulsionScalingParamPlus
-      else
-        ScaledChargeProd=x*Glob_RepulsionScalingParam*Glob_RepulsionScalingParamMinus
-      endif
-    endif
-  end function ScaledChargeProd
 
   function ME_rXr(X,inv_tAkl,inv_tAkltvl,tvkinv_tAkl,inv_tau3,Skl)
 !function ME_rXr computes the following matrix element:

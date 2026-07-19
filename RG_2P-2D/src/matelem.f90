@@ -565,7 +565,7 @@ contains
 
     integer :: indexI, indexJ ! indices enumerating particles from H_SO and AMM operators
 
-    localEps = 1.d-14 ! if the corresponding spin mean value is less then localEps, we don't calculate the spatial part
+    localEps = 1.0e-14_wp ! if the corresponding spin mean value is less then localEps, we don't calculate the spatial part
 
     ! basically copy-paste from the old ExpecVals subroutine
     n=Glob_n
@@ -685,8 +685,8 @@ contains
     pm_l = m_l
     pmm_l = mm_l
     do i = 1, n
-      if (abs(Pket(m_l, i) - 1.d0) < 1.d-13) pm_l = i
-      if (abs(Pket(mm_l, i) - 1.d0) < 1.d-13) pmm_l = i
+      if (abs(Pket(m_l, i) - 1.0_wp) < 1.0e-13_wp) pm_l = i
+      if (abs(Pket(mm_l, i) - 1.0_wp) < 1.0e-13_wp) pmm_l = i
     enddo
 
 

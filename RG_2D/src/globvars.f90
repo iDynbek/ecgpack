@@ -112,6 +112,12 @@ module globvars
   real(wp)   Glob_dmvB(Glob_AllowedNumOfPseudoParticles,Glob_AllowedNumOfPseudoParticles)
   real(wp)   Glob_dmvMB(Glob_AllowedNumOfPseudoParticles,Glob_AllowedNumOfPseudoParticles)
 
+!Glob_PseudoChargeMatrix is the matrix consisting of pseudocharge products
+!Glob_ScaledPseudoChargeMatrix is the scaled version of Glob_PseudoChargeMatrix
+!(they dffer only when the repulsion or attraction strengths are scaled)
+  real(wp),allocatable,dimension(:,:),save ::  Glob_PseudoChargeMatrix
+  real(wp),allocatable,dimension(:,:),save ::  Glob_ScaledPseudoChargeMatrix
+
 !Glob_PseudoCharge is the charges of pseudoparticles, qi
   real(wp),allocatable,dimension(:),save ::  Glob_PseudoCharge
 

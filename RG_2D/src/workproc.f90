@@ -894,6 +894,7 @@ contains
     logical       AreTermsIdentical
     integer,allocatable,dimension(:)      :: IdentParticleSet
     integer,allocatable,dimension(:,:)    :: IdentPseudoPartPairSet
+    real(wp)   qi,qj,qq,sqq
     real(wp)   mk,mi,m0,mh,ml
 
     if (Glob_ProcID==0) write(*,*) 'Initializing program data'
@@ -903,6 +904,38 @@ contains
 
     n=Glob_n
     npart=n+1
+
+!Constructing Glob_PseudoChargeMatrix and Glob_ScaledPseudoChargeMatrix
+    allocate(Glob_PseudoChargeMatrix(0:n,0:n))
+    allocate(Glob_ScaledPseudoChargeMatrix(0:n,0:n))
+    Glob_PseudoChargeMatrix(0:n,0:n)=ZERO
+    Glob_ScaledPseudoChargeMatrix(0:n,0:n)=ZERO
+    do j=0,n
+      if (j==0) then
+        qj=Glob_PseudoCharge0
+      else
+        qj=Glob_PseudoCharge(j)
+      endif
+      do i=0,n
+        if (i==0) then
+          qi=Glob_PseudoCharge0
+        else
+          qi=Glob_PseudoCharge(i)
+        endif
+        qq=qi*qj
+        if (qq<0.0_wp) then
+          sqq=qq*Glob_AttractionScalingParam
+        else
+          if ((qi>0.0_wp).and.(qj>0.0_wp)) then
+            sqq=qq*Glob_RepulsionScalingParam*Glob_RepulsionScalingParamPlus
+          else
+            sqq=qq*Glob_RepulsionScalingParam*Glob_RepulsionScalingParamMinus
+          endif
+        endif
+        Glob_PseudoChargeMatrix(i,j)=qq
+        Glob_ScaledPseudoChargeMatrix(i,j)=sqq        
+      enddo
+    enddo    
 
 !Constructing Glob_MassMatrix
     allocate(Glob_MassMatrix(n,n))
@@ -4028,6 +4061,7 @@ contains
         nfru=K
         K=Kstop
       endif
+      call linalg_setparam(K)  !reset linalg flags to account for changes in the basis size
       Glob_nfa=K
       Glob_nfru=nfru
       Glob_nfo=nfo
@@ -4656,7 +4690,6 @@ contains
     call ReadSwapFileAndDistributeData(IsSwapFileOK)
 
 !Calculating the initial energy
-    call linalg_setparam(Glob_CurrBasisSize)
     ErrCode=0
     if (Kstart>1) then
       if (IsSwapFileOK) then
@@ -4693,6 +4726,7 @@ contains
         nfru=K
         K=Kstop
       endif
+      call linalg_setparam(K)  !reset linalg flags to account for changes in the basis size
       Glob_nfa=K
       Glob_nfru=nfru
       Glob_nfo=nfo
@@ -4710,7 +4744,6 @@ contains
           write(*,*) 'Selecting function',K
         endif
       endif
-      call linalg_setparam(K)
       IsOverlapBad=.true.
       IsAnyLinCoeffBad=.true.
       AttemptToGetGoodFunc=1
@@ -5869,7 +5902,6 @@ contains
     endif
 
 !Calculating the initial energy
-    call linalg_setparam(cbs)
     if (IsSwapFileOK) then
       !Getting initial energy
       if (Glob_ProcID==0) write(*,*) 'Solving eigenvalue problem...'
@@ -6884,7 +6916,6 @@ contains
     endif
 
 !Calculating the initial energy
-    call linalg_setparam(Glob_CurrBasisSize)
     if (IsSwapFileOK) then
       if (Glob_ProcID==0) write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
       Glob_CurrEnergy=EnergyIA(1,Glob_CurrBasisSize,.false.,ErrCode)

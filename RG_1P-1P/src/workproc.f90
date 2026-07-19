@@ -973,6 +973,7 @@ contains
     integer                               :: pi,pj,pt,ps
     logical                               :: AreYsIdentical
     real(wp)                           :: mk,mi,m0
+    real(wp)                           :: qi,qj,qq,sqq
     integer,allocatable,dimension(:)      :: IdentParticleSet
     integer,allocatable,dimension(:,:)    :: IdentPseudoPartPairSet
 
@@ -982,6 +983,38 @@ contains
     EndIF
     n=Glob_n
     npart=n+1
+
+!Constructing Glob_PseudoChargeMatrix and Glob_ScaledPseudoChargeMatrix
+    allocate(Glob_PseudoChargeMatrix(0:n,0:n))
+    allocate(Glob_ScaledPseudoChargeMatrix(0:n,0:n))
+    Glob_PseudoChargeMatrix(0:n,0:n)=ZERO
+    Glob_ScaledPseudoChargeMatrix(0:n,0:n)=ZERO
+    do j=0,n
+      if (j==0) then
+        qj=Glob_PseudoCharge0
+      else
+        qj=Glob_PseudoCharge(j)
+      endif
+      do i=0,n
+        if (i==0) then
+          qi=Glob_PseudoCharge0
+        else
+          qi=Glob_PseudoCharge(i)
+        endif
+        qq=qi*qj
+        if (qq<0.0_wp) then
+          sqq=qq*Glob_AttractionScalingParam
+        else
+          if ((qi>0.0_wp).and.(qj>0.0_wp)) then
+            sqq=qq*Glob_RepulsionScalingParam*Glob_RepulsionScalingParamPlus
+          else
+            sqq=qq*Glob_RepulsionScalingParam*Glob_RepulsionScalingParamMinus
+          endif
+        endif
+        Glob_PseudoChargeMatrix(i,j)=qq
+        Glob_ScaledPseudoChargeMatrix(i,j)=sqq        
+      enddo
+    enddo
 
 !Constructing Glob_MassMatrix
     allocate(Glob_MassMatrix(n,n))

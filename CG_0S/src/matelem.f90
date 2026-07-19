@@ -260,7 +260,7 @@ contains
       csum=sqrt(cmpnum)
       tr_inv_tCklJij32(i,i)=1/(csum*cmpnum)
       cRklij=cnumb/csum
-      Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge0)*cRklij
+      Vkl=Vkl+Glob_ScaledPseudoChargeMatrix(i,0)*cRklij
     enddo
     do i=1,n
       do j=i+1,n
@@ -268,7 +268,7 @@ contains
         csum=sqrt(cmpnum)
         tr_inv_tCklJij32(j,i)=1/(csum*cmpnum)
         cRklij=cnumb/csum
-        Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*cRklij
+        Vkl=Vkl+Glob_ScaledPseudoChargeMatrix(i,j)*cRklij
       enddo
     enddo
 
@@ -660,9 +660,9 @@ contains
           !Calculating ij-terms of the sums in the expressions for
           !the dVkldvechXk
           if (i==j) then
-            cnumb=ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*tr_inv_tCklJij32(i,i)
+            cnumb=Glob_ScaledPseudoChargeMatrix(0,i)*tr_inv_tCklJij32(i,i)
           else
-            cnumb=ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*tr_inv_tCklJij32(i,j)
+            cnumb=Glob_ScaledPseudoChargeMatrix(i,j)*tr_inv_tCklJij32(i,j)
           endif
           if (grad_k) then
             indx=0
@@ -1026,7 +1026,7 @@ contains
       rkl(i,i)=cnumb*csum
       r2kl(i,i)=caux*TrCJ(i,i)
       deltarkl(i,i)=caux1/(csum*TrCJ(i,i))
-      Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge0)*rmkl(i,i)
+      Vkl=Vkl+Glob_ScaledPseudoChargeMatrix(i,0)*rmkl(i,i)
     enddo
     do i=1,n
       do j=i+1,n
@@ -1041,7 +1041,7 @@ contains
         r2kl(j,i)=r2kl(i,j)
         deltarkl(i,j)=caux1/(csum*TrCJ(i,j))
         deltarkl(j,i)=deltarkl(i,j)
-        Vkl=Vkl+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*rmkl(i,j)
+        Vkl=Vkl+Glob_ScaledPseudoChargeMatrix(i,j)*rmkl(i,j)
       enddo
     enddo
     Hkl=Tkl+Vkl
@@ -1149,9 +1149,9 @@ contains
       do q=p,n
         ctemp=COMPLEXZERO
         do i=1,n
-          ctemp=ctemp+ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*rmrmkl(p,q,i,i)
+          ctemp=ctemp+Glob_ScaledPseudoChargeMatrix(0,i)*rmrmkl(p,q,i,i)
           do j=i+1,n
-            ctemp=ctemp+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*rmrmkl(p,q,i,j)
+            ctemp=ctemp+Glob_ScaledPseudoChargeMatrix(i,j)*rmrmkl(p,q,i,j)
           enddo
         enddo
         if (p==q) then
@@ -1203,7 +1203,7 @@ contains
         cnumb=ME_rXr_over_rij(Wc1,j,j,inv_tCkl,rmkl(j,j),TrCJ(j,j))
         ctemp=ME_rXr_rYr_over_rij(Wc2,Wc3,j,j,inv_tCkl,rmkl(j,j),TrCJ(j,j))
         caux=-6*(tr1+tr2)*rmkl(j,j)+4*cnumb-8*ctemp
-        OOkl=OOkl-caux*ScaledChargeProd(Glob_PseudoCharge(j),Glob_PseudoCharge0)/Glob_Mass(j+1)
+        OOkl=OOkl-caux*Glob_ScaledPseudoChargeMatrix(j,0)/Glob_Mass(j+1)
       enddo
     enddo
     OOkl=OOkl/Glob_Mass(1)
@@ -1247,7 +1247,7 @@ contains
         cnumb=ME_rXr_over_rij(Wc1,i,j,inv_tCkl,rmkl(i,j),TrCJ(i,j))
         ctemp=ME_rXr_rYr_over_rij(Wc2,Wc3,i,j,inv_tCkl,rmkl(i,j),TrCJ(i,j))
         caux=-6*(tr1+tr2)*rmkl(i,j)+4*cnumb-8*ctemp
-        OOkl=OOkl+caux*ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))/(Glob_Mass(i+1)*Glob_Mass(j+1))
+        OOkl=OOkl+caux*Glob_ScaledPseudoChargeMatrix(i,j)/(Glob_Mass(i+1)*Glob_Mass(j+1))
       enddo
     enddo
     OOkl=OOkl/2
@@ -1490,12 +1490,12 @@ contains
 !Second term of drach_MVkl; Here we will reuse Wc3 and tr1 obtained previously
     cnumb=COMPLEXZERO
     do i=1,n
-      cnumb=cnumb+ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*  &
+      cnumb=cnumb+Glob_ScaledPseudoChargeMatrix(0,i)*  &
              (4*ME_rXr_over_rij(Wc3,i,i,inv_tCkl,rmkl(i,i),TrCJ(i,i))-6*tr1*rmkl(i,i))
     enddo
     do i=1,n
       do j=i+1,n
-        cnumb=cnumb+ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*   &
+        cnumb=cnumb+Glob_ScaledPseudoChargeMatrix(i,j)*   &
                (4*ME_rXr_over_rij(Wc3,i,j,inv_tCkl,rmkl(i,j),TrCJ(i,j))-6*tr1*rmkl(i,j))
       enddo
     enddo
@@ -1652,14 +1652,14 @@ contains
       Darwinkl=Darwinkl+(   &
                 ONE/(Mass_For_Darwin(0)*Mass_For_Darwin(0)) &
                 +ONE/(Mass_For_Darwin(i)*Mass_For_Darwin(i)) &
-                )*ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*deltarkl(i,i)
+                )*Glob_ScaledPseudoChargeMatrix(0,i)*deltarkl(i,i)
     enddo
     do i=1,n
       do j=1,n
         if(j/=i) then
           Darwinkl=Darwinkl+   &
                     ONE/(Mass_For_Darwin(i)*Mass_For_Darwin(i)) &
-                    *ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*deltarkl(i,j)
+                    *Glob_ScaledPseudoChargeMatrix(i,j)*deltarkl(i,j)
         endif
       enddo
     enddo
@@ -1680,12 +1680,12 @@ contains
     drach_Darwinkl=Glob_CurrEnergy*ME_dXd(Wc1,inv_tCkl,tCl,Skl)/4
 !Second term
     do i=1,n
-      drach_Darwinkl=drach_Darwinkl-ScaledChargeProd(Glob_PseudoCharge0,Glob_PseudoCharge(i))*  &
+      drach_Darwinkl=drach_Darwinkl-Glob_ScaledPseudoChargeMatrix(0,i)*  &
                       ME_dXd_over_rij(Wc1,i,i,inv_tCkl,tCl,rmkl(i,i),TrCJ(i,i))/4
     enddo
     do i=1,n
       do j=i+1,n
-        drach_Darwinkl=drach_Darwinkl-ScaledChargeProd(Glob_PseudoCharge(i),Glob_PseudoCharge(j))*  &
+        drach_Darwinkl=drach_Darwinkl-Glob_ScaledPseudoChargeMatrix(i,j)*  &
                         ME_dXd_over_rij(Wc1,i,j,inv_tCkl,tCl,rmkl(i,j),TrCJ(i,j))/4
       enddo
     enddo
@@ -1772,20 +1772,6 @@ contains
       trace=trace+M(i,i)
     enddo
   end function trace
-
-  function ScaledChargeProd(q1,q2)
-    real(wp) ScaledChargeProd,q1,q2,x
-    x=q1*q2
-    if (x<0.0_wp) then
-      ScaledChargeProd=x*Glob_AttractionScalingParam
-    else
-      if ((q1>0.0_wp).and.(q2>0.0_wp)) then
-        ScaledChargeProd=x*Glob_RepulsionScalingParam*Glob_RepulsionScalingParamPlus
-      else
-        ScaledChargeProd=x*Glob_RepulsionScalingParam*Glob_RepulsionScalingParamMinus
-      endif
-    endif
-  end function ScaledChargeProd
 
   function ME_rXr_over_rij(X,i,j,invCkl,ME_1_over_rij,TrCJ)
 !Function ME_rXr_over_rij computes the following
