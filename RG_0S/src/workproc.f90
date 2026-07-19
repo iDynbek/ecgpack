@@ -1947,6 +1947,17 @@ contains
     real(wp)  pen_coeff,tp,temp1,temp2
     logical      oddband
 
+!BUGFIX (gpu-benchmark): the self-normalization term of d(Sbar_ij)/dx below previously
+!carried a spurious norm-ratio factor temp2=sqrt(N_i/N_j). StoreHSD (matform.f90) already
+!stores the normalized overlap Sbar_ij=S_ij/sqrt(N_i N_j) and Glob_D(...)=D*f (f=1/sqrt(N_iN_j)),
+!so the correct derivative d(Sbar_ij)/dx_j = D^off - (1/2) Sbar_ij D^diag has NO norm ratio.
+!The spurious factor made the analytic penalty gradient O(1) larger than finite differences
+!when the penalty is active and N_i/=N_j. The error is EXPECTED to be small at the usual
+!production threshold ~0.95 (only near-parallel functions activate, which may have similar
+!norms N_i/N_j~1), but this has NOT been measured -- see PENALTY_GRADIENT_BUG.md.
+!Setting temp2=1 makes the analytic gradient match FD to a clean U-curve (verified via
+!ECG_GRADCHECK+ECG_GC_PENALTY). See data/results/gradcheck/PENALTY_GRADIENT_BUG.md. temp2 is
+!kept (=1) rather than removed so the *temp2 / /temp2 use sites stay diff-minimal.
     tp=ZERO
     pen_coeff=MaxPairOverlapPenalty/(ONE-OverlapThreshold2)
     if (Glob_NumOfProcs==1) then
@@ -1956,7 +1967,7 @@ contains
           if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) then
             tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
             temp1=2*pen_coeff*Glob_S(j,i)
-            temp2=sqrt(Glob_diagS(i)/Glob_diagS(j))
+            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (PENALTY_GRADIENT_BUG.md)
             do m=1,Glob_npt
               WkGR((j-Glob_nfru-1)*Glob_npt+m)=WkGR((j-Glob_nfru-1)*Glob_npt+m) &
                                                 +temp1*(Glob_D(Glob_npt+m,j-Glob_nfru,i) &
@@ -1970,7 +1981,7 @@ contains
           if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) then
             tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
             temp1=2*pen_coeff*Glob_S(j,i)
-            temp2=sqrt(Glob_diagS(i)/Glob_diagS(j))
+            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (PENALTY_GRADIENT_BUG.md)
             do m=1,Glob_npt
               WkGR((i-Glob_nfru-1)*Glob_npt+m)=WkGR((i-Glob_nfru-1)*Glob_npt+m) &
                                                 +temp1*(Glob_D(Glob_npt+m,i-Glob_nfru,j) &
@@ -1992,7 +2003,7 @@ contains
           if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) then
             tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
             temp1=2*pen_coeff*Glob_S(j,i)
-            temp2=sqrt(Glob_diagS(i)/Glob_diagS(j))
+            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (PENALTY_GRADIENT_BUG.md)
             do m=1,Glob_npt
               WkGR((j-Glob_nfru-1)*Glob_npt+m)=WkGR((j-Glob_nfru-1)*Glob_npt+m) &
                                                 +temp1*(Glob_D(Glob_npt+m,j-Glob_nfru,i) &
@@ -2016,7 +2027,7 @@ contains
           if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) then
             tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
             temp1=2*pen_coeff*Glob_S(j,i)
-            temp2=sqrt(Glob_diagS(i)/Glob_diagS(j))
+            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (PENALTY_GRADIENT_BUG.md)
             do m=1,Glob_npt
               WkGR((i-Glob_nfru-1)*Glob_npt+m)=WkGR((i-Glob_nfru-1)*Glob_npt+m) &
                                                 +temp1*(Glob_D(Glob_npt+m,i-Glob_nfru,j) &
@@ -2041,7 +2052,7 @@ contains
           if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) then
             tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
             temp1=2*pen_coeff*Glob_S(j,i)
-            temp2=sqrt(Glob_diagS(i)/Glob_diagS(j))
+            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (PENALTY_GRADIENT_BUG.md)
             do m=1,Glob_npt
               WkGR((i-Glob_nfru-1)*Glob_npt+m)=WkGR((i-Glob_nfru-1)*Glob_npt+m) &
                                                 +temp1*(Glob_D(Glob_npt+m,i-Glob_nfru,j) &
@@ -5433,18 +5444,13 @@ contains
       if (methstr(1:1)=='I'.or.methstr(1:1)=='i') methI=.true.
     endif
 !ECG_GC_PENALTY: enable the overlap penalty and check its gradient. This exposed a
-!LATENT BUG in ComputeOverlapPenaltyAndAddGradient (workproc.f90:1926/1940/1962): the
-!analytic penalty gradient carries extraneous norm-ratio factors temp2=sqrt(N_i/N_j)
-!on the self-normalization term, inconsistent with StoreHSD's normalized-derivative
-!storage (matform.f90:83-107, Glob_D = D*f, no norm ratio). With the penalty active
-!and N_i/N_j far from 1, the analytic gradient is O(1) larger than the finite
-!difference; setting temp2=1 makes it match FD to a clean U-curve (~4e-10). Confirmed:
-!(a) method-I shows the same mismatch => not a DSYGVX/Glob_S factorization issue (the
-!penalty reads the preserved lower triangle, DSYGVX uses UPLO='U'); (b) temp2->1 fixes
-!it. Only affects FULL_OPT1 with an ACTIVE overlap penalty (threshold<1, differing
-!norms); masked in production (threshold~0.95 -> near-parallel functions -> N_i/N_j~1).
-!See data/results/gradcheck/PENALTY_GRADIENT_BUG.md. Not patched here (production code
-!left untouched pending group review + a production-threshold / full-FULL_OPT1 test).
+!LATENT BUG in ComputeOverlapPenaltyAndAddGradient (spurious norm-ratio factors
+!temp2=sqrt(N_i/N_j) on the self-normalization term, inconsistent with StoreHSD's
+!Glob_D=D*f storage). **FIXED on this branch** (temp2 set to 1): the penalty gradient
+!now matches FD to a clean U-curve (~4e-10) for both method-G and method-I. Affected
+!only FULL_OPT1 with an ACTIVE overlap penalty (threshold<1, differing norms); the error
+!at the production threshold ~0.95 is EXPECTED to be small but is unmeasured. Full
+!write-up + verification: data/results/gradcheck/PENALTY_GRADIENT_BUG.md.
     penalty=.false.
     call get_environment_variable('ECG_GC_PENALTY',penstr,status=os)
     if (os==0) penalty=.true.
