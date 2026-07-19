@@ -15,6 +15,9 @@ program main
   integer,allocatable :: Seed(:)
   integer       :: seedval, seedios
   character(32) :: seedstr
+  character(32) :: gcstr
+  integer       :: gcflag, gcios
+  logical       :: do_gradcheck
 
 !Initialize MPI
   call MPI_INIT(Glob_MPIErrCode)
@@ -76,6 +79,23 @@ program main
   endif
 
   OptimizationType=1
+
+!ECG_GRADCHECK: if set, run the finite-difference gradient-correctness check on the
+!loaded basis (subroutine GradCheck) instead of the scripted BBOP steps, then fall
+!through to the normal finalize (profiling summary + MPI_FINALIZE).
+  do_gradcheck=.false.
+  if (Glob_ProcID==0) then
+    call get_environment_variable('ECG_GRADCHECK', gcstr, status=gcios)
+    if (gcios==0) do_gradcheck=.true.
+  endif
+  gcflag=0
+  if (do_gradcheck) gcflag=1
+  call MPI_BCAST(gcflag,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+  do_gradcheck=(gcflag==1)
+
+  if (do_gradcheck) then
+    call GradCheck()
+  else
 
   do i=1,Glob_NumOfBBOPSteps
     Glob_CurrBBOPStep=i
@@ -281,6 +301,8 @@ program main
         's | lastME=',Glob_LastME,'s lastEIG=',Glob_LastEIG
     endif
   enddo
+
+  endif   !do_gradcheck branch
 
   if (Glob_ProcID==0) then
     if (Glob_UseSwapFile) then

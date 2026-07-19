@@ -5350,6 +5350,190 @@ contains
 
   end subroutine OptCycleG
 
+  subroutine GradCheck()
+!Gradient-correctness check (env-gated by ECG_GRADCHECK in main). Verifies the
+!ANALYTIC gradient dE/dvechL of the last basis function (from EnergyGB, which is
+!fed by ComputeMatElemAndDeriv / the GPU gpu_build_HS_deriv) against a central
+!FINITE DIFFERENCE of the energy (from EnergyGA). Same code path as OptCycleG
+!method-G setup (DSYGVX solve). Print-only on rank 0; EnergyGA/EnergyGB do their
+!own MPI reductions so all ranks must call them.
+!
+!Numerical notes:
+! - Central diff: g_fd_i = (E(x+dx) - E(x-dx)) / (2*dx), dx = h*max(|x0_i|,1)
+!   (relative step: the vechL params span ~1e-2..1e1, so a fixed h mis-scales).
+! - Sweep h and look for the plateau (truncation O(h^2) vs energy-noise O(eps/h)).
+! - For a clean FD run with ECG_GPU, set ECG_DETERM=1 so EnergyGA's H/S build is
+!   deterministic; otherwise the ~1e-9 atomicAdd energy noise, divided by 2*dx,
+!   swamps the difference at small h. (The analytic gradient may stay noisy.)
+    integer      cbs,npt,nfo,nv,f,p,idx,ih,ec,os,BlockSizeForDSYGVX
+    real(wp)  E0,Etmp,Eplus,Eminus,dx,gfd,rel,maxrel,maxabs,gnorm,offset
+    real(wp),allocatable  :: x0(:),xc(:),g_analytic(:)
+    real(wp)  hlist(6)
+    character(32)  offstr,nfostr,nofdstr,methstr,penstr
+    logical      nofd,methI,penalty
+
+!ECG_GC_OFFSET (default 0.1): a saved basis has its optimized functions AT their
+!optimum (gradient ~0), which makes the FD-vs-analytic comparison vacuous.
+!Differentiate instead at xc = x0 + offset so dE/dx is O(1) and the check is real.
+!ECG_GC_NFO (default 1): number of trailing functions to optimize simultaneously.
+!nfo>1 exercises the multi-function Dl derivative path and cross-function gradient
+!indexing (production OPT_CYCLE optimizes several functions at once).
+    offset=0.1_wp
+    call get_environment_variable('ECG_GC_OFFSET',offstr,status=os)
+    if (os==0) read(offstr,*,iostat=os) offset
+    nfo=1
+    call get_environment_variable('ECG_GC_NFO',nfostr,status=os)
+    if (os==0) read(nfostr,*,iostat=os) nfo
+    if (nfo<1) nfo=1
+!ECG_GC_NOFD: skip the finite-difference sweep, print the analytic gradient only
+!(fast — one EnergyGB). Used to harvest a CPU analytic gradient cheaply for the
+!direct GPU-vs-CPU analytic comparison at production nfo.
+    nofd=.false.
+    call get_environment_variable('ECG_GC_NOFD',nofdstr,status=os)
+    if (os==0) nofd=.true.
+!ECG_GC_METHOD (default G): 'G' -> EnergyGA/EnergyGB (DSYGVX);
+!'I' -> EnergyIA/EnergyIB (warm-started inverse iteration GSEPIIS). The derivative-ME
+!backend is shared, but method-I has a distinct eigensolver + gradient-assembly path.
+    methI=.false.
+    call get_environment_variable('ECG_GC_METHOD',methstr,status=os)
+    if (os==0) then
+      if (methstr(1:1)=='I'.or.methstr(1:1)=='i') methI=.true.
+    endif
+!ECG_GC_PENALTY: enable the overlap penalty and check its gradient. This exposed a
+!LATENT BUG in ComputeOverlapPenaltyAndAddGradient (workproc.f90:1926/1940/1962): the
+!analytic penalty gradient carries extraneous norm-ratio factors temp2=sqrt(N_i/N_j)
+!on the self-normalization term, inconsistent with StoreHSD's normalized-derivative
+!storage (matform.f90:83-107, Glob_D = D*f, no norm ratio). With the penalty active
+!and N_i/N_j far from 1, the analytic gradient is O(1) larger than the finite
+!difference; setting temp2=1 makes it match FD to a clean U-curve (~4e-10). Confirmed:
+!(a) method-I shows the same mismatch => not a DSYGVX/Glob_S factorization issue (the
+!penalty reads the preserved lower triangle, DSYGVX uses UPLO='U'); (b) temp2->1 fixes
+!it. Only affects FULL_OPT1 with an ACTIVE overlap penalty (threshold<1, differing
+!norms); masked in production (threshold~0.95 -> near-parallel functions -> N_i/N_j~1).
+!See data/results/gradcheck/PENALTY_GRADIENT_BUG.md. Not patched here (production code
+!left untouched pending group review + a production-threshold / full-FULL_OPT1 test).
+    penalty=.false.
+    call get_environment_variable('ECG_GC_PENALTY',penstr,status=os)
+    if (os==0) penalty=.true.
+
+    cbs=Glob_CurrBasisSize
+    npt=Glob_npt
+    if (nfo>cbs-1) nfo=cbs-1         !leave at least one frozen function
+    nv=npt*nfo                       !gradient length = npt per optimized function
+    Glob_OverlapPenaltyAllowed=penalty
+    Glob_TotalOverlapPenalty=ZERO
+    if (penalty) then
+      Glob_MaxOverlapPenalty=ONE                 !penalty coefficient (non-trivial)
+      Glob_OverlapPenaltyThreshold2=1.0e-8_wp    !~0: essentially every pair active, so
+      call get_environment_variable('ECG_GC_PENT2',penstr,status=os)  !no hinge crossings
+      if (os==0) read(penstr,*,iostat=os) Glob_OverlapPenaltyThreshold2 !-> smooth penalty
+    endif
+    Glob_HSLeadDim=cbs
+    Glob_HSBuffLen=cbs*nfo
+    Glob_nfa=cbs
+    Glob_nfru=cbs-nfo                !differentiate the LAST nfo functions
+    Glob_nfo=nfo
+    if (methI) then
+      Glob_GSEPSolutionMethod='I'
+      Glob_ApproxEnergy=Glob_CurrEnergy*Glob_InvItParameter   !inverse-iteration shift
+    else
+      Glob_GSEPSolutionMethod='G'
+    endif
+
+    BlockSizeForDSYGVX=ILAENV(1,'DSYTRD','VIU',cbs,cbs,cbs,cbs)
+    Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*cbs,8*cbs)
+    allocate(Glob_H(cbs,cbs),Glob_S(cbs,cbs),Glob_diagH(cbs),Glob_diagS(cbs))
+    allocate(Glob_D(2*npt,nfo,cbs),Glob_c(cbs))
+    allocate(Glob_HklBuff1(Glob_HSBuffLen),Glob_HklBuff2(Glob_HSBuffLen))
+    allocate(Glob_SklBuff1(Glob_HSBuffLen),Glob_SklBuff2(Glob_HSBuffLen))
+    allocate(Glob_DkBuff1(2*npt,Glob_HSBuffLen),Glob_DkBuff2(2*npt,Glob_HSBuffLen))
+    allocate(Glob_DlBuff1(2*npt,Glob_HSBuffLen),Glob_DlBuff2(2*npt,Glob_HSBuffLen))
+    allocate(Glob_WorkForDSYGVX(Glob_LWorkForDSYGVX),Glob_IWorkForDSYGVX(5*cbs))
+    allocate(Glob_invD(cbs),Glob_WorkForGSEPIIS(cbs),Glob_LastEigvector(cbs))  !method-I
+    Glob_LastEigvector(1:cbs)=ONE                             !warm-start vector
+    allocate(Glob_WkGR(nv))           !EnergyGB/IB gradient workspace (nfo functions)
+    allocate(x0(nv),xc(nv),g_analytic(nv))
+
+!Gradient index idx=(f-1)*npt+p  <->  Glob_NonlinParam(p, nfru+f), f=1..nfo, p=1..npt
+    do f=1,nfo
+      do p=1,npt
+        x0((f-1)*npt+p)=Glob_NonlinParam(p,Glob_nfru+f)   !original (restore at end)
+      enddo
+    enddo
+    xc(1:nv)=x0(1:nv)+offset                               !CHECK point: off the minimum
+    do f=1,nfo
+      do p=1,npt
+        Glob_NonlinParam(p,Glob_nfru+f)=xc((f-1)*npt+p)
+      enddo
+    enddo
+    if (methI) then
+      Etmp=EnergyIA(1,cbs,.true.,ec)               !prime FULL H/S (method-I, GSEPIIS)
+      call EnergyIB(E0,g_analytic,.true.,ec)       !method-I ME+DERIV -> gradient
+    else
+      Etmp=EnergyGA(1,cbs,.true.,ec)               !prime FULL H/S (method-G, DSYGVX)
+      call EnergyGB(E0,g_analytic,.true.,ec)       !method-G ME+DERIV -> gradient
+    endif
+    gnorm=ZERO
+    do idx=1,nv
+      if (abs(g_analytic(idx))>gnorm) gnorm=abs(g_analytic(idx))
+    enddo
+    if (Glob_ProcID==0) then
+      write(*,'(1x,a,a,a,i0,a,i0,a,i0,a,i0,a,es9.2)') 'GRADCHECK: method=',Glob_GSEPSolutionMethod, &
+        ' cbs=',cbs,' nfo=',nfo,' npt=',npt,' WhichEigenvalue=',Glob_WhichEigenvalue,' offset=',offset
+      write(*,'(1x,a,i0,a,es22.14,a,es9.2,a,es12.4,a,es12.4)') 'GRADCHECK: nv=',nv,' E0(GB)=',E0, &
+        ' |dE(GA-GB)|=',abs(Etmp-E0),' max|g_analytic|=',gnorm,' penalty=',Glob_TotalOverlapPenalty
+    endif
+
+    if (nofd) then
+      !analytic gradient only (fast) -- for the direct GPU-vs-CPU analytic comparison
+      if (Glob_ProcID==0) then
+        do idx=1,nv
+          write(*,'(1x,a,i4,a,es22.14)') 'GRADANA i=',idx,' ana=',g_analytic(idx)
+        enddo
+      endif
+    else
+      !h-list spans the truncation side (1e-2, 3e-3) through the roundoff side (1e-6)
+      !so the FD error traces a truncation->roundoff U-curve.
+      hlist(1)=1.0e-2_wp; hlist(2)=3.0e-3_wp; hlist(3)=1.0e-3_wp
+      hlist(4)=1.0e-4_wp; hlist(5)=1.0e-5_wp; hlist(6)=1.0e-6_wp
+      do ih=1,6
+        maxrel=ZERO; maxabs=ZERO
+        do idx=1,nv
+          f=(idx-1)/npt+1; p=mod(idx-1,npt)+1
+          dx=hlist(ih)*max(abs(xc(idx)),ONE)
+          Glob_NonlinParam(p,Glob_nfru+f)=xc(idx)+dx
+          if (methI) then; Eplus =EnergyIA(1,cbs,.true.,ec); else; Eplus =EnergyGA(1,cbs,.true.,ec); endif
+          Glob_NonlinParam(p,Glob_nfru+f)=xc(idx)-dx
+          if (methI) then; Eminus=EnergyIA(1,cbs,.true.,ec); else; Eminus=EnergyGA(1,cbs,.true.,ec); endif
+          Glob_NonlinParam(p,Glob_nfru+f)=xc(idx)      !restore EXACT bit value
+          gfd=(Eplus-Eminus)/(2*dx)
+          rel=abs(g_analytic(idx)-gfd)/(ONE+abs(gfd))
+          if (rel>maxrel) maxrel=rel
+          if (abs(g_analytic(idx)-gfd)>maxabs) maxabs=abs(g_analytic(idx)-gfd)
+          if (Glob_ProcID==0) write(*,'(1x,a,es9.2,a,i4,a,es22.14,a,es22.14,a,es12.4)') &
+            'GRADCHK h=',hlist(ih),' i=',idx,' ana=',g_analytic(idx),' fd=',gfd,' rel=',rel
+        enddo
+        if (Glob_ProcID==0) write(*,'(1x,a,es9.2,a,es12.4,a,es12.4)') &
+          'GRADCHK_MAX h=',hlist(ih),' maxrel=',maxrel,' maxabs=',maxabs
+      enddo
+    endif
+
+    do f=1,nfo
+      do p=1,npt
+        Glob_NonlinParam(p,Glob_nfru+f)=x0((f-1)*npt+p)   !restore original
+      enddo
+    enddo
+    deallocate(x0,xc,g_analytic)
+    deallocate(Glob_WkGR)
+    deallocate(Glob_LastEigvector,Glob_WorkForGSEPIIS,Glob_invD)
+    deallocate(Glob_IWorkForDSYGVX,Glob_WorkForDSYGVX)
+    deallocate(Glob_DlBuff2,Glob_DlBuff1,Glob_DkBuff2,Glob_DkBuff1)
+    deallocate(Glob_SklBuff2,Glob_SklBuff1,Glob_HklBuff2,Glob_HklBuff1)
+    deallocate(Glob_c,Glob_D,Glob_diagS,Glob_diagH,Glob_S,Glob_H)
+    if (Glob_ProcID==0) write(*,*) 'GRADCHECK done'
+
+  end subroutine GradCheck
+
   subroutine OptCycleI(K, FuncBegin, FuncEnd, NumOfFuncToOpt, NumOfFuncToShift, &
                        NumCycles, MaxEnergyEval, OverlapThreshold, LinCoeffThreshold, SavingFreq)
 !Subroutine OptCycleI performs an optimization of the basis set of K functions
