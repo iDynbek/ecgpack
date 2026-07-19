@@ -6,7 +6,7 @@ module matelem
 
 contains
 
-  subroutine MatrixElementsLD(m_k, mm_k, m_l, mm_l, vechLk, vechLl, P, &
+  subroutine MatrixElements_RG_2D(m_k, mm_k, m_l, mm_l, vechLk, vechLl, P, &
                               Hkl, Skl, Tkl,Vkl, Dk, Dl, grad_k, grad_l)
 !This subroutine computes symmetry adapted matrix element with
 !two real L=1 correlated Gaussians:
@@ -812,9 +812,9 @@ contains
       enddo
     endif
 
-  end subroutine MatrixElementsLD
+  end subroutine MatrixElements_RG_2D
 
-  subroutine MatrixElementsL1ForExpcValsD(m_k, mm_k, m_l, mm_l, vechLk, vechLl, Pbra, Pket, &
+  subroutine MatrixElementsEV_RG_2D(m_k, mm_k, m_l, mm_l, vechLk, vechLl, Pbra, Pket, &
                                           Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
                                           MVkl, drach_MVkl1, drach_MVkl2, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, prvalkl, &
                                           NumCFGridPoints, CFGrid, &
@@ -1810,7 +1810,7 @@ contains
       enddo
     endif
 
-  end subroutine MatrixElementsL1ForExpcValsD
+  end subroutine MatrixElementsEV_RG_2D
 
   function ME_KDFG(rindexI,rindexJ,KK,DD,FF,GG,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,twk,twl)
 

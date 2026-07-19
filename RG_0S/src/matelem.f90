@@ -6,7 +6,7 @@ module matelem
 
 contains
 
-  subroutine MatrixElements(vechLk, vechLl, P, &
+  subroutine MatrixElements_RG_0S(vechLk, vechLl, P, &
                             Hkl, Skl, Dk, Dl, grad_k, grad_l)
 !This subroutine computes symmetry adapted matrix element with
 !two real L=0 correlated Gaussians:
@@ -604,9 +604,9 @@ contains
       Dl(np+1:2*np)=dSkldvechLl(1:np)
     endif
 
-  end subroutine MatrixElements
+  end subroutine MatrixElements_RG_0S
 
-  subroutine MatrixElementsForExpcVals(vechLk, vechLl, Pbra, Pket, &
+  subroutine MatrixElementsEV_RG_0S(vechLk, vechLl, Pbra, Pket, &
                                        Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
                              MVkl, drach_MVkl1, drach_MVkl2, drach_MVkl3, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, del2kl, prvalkl, &
                                        wf2originkl, NumCFGridPoints, CFGrid, CFkl, NumDensGridPoints, DensGrid, Denskl, &
@@ -1598,7 +1598,7 @@ contains
         enddo
       enddo
     end if
-  end subroutine MatrixElementsForExpcVals
+  end subroutine MatrixElementsEV_RG_0S
 
   function trace(k,M)
     real(wp) trace

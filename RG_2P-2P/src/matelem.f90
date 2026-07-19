@@ -6,7 +6,7 @@ module matelem
 
 contains
 
-  subroutine MatrixElementsL1ForExpcValsP(m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pbra, Pket, &
+  subroutine MatrixElementsEV_RG_2P(m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pbra, Pket, &
                                           Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
                                           MVkl, drach_MVkl, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, prvalkl, &
                                           NumCFGridPoints, CFGrid, &
@@ -908,7 +908,7 @@ contains
       enddo
     endif
 
-  end subroutine MatrixElementsL1ForExpcValsP
+  end subroutine MatrixElementsEV_RG_2P
 
 
 function ME_KDFG(rindexI,rindexJ,KK,DD,FF,GG,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,twk,twl)

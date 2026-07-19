@@ -663,7 +663,7 @@ contains
 
   end subroutine spinDependentMatrixElements
 
-  subroutine MatrixElementsL1ForExpcVals(m_k, m_l, vechLk, vechLl, Pbra, Pket, &
+  subroutine MatrixElementsEV_RG_1P(m_k, m_l, vechLk, vechLl, Pbra, Pket, &
                                          Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
                                          MVkl, drach_MVkl, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, prvalkl, &
                                          NumCFGridPoints, CFGrid, CFkl, NumDensGridPoints, DensGrid, Denskl, &
@@ -1873,7 +1873,7 @@ contains
       enddo
     endif
 
-  end subroutine MatrixElementsL1ForExpcVals
+  end subroutine MatrixElementsEV_RG_1P
 
   subroutine symmetrize_matrix(W)
 !subroutine symmetrize_matrix makes an arbitrary square matrix W

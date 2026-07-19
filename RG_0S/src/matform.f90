@@ -132,7 +132,7 @@ contains
     real(wp) Skl,Hkl
     real(wp) Ssum,Hsum
 !These arrays are not actually used but needed for proper calling
-!of subroutine MatrixElements. Thus, one can set some small size
+!of subroutine MatrixElements_RG_0S. Thus, one can set some small size
 !for them
     real(wp)  Dk(2),Dl(2)
 
@@ -158,7 +158,7 @@ contains
         q=(i-1)*Glob_NumYHYTerms-1
         do j=1,Glob_NumYHYTerms
           if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-            call MatrixElements(Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j),Hkl,Skl,Dk,Dl,.false.,.false.)
+            call MatrixElements_RG_0S(Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j),Hkl,Skl,Dk,Dl,.false.,.false.)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl
           endif
@@ -282,7 +282,7 @@ contains
         q=(i-1)*Glob_NumYHYTerms-1
         do j=1,Glob_NumYHYTerms
           if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-            call MatrixElements(Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j),Hkl,Skl,Dk,Dl,.true.,grad_l)
+            call MatrixElements_RG_0S(Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j),Hkl,Skl,Dk,Dl,.true.,grad_l)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl
             Dksum(1:npt2)=Dksum(1:npt2)+Glob_YHYCoeff(j)*Dk(1:npt2)

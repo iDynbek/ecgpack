@@ -6,7 +6,7 @@ module matelem
 
 contains
 
-  subroutine MatrixElementsL1(m_k, m_l, vechLk, vechLl, P, &
+  subroutine MatrixElements_RG_1P(m_k, m_l, vechLk, vechLl, P, &
                               Hkl, Skl, Dk, Dl, grad_k, grad_l)
 !This subroutine computes symmetry adapted matrix element with
 !two real L=1 correlated Gaussians:
@@ -751,9 +751,9 @@ contains
       enddo
     endif
 
-  end subroutine MatrixElementsL1
+  end subroutine MatrixElements_RG_1P
 
-  subroutine MatrixElementsL1ForExpcVals(m_k, m_l, vechLk, vechLl, Pbra, Pket, &
+  subroutine MatrixElementsEV_RG_1P(m_k, m_l, vechLk, vechLl, Pbra, Pket, &
                                          Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
                                          MVkl, drach_MVkl1, drach_MVkl2, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, prvalkl, &
                                          NumCFGridPoints, CFGrid, CFkl, NumDensGridPoints, DensGrid, Denskl, &
@@ -1953,7 +1953,7 @@ contains
       enddo
     endif
 
-  end subroutine MatrixElementsL1ForExpcVals
+  end subroutine MatrixElementsEV_RG_1P
 
   subroutine symmetrize_matrix(W)
 !subroutine symmetrize_matrix makes an arbitrary square matrix W
