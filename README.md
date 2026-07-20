@@ -29,7 +29,7 @@ The ECGPACK project repository has the following directory structure:
 | `ecgpack/RG_0S-2D/` | The code for the calculation of the offdiagonal matrix elements between states that are expanded using RG_0S and RG_2D bases. Currently this includes the evaluation of the spin--orbit and noncontact spin-spin interactions. |
 | `ecgpack/RG_0S-2P/` | The code for the calculation of the offdiagonal matrix elements between states that are expanded using RG_0S and RG_2P bases. Currently this includes the evaluation of the spin--orbit and noncontact spin-spin interactions. |
 | `ecgpack/RG_1P/` | The code for energy and wavefunction calculations with real ECGs ($L=1$, odd parity) that have the form $$\phi_k=z_{i_k}\exp [ \mathbf{r}' (A_k \otimes \mathbf{I}) \mathbf{r}].$$ |
-| `ecgpack/RG_1P-1P/` | The code for the calculation of the offdiagonal matrix elements between states that are expanded using RG_1P and RGL_1P bases. Currently this includes the evaluation of the spin--orbit and noncontact spin-spin interactions. |
+| `ecgpack/RG_1P-1P/` | The code for the calculation of the offdiagonal matrix elements between states that are expanded using RG_1P and RG_1P bases. Currently this includes the evaluation of the spin--orbit and noncontact spin-spin interactions. |
 | `ecgpack/RG_1P-2D/` | The code for the calculation of the transition electric dipole moments for states that are expanded using RG_1P and RG_2D bases. Currently this includes the transition dipole moment operators in the length and velocity gauges. |
 | `ecgpack/RG_1P-2P/` | The code for the calculation of the transition electric dipole moments for states that are expanded using RG_1P and RG_2P bases. Currently this includes the transition dipole moment operators in the length and velocity gauges. |
 | `ecgpack/RG_2D/` | The code for energy and wavefunction calculations with real ECGs ($L=2$, even parity) that have the form $$\phi_k=(x_{i_k} x_{j_k} + y_{i_k} y_{j_k} - 2 z_{i_k} z_{j_k} ) \exp [ \mathbf{r}' (A_k \otimes \mathbf{I}) \mathbf{r}],$$ where the integer index $i_k$ can be either different or the same as $j_k$. |
@@ -48,12 +48,12 @@ All codes can be divided into three main groups:
 | Group name | List of Codes | Description |
 | --- | --- | --- |
 | Energy and wavefunctions codes | `CG_0S`, `RG_0S`, `RG_1P`, `RG_2D`, `RG_2P` | Generation of ECG basis sets for states of different angular-momentum/parity. They can compute energies, expectation values, particle distributions, and save wave functions |
-| Transition dipole codes | `RG_0S-1P`, `RG_1P-2D`, `RG_1P-2P`, `RG_1P-1P` | Calculation of off-diagonal matrix elements of the transition dipole moment operator in the length and velocity gauges. |
+| Transition dipole codes | `RG_0S-1P`, `RG_1P-2D`, `RG_1P-2P` | Calculation of off-diagonal matrix elements of the transition dipole moment operator in the length and velocity gauges. |
 | Fine structure coupling codes | `RG_0S-2D`, `RG_0S-2P`, `RG_1P-1P`, `RG_2D-2D`, `RG_2P-2D`, `RG_2P-2P` | Calculations of off-diagonal matrix elements of the spin–orbit interaction and non-contact spin–spin interaction |
 
 Each code directory contains a `Makefile` and a subdirectory `src` with the actual source. The source structure and the structure of the makefiles for the cades within each group are very similar. Each directory with a code also contains an subdirectory `.vscode` with standard JSON configuration files for Microsoft Visual Studio Code (VS Code). These are user-independent and provide the capability to build and debug each code in its directory using VS Code.
 
-Each code directory also contains a subdirectory called `sample_input`. These contain simple examples of input files as well as instructions (in files `README.md`) on how to execute those sample calculations and any additional files or scripts that may be relevant.
+Most code directories also contain a subdirectory called `sample_input` (currently all except `CG_0S`). These contain simple examples of input files as well as instructions (in files `README.md`) on how to execute those sample calculations and any additional files or scripts that may be relevant. For the energy and transition dipole codes each sample case directory holds its own `README.md`; for the fine structure coupling codes the instructions are instead placed inside the case's `initial_state_*`, `final_state_*`, and `matelem` subdirectories.
 
 ## Root directory files
 
