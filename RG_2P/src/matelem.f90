@@ -5,7 +5,7 @@ module matelem
   implicit none
 
 contains
-  subroutine MatrixElements_RG_2P(m_k, m_l, mm_k, mm_l, vechLk, vechLl, P, &
+  subroutine MatrixElementsHS_RG_2P(m_k, m_l, mm_k, mm_l, vechLk, vechLl, P, &
                               Hkl, Skl, Dk, Dl, grad_k, grad_l)
 !This subroutine computes symmetry adapted matrix element with
 !two real L=1 correlated Gaussians:
@@ -808,9 +808,9 @@ contains
       enddo
     endif
 
-  end subroutine MatrixElements_RG_2P
+  end subroutine MatrixElementsHS_RG_2P
 
-  subroutine MatrixElementsEV_RG_2P(m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pbra, Pket, &
+  subroutine MatrixElementsAll_RG_2P(m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pbra, Pket, &
                                           Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
                                           MVkl, drach_MVkl1, drach_MVkl2, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, prvalkl, &
                                           NumCFGridPoints, CFGrid, &
@@ -1773,7 +1773,7 @@ contains
       enddo
     endif
 
-  end subroutine MatrixElementsEV_RG_2P
+  end subroutine MatrixElementsAll_RG_2P
 
   function ME_KDFG(rindexI,rindexJ,KK,DD,FF,GG,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,twk,twl)
 
@@ -6028,7 +6028,7 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)-(t_XJV5+t_J
 
   end subroutine spinDependentMatrixElements
 
-  subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
+  subroutine OverlapMatrixElement_RG_2P(m_k, mm_k, vechLk, P, Skk)
     !This subroutine computes symmetry adapted matrix element with
     !two real L=2 correlated Gaussians:
     !
@@ -6203,6 +6203,6 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)-(t_XJV5+t_J
     temp1=FOUR*det_tAkl*sqrt(det_tAkl)
     Skk=Glob_PiRaised3n2*m/temp1
 
-  end subroutine overlapMatrixElementsLP
+  end subroutine OverlapMatrixElement_RG_2P
 
 end module matelem

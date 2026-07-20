@@ -2019,7 +2019,7 @@ CONTAINS
           DO i=1,Glob_NumYTerms1
             DO j=1,Glob_NumYTerms2
 
-              CALL MatrixElemenTranDipoleMoment(                            &
+              CALL MatElemTranDipoleMoment_RG_1P_2P(                            &
                 Glob_Index1(k),             &
                 Glob_NonlinParam1(1:np,k),  &
                 Glob_YMatr1(1:n,1:n,i),     &

@@ -1259,7 +1259,7 @@ contains
     Skk = ZERO
     do i = 1, Glob_CurrBasisSize0
       do ptr = 1, nFactorial
-        call OverlapMatrixElementsLS(Glob_NonlinParam0(1:Glob_np, i), ketYMatrix(1 : n, 1 : n, ptr), Skk)
+        call OverlapMatrixElement_RG_0S(Glob_NonlinParam0(1:Glob_np, i), ketYMatrix(1 : n, 1 : n, ptr), Skk)
         diagS_0(i) = diagS_0(i) + spinCoeff(ptr,1) * Skk
       enddo ! Permutations from S_n
     enddo
@@ -1267,7 +1267,7 @@ contains
     Skk = ZERO
     do i = 1, Glob_CurrBasisSize1
       do ptr = 1, nFactorial
-        call OverlapMatrixElementsLD(Glob_Index(i,1), Glob_Index(i,2), Glob_NonlinParam1(1 : npt, i), &
+        call OverlapMatrixElement_RG_2D(Glob_Index(i,1), Glob_Index(i,2), Glob_NonlinParam1(1 : npt, i), &
                                      ketYMatrix(1 : n, 1 : n, ptr), Skk)
         diagS_1(i) = diagS_1(i) + spinCoeff(ptr,2) * Skk
       enddo ! Permutations from S_n

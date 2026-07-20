@@ -133,7 +133,7 @@ contains
     real(wp) Skl,Hkl,Skl1,Hkl1,Skl2,Hkl2,Skl3,Hkl3,Skl4,Hkl4
     real(wp) Ssum,Hsum
 !These arrays are not actually used but needed for proper calling
-!of subroutine MatrixElements_RG_0S. Thus, one can set some small size
+!of subroutine MatrixElementsHS_RG_0S. Thus, one can set some small size
 !for them
     real(wp)  Dk(2),Dl(2),Dk1(2),Dl1(2),Dk2(2),Dl2(2),Dk3(2),Dl3(2),Dk4(2),Dl4(2)
 
@@ -163,20 +163,20 @@ contains
         q=(i-1)*Glob_NumYHYTerms-1
         do j=1,Glob_NumYHYTerms
           if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-!        call MatrixElements_RG_1P(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!        call MatrixElementsHS_RG_1P(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl1,Skl1,Dk1,Dl1,.false.,.false.)
-!        call MatrixElements_RG_1P(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!        call MatrixElementsHS_RG_1P(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl2,Skl2,Dk2,Dl2,.false.,.false.)
 
-!        call MatrixElements_RG_1P(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!        call MatrixElementsHS_RG_1P(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl3,Skl3,Dk3,Dl3,.false.,.false.)
-!        call MatrixElements_RG_1P(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!        call MatrixElementsHS_RG_1P(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl4,Skl4,Dk4,Dl4,.false.,.false.)
 !                Hkl=2*Hkl1-2*Hkl2!-Hkl3+Hkl4
 !                Skl=2*Skl1-2*Skl2!-Skl3+Skl4
 !                Dk=2*Dk1-2*Dk2!-Dk3+Dk4
 !                Dl=2*Dl1-2*Dl2!-Dl3+Dl4
-            call MatrixElements_RG_2P(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+            call MatrixElementsHS_RG_2P(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                                   Hkl,Skl,Dk,Dl,.false.,.false.)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl
@@ -313,20 +313,20 @@ contains
         q=(i-1)*Glob_NumYHYTerms-1
         do j=1,Glob_NumYHYTerms
           if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-!        call MatrixElements_RG_1P(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!        call MatrixElementsHS_RG_1P(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl1,Skl1,Dk1,Dl1,.true.,grad_l)
-!        call MatrixElements_RG_1P(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!        call MatrixElementsHS_RG_1P(mk,mml,mmk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl2,Skl2,Dk2,Dl2,.true.,grad_l)
 
-!        call MatrixElements_RG_1P(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!        call MatrixElementsHS_RG_1P(mmk,ml,mk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl3,Skl3,Dk3,Dl3,.false.,.false.)
-!        call MatrixElements_RG_1P(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!        call MatrixElementsHS_RG_1P(mmk,mml,mk,ml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl4,Skl4,Dk4,Dl4,.false.,.false.)
 !                Hkl=2*Hkl1-2*Hkl2!-Hkl3+Hkl4
 !                Skl=2*Skl1-2*Skl2!-Skl3+Skl4
 !                Dk=2*Dk1-2*Dk2!-Dk3+Dk4
 !                Dl=2*Dl1-2*Dl2!-Dl3+Dl4
-            call MatrixElements_RG_2P(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+            call MatrixElementsHS_RG_2P(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                                   Hkl,Skl,Dk,Dl,.true.,grad_l)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl

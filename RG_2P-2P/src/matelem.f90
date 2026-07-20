@@ -6,7 +6,7 @@ module matelem
 
 contains
 
-  subroutine MatrixElementsEV_RG_2P(m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pbra, Pket, &
+  subroutine MatrixElementsAll_RG_2P(m_k, m_l, mm_k, mm_l, vechLk, vechLl, Pbra, Pket, &
                                           Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
                                           MVkl, drach_MVkl, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, prvalkl, &
                                           NumCFGridPoints, CFGrid, &
@@ -908,7 +908,7 @@ contains
       enddo
     endif
 
-  end subroutine MatrixElementsEV_RG_2P
+  end subroutine MatrixElementsAll_RG_2P
 
 
 function ME_KDFG(rindexI,rindexJ,KK,DD,FF,GG,tAk,tAl,inv_tAkl,det_tAkl,tvk,tvl,twk,twl)
@@ -5012,7 +5012,7 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)-(t_XJV5+t_J
 
   end function ftransaux
 
-  subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
+  subroutine OverlapMatrixElement_RG_2P(m_k, mm_k, vechLk, P, Skk)
     !This subroutine computes symmetry adapted matrix element with
     !two real L=2 correlated Gaussians:
     !
@@ -5201,7 +5201,7 @@ XJYJ=(t_XJV1+t_JXV1)*(t_YJV2+t_JYV2)+(t_XJV2+t_JXV2)*(t_YJV1+t_JYV1)-(t_XJV5+t_J
     !print*, "Skk = ", Skk
     !print*, "Glob_PiRaised3n2 = ", Glob_PiRaised3n2
 
-  end subroutine overlapMatrixElementsLP
+  end subroutine OverlapMatrixElement_RG_2P
 
   subroutine spinPreCalc(n, nFactorial, parityFactor, SSFmassChargeCoefficient, SSNCmassChargeCoefficient, &
                          SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, ketMatrix,&

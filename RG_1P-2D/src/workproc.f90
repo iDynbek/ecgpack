@@ -1839,7 +1839,7 @@ CONTAINS
       temp0=ZERO
 
       DO i=1,Glob_NumYHYTerms1
-        CALL OverLapElementS1(Glob_Index1(k), Glob_NonlinParam1(1:np,k),Glob_YHYMatr1(1:n,1:n,i), Skk)
+        CALL NormalizedOverlapMatElem_RG_1P(Glob_Index1(k), Glob_NonlinParam1(1:np,k),Glob_YHYMatr1(1:n,1:n,i), Skk)
         temp0=temp0+Glob_YHYCoeff1(i)*Skk
 
         IF(Verbose >= 3) THEN
@@ -2018,7 +2018,7 @@ CONTAINS
           DO i=1,Glob_NumYTerms1
             DO j=1,Glob_NumYTerms2
 
-              CALL MatrixElemenTranDipoleMoment(                            &
+              CALL MatElemTranDipoleMoment_RG_1P_2D(                            &
                 Glob_Index1(k),             &
                 Glob_NonlinParam1(1:np,k),  &
                 Glob_YMatr1(1:n,1:n,i),     &

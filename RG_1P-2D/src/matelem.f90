@@ -7,7 +7,7 @@ module matelem
 
 contains
 
-  SUBROUTINE OverLapElementS1(m_k, vechLk, P, Skk)
+  SUBROUTINE NormalizedOverlapMatElem_RG_1P(m_k, vechLk, P, Skk)
 !==============================================================================================
 ! This subroutine calculates the diagonal overlap for L=1 correlated Gaussians:
 !
@@ -222,7 +222,7 @@ contains
 
     Skk = Glob_2Raised3n2 * temp1 * tau3 / inv_Akk(m_k, m_k)
 
-  END SUBROUTINE OverLapElementS1
+  END SUBROUTINE NormalizedOverlapMatElem_RG_1P
 
   SUBROUTINE OverLapElementS2(ml_1, ml_2, vechLl, P, Sll)
 !
@@ -514,7 +514,7 @@ contains
 
   END SUBROUTINE OverLapElementS2
 
-  SUBROUTINE MatrixElemenTranDipoleMoment(mk, vechLk, Pk, ml_1, ml_2, vechLl, Pl, &
+  SUBROUTINE MatElemTranDipoleMoment_RG_1P_2D(mk, vechLk, Pk, ml_1, ml_2, vechLl, Pl, &
                                           TranDipolLength_kl, TranDipolVelocity_kl)
 
     ! This subroutine computes symmetry adapted matrix element with
@@ -1244,7 +1244,7 @@ contains
 
     TranDipolVelocity_kl = TranDipolVelocity_kl * TWO * temp03
 
-  END SUBROUTINE MatrixElemenTranDipoleMoment
+  END SUBROUTINE MatElemTranDipoleMoment_RG_1P_2D
 
 end module matelem
 

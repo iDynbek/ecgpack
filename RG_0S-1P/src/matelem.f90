@@ -171,233 +171,224 @@ contains
 
   end subroutine OverLapElementS0
 
-  subroutine OverLapElementS1(m_l,vechLl, P, Sll)
-
-! this subroutine calculates <P*fk|P*fk>
+  SUBROUTINE NormalizedOverlapMatElem_RG_1P(m_k, vechLk, P, Skk)
+!==============================================================================================
+! This subroutine calculates the diagonal overlap for L=1 correlated Gaussians:
 !
-! two real L=1 correlated Gaussians
-! fl = z{m_l} * exp[-r'(Lk*Lk')r]
+! fk = z{m_k} * exp[-r'(Lk*Lk')r]
 !
-!                  <P*fl|P*fl>               abs(det_Ll)^3      v_l'*inv_tAll*tv_l
-! <psi_l|psi_l> = --------------= 2^(3*n/2) ---------------- * --------------------
-!                    <fl|fl>                  det_tAll^3/2      v_l'*inv_All*v_l
+!                  <P*fk|P*fk>               ||L_kk||^3       v_k' * inv_tAkk * tv_k
+! <psi_k|psi_k> = -------------- = 2^(3n/2) ------------- * --------------------------
+!                    <fk|fk>                 |tAkk|^{3/2}     v_k' * inv_Akk * v_k
 !
-!where m_l is some integer between 1 and n (n is the number of pseudoparticles).
+! where tAkk = Ak + P'*Ak*P,  tv_k = P'*v_k
 !
+!----------------------------------------------------------------------------------------------
+! Input:
+!   m_k      :: integer that determines which z-component is in the premultiplier
+!   vechLk   :: Array of length n(n+1)/2 of exponential parameters
+!   P        :: The symmetry permutation matrix of size n x n
 !
-!Input :
-!        m_l                        ::        integers that determine which z-component is in the
-!                                        premultiplier of the Gaussian
-!        vechLl                ::        Arrays of length (n(n+1)/2) of exponential parameters.
-!   P           ::  The symmetry permutation matrix of size n x n
-!Output:
-!        Sll                        ::        < psi_l | psi_l >
+! Output:
+!   Skk      :: <psi_k|psi_k>
+!==============================================================================================
 
-!Arguments
-    integer,intent(in)       :: m_l
-    real(wp),intent(in)   :: vechLl(Glob_np)
-    real(wp),intent(in)   :: P(Glob_n,Glob_n)
-    real(wp),intent(out)  :: Sll
+    IMPLICIT NONE
 
-!Parameters (These are needed to declare static arrays. Using static
-!arrays makes the function call a little faster in comparison with
-!the case when arrays are dynamically allocated in stack)
-    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
-    integer,parameter :: nnp=nn*(nn+1)/2
+    !---------------------------------------------------------------------------
+    ! ARGUMENTS
+    !---------------------------------------------------------------------------
+    INTEGER, INTENT(IN)      :: m_k
+    REAL(wp), INTENT(IN)  :: vechLk(Glob_np)
+    REAL(wp), INTENT(IN)  :: P(Glob_n, Glob_n)
+    REAL(wp), INTENT(OUT) :: Skk
 
-!Local variables
-    real(wp),allocatable,dimension(:)         :: vechLk
+    !---------------------------------------------------------------------------
+    ! LOCAL VARIABLES
+    !---------------------------------------------------------------------------
+    INTEGER                  :: n
+    INTEGER                  :: i, j, k, indx
 
-    integer           n,np,m_k
-    integer           tvk(nn),tvl(nn)
-    real(wp)       Lk(nn,nn),Ll(nn,nn),inv_Lk(nn,nn),inv_Ll(nn,nn)
-    real(wp)       tAk(nn,nn),tAl(nn,nn),tAkl(nn,nn),Ak(nn,nn)
-    real(wp)       inv_Akk(nn,nn),inv_All(nn,nn),inv_tAkl(nn,nn), inv_tAkltAl(nn,nn)
-    real(wp)       W1(nn,nn),W2(nn,nn)
-    real(wp)       inv_tAkltvl(nn),vkinv_tAkl(nn)
-    real(wp)       temp1,temp2
-    real(wp)       det_Lk, det_Ll, det_tAkl,tau3
-    integer           i,j,k,indx
+    REAL(wp)              :: Lk(Glob_n, Glob_n)
+    REAL(wp)              :: tAk(Glob_n, Glob_n), tAkk(Glob_n, Glob_n)
+    REAL(wp)              :: inv_tAkk(Glob_n, Glob_n), inv_Akk(Glob_n, Glob_n)
+    REAL(wp)              :: W1(Glob_n, Glob_n)
 
-    n=Glob_n
-    np=Glob_np
+    REAL(wp)              :: tvk(Glob_n)
 
-    allocate(vechLk(n))
-    vechLk=vechLl
-    m_k=m_l
+    REAL(wp)              :: temp1
+    REAL(wp)              :: det_Lk, det_tAkk, tau3
 
-!First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
-    indx=0
-    do i=1,n
-      do j=i,n
-        indx=indx+1
-        Lk(i,j)=ZERO
-        Lk(j,i)=vechLk(indx)
-        Ll(i,j)=ZERO
-        Ll(j,i)=vechLl(indx)
-      enddo
-    enddo
+    !===========================================================================
+    n = Glob_n
 
-    do i=1,n
-      do j=i,n
-        temp1=ZERO
-        do k=1,i
-          temp1=temp1+Lk(i,k)*Lk(j,k)
-        enddo
-        Ak(i,j)=temp1
-        Ak(j,i)=temp1
-        temp1=ZERO
-        do k=1,i
-          temp1=temp1+Ll(i,k)*Ll(j,k)
-        enddo
-        tAl(i,j)=temp1
-        tAl(j,i)=temp1
-      enddo
-    enddo
+    !---------------------------------------------------------------------------
+    ! 1. Build lower-triangular Lk from vechLk
+    !---------------------------------------------------------------------------
+    indx = 0
+    DO i = 1, n
+      DO j = i, n
+        indx = indx + 1
+        Lk(i, j) = ZERO
+        Lk(j, i) = vechLk(indx)
+      END DO
+    END DO
 
-!Then we permute elements of Al to account for
-!the action of the permutation matrix
-!tAl=P'*Al*P
-!We also form matrix tAkl=Ak+tAl
-    do i=1,n
-      do j=1,n
-        temp1=ZERO
-        do k=1,n
-          temp1=temp1+P(k,j)*tAl(k,i)
-        enddo
-        W1(j,i)=temp1
-      enddo
-    enddo
-    do i=1,n
-      do j=i,n
-        temp1=ZERO
-        do k=1,n
-          temp1=temp1+W1(i,k)*P(k,j)
-        enddo
-        tAl(i,j)=temp1
-        tAl(j,i)=temp1
-        tAkl(i,j)=Ak(i,j)+temp1
-        tAkl(j,i)=tAkl(i,j)
-      enddo
-    enddo
+    !---------------------------------------------------------------------------
+    ! 2. Compute inv_Akk using Cholesky factor Lk
+    !    inv_Akk = (1/2) * Lk^{-T} * Lk^{-1} = (2*Ak)^{-1} = Akk^{-1}
+    !---------------------------------------------------------------------------
+    W1(:,:) = ZERO
 
-!The determinants of Lk and Ll are just
-!the products of their diagonal elements
-    det_Lk=ONE
-    det_Ll=ONE
-    do i=1,n
-      det_Lk=det_Lk*Lk(i,i)
-      det_Ll=det_Ll*Ll(i,i)
-    enddo
+    DO i = 1, n
+      W1(i,i) = ONE / Lk(i,i)
+      DO j = i + 1, n
+        temp1 = ZERO
+        DO k = i, j - 1
+          temp1 = temp1 - Lk(j,k) * W1(k,i)
+        END DO
+        W1(j,i) = temp1 / Lk(j,j)
+      END DO
+    END DO
 
-!After this we can do Cholesky factorization of tAkl.
-!The Cholesky factor will be temporarily stored in the
-!lower triangle of W1
-    det_tAkl=ONE
-    do i=1,n
-      do j=i,n
-        temp1=tAkl(i,j)
-        do k=i-1,1,-1
-          temp1=temp1-W1(i,k)*W1(j,k)
-        enddo
-        if (i==j) then
-          W1(i,i)=sqrt(temp1)
-          det_tAkl=det_tAkl*temp1
-        else
-          W1(j,i)=temp1/W1(i,i)
-          W1(i,j)=ZERO
-        endif
-      enddo
-    enddo
+    DO i = 1, n
+      DO j = i, n
+        temp1 = ZERO
+        DO k = j, n
+          temp1 = temp1 + W1(k,i) * W1(k,j)
+        END DO
+        inv_Akk(i,j) = ONEHALF * temp1
+        inv_Akk(j,i) = ONEHALF * temp1
+      END DO
+    END DO
 
-!Inverting tAkl using its Cholesky factor (stored in W1)
-!and placing the result into inv_tAkl
-    do i=1,n
-      W1(i,i)=ONE/W1(i,i)
-      do j=i+1,n
-        temp1=ZERO
-        do k=i,j-1
-          temp1=temp1-W1(j,k)*W1(k,i)
-        enddo
-        W1(j,i)=temp1/W1(j,j)
-      enddo
-    enddo
+    !---------------------------------------------------------------------------
+    ! 3. Compute Ak = Lk * Lk'
+    !---------------------------------------------------------------------------
+    DO i = 1, n
+      DO j = i, n
+        temp1 = ZERO
+        DO k = 1, i
+          temp1 = temp1 + Lk(i, k) * Lk(j,k)
+        END DO
+        tAk(i,j) = temp1
+        tAk(j,i) = temp1
+      END DO
+    END DO
 
-    do i=1,n
-      do j=i,n
-        temp1=ZERO
-        do k=j,n
-          temp1=temp1+W1(k,i)*W1(k,j)
-        enddo
-        inv_tAkl(i,j)=temp1
-        inv_tAkl(j,i)=temp1
-      enddo
-    enddo
+    !---------------------------------------------------------------------------
+    ! 4. Apply symmetry permutation and form tAkk = Ak + P' * Ak * P
+    !---------------------------------------------------------------------------
+    W1(:,:) = ZERO
 
-!Finding the inverse of Akk and All using their Cholesky factors
-!The result is placed in inv_Akk and inv_All
-    do i=1,n
-      W1(i,i)=ONE/Lk(i,i)
-      W2(i,i)=ONE/Ll(i,i)
-      do j=i+1,n
-        temp1=ZERO
-        temp2=ZERO
-        do k=i,j-1
-          temp1=temp1-Lk(j,k)*W1(k,i)
-          temp2=temp2-Ll(j,k)*W2(k,i)
-        enddo
-        W1(j,i)=temp1/Lk(j,j)
-        W2(j,i)=temp2/Ll(j,j)
-      enddo
-    enddo
+    ! W1 = P' * Ak
+    DO i = 1, n
+      DO j = 1, n
+        temp1 = ZERO
+        DO k = 1, n
+          temp1 = temp1 + P(k,j) * tAk(k,i)
+        END DO
+        W1(j,i) = temp1
+      END DO
+    END DO
 
-    do i=1,n
-      do j=i,n
-        temp1=ZERO
-        temp2=ZERO
-        do k=j,n
-          temp1=temp1+W1(k,i)*W1(k,j)
-          temp2=temp2+W2(k,i)*W2(k,j)
-        enddo
-        inv_Akk(i,j)=ONEHALF*temp1
-        inv_Akk(j,i)=ONEHALF*temp1
-        inv_All(i,j)=ONEHALF*temp2
-        inv_All(j,i)=ONEHALF*temp2
-      enddo
-    enddo
+    ! tAkk = Ak + P' * Ak * P
+    DO i = 1, n
+      DO j = i, n
+        temp1 = ZERO
+        DO k = 1, n
+          temp1 = temp1 + W1(i, k) * P(k,j)
+        END DO
+        tAkk(i,j) = tAk(i,j) + temp1
+        tAkk(j,i) = tAkk(i,j)
+      END DO
+    END DO
 
-!Computing tvl=P'*vl
-    do i=1,n
-      tvl(i)=P(m_l,i)
-    enddo
+    !---------------------------------------------------------------------------
+    ! 5. Determinant of Lk (product of diagonal elements)
+    !---------------------------------------------------------------------------
+    det_Lk = ONE
+    DO i = 1, n
+      det_Lk = det_Lk * Lk(i,i)
+    END DO
 
-!Compute inv_tAkltvl = inv_tAkl * tvl
-    do i=1,n
-      temp1=ZERO
-      do j=1,n
-        temp1=temp1+inv_tAkl(j,i)*tvl(j)
-      enddo
-      inv_tAkltvl(i)=temp1
-    enddo
+    !---------------------------------------------------------------------------
+    ! 6. Cholesky factorization of tAkk -> W1, and determinant
+    !---------------------------------------------------------------------------
+    det_tAkk = ONE
 
-!Compute vkinv_tAkl=vk'*inv_tAkl
-    do i=1,n
-      vkinv_tAkl(i)=inv_tAkl(m_k,i)
-    enddo
+    DO i = 1, n
+      DO j = i, n
+        temp1 = tAkk(i,j)
+        DO k = i - 1, 1, -1
+          temp1 = temp1 - W1(i, k) * W1(j,k)
+        END DO
+        IF (i == j) THEN
+          W1(i,i) = SQRT(temp1)
 
-!Compute tau3=vkinv_tAkl*tvl
-    tau3=ZERO
-    do i=1,n
-      tau3=tau3+vkinv_tAkl(i)*tvl(i)
-    enddo
+          IF (temp1 <= 0.0_wp) THEN
+            WRITE(*,*) 'ERROR: tAkk not SPD at i=',i
+            call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !error stop
+          END IF
 
-!Evaluating overlap
-    temp1=abs(det_Ll*det_Lk)/det_tAkl
-    Sll=Glob_2Raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
+          det_tAkk = det_tAkk * temp1
+        ELSE
+          W1(j,i) = temp1 / W1(i,i)
+          W1(i,j) = ZERO
+        END IF
+      END DO
+    END DO
 
-  end subroutine OverLapElementS1
+    !---------------------------------------------------------------------------
+    ! 7. Invert tAkk using its Cholesky factor (stored in W1)
+    !---------------------------------------------------------------------------
+    DO i = 1, n
+      W1(i,i) = ONE / W1(i,i)
+      DO j = i + 1, n
+        temp1 = ZERO
+        DO k = i, j - 1
+          temp1 = temp1 - W1(j,k) * W1(k,i)
+        END DO
+        W1(j,i) = temp1 / W1(j,j)
+      END DO
+    END DO
 
-  subroutine MatrixElemenTranDipoleMoment(ml, vechLk, vechLl, Pk, Pl, TranDipolLength_kl,TranDipolVelocity_kl)
+    DO i = 1, n
+      DO j = i, n
+        temp1 = ZERO
+        DO k = j, n
+          temp1 = temp1 + W1(k,i) * W1(k,j)
+        END DO
+        inv_tAkk(i,j) = temp1
+        inv_tAkk(j,i) = temp1
+      END DO
+    END DO
+
+    !---------------------------------------------------------------------------
+    ! 8. Compute tau3 = v_k' * inv_tAkk * tv_k
+    !    where v_k = e_{m_k} (unit vector) and tv_k = P(m_k, :)
+    !---------------------------------------------------------------------------
+    DO i = 1, n
+      tvk(i) = P(m_k, i)
+    END DO
+
+    tau3 = ZERO
+    DO i = 1, n
+      tau3 = tau3 + inv_tAkk(m_k, i) * tvk(i)
+    END DO
+
+    !---------------------------------------------------------------------------
+    ! 9. Final overlap calculation
+    !    Skk = 2^{3n/2} * ||L_kk||^3 / |tAkk|^{3/2} * tau3 / inv_Akk(m_k, m_k)
+    !---------------------------------------------------------------------------
+    temp1 = (det_Lk * det_Lk) / det_tAkk
+    temp1 = ABS(temp1) * SQRT(ABS(temp1))
+
+    Skk = Glob_2Raised3n2 * temp1 * tau3 / inv_Akk(m_k, m_k)
+
+  END SUBROUTINE NormalizedOverlapMatElem_RG_1P
+
+  subroutine MatElemTranDipoleMoment_RG_0S_1P(ml, vechLk, vechLl, Pk, Pl, TranDipolLength_kl,TranDipolVelocity_kl)
 
 !This subroutine computes symmetry adapted matrix element with
 !a real L=0 and a real L=1 correlated Gaussians:
@@ -742,7 +733,7 @@ contains
 
     TranDipolVelocity_kl = TranDipolVelocity_kl * temp3
 
-  end subroutine MatrixElemenTranDipoleMoment
+  end subroutine MatElemTranDipoleMoment_RG_0S_1P
 
 end module matelem
 

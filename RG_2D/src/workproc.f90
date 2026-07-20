@@ -9425,7 +9425,7 @@ contains
       Skk = ZERO
       do i = 1, cbs
         do a = 1, Glob_NumYHYTerms
-          call overlapMatrixElementsLD(Glob_Index(i,1), Glob_Index(i,2), Glob_NonlinParam(1 : npt, i), &
+          call OverlapMatrixElement_RG_2D(Glob_Index(i,1), Glob_Index(i,2), Glob_NonlinParam(1 : npt, i), &
                                        Glob_YHYMatr(1 : n, 1 : n, a), Skk)
           diagS(i) = diagS(i) + Glob_YHYCoeff(a) * Skk
         enddo ! Permutations from S_n
@@ -9460,7 +9460,7 @@ contains
           if (SymmAdaptMethod==1) then
             do k=1,Glob_NumYHYTerms
              !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-              call MatrixElementsEV_RG_2D(Glob_Index(i,1),Glob_Index(i,2),Glob_Index(j,1),Glob_Index(j,2),  &
+              call MatrixElementsAll_RG_2D(Glob_Index(i,1),Glob_Index(i,2),Glob_Index(j,1),Glob_Index(j,2),  &
                                                 Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
                                                 IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl,Skl,Tkl,Vkl,                    &
                                                 rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl1,drach_MVkl2,   &
@@ -9590,7 +9590,7 @@ contains
 
             do k=1,Glob_NumYTerms
               do kk=1,Glob_NumYTerms
-                call MatrixElementsEV_RG_2D(Glob_Index(i,1),Glob_Index(i,2),Glob_Index(j,1), Glob_Index(j,2),  &
+                call MatrixElementsAll_RG_2D(Glob_Index(i,1),Glob_Index(i,2),Glob_Index(j,1), Glob_Index(j,2),  &
                                                   Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
                                                   Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl,Skl,Tkl,Vkl,            &
                                                   rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl1, drach_MVkl2,  &

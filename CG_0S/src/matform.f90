@@ -138,7 +138,7 @@ contains
     complex(wp)  Skl,Hkl
     complex(wp)  Ssum,Hsum
 !These arrays are not actually used but needed for proper calling
-!of subroutine MatrixElements_CG_0S. Thus, one can set some small size
+!of subroutine MatrixElementsHS_CG_0S. Thus, one can set some small size
 !for them
     complex(wp)  Dk(2),Dl(2)
 
@@ -166,7 +166,7 @@ contains
         q=(i-1)*Glob_NumYHYTerms-1
         do j=1,Glob_NumYHYTerms
           if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-            call MatrixElements_CG_0S(Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j),Hkl,Skl,Dk,Dl,gradflag)
+            call MatrixElementsHS_CG_0S(Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j),Hkl,Skl,Dk,Dl,gradflag)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl
           endif
@@ -287,7 +287,7 @@ contains
         q=(i-1)*Glob_NumYHYTerms-1
         do j=1,Glob_NumYHYTerms
           if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-            call MatrixElements_CG_0S(Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j),Hkl,Skl,Dk,Dl,gradflag)
+            call MatrixElementsHS_CG_0S(Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j),Hkl,Skl,Dk,Dl,gradflag)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl
             Dksum(1:np4)=Dksum(1:np4)+Glob_YHYCoeff(j)*Dk(1:np4)

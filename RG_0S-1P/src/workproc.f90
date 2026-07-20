@@ -1311,7 +1311,7 @@ contains
       ! computing diagonal elements of overlap matrix L=1
       temp0=ZERO
       Do i=1,Glob_NumYHYTerms1
-        call OverLapElementS1(Glob_ZIndex(l), Glob_NonlinParam1(1:np,l),Glob_YHYMatr1(1:n,1:n,i), Sll)
+        call NormalizedOverlapMatElem_RG_1P(Glob_ZIndex(l), Glob_NonlinParam1(1:np,l),Glob_YHYMatr1(1:n,1:n,i), Sll)
         temp0=temp0+Glob_YHYCoeff1(i)*Sll
       EndDo
       temp1(l)=temp0
@@ -1339,7 +1339,7 @@ contains
           Do i=1,Glob_NumYTerms0
             Do j=1,Glob_NumYTerms1
 
-              call MatrixElemenTranDipoleMoment(Glob_ZIndex(l),Glob_NonlinParam0(1:np,k), &
+              call MatElemTranDipoleMoment_RG_0S_1P(Glob_ZIndex(l),Glob_NonlinParam0(1:np,k), &
                                                 Glob_NonlinParam1(1:np,l),Glob_YMatr0(1:n,1:n,i),Glob_YMatr1(1:n,1:n,j), &
                                                 TranDipolLength_kl_element,TranDipolVelocity_kl_element)
 

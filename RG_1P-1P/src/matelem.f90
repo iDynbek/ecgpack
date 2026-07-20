@@ -6,7 +6,7 @@ module matelem
 
 contains
 
-  subroutine overlapMatrixElementsLP(m_k, vechLk, P, Skk)
+  subroutine OverlapMatrixElement_RG_1P(m_k, vechLk, P, Skk)
     !This subroutine computes symmetry adapted matrix element with
     !two real L=1 correlated Gaussians:
     !
@@ -182,7 +182,7 @@ contains
     !Skl=Glob_2Raised3n2*tau3*temp1*sqrt(temp1/(inv_Akk(m_k,m_k)*inv_All(m_l,m_l)))
     Skk=Glob_PiRaised3n2*tau3/(TWO*temp1)
 
-  end subroutine overlapMatrixElementsLP
+  end subroutine OverlapMatrixElement_RG_1P
 
   subroutine spinPreCalc(n, nFactorial, parityFactor, SSFmassChargeCoefficient, SSNCmassChargeCoefficient, &
                          SOmassChargeCoefficient, AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, &
@@ -663,7 +663,7 @@ contains
 
   end subroutine spinDependentMatrixElements
 
-  subroutine MatrixElementsEV_RG_1P(m_k, m_l, vechLk, vechLl, Pbra, Pket, &
+  subroutine MatrixElementsAll_RG_1P(m_k, m_l, vechLk, vechLl, Pbra, Pket, &
                                          Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
                                          MVkl, drach_MVkl, Darwinkl, drach_Darwinkl, OOkl, rmrmkl, prvalkl, &
                                          NumCFGridPoints, CFGrid, CFkl, NumDensGridPoints, DensGrid, Denskl, &
@@ -1873,7 +1873,7 @@ contains
       enddo
     endif
 
-  end subroutine MatrixElementsEV_RG_1P
+  end subroutine MatrixElementsAll_RG_1P
 
   subroutine symmetrize_matrix(W)
 !subroutine symmetrize_matrix makes an arbitrary square matrix W
