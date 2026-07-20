@@ -613,10 +613,15 @@ subroutine GrowTrace(K,energy)
   integer(8)          :: tW,rate
   if (Glob_ProcID/=0) return
   call system_clock(tW,rate)
-  write(*,'(1x,a,i6,a,es22.14,a,f12.3,a,f12.3)') &
+  !Per-phase counters (cumME/cumEIG and call counts) are emitted so
+  !phase decomposition can be taken AT the first target crossing, not
+  !only at the final K. cumMEEIG kept for backward-compatible parsing.
+  write(*,'(1x,a,i6,a,es22.14,a,f12.3,a,f12.3,a,f12.3,a,f12.3,a,i10,a,i10)') &
     'GROWTRACE K=',K,' E=',energy, &
     ' wall=',real(tW-Glob_WallTick0,wp)/real(rate,wp), &
-    ' cumMEEIG=',Glob_TimeME+Glob_TimeEIG
+    ' cumMEEIG=',Glob_TimeME+Glob_TimeEIG, &
+    ' cumME=',Glob_TimeME,' cumEIG=',Glob_TimeEIG, &
+    ' mecalls=',Glob_CntME,' eigcalls=',Glob_CntEIG
 end subroutine GrowTrace
 
 end module globvars
