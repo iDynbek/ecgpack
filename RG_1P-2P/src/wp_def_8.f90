@@ -11,9 +11,8 @@ module wp_def
 !This is data type identifier for MPI corresponding to real type of kind wp
   integer,parameter    :: MPI_WP=MPI_DOUBLE_PRECISION
 
-!This is the maximal allowed number of particles in the system. If needed,
-!this number can be increased. However it is not recommended to use a number
-!that is larger than necessary as it may affect the performance of the program.
+!This is the number of particles in the system that should be set by the user.
+!For reasons related to performance, it is made a fixed (compile time) parameter.
   integer,parameter :: Glob_AllowedNumOfParticles=3
 
 contains
@@ -23,33 +22,16 @@ contains
 !program, all output of real(wp) type, both on screen and to external files should be done
 !via calling these subroutines.
 
-  subroutine write_2vectors(u, vec1, vec2, n)
-    implicit none
-    integer, intent(in)        :: u         ! output unit
-    integer, intent(in)        :: n         ! number of particles
-    real(wp), intent(in)    :: vec1(n) ! mass array
-    real(wp), intent(in)    :: vec2(n)! charge array
-    integer :: i
-
-    ! Write header
-    write(u,'(A10,7X,A10,25X,A6)') 'PARTICLE', 'MASS', 'CHARGE'
-
-    ! Write particle data in tabular format
-    do i = 1, n
-      write(u,'(I5,8X,ES23.16,8X,ES23.16)') i, vec1(i), vec2(i)
-    end do
-  end subroutine write_2vectors
-
   subroutine writereal(u,r)
     integer u          !i/o unit
     real(wp) r      !real number that needs to be written
-    write(u,'(1x,ES23.16)',advance='no') r
+    write(u,'(1x,e23.16)',advance='no') r
   end subroutine writereal
 
   subroutine writerealadv(u,r)
     integer u          !i/o unit
     real(wp) r      !real number that needs to be written
-    write(u,'(1x,ES23.16)') r
+    write(u,'(1x,e23.16)') r
   end subroutine writerealadv
 
   subroutine writerealarr(u,r,k)
@@ -58,7 +40,7 @@ contains
     integer k          !the number of elements to write (writing begins with element 1)
     integer i
     do i=1,k
-      write(u,'(1x,ES23.16)',advance='no') r(i)
+      write(u,'(1x,e23.16)',advance='no') r(i)
     enddo
   end subroutine writerealarr
 
@@ -68,9 +50,9 @@ contains
     integer k          !the number of elements to write (writing begins with element 1)
     integer i
     do i=1,k-1
-      write(u,'(1x,ES23.16)',advance='no') r(i)
+      write(u,'(1x,e23.16)',advance='no') r(i)
     enddo
-    write(u,'(1x,ES23.16)') r(k)
+    write(u,'(1x,e23.16)') r(k)
   end subroutine writerealarradv
 
 !Subroutines writestring and writestringadv realize nonadvanced (advanced)

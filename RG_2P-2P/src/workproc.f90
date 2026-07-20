@@ -130,7 +130,7 @@ contains
 
     EndIF
 
-    Glob_PiRaised3n2=Glob_Pi**((3.*Glob_n)/2)
+    Glob_PiRaised3n2=Glob_Pi**((3*Glob_n)/2)
 
     call MPI_BCAST(ErrorInDataFile,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     IF (ErrorInDataFile) call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop

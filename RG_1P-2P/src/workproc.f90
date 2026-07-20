@@ -16,8 +16,8 @@ CONTAINS
     INTEGER        :: OPENFILEErr
     INTEGER        :: READInt,READErr
     INTEGER        :: particle_n1,particle_n2
-    REAL(wp)    :: Mass1(Glob_MAXAllowedNumOfParticles),Mass2(Glob_MAXAllowedNumOfParticles)
-    REAL(wp)    :: PseudoCharge1(Glob_MAXAllowedNumOfParticles),PseudoCharge2(Glob_MAXAllowedNumOfParticles)
+    REAL(wp)    :: Mass1(Glob_AllowedNumOfParticles),Mass2(Glob_AllowedNumOfParticles)
+    REAL(wp)    :: PseudoCharge1(Glob_AllowedNumOfParticles),PseudoCharge2(Glob_AllowedNumOfParticles)
     REAL(wp)    :: READReal1,READReal2
     INTEGER        :: WorkInt(MAX(MAX(Glob_YOperatorStringLength,20),Glob_FILENameLength))
     INTEGER        :: WorkInt1(MAX(MAX(Glob_YOperatorStringLength,20),Glob_FILENameLength))
@@ -137,17 +137,16 @@ CONTAINS
 
       ELSE
 
-        IF (Glob_n/=Glob_MAXAllowedNumOfPseuDOParticles) THEN
-          WRITE(*,*)
-          WRITE(*,*)'  The version of the code you are running was compiled for the case'
-          WRITE(*,*)'  when the number of particles in the system is equal to', Glob_MAXAllowedNumOfParticles
-          WRITE(*,*)'  while the number of particles specIFied in the wave function FILEs is',Glob_n+1
-          WRITE(*,*)'  Please make appropriate changes. Program will now STOP.'
-          WRITE(*,*)
-          ErrorInDataFILE=.true.
-        ENDIF
-
-!      Glob_n=particle_n1=particle_n2
+        IF (particle_n1/=Glob_AllowedNumOfPseudoParticles) then
+          write(*,*) ' '
+          write (*,*) 'The version of the code you are running was compiled for the case'
+          write (*,*) 'when the number of particles in the system is equal to', &
+            Glob_AllowedNumOfParticles
+          write (*,*) 'while the number of particles specified in the wave function files is',particle_n1+1
+          write (*,*) 'Please make appropriate changes. Program will now stop.'
+          write(*,*) ' '
+          ErrorInDataFile=.true.
+        EndIF
         Glob_n=particle_n1
 
       ENDIF
@@ -298,7 +297,13 @@ CONTAINS
       ! WRITE(*,'(1x,a7)',advance='no') readchar(1:7)
       ! CALL writeREAL(6,Glob_PseudoCharge0)
       ! CALL writerealarradv(6,Glob_PseudoCharge,Glob_n)
-      CALL write_2vectors(6,Glob_Mass,PseudoCharge1,Glob_n+1)
+      WRITE(6,'(A10,7X,A10,25X,A6)') 'PARTICLE','MASS','CHARGE'
+      DO i=1,Glob_n+1
+        WRITE(6,'(I5,7X)',advance='no') i
+        CALL writereal(6,Glob_Mass(i))
+        WRITE(6,'(7X)',advance='no')
+        CALL writerealadv(6,PseudoCharge1(i))
+      ENDDO
 
     ENDIF
 
