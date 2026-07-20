@@ -571,6 +571,10 @@ module globvars
 !nesting between a system_clock and its matching ProfAccum) and MPI
 !ranks are separate processes with their own copy.
   integer(8) :: tprof0=0
+!Program-start wall tick (set once right after MPI_INIT), used by the
+!GROWTRACE line to report total wall time since start per BBOP step
+!(fixed-quality-target growth study).
+  integer(8) :: Glob_WallTick0=0
 
 contains
 
@@ -593,5 +597,26 @@ subroutine ProfAccum(t0,isEig)
     Glob_TimeME=Glob_TimeME+dt; Glob_LastME=dt; Glob_CntME=Glob_CntME+1
   endif
 end subroutine ProfAccum
+
+!=============================================================
+!GROWTRACE (fixed-quality-target growth study): emit one
+!greppable checkpoint per ACCEPTED basis function from inside
+!BasisEnlG/BasisEnlI, so a single continuous BASIS_ENL step is
+!traced at per-function granularity without a warm-start reset.
+!Reports basis size K, current energy, total wall since program
+!start (Glob_WallTick0), and cumulative ME+EIG compute wall.
+!Rank 0 only.
+!=============================================================
+subroutine GrowTrace(K,energy)
+  integer,intent(in)  :: K
+  real(wp),intent(in) :: energy
+  integer(8)          :: tW,rate
+  if (Glob_ProcID/=0) return
+  call system_clock(tW,rate)
+  write(*,'(1x,a,i6,a,es22.14,a,f12.3,a,f12.3)') &
+    'GROWTRACE K=',K,' E=',energy, &
+    ' wall=',real(tW-Glob_WallTick0,wp)/real(rate,wp), &
+    ' cumMEEIG=',Glob_TimeME+Glob_TimeEIG
+end subroutine GrowTrace
 
 end module globvars

@@ -4236,6 +4236,7 @@ contains
         endif
       endif
       Glob_CurrBasisSize=K
+      call GrowTrace(Glob_CurrBasisSize,Glob_CurrEnergy)  !GROWTRACE per-function (fixed-quality-target study)
       do i=1,nfo
         Glob_History(nfru+i)%Energy=Glob_CurrEnergy
         Glob_History(nfru+i)%CyclesDone=0
@@ -4802,6 +4803,7 @@ contains
         endif
       endif
       Glob_CurrBasisSize=K
+      call GrowTrace(Glob_CurrBasisSize,Glob_CurrEnergy)  !GROWTRACE per-function (fixed-quality-target study)
       do i=1,nfo
         Glob_History(nfru+i)%Energy=Glob_CurrEnergy
         Glob_History(nfru+i)%CyclesDone=0

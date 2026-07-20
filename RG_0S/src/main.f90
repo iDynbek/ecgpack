@@ -23,6 +23,7 @@ program main
   call MPI_INIT(Glob_MPIErrCode)
   call MPI_COMM_RANK(MPI_COMM_WORLD,Glob_ProcID,Glob_MPIErrCode)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,Glob_NumOfProcs,Glob_MPIErrCode)
+  call system_clock(Glob_WallTick0)   !program-start wall tick for GROWTRACE
 
   if (Glob_ProcID==0) then
     write (*,*) 'Program ',Glob_BasisType,' has started'
@@ -301,6 +302,9 @@ program main
         'PROF step',i,Glob_BBOP(i)%Action,' K=',Glob_CurrBasisSize, &
         ' | cumME=',Glob_TimeME,'s cumEIG=',Glob_TimeEIG, &
         's | lastME=',Glob_LastME,'s lastEIG=',Glob_LastEIG
+      !GROWTRACE now emitted per accepted function from inside
+      !BasisEnlG/BasisEnlI (see globvars::GrowTrace) so a single
+      !continuous BASIS_ENL step is traced without a warm-start reset.
     endif
   enddo
 
