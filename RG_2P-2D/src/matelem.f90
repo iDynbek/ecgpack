@@ -6,7 +6,7 @@ module matelem
 
 contains
 
-  subroutine overlapMatrixElementsLD(m_k, mm_k, vechLk, P, Skk)
+  subroutine OverlapMatrixElement_RG_2D(m_k, mm_k, vechLk, P, Skk)
     !This subroutine computes symmetry adapted matrix element with
     !two real L=2 correlated Gaussians:
     !
@@ -181,9 +181,9 @@ contains
     temp1=FOUR*det_tAkl*sqrt(det_tAkl)
     Skk=Glob_PiRaised3n2*m/temp1
 
-  end subroutine overlapMatrixElementsLD
+  end subroutine OverlapMatrixElement_RG_2D
 
-  subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
+  subroutine OverlapMatrixElement_RG_2P(m_k, mm_k, vechLk, P, Skk)
     !This subroutine computes symmetry adapted matrix element with
     !two real L=2 correlated Gaussians:
     !
@@ -358,7 +358,7 @@ contains
     temp1=FOUR*det_tAkl*sqrt(det_tAkl)
     Skk=Glob_PiRaised3n2*m/temp1
 
-  end subroutine overlapMatrixElementsLP
+  end subroutine OverlapMatrixElement_RG_2P
 
   subroutine spinPreCalc(n, nFactorial, parityFactor, SSNCmassChargeCoefficient, SOmassChargeCoefficient, &
               AMMmassChargeCoefficient, AMMFinmassChargeCoefficient, ketMatrix, &

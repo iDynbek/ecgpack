@@ -6,8 +6,7 @@ module matelem
 
 contains
 
-  subroutine OverlapMatrixElementsLS(vechLk, P, Skk)
-
+  subroutine OverlapMatrixElement_RG_0S(vechLk, P, Skk)
 !This subroutine computes symmetry adapted matrix element with
 !two real L=0 correlated Gaussians:
 !
@@ -17,139 +16,118 @@ contains
 !permutation matrices Glob_YHYMatr(:,:,1:Glob_NumYHYTerms)
 !
 !Input:
-!   vechLk, vechLl :: Arrays of length (n(n+1)/2) of exponential parameters.
+!   vechLk :: Array of length (n(n+1)/2) of exponential parameters.
 !   P   :: The symmetry permutation matrix of size n x n
 !Output:
-!   Skk         ::        Overlap matrix element
+!   Skk         ::        Overlap matrix element (normalized)
 
 !Arguments
     real(wp),intent(in)      :: vechLk(Glob_np)
     real(wp),intent(in)      :: P(Glob_n,Glob_n)
     real(wp),intent(out)     :: Skk
 
-    !Parameters (These are needed to declare static arrays. Using static
-    !arrays makes the function call a little faster in comparison with
-    !the case when arrays are dynamically allocated in stack)
+!Parameters (These are needed to declare static arrays. Using static
+!arrays makes the function call a little faster in comparison with
+!the case when arrays are dynamically allocated in stack)
     integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
     integer,parameter :: nnp=nn*(nn+1)/2
 
-    !Local variables
+!Local variables
     integer           n, np
-    real(wp)       Lk(nn,nn), Ll(nn,nn), inv_Lk(nn,nn), inv_Ll(nn,nn)
+    real(wp)       Lk(nn,nn), Ll(nn,nn)
     real(wp)       Ak(nn,nn), tAl(nn,nn), tAkl(nn,nn)
     real(wp)       inv_tAkl(nn,nn)
     real(wp)       W1(nn,nn)
     real(wp)       temp1
-    real(wp)       det_Lk, det_Ll, det_tAkl
-    integer           i, j, k, kk, kkk, q, t, indx
+    real(wp)       det_tAkl
+    integer           i, j, k, indx
 
     n=Glob_n
     np=Glob_np
-    !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
+!First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
     indx=0
     do i=1,n
-      do j=i,n
-        indx=indx+1
-        Lk(i,j)=ZERO
-        Lk(j,i)=vechLk(indx)
-        Ll(i,j)=ZERO
-        Ll(j,i)=vechLk(indx)
-      enddo
+    do j=i,n
+      indx=indx+1
+      Lk(i,j)=ZERO
+      Lk(j,i)=vechLk(indx)
+      Ll(i,j)=Lk(i,j)
+      Ll(j,i)=Lk(j,i)
+    enddo
     enddo
 
     do i=1,n
-      do j=i,n
-        temp1=ZERO
-        do k=1,i
-          temp1=temp1+Lk(i,k)*Lk(j,k)
-        enddo
-        Ak(i,j)=temp1
-        Ak(j,i)=temp1
-        temp1=ZERO
-        do k=1,i
-          temp1=temp1+Ll(i,k)*Ll(j,k)
-        enddo
-        tAl(i,j)=temp1
-        tAl(j,i)=temp1
+    do j=i,n
+      temp1=ZERO
+      do k=1,i
+        temp1=temp1+Lk(i,k)*Lk(j,k)
       enddo
+      Ak(i,j)=temp1
+      Ak(j,i)=temp1
+      temp1=ZERO
+      do k=1,i
+        temp1=temp1+Ll(i,k)*Ll(j,k)
+      enddo
+      tAl(i,j)=temp1
+      tAl(j,i)=temp1
+    enddo
     enddo
 
-    !Then we permute elements of Al to account for
-    !the action of the permutation matrix
-    !tAl=P'*Al*P
-    !We also form matrix tAkl=Ak+tAl
+!Then we permute elements of Al to account for
+!the action of the permutation matrix
+!tAl=P'*Al*P
+!We also form matrix tAkl=Ak+tAl
     do i=1,n
-      do j=1,n
-        temp1=ZERO
-        do k=1,n
-          temp1=temp1+P(k,j)*tAl(k,i)
-        enddo
-        W1(j,i)=temp1
+    do j=1,n
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+P(k,j)*tAl(k,i)
       enddo
+      W1(j,i)=temp1
+    enddo
     enddo
     do i=1,n
-      do j=i,n
-        temp1=ZERO
-        do k=1,n
-          temp1=temp1+W1(i,k)*P(k,j)
-        enddo
-        tAl(i,j)=temp1
-        tAl(j,i)=temp1
-        tAkl(i,j)=Ak(i,j)+temp1
-        tAkl(j,i)=tAkl(i,j)
+    do j=i,n
+      temp1=ZERO
+      do k=1,n
+        temp1=temp1+W1(i,k)*P(k,j)
       enddo
+      tAl(i,j)=temp1
+      tAl(j,i)=temp1
+      tAkl(i,j)=Ak(i,j)+temp1
+      tAkl(j,i)=tAkl(i,j)
+    enddo
     enddo
 
-    !After this we can do Cholesky factorization of tAkl.
-    !The Cholesky factor will be temporarily stored in the
-    !lower triangle of W1
+!After this we can do Cholesky factorization of tAkl.
+!The Cholesky factor will be temporarily stored in the
+!lower triangle of W1
     det_tAkl=ONE
     do i=1,n
-      do j=i,n
-        temp1=tAkl(i,j)
-        do k=i-1,1,-1
-          temp1=temp1-W1(i,k)*W1(j,k)
-        enddo
-        if (i==j) then
-          W1(i,i)=sqrt(temp1)
-          det_tAkl=det_tAkl*temp1
-        else
-          W1(j,i)=temp1/W1(i,i)
-          W1(i,j)=ZERO
-        endif
+    do j=i,n
+      temp1=tAkl(i,j)
+      do k=i-1,1,-1
+        temp1=temp1-W1(i,k)*W1(j,k)
       enddo
+      if (i==j) then
+        W1(i,i)=sqrt(temp1)
+        det_tAkl=det_tAkl*temp1
+      else
+        W1(j,i)=temp1/W1(i,i)
+        W1(i,j)=ZERO
+      endif
+    enddo
     enddo
 
-    !Inverting tAkl using its Cholesky factor (stored in W1)
-    !and placing the result into inv_tAkl
-    do i=1,n
-      W1(i,i)=ONE/W1(i,i)
-      do j=i+1,n
-        temp1=ZERO
-        do k=i,j-1
-          temp1=temp1-W1(j,k)*W1(k,i)
-        enddo
-        W1(j,i)=temp1/W1(j,j)
-      enddo
-    enddo
+!Evaluating overlap
 
-    do i=1,n
-      do j=i,n
-        temp1=ZERO
-        do k=j,n
-          temp1=temp1+W1(k,i)*W1(k,j)
-        enddo
-        inv_tAkl(i,j)=temp1
-        inv_tAkl(j,i)=temp1
-      enddo
-    enddo
-
-    !Evaluating overlap
+!temp1=abs(det_Ll*det_Lk)/det_tAkl
+!Skl=Glob_2Raised3n2*temp1*sqrt(temp1)
     Skk=Glob_PiRaised3n2/(det_tAkl*sqrt(det_tAkl))  !new line
 
-  end subroutine OverlapMatrixElementsLS
+  end subroutine OverlapMatrixElement_RG_0S
 
-  subroutine overlapMatrixElementsLP(m_k, mm_k, vechLk, P, Skk)
+  subroutine OverlapMatrixElement_RG_2P(m_k, mm_k, vechLk, P, Skk)
     !This subroutine computes symmetry adapted matrix element with
     !two real L=2 correlated Gaussians:
     !
@@ -324,7 +302,7 @@ contains
     temp1=FOUR*det_tAkl*sqrt(det_tAkl)
     Skk=Glob_PiRaised3n2*m/temp1
 
-  end subroutine overlapMatrixElementsLP
+  end subroutine OverlapMatrixElement_RG_2P
 
   subroutine spinPreCalc(n, nFactorial, parityFactor, SOmassChargeCoefficient, AMMmassChargeCoefficient, &
     AMMFinMassChargeCoefficient, ketMatrix, spatialYoung0, spatialYoung1, SiMinusME, SiPlusME, SziME, spinFreeME)

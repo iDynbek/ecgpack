@@ -9442,7 +9442,7 @@ contains
         !print*, "Glob_diagS old ", i,  " = ", Glob_diagS(i)
         do a = 1, Glob_NumYHYTerms
 
-          call overlapMatrixElementsLP(Glob_Index(i,1), Glob_Index(i,2), Glob_NonlinParam(1 : npt, i), &
+          call OverlapMatrixElement_RG_2P(Glob_Index(i,1), Glob_Index(i,2), Glob_NonlinParam(1 : npt, i), &
                                        Glob_YHYMatr(1 : n, 1 : n, a), Skk)
 
           diagS(i) = diagS(i) + Glob_YHYCoeff(a) * Skk
@@ -9483,7 +9483,7 @@ contains
           if (SymmAdaptMethod==1) then
             do k=1,Glob_NumYHYTerms
              !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-              call MatrixElementsL1ForExpcValsP(Glob_Index(i,1),Glob_Index(j,1),Glob_Index(i,2),Glob_Index(j,2),  &
+              call MatrixElementsAll_RG_2P(Glob_Index(i,1),Glob_Index(j,1),Glob_Index(i,2),Glob_Index(j,2),  &
                                                 Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
                                                 IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl,Skl,Tkl,Vkl,                    &
                                                 rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl1,drach_MVkl2,   &
@@ -9491,7 +9491,7 @@ contains
                                                 NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
                !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!              call MatrixElementsL1ForExpcVals(Glob_Index(i,1),Glob_Index(j,2),Glob_Index(i,2),Glob_Index(j,1),  &
+!              call MatrixElementsAll_RG_1P(Glob_Index(i,1),Glob_Index(j,2),Glob_Index(i,2),Glob_Index(j,1),  &
 !                Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
 !                IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl2,Skl2,Tkl2,Vkl2,                    &
 !                rm2kl2,rmkl2,rkl2,r2kl2,deltarkl2,drach_deltarkl2,MVkl2,drach_MVkl2,             &
@@ -9621,13 +9621,13 @@ contains
 
             do k=1,Glob_NumYTerms
               do kk=1,Glob_NumYTerms
-                call MatrixElementsL1ForExpcValsP(Glob_Index(i,1),Glob_Index(j,1),Glob_Index(i,2), Glob_Index(j,2),  &
+                call MatrixElementsAll_RG_2P(Glob_Index(i,1),Glob_Index(j,1),Glob_Index(i,2), Glob_Index(j,2),  &
                                                   Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
                                                   Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl,Skl,Tkl,Vkl,            &
                                                   rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl1,drach_MVkl2,     &
                                                   Darwinkl,drach_Darwinkl,OOkl,rmrmkl,prvalkl,NumCFGridPoints,CFGrid,CFkl, &
                                                   NumDensGridPoints,DensGrid,Denskl,AreCorrFuncNeeded,ArePartDensNeeded)
-!                call MatrixElementsL1ForExpcVals(Glob_Index(i,1),Glob_Index(j,2),Glob_Index(i,2), Glob_Index(j,1),  &
+!                call MatrixElementsAll_RG_1P(Glob_Index(i,1),Glob_Index(j,2),Glob_Index(i,2), Glob_Index(j,1),  &
 !                  Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),                     &
 !                  Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl2,Skl2,Tkl2,Vkl2,            &
 !                  rm2kl2,rmkl2,rkl2,r2kl2,deltarkl2,drach_deltarkl2,MVkl2,drach_MVkl2,             &

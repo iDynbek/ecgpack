@@ -6,7 +6,7 @@ module matelem
 
 contains
 
-  subroutine MatrixElements(Paramk, Paraml, P, Hkl, Skl, Dk, Dl, grad_k, grad_l)
+  subroutine MatrixElementsHS_CG_0S(Paramk, Paraml, P, Hkl, Skl, Dk, Dl, grad_k, grad_l)
 !This subroutine computes symmetry adapted matrix element
 !with two complex L=0 correlated Gaussians
 !
@@ -720,9 +720,9 @@ contains
       Dl(3*np+1:4*np)=dSkldvechBl(1:np)
     endif
 
-  end subroutine MatrixElements
+  end subroutine MatrixElementsHS_CG_0S
 
-  subroutine MatrixElementsForExpcVals(Paramk, Paraml, Pbra, Pket, Hkl, Skl, Tkl, Vkl, &
+  subroutine MatrixElementsAll_CG_0S(Paramk, Paraml, Pbra, Pket, Hkl, Skl, Tkl, Vkl, &
                                        rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, MVkl, drach_MVkl, Darwinkl, &
                                        drach_Darwinkl, OOkl, NumCFGridPoints, CFGrid, CFkl, NumDensGridPoints, &
                                        DensGrid, Denskl, AreCorrFuncNeeded, ArePartDensNeeded)
@@ -1760,7 +1760,7 @@ contains
 !    enddo
 !endif
 
-  end subroutine MatrixElementsForExpcVals
+  end subroutine MatrixElementsAll_CG_0S
 
   function trace(k,M)
     complex(wp) trace

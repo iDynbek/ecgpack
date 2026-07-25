@@ -11,9 +11,8 @@ module wp_def
 !This is data type identifier for MPI corresponding to real type of kind wp
   integer,parameter    :: MPI_WP=MPI_REAL16
 
-!This is the maximal allowed number of particles in the system. If needed,
-!this number can be increased. However it is not recommended to use a number
-!that is larger than necessary as it may affect the performance of the program.
+!This is the number of particles in the system that should be set by the user.
+!For reasons related to performance, it is made a fixed (compile time) parameter.
   integer,parameter :: Glob_AllowedNumOfParticles=3
 
 contains

@@ -1317,7 +1317,7 @@ contains
     Skk = ZERO
     do i = 1, Glob_CurrBasisSize0
       do ptr = 1, nFactorial
-        call OverlapMatrixElementsLD(Glob_Index0(i,1), Glob_Index0(i,2), Glob_NonlinParam0(1 : npt, i), &
+        call OverlapMatrixElement_RG_2D(Glob_Index0(i,1), Glob_Index0(i,2), Glob_NonlinParam0(1 : npt, i), &
                                      ketYMatrix(1 : n, 1 : n, ptr), Skk)
         diagS_0(i) = diagS_0(i) + spinCoeff(ptr,2) * Skk
       enddo ! Permutations from S_n
@@ -1326,7 +1326,7 @@ contains
     Skk = ZERO
     do i = 1, Glob_CurrBasisSize1
       do ptr = 1, nFactorial
-        call OverlapMatrixElementsLD(Glob_Index1(i,1), Glob_Index1(i,2), Glob_NonlinParam1(1 : npt, i), &
+        call OverlapMatrixElement_RG_2D(Glob_Index1(i,1), Glob_Index1(i,2), Glob_NonlinParam1(1 : npt, i), &
                                      ketYMatrix(1 : n, 1 : n, ptr), Skk)
         diagS_1(i) = diagS_1(i) + spinCoeff(ptr,1) * Skk
       enddo ! Permutations from S_n
@@ -1598,7 +1598,7 @@ contains
     do i = 1, Glob_CurrBasisSize0
       do ptr = 1, nFactorial
 
-        call OverlapMatrixElementsLD(Glob_Index0(i,1), Glob_Index0(i,2), Glob_NonlinParam0(1 : npt, i), &
+        call OverlapMatrixElement_RG_2D(Glob_Index0(i,1), Glob_Index0(i,2), Glob_NonlinParam0(1 : npt, i), &
                                      ketYMatrix(1 : n, 1 : n, ptr), Skk)
 
         diagS_0(i) = diagS_0(i) + spinCoeff(ptr,2) * Skk
@@ -1614,7 +1614,7 @@ contains
     Skk = ZERO
     do i = 1, Glob_CurrBasisSize1
       do ptr = 1, nFactorial
-        call OverlapMatrixElementsLD(Glob_Index1(i,1), Glob_Index1(i,2), Glob_NonlinParam1(1 : npt, i), &
+        call OverlapMatrixElement_RG_2D(Glob_Index1(i,1), Glob_Index1(i,2), Glob_NonlinParam1(1 : npt, i), &
                                      ketYMatrix(1 : n, 1 : n, ptr), Skk)
 
         diagS_1(i) = diagS_1(i) + spinCoeff(ptr,1) * Skk
@@ -1661,7 +1661,7 @@ contains
           endif
           do k=1,nFactorial
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            call MatrixElementsL1ForExpcValsD(Glob_Index0(i,1),Glob_Index0(i,2),Glob_Index1(j,1),Glob_Index1(j,2), &
+            call MatrixElementsAll_RG_2D(Glob_Index0(i,1),Glob_Index0(i,2),Glob_Index1(j,1),Glob_Index1(j,2), &
                                               Glob_NonlinParam0(1:npt,i),Glob_NonlinParam1(1:npt,j),                     &
                                               IdentityPerm,ketYMatrix(1:n,1:n,k),Hkl,Skl,Tkl,Vkl,                    &
                                               rm2kl,rmkl,rkl,r2kl,deltarkl,drach_deltarkl,MVkl,drach_MVkl,             &

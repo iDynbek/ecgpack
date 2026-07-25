@@ -136,7 +136,7 @@ contains
     real(wp) Vkl5,Tkl5,Vkl6,Tkl6,Vkl7,Tkl7,Vkl8,Tkl8
     real(wp) Ssum,Hsum
 !These arrays are not actually used but needed for proper calling
-!of subroutine MatrixElements. Thus, one can set some small size
+!of subroutine MatrixElementsHS_RG_0S. Thus, one can set some small size
 !for them
     real(wp)  Dk(2),Dl(2),Dk1(2),Dl1(2),Dk2(2),Dl2(2),Dk3(2),Dl3(2),Dk4(2),Dl4(2)
     real(wp)  Dk5(2),Dl5(2),Dk6(2),Dl6(2),Dk7(2),Dl7(2),Dk8(2),Dl8(2)
@@ -169,7 +169,7 @@ contains
         q=(i-1)*Glob_NumYHYTerms-1
         do j=1,Glob_NumYHYTerms
           if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-!                call MatrixElementsL1(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!                call MatrixElementsHS_RG_1P(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.false.,.false.)
 !                call MatrixElementsL11(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl5,Skl5,Tkl5,Vkl5,Dk5,Dl5,.false.,.false.)
@@ -177,7 +177,7 @@ contains
 !                Skl=6*Skl1-6*Skl5
 !                Dk=6*Dk1-6*Dk5
 !                Dl=6*Dl1-6*Dl5
-            call MatrixElementsLD(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+            call MatrixElementsHS_RG_2D(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                                   Hkl,Skl,Tkl,Vkl,Dk,Dl,.false.,.false.)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl
@@ -329,7 +329,7 @@ contains
         do j=1,Glob_NumYHYTerms
           if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
 
-!                call MatrixElementsL1(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+!                call MatrixElementsHS_RG_1P(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl1,Skl1,Tkl1,Vkl1,Dk1,Dl1,.true.,grad_l)
 !                call MatrixElementsL11(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
 !               Hkl5,Skl5,Tkl5,Vkl5,Dk5,Dl5,.true.,grad_l)
@@ -337,7 +337,7 @@ contains
 !                Skl=6*Skl1-6*Skl5
 !                Dk=6*Dk1-6*Dk5
 !                Dl=6*Dl1-6*Dl5
-            call MatrixElementsLD(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+            call MatrixElementsHS_RG_2D(mk,mmk,ml,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
                                   Hkl,Skl,Tkl,Vkl,Dk,Dl,.true.,grad_l)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl

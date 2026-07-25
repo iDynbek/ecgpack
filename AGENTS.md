@@ -53,6 +53,8 @@ Root files of interest:
 - Do not commit generated build products from `debug/`, `release/`, `bin/`, or `jobs/`.
 - Be careful with `src/wp_def_*.f90`: the number of particles is compiled in, and `build.bash` may edit these files temporarily during builds.
 - Preserve scientific behavior unless the user explicitly asks for a change. Numerical code changes should be validated with representative sample inputs when practical.
+- Treat `matelem.f90` and `linalg.f90` as performance-sensitive code. Preserve the current algorithmic complexity, no-gradient fast paths, cache-aware loops, and MPI routing unless a task explicitly calls for changing them. For performance changes, check numerical agreement up to expected roundoff and benchmark a representative basis size and process count when practical.
+- Matrix-element routine names now identify both their purpose and ECG basis (for example, `MatrixElementsHS_RG_0S` and `MatrixElementsAll_RG_0S`). Use the current names from the affected `matelem.f90`; do not restore historical generic names, and update all callers and analogous sibling codes together when renaming an interface.
 
 ## Building
 
@@ -122,7 +124,7 @@ Some fine-structure coupling codes also require a small `inp.txt`:
 
 There is no general automated test suite. Validation is usually done by running sample physical cases and comparing energies, expectation values, or matrix elements against documented reference values.
 
-Sample inputs live under each code's `sample_input/` directory when available. The real ECG energy codes and off-diagonal codes provide worked examples. `CG_0S` currently may lag behind the real ECG codes and may not have sample inputs.
+Sample inputs live under each code's `sample_input/` directory when available. The four real-ECG energy codes and all nine off-diagonal codes provide worked examples; `CG_0S` currently has none and may lag behind the real ECG codes. The energy and transition-dipole examples put a `README.md` in each case directory. Fine-structure examples instead put instructions in the case's `initial_state_*/`, `final_state_*/`, and `matelem/` subdirectories. `RG_0S-1P` and `RG_1P-2D` also have an overview `sample_input/README.md`.
 
 ## Source Architecture
 
@@ -135,9 +137,9 @@ wp_def_<PREC> -> globvars -> misc, linalg, spin -> matelem -> matform -> workpro
 Important files:
 
 - `wp_def_<PREC>.f90`: working precision kind, MPI real type, and `Glob_AllowedNumOfParticles`
-- `globvars.f90`: global state, physical constants, numerical constants, basis/matrix storage
+- `globvars.f90`: global state, physical constants, numerical constants, basis/matrix storage; this includes both `Glob_PseudoChargeMatrix` and the pre-scaled `Glob_ScaledPseudoChargeMatrix`
 - `misc.f90`: miscellaneous helper routines
-- `linalg.f90`: linear-algebra wrappers over BLAS/LAPACK
+- `linalg.f90`: linear-algebra wrappers over BLAS/LAPACK, including performance-aware serial/MPI routing and cache-blocked LDL factorization paths
 - `BLAS.f`, `LAPACK.f`: bundled modified reference sources used with `LINALG=netlib`
 - `dmng.f`, `X1MACH.f90`: nonlinear optimizer support and machine constants
 - `spin.f90`: spin algebra and permutation-symmetry projection
@@ -162,6 +164,18 @@ Common BBOP steps handled from `main.f90` include:
 - `SAVE_HSWF`
 
 Adding a new calculation mode usually requires adding a case in `main.f90` and corresponding implementation in `workproc.f90`.
+
+### Current Matrix-Element And Linear-Algebra Conventions
+
+The primary energy-code entry points in `matelem.f90` use symmetry-qualified names:
+
+- Hamiltonian/overlap, optionally with nonlinear-parameter derivatives: `MatrixElementsHS_RG_0S`, `MatrixElementsHS_RG_1P`, `MatrixElementsHS_RG_2D`, `MatrixElementsHS_RG_2P`, and `MatrixElementsHS_CG_0S`
+- full expectation-value/operator sets: the corresponding `MatrixElementsAll_*` routines
+- normalized or diagonal overlaps, where present: `OverlapMatrixElement_<BASIS>` or `NormalizedOverlapMatElem_<BASIS>`
+
+Off-diagonal codes use specialized operator routines and basis-specific overlap routines. Consult the local `matelem.f90` rather than relying on an older name. Several matrix-element kernels now replace deeply nested particle-pair accumulations with preassembled matrix expressions and skip derivative work when neither gradient is requested. Do not expand these back into the older pair-by-pair algorithms.
+
+`ProgramDataInit` constructs `Glob_ScaledPseudoChargeMatrix` once; hot matrix-element loops should read it directly rather than recomputing scaled charge products. In the energy codes, `linalg_setparam(n)` selects and, for multi-process double-precision runs, calibrates the current linear-algebra paths. It must remain a collective call on all MPI ranks and must be called again when the problem dimension changes.
 
 ## Documentation To Check
 

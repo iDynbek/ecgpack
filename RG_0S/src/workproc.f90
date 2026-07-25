@@ -9334,7 +9334,7 @@ contains
 
         do a = 1, Glob_NumYHYTerms
 
-          call overlapMatrixElements(Glob_NonlinParam(1 : npt, i), &
+          call OverlapMatrixElement_RG_0S(Glob_NonlinParam(1 : npt, i), &
                                      Glob_YHYMatr(1 : n, 1 : n, a), Skk)
 
           diagS(i) = diagS(i) + Glob_YHYCoeff(a) * Skk
@@ -9373,7 +9373,7 @@ contains
           endif
           if (SymmAdaptMethod==1) then
             do k=1,Glob_NumYHYTerms
-              call MatrixElementsForExpcVals(Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),      &
+              call MatrixElementsAll_RG_0S(Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),      &
                                              IdentityPerm,Glob_YHYMatr(1:n,1:n,k),Hkl,Skl,Tkl,Vkl,rm2kl,rmkl,rkl,r2kl,          &
                            deltarkl,drach_deltarkl,MVkl,drach_MVkl1,drach_MVkl2,drach_MVkl3,Darwinkl,drach_Darwinkl,OOkl,rmrmkl,   &
                                              del2kl,prvalkl,wf2originkl,NumCFGridPoints,CFGrid,CFkl,NumDensGridPoints,DensGrid, &
@@ -9513,7 +9513,7 @@ contains
 
             do k=1,Glob_NumYTerms
               do kk=1,Glob_NumYTerms
-                call MatrixElementsForExpcVals(Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),     &
+                call MatrixElementsAll_RG_0S(Glob_NonlinParam(1:npt,i),Glob_NonlinParam(1:npt,j),     &
                                                Glob_YMatr(1:n,1:n,k),Glob_YMatr(1:n,1:n,kk),Hkl,Skl,Tkl,Vkl,rm2kl,rmkl,rkl,r2kl,  &
                             deltarkl,drach_deltarkl,MVkl,drach_MVkl1,drach_MVkl2,drach_MVkl3,Darwinkl,drach_Darwinkl,OOkl,rmrmkl,  &
                                                del2kl,prvalkl,wf2originkl,NumCFGridPoints,CFGrid,CFkl,NumDensGridPoints,DensGrid, &

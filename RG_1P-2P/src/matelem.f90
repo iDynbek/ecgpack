@@ -522,7 +522,7 @@ contains
 
   END SUBROUTINE OverLapElement_S_Pe
 
-  SUBROUTINE MatrixElemenTranDipoleMoment(mk, vechLk, Pk, ml_1, ml_2, vechLl, Pl, &
+  SUBROUTINE MatElemTranDipoleMoment_RG_1P_2P(mk, vechLk, Pk, ml_1, ml_2, vechLl, Pl, &
                                           TranDipolLength_kl, TranDipolVelocity_kl)
 !
 ! This subroutine computes the symmetry-adapted, normalized transition
@@ -1142,7 +1142,7 @@ contains
 
     TranDipolVelocity_kl = TranDipolVelocity_kl * temp03
 
-  END SUBROUTINE MatrixElemenTranDipoleMoment
+  END SUBROUTINE MatElemTranDipoleMoment_RG_1P_2P
 
 end module matelem
 

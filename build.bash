@@ -17,7 +17,7 @@ usage_print() {
   echo "<machinename> is the name of the machine. Only a single value may be specified. It could be linux-generic (default), ubuntu-generic, irgetas, shabyt, etc."
   echo "<toolchainnames> are the names of the toolchains." 
   echo "<confignames> is the list of configurations that need to be built. Currently these could be debug or release. The default includes all configurations."
-  echo "<codenames> is the list of codes that need to be built. Currently these could be RG_0S,RG_1P,RG_2P,RG_2D,RG_0S-1P,RG_0S2P,RG_0S-2D,RG_1P-1P,RG_2P-2P,RG_2P-2D. The default includes all codes."
+  echo "<codenames> is the list of codes that need to be built. Currently these could be RG_0S,RG_1P,RG_2D,RG_2P,RG_0S-1P,RG_1P-2D,RG_1P-2P,RG_0S-2D,RG_0S-2P,RG_1P-1P,RG_2D-2D,RG_2P-2D,RG_2P-2P, as well as CG_0S. The default includes all codes except CG_0S."
   echo "<nparticles> defines for how many particles each code must be build for. There is no default value. This argument must be present."
   echo "<precisions> is the kind parameter for real type. 8 corresponds to double precision (fp64), 10 corresponds to extended precision (fp80), 16 corresponds to quadruple precision. Different compilers/toolchain support different kinds. For example, Intel compilers supports only 8 and 16, while modern GNU compilers support 8, 10, and 16. The default value is 8."
   echo "<linalgnames> specifies which BLAS/LAPACK implementation to link against. Possible values are: netlib (default; non-optimized reference BLAS/LAPACK built from the bundled source), mkl (Intel Math Kernel Library), lblas (optimized BLAS/LAPACK exposed through the -lblas/-llapack symbolic links), openblas (OpenBLAS), and aocl (AMD AOCL-BLAS and AOCL-LAPACK). For precision=10 and precision=16 only netlib is available, so any other value is skipped because optimized BLAS/LAPACK is unavailable for these two precisions."
@@ -111,7 +111,7 @@ IFS=',' read -ra precision_list <<< $precision
 IFS=',' read -ra linalg_list <<< $linalg
 
 # Check if machine is set properly. Only a single machine can be used as an argument
-if [[ " linux-generic ubuntu-generic shabyt muon puma ocelote elgato " != *" $machine "* ]]; then
+if [[ " linux-generic ubuntu-generic irgetas shabyt muon puma ocelote elgato " != *" $machine "* ]]; then
   echo "ERROR, INVALID MACHINE: $machine"
   usage_print
   exit 1
@@ -128,7 +128,7 @@ done
 
 # Check if code is set properly
 for code_value in ${code_list[@]}; do
-  if [[ " CG_0S RG_0S RG_1P RG_2D RG_2P RG_0S-1P RG_0S-2D RG_0S-2P RG_1P-1P RG_1P-2D RG_2D-2D RG_2P-2D RG_2P-2P " != *" $code_value "* ]]; then
+  if [[ " CG_0S RG_0S RG_1P RG_2D RG_2P RG_0S-1P RG_0S-2D RG_0S-2P RG_1P-1P RG_1P-2D RG_1P-2P RG_2D-2D RG_2P-2D RG_2P-2P " != *" $code_value "* ]]; then
     echo "ERROR, WRONG VALUE(S) OF ARGUMENT: code"
     usage_print
     exit 1

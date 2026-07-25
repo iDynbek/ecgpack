@@ -135,7 +135,7 @@ contains
     real(wp) Skl,Hkl
     real(wp) Ssum,Hsum
 !These arrays are not actually used but needed for proper calling
-!of subroutine MatrixElements. Thus, one can set some small size
+!of subroutine MatrixElementsHS_RG_0S. Thus, one can set some small size
 !for them
     real(wp)  Dk(2),Dl(2)
 
@@ -169,11 +169,9 @@ contains
         q=(i-1)*Glob_NumYHYTerms-1
         do j=1,Glob_NumYHYTerms
           if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-            call MatrixElements(n,np,Paramk,Paraml,Glob_YHYMatr(1,1,j), &
-                                Glob_MassMatrix,Glob_PseudoCharge,Glob_PseudoCharge0, &
-                                Glob_SqrtPi,Glob_PiRaised3n2,Glob_AttractionScalingParam, &
-                                Glob_RepulsionScalingParam,Glob_RepulsionScalingParamPlus, &
-                                Glob_RepulsionScalingParamMinus,Hkl,Skl,Dk,Dl,.false.,.false.)
+            call MatrixElementsHS_RG_0S(n,np,Paramk,Paraml,Glob_YHYMatr(1,1,j), &
+                                Glob_MassMatrix,Glob_ScaledPseudoChargeMatrix, &
+                                Glob_SqrtPi,Glob_PiRaised3n2,Hkl,Skl,Dk,Dl,.false.,.false.)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl
           endif
@@ -304,11 +302,9 @@ contains
         q=(i-1)*Glob_NumYHYTerms-1
         do j=1,Glob_NumYHYTerms
           if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-            call MatrixElements(n,np,Paramk,Paraml,Glob_YHYMatr(1,1,j), &
-                                Glob_MassMatrix,Glob_PseudoCharge,Glob_PseudoCharge0, &
-                                Glob_SqrtPi,Glob_PiRaised3n2,Glob_AttractionScalingParam, &
-                                Glob_RepulsionScalingParam,Glob_RepulsionScalingParamPlus, &
-                                Glob_RepulsionScalingParamMinus,Hkl,Skl,Dk,Dl,.true.,grad_l)
+            call MatrixElementsHS_RG_0S(n,np,Paramk,Paraml,Glob_YHYMatr(1,1,j), &
+                                Glob_MassMatrix,Glob_ScaledPseudoChargeMatrix, &
+                                Glob_SqrtPi,Glob_PiRaised3n2,Hkl,Skl,Dk,Dl,.true.,grad_l)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl
             Dksum(1:npt2)=Dksum(1:npt2)+Glob_YHYCoeff(j)*Dk(1:npt2)
