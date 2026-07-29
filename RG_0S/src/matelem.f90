@@ -6,8 +6,11 @@ module matelem
 
 contains
 
-  subroutine MatrixElementsHS_RG_0S(vechLk, vechLl, P, &
-                            Hkl, Skl, Dk, Dl, grad_k, grad_l)
+#ifdef USE_CUDA
+  attributes(host,device) &
+#endif
+  subroutine MatrixElementsHS_RG_0S(n, np, vechLk, vechLl, P, mass, chargeM, &
+                            sqrtpi, pir3n2, Hkl, Skl, Dk, Dl, grad_k, grad_l)
 !This subroutine computes symmetry adapted matrix element with
 !two real L=0 correlated Gaussians:
 !
@@ -44,16 +47,22 @@ contains
 !O(n^3). Details are explained in the comments in the body.
 
 !Arguments
-    real(wp),intent(in)      :: vechLk(Glob_np), vechLl(Glob_np)
-    real(wp),intent(in)      :: P(Glob_n,Glob_n)
+!  (n, np and the physics constants are passed in rather than read from the
+!   Glob_* module globals so this routine can also compile as CUDA Fortran
+!   device code -- device code cannot read host module variables. The body is
+!   master's, unchanged apart from these substitutions.)
+    integer,intent(in),value :: n, np
+    real(wp),intent(in)      :: vechLk(np), vechLl(np)
+    real(wp),intent(in)      :: P(n,n)
+    real(wp),intent(in)      :: mass(n,n), chargeM(0:n,0:n)
+    real(wp),intent(in),value :: sqrtpi, pir3n2
     real(wp),intent(out)     :: Skl,Hkl
-    real(wp),intent(out)     :: Dk(2*Glob_np),Dl(2*Glob_np)
-    logical,intent(in)          :: grad_k, grad_l
+    real(wp),intent(out)     :: Dk(2*np),Dl(2*np)
+    logical,intent(in),value    :: grad_k, grad_l
 
     integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 
 !Local variables
-    integer           n, np
     real(wp)       Lk(nn,nn), Ll(nn,nn), PT(nn,nn)
     real(wp)       Ak(nn,nn), tAl(nn,nn), tAkl(nn,nn)
     real(wp)       inv_tAkl(nn,nn), inv_ttAkl(nn,nn)
@@ -67,8 +76,6 @@ contains
     real(wp)       Tkl, Vkl, cV, HklOverSkl
     integer           i, j, k, indx
 
-    n=Glob_n
-    np=Glob_np
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
     indx=0
     do i=1,n
@@ -181,7 +188,7 @@ contains
 
 !temp1=abs(det_Ll*det_Lk)/det_tAkl
 !Skl=Glob_2Raised3n2*temp1*sqrt(temp1)
-    Skl=Glob_PiRaised3n2/(det_tAkl*sqrt(det_tAkl))  !new line
+    Skl=pir3n2/(det_tAkl*sqrt(det_tAkl))  !new line
 
 !Doing multiplication W2=inv_tAkl*tAl
     do i=1,n
@@ -199,7 +206,7 @@ contains
       do j=1,n
         temp1=ZERO
         do k=1,n
-          temp1=temp1+W2(j,k)*Glob_MassMatrix(k,i)
+          temp1=temp1+W2(j,k)*mass(k,i)
         enddo
         inv_tAkltAlM(j,i)=temp1
       enddo
@@ -221,7 +228,7 @@ contains
 !will contain the corresponding quantities. The latter are needed
 !only for the gradients, so in the gradientless case a leaner loop
 !(one division per particle pair less) is used.
-    temp1=(TWO/Glob_SqrtPi)*Skl
+    temp1=(TWO/sqrtpi)*Skl
     Vkl=ZERO
     if (grad_k.or.grad_l) then
       do i=1,n
@@ -229,7 +236,7 @@ contains
         temp4=sqrt(temp3)
         tr_inv_tAklJij32(i,i)=1/(temp4*temp3)
         temp5=temp1/temp4
-        Vkl=Vkl+Glob_ScaledPseudoChargeMatrix(i,0)*temp5
+        Vkl=Vkl+chargeM(i,0)*temp5
       enddo
       do i=1,n
         do j=i+1,n
@@ -237,19 +244,19 @@ contains
           temp4=sqrt(temp3)
           tr_inv_tAklJij32(j,i)=1/(temp4*temp3)
           temp5=temp1/temp4
-          Vkl=Vkl+Glob_ScaledPseudoChargeMatrix(i,j)*temp5
+          Vkl=Vkl+chargeM(i,j)*temp5
         enddo
       enddo
     else
       do i=1,n
         temp5=temp1/sqrt(inv_tAkl(i,i))
-        Vkl=Vkl+Glob_ScaledPseudoChargeMatrix(i,0)*temp5
+        Vkl=Vkl+chargeM(i,0)*temp5
       enddo
       do i=1,n
         do j=i+1,n
           temp3=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
           temp5=temp1/sqrt(temp3)
-          Vkl=Vkl+Glob_ScaledPseudoChargeMatrix(i,j)*temp5
+          Vkl=Vkl+chargeM(i,j)*temp5
         enddo
       enddo
     endif
@@ -293,7 +300,7 @@ contains
 !  dHkl/dvechLk = (Hkl/Skl)*dSkl/dvechLk + vech[Z*Lk]
 !  dHkl/dvechLl = (Hkl/Skl)*dSkl/dvechLl + vech[(P*Z*P')*Ll]
 
-    cV=(TWO/Glob_SqrtPi)*Skl
+    cV=(TWO/sqrtpi)*Skl
     HklOverSkl=Hkl/Skl
 
     if (grad_k) then
@@ -380,11 +387,11 @@ contains
       enddo
     enddo
     do i=1,n
-      Cmat(i,i)=Glob_ScaledPseudoChargeMatrix(0,i)*tr_inv_tAklJij32(i,i)
+      Cmat(i,i)=chargeM(0,i)*tr_inv_tAklJij32(i,i)
     enddo
     do i=1,n
       do j=i+1,n
-        temp1=Glob_ScaledPseudoChargeMatrix(i,j)*tr_inv_tAklJij32(j,i)
+        temp1=chargeM(i,j)*tr_inv_tAklJij32(j,i)
         Cmat(i,i)=Cmat(i,i)+temp1
         Cmat(j,j)=Cmat(j,j)+temp1
         Cmat(j,i)=Cmat(j,i)-temp1
@@ -436,7 +443,7 @@ contains
       temp2=12*Skl
       do j=1,n
         do i=1,n
-          Z(i,j)=temp2*(Glob_MassMatrix(i,j)-inv_tAkltAlM(i,j) &
+          Z(i,j)=temp2*(mass(i,j)-inv_tAkltAlM(i,j) &
                         -inv_tAkltAlM(j,i)+F(i,j))+cV*Bmat(i,j)
         enddo
       enddo
