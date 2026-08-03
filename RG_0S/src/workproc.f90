@@ -1947,17 +1947,15 @@ contains
     real(wp)  pen_coeff,tp,temp1,temp2
     logical      oddband
 
-!BUGFIX (gpu-benchmark): the self-normalization term of d(Sbar_ij)/dx below previously
-!carried a spurious norm-ratio factor temp2=sqrt(N_i/N_j). StoreHSD (matform.f90) already
-!stores the normalized overlap Sbar_ij=S_ij/sqrt(N_i N_j) and Glob_D(...)=D*f (f=1/sqrt(N_iN_j)),
-!so the correct derivative d(Sbar_ij)/dx_j = D^off - (1/2) Sbar_ij D^diag has NO norm ratio.
-!The spurious factor made the analytic penalty gradient O(1) larger than finite differences
-!when the penalty is active and N_i/=N_j. The error is EXPECTED to be small at the usual
-!production threshold ~0.95 (only near-parallel functions activate, which may have similar
-!norms N_i/N_j~1), but this has NOT been measured -- see PENALTY_GRADIENT_BUG.md.
-!Setting temp2=1 makes the analytic gradient match FD to a clean U-curve (verified via
-!ECG_GRADCHECK+ECG_GC_PENALTY). See data/results/gradcheck/PENALTY_GRADIENT_BUG.md. temp2 is
-!kept (=1) rather than removed so the *temp2 / /temp2 use sites stay diff-minimal.
+!BUGFIX: the self-normalization term of d(Sbar_ij)/dx below previously carried a
+!spurious norm-ratio factor temp2=sqrt(N_i/N_j). StoreHSD (matform.f90) already
+!stores the normalized overlap Sbar_ij=S_ij/sqrt(N_i N_j) and Glob_D(...)=D*f
+!(f=1/sqrt(N_iN_j)), so the correct derivative d(Sbar_ij)/dx_j = D^off
+!- (1/2) Sbar_ij D^diag has NO norm ratio. The spurious factor made the analytic
+!penalty gradient O(1) larger than finite differences when the penalty is active
+!and N_i/=N_j; with temp2=1 the analytic gradient matches central finite
+!differences to ~4e-10 for both method G and method I. temp2 is kept (=1) rather
+!than removed so the *temp2 / /temp2 use sites stay diff-minimal.
     tp=ZERO
     pen_coeff=MaxPairOverlapPenalty/(ONE-OverlapThreshold2)
     if (Glob_NumOfProcs==1) then
@@ -1967,7 +1965,7 @@ contains
           if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) then
             tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
             temp1=2*pen_coeff*Glob_S(j,i)
-            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (PENALTY_GRADIENT_BUG.md)
+            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (see note at top of routine)
             do m=1,Glob_npt
               WkGR((j-Glob_nfru-1)*Glob_npt+m)=WkGR((j-Glob_nfru-1)*Glob_npt+m) &
                                                 +temp1*(Glob_D(Glob_npt+m,j-Glob_nfru,i) &
@@ -1981,7 +1979,7 @@ contains
           if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) then
             tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
             temp1=2*pen_coeff*Glob_S(j,i)
-            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (PENALTY_GRADIENT_BUG.md)
+            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (see note at top of routine)
             do m=1,Glob_npt
               WkGR((i-Glob_nfru-1)*Glob_npt+m)=WkGR((i-Glob_nfru-1)*Glob_npt+m) &
                                                 +temp1*(Glob_D(Glob_npt+m,i-Glob_nfru,j) &
@@ -2003,7 +2001,7 @@ contains
           if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) then
             tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
             temp1=2*pen_coeff*Glob_S(j,i)
-            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (PENALTY_GRADIENT_BUG.md)
+            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (see note at top of routine)
             do m=1,Glob_npt
               WkGR((j-Glob_nfru-1)*Glob_npt+m)=WkGR((j-Glob_nfru-1)*Glob_npt+m) &
                                                 +temp1*(Glob_D(Glob_npt+m,j-Glob_nfru,i) &
@@ -2027,7 +2025,7 @@ contains
           if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) then
             tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
             temp1=2*pen_coeff*Glob_S(j,i)
-            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (PENALTY_GRADIENT_BUG.md)
+            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (see note at top of routine)
             do m=1,Glob_npt
               WkGR((i-Glob_nfru-1)*Glob_npt+m)=WkGR((i-Glob_nfru-1)*Glob_npt+m) &
                                                 +temp1*(Glob_D(Glob_npt+m,i-Glob_nfru,j) &
@@ -2052,7 +2050,7 @@ contains
           if (Glob_S(j,i)*Glob_S(j,i)>OverlapThreshold2) then
             tp=tp+pen_coeff*(Glob_S(j,i)*Glob_S(j,i)-OverlapThreshold2)
             temp1=2*pen_coeff*Glob_S(j,i)
-            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (PENALTY_GRADIENT_BUG.md)
+            temp2=ONE  !BUGFIX: spurious norm-ratio factor removed (see note at top of routine)
             do m=1,Glob_npt
               WkGR((i-Glob_nfru-1)*Glob_npt+m)=WkGR((i-Glob_nfru-1)*Glob_npt+m) &
                                                 +temp1*(Glob_D(Glob_npt+m,i-Glob_nfru,j) &
@@ -2102,9 +2100,7 @@ contains
     integer        NumOfEigvalsFound
     integer        IFAIL(1)
 
-    if (AreMatElemNeeded) then
-      call system_clock(tprof0); call ComputeMatElem(Nmin,Nmax); call ProfAccum(tprof0,.false.)
-    endif
+    if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
     if (Nmax==1) then
       EnergyGA=Glob_diagH(1)
       ErrorCode=0
@@ -2125,7 +2121,6 @@ contains
         Glob_S(i,i)=ONE
       enddo
       if (Glob_ProcID==0) then
-        call system_clock(tprof0)
 #ifdef USE_CUDA
         if (gpu_eig_active()) then
           call gpu_dsygvx(0,Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
@@ -2142,7 +2137,6 @@ contains
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
 !$      LWORK, IWORK, IFAIL, INFO )
-        call ProfAccum(tprof0,.true.)
         Evalue=EVs(1)
       endif
       if (Glob_OverlapPenaltyAllowed) call ComputeOverlapPenalty(Glob_MaxOverlapPenalty, &
@@ -2177,9 +2171,7 @@ contains
     integer        NumOfEigvalsFound
     integer        IFAIL(1)
 
-    if (AreMatElemNeeded) then
-      call system_clock(tprof0); call ComputeMatElem(Nmin,Nmax); call ProfAccum(tprof0,.false.)
-    endif
+    if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
     if (Nmax==1) then
       EnergyGAM=Glob_diagH(1)
       Glob_c(1)=ONE
@@ -2201,7 +2193,6 @@ contains
         Glob_S(i,i)=ONE
       enddo
       if (Glob_ProcID==0) then
-        call system_clock(tprof0)
 #ifdef USE_CUDA
         if (gpu_eig_active()) then
           call gpu_dsygvx(1,Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
@@ -2218,7 +2209,6 @@ contains
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
 !$      LWORK, IWORK, IFAIL, INFO )
-        call ProfAccum(tprof0,.true.)
         Evalue=EVs(1)
       endif
       if (Glob_OverlapPenaltyAllowed) call ComputeOverlapPenalty(Glob_MaxOverlapPenalty, &
@@ -2281,9 +2271,7 @@ contains
     npt=Glob_npt
     nfru=Glob_nfru
 
-    if (AreMatElemNeeded) then
-      call system_clock(tprof0); call ComputeMatElemAndDeriv(nfru+1,nfa); call ProfAccum(tprof0,.false.)
-    endif
+    if (AreMatElemNeeded) call ComputeMatElemAndDeriv(nfru+1,nfa)
 
     if (nfa==1) then
       Evalue=Glob_diagH(1)/Glob_diagS(1)
@@ -2307,7 +2295,6 @@ contains
       enddo
 
       if (Glob_ProcID==0) then
-        call system_clock(tprof0)
 #ifdef USE_CUDA
         if (gpu_eig_active()) then
           call gpu_dsygvx(1,nfa,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
@@ -2324,7 +2311,6 @@ contains
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
 !$      LWORK, IWORK, IFAIL, INFO )
-        call ProfAccum(tprof0,.true.)
         Evalue=EVs(1)
       endif
       call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -2391,21 +2377,17 @@ contains
     real(wp)    Evalue
     integer        NumOfIterations
 
-    if (AreMatElemNeeded) then
-      call system_clock(tprof0); call ComputeMatElem(Nmin,Nmax); call ProfAccum(tprof0,.false.)
-    endif
+    if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
     if (Nmax==1) then
       EnergyIA=Glob_diagH(1)
       NumOfIterations=1
       ErrorCode=0
     else
       Glob_c(1:Nmax)=Glob_LastEigvector(1:Nmax)
-      call system_clock(tprof0)
       call GSEPIIS(Nmin,Nmax,Glob_H,Glob_HSLeadDim,Glob_invD,Glob_S,Glob_HSLeadDim, &
                    Glob_ApproxEnergy,Glob_c,Glob_WorkForGSEPIIS,Glob_EigvalTol, &
                    Evalue,Glob_LastEigvector,Glob_LastEigvalTol,Glob_MaxIterForGSEPIIS, &
                    -1,NumOfIterations,ErrorCode)
-      call ProfAccum(tprof0,.true.)
       !GSEPIIS(k,n,M,nM,invD,B,nB,apprlambda,v,w,Tol, &
       !lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode)
       if (Glob_LastEigvalTol>Glob_WorstEigvalTol) Glob_WorstEigvalTol=Glob_LastEigvalTol
@@ -2443,9 +2425,7 @@ contains
     real(wp)    Evalue
     integer        NumOfIterations
 
-    if (AreMatElemNeeded) then
-      call system_clock(tprof0); call ComputeMatElem(Nmin,Nmax); call ProfAccum(tprof0,.false.)
-    endif
+    if (AreMatElemNeeded) call ComputeMatElem(Nmin,Nmax)
     if (Nmax==1) then
       EnergyIAM=Glob_H(1,1)+Glob_ApproxEnergy
       Glob_c(1)=ONE
@@ -2453,12 +2433,10 @@ contains
       ErrorCode=0
     else
       Glob_c(1:Nmax)=Glob_LastEigvector(1:Nmax)
-      call system_clock(tprof0)
       call GSEPIIS(Nmin,Nmax,Glob_H,Glob_HSLeadDim,Glob_invD,Glob_S,Glob_HSLeadDim, &
                    Glob_ApproxEnergy,Glob_c,Glob_WorkForGSEPIIS,Glob_EigvalTol, &
                    Evalue,Glob_LastEigvector,Glob_LastEigvalTol,Glob_MaxIterForGSEPIIS, &
                    0,NumOfIterations,ErrorCode)
-      call ProfAccum(tprof0,.true.)
       !GSEPIIS(k,n,M,nM,invD,B,nB,apprlambda,v,w,Tol, &
       !lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode)
       Glob_c(1:Nmax)=Glob_LastEigvector(1:Nmax)
@@ -2524,9 +2502,7 @@ contains
     npt=Glob_npt
     nfru=Glob_nfru
 
-    if (AreMatElemNeeded) then
-      call system_clock(tprof0); call ComputeMatElemAndDeriv(nfru+1,nfa); call ProfAccum(tprof0,.false.)
-    endif
+    if (AreMatElemNeeded) call ComputeMatElemAndDeriv(nfru+1,nfa)
 
     if (nfa==1) then
       Evalue=Glob_H(1,1)+Glob_ApproxEnergy
@@ -2535,12 +2511,10 @@ contains
       ErrorCode=0
     else
       Glob_c(1:nfa)=Glob_LastEigvector(1:nfa)
-      call system_clock(tprof0)
       call GSEPIIS(nfru+1,nfa,Glob_H,Glob_HSLeadDim,Glob_invD,Glob_S,Glob_HSLeadDim, &
                    Glob_ApproxEnergy,Glob_c,Glob_WorkForGSEPIIS,Glob_EigvalTol, &
                    Evalue,Glob_LastEigvector,Glob_LastEigvalTol,Glob_MaxIterForGSEPIIS, &
                    0,NumOfIterations,ErrorCode)
-      call ProfAccum(tprof0,.true.)
       !GSEPIIS(k,n,M,nM,invD,B,nB,apprlambda,v,w,Tol, &
       !lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode)
       Glob_c(1:nfa)=Glob_LastEigvector(1:nfa)
@@ -4249,7 +4223,6 @@ contains
         endif
       endif
       Glob_CurrBasisSize=K
-      call GrowTrace(Glob_CurrBasisSize,Glob_CurrEnergy)  !GROWTRACE per-function (fixed-quality-target study)
       do i=1,nfo
         Glob_History(nfru+i)%Energy=Glob_CurrEnergy
         Glob_History(nfru+i)%CyclesDone=0
@@ -4851,7 +4824,6 @@ contains
         endif
       endif
       Glob_CurrBasisSize=K
-      call GrowTrace(Glob_CurrBasisSize,Glob_CurrEnergy)  !GROWTRACE per-function (fixed-quality-target study)
       do i=1,nfo
         Glob_History(nfru+i)%Energy=Glob_CurrEnergy
         Glob_History(nfru+i)%CyclesDone=0
@@ -5461,185 +5433,6 @@ contains
     if (Glob_ProcID==0) write (*,*) 'Routine OptCycleG finished'
 
   end subroutine OptCycleG
-
-  subroutine GradCheck()
-!Gradient-correctness check (env-gated by ECG_GRADCHECK in main). Verifies the
-!ANALYTIC gradient dE/dvechL of the last basis function (from EnergyGB, which is
-!fed by ComputeMatElemAndDeriv / the GPU gpu_build_HS_deriv) against a central
-!FINITE DIFFERENCE of the energy (from EnergyGA). Same code path as OptCycleG
-!method-G setup (DSYGVX solve). Print-only on rank 0; EnergyGA/EnergyGB do their
-!own MPI reductions so all ranks must call them.
-!
-!Numerical notes:
-! - Central diff: g_fd_i = (E(x+dx) - E(x-dx)) / (2*dx), dx = h*max(|x0_i|,1)
-!   (relative step: the vechL params span ~1e-2..1e1, so a fixed h mis-scales).
-! - Sweep h and look for the plateau (truncation O(h^2) vs energy-noise O(eps/h)).
-! - For a clean FD run with ECG_GPU, set ECG_DETERM=1 so EnergyGA's H/S build is
-!   deterministic; otherwise the ~1e-9 atomicAdd energy noise, divided by 2*dx,
-!   swamps the difference at small h. (The analytic gradient may stay noisy.)
-    integer      cbs,npt,nfo,nv,f,p,idx,ih,ec,os,BlockSizeForDSYGVX
-    real(wp)  E0,Etmp,Eplus,Eminus,dx,gfd,rel,maxrel,maxabs,gnorm,offset
-    real(wp),allocatable  :: x0(:),xc(:),g_analytic(:)
-    real(wp)  hlist(6)
-    character(32)  offstr,nfostr,nofdstr,methstr,penstr
-    logical      nofd,methI,penalty
-
-!ECG_GC_OFFSET (default 0.1): a saved basis has its optimized functions AT their
-!optimum (gradient ~0), which makes the FD-vs-analytic comparison vacuous.
-!Differentiate instead at xc = x0 + offset so dE/dx is O(1) and the check is real.
-!ECG_GC_NFO (default 1): number of trailing functions to optimize simultaneously.
-!nfo>1 exercises the multi-function Dl derivative path and cross-function gradient
-!indexing (production OPT_CYCLE optimizes several functions at once).
-    offset=0.1_wp
-    call get_environment_variable('ECG_GC_OFFSET',offstr,status=os)
-    if (os==0) read(offstr,*,iostat=os) offset
-    nfo=1
-    call get_environment_variable('ECG_GC_NFO',nfostr,status=os)
-    if (os==0) read(nfostr,*,iostat=os) nfo
-    if (nfo<1) nfo=1
-!ECG_GC_NOFD: skip the finite-difference sweep, print the analytic gradient only
-!(fast — one EnergyGB). Used to harvest a CPU analytic gradient cheaply for the
-!direct GPU-vs-CPU analytic comparison at production nfo.
-    nofd=.false.
-    call get_environment_variable('ECG_GC_NOFD',nofdstr,status=os)
-    if (os==0) nofd=.true.
-!ECG_GC_METHOD (default G): 'G' -> EnergyGA/EnergyGB (DSYGVX);
-!'I' -> EnergyIA/EnergyIB (warm-started inverse iteration GSEPIIS). The derivative-ME
-!backend is shared, but method-I has a distinct eigensolver + gradient-assembly path.
-    methI=.false.
-    call get_environment_variable('ECG_GC_METHOD',methstr,status=os)
-    if (os==0) then
-      if (methstr(1:1)=='I'.or.methstr(1:1)=='i') methI=.true.
-    endif
-!ECG_GC_PENALTY: enable the overlap penalty and check its gradient. This exposed a
-!LATENT BUG in ComputeOverlapPenaltyAndAddGradient (spurious norm-ratio factors
-!temp2=sqrt(N_i/N_j) on the self-normalization term, inconsistent with StoreHSD's
-!Glob_D=D*f storage). **FIXED on this branch** (temp2 set to 1): the penalty gradient
-!now matches FD to a clean U-curve (~4e-10) for both method-G and method-I. Affected
-!only FULL_OPT1 with an ACTIVE overlap penalty (threshold<1, differing norms); the error
-!at the production threshold ~0.95 is EXPECTED to be small but is unmeasured. Full
-!write-up + verification: data/results/gradcheck/PENALTY_GRADIENT_BUG.md.
-    penalty=.false.
-    call get_environment_variable('ECG_GC_PENALTY',penstr,status=os)
-    if (os==0) penalty=.true.
-
-    cbs=Glob_CurrBasisSize
-    npt=Glob_npt
-    if (nfo>cbs-1) nfo=cbs-1         !leave at least one frozen function
-    nv=npt*nfo                       !gradient length = npt per optimized function
-    Glob_OverlapPenaltyAllowed=penalty
-    Glob_TotalOverlapPenalty=ZERO
-    if (penalty) then
-      Glob_MaxOverlapPenalty=ONE                 !penalty coefficient (non-trivial)
-      Glob_OverlapPenaltyThreshold2=1.0e-8_wp    !~0: essentially every pair active, so
-      call get_environment_variable('ECG_GC_PENT2',penstr,status=os)  !no hinge crossings
-      if (os==0) read(penstr,*,iostat=os) Glob_OverlapPenaltyThreshold2 !-> smooth penalty
-    endif
-    Glob_HSLeadDim=cbs
-    Glob_HSBuffLen=cbs*nfo
-    Glob_nfa=cbs
-    Glob_nfru=cbs-nfo                !differentiate the LAST nfo functions
-    Glob_nfo=nfo
-    if (methI) then
-      Glob_GSEPSolutionMethod='I'
-      Glob_ApproxEnergy=Glob_CurrEnergy*Glob_InvItParameter   !inverse-iteration shift
-    else
-      Glob_GSEPSolutionMethod='G'
-    endif
-
-    BlockSizeForDSYGVX=ILAENV(1,'DSYTRD','VIU',cbs,cbs,cbs,cbs)
-    Glob_LWorkForDSYGVX=max((BlockSizeForDSYGVX+3)*cbs,8*cbs)
-    allocate(Glob_H(cbs,cbs),Glob_S(cbs,cbs),Glob_diagH(cbs),Glob_diagS(cbs))
-    allocate(Glob_D(2*npt,nfo,cbs),Glob_c(cbs))
-    allocate(Glob_HklBuff1(Glob_HSBuffLen),Glob_HklBuff2(Glob_HSBuffLen))
-    allocate(Glob_SklBuff1(Glob_HSBuffLen),Glob_SklBuff2(Glob_HSBuffLen))
-    allocate(Glob_DkBuff1(2*npt,Glob_HSBuffLen),Glob_DkBuff2(2*npt,Glob_HSBuffLen))
-    allocate(Glob_DlBuff1(2*npt,Glob_HSBuffLen),Glob_DlBuff2(2*npt,Glob_HSBuffLen))
-    allocate(Glob_WorkForDSYGVX(Glob_LWorkForDSYGVX),Glob_IWorkForDSYGVX(5*cbs))
-    allocate(Glob_invD(cbs),Glob_WorkForGSEPIIS(cbs),Glob_LastEigvector(cbs))  !method-I
-    Glob_LastEigvector(1:cbs)=ONE                             !warm-start vector
-    allocate(Glob_WkGR(nv))           !EnergyGB/IB gradient workspace (nfo functions)
-    allocate(x0(nv),xc(nv),g_analytic(nv))
-
-!Gradient index idx=(f-1)*npt+p  <->  Glob_NonlinParam(p, nfru+f), f=1..nfo, p=1..npt
-    do f=1,nfo
-      do p=1,npt
-        x0((f-1)*npt+p)=Glob_NonlinParam(p,Glob_nfru+f)   !original (restore at end)
-      enddo
-    enddo
-    xc(1:nv)=x0(1:nv)+offset                               !CHECK point: off the minimum
-    do f=1,nfo
-      do p=1,npt
-        Glob_NonlinParam(p,Glob_nfru+f)=xc((f-1)*npt+p)
-      enddo
-    enddo
-    if (methI) then
-      Etmp=EnergyIA(1,cbs,.true.,ec)               !prime FULL H/S (method-I, GSEPIIS)
-      call EnergyIB(E0,g_analytic,.true.,ec)       !method-I ME+DERIV -> gradient
-    else
-      Etmp=EnergyGA(1,cbs,.true.,ec)               !prime FULL H/S (method-G, DSYGVX)
-      call EnergyGB(E0,g_analytic,.true.,ec)       !method-G ME+DERIV -> gradient
-    endif
-    gnorm=ZERO
-    do idx=1,nv
-      if (abs(g_analytic(idx))>gnorm) gnorm=abs(g_analytic(idx))
-    enddo
-    if (Glob_ProcID==0) then
-      write(*,'(1x,a,a,a,i0,a,i0,a,i0,a,i0,a,es9.2)') 'GRADCHECK: method=',Glob_GSEPSolutionMethod, &
-        ' cbs=',cbs,' nfo=',nfo,' npt=',npt,' WhichEigenvalue=',Glob_WhichEigenvalue,' offset=',offset
-      write(*,'(1x,a,i0,a,es22.14,a,es9.2,a,es12.4,a,es12.4)') 'GRADCHECK: nv=',nv,' E0(GB)=',E0, &
-        ' |dE(GA-GB)|=',abs(Etmp-E0),' max|g_analytic|=',gnorm,' penalty=',Glob_TotalOverlapPenalty
-    endif
-
-    if (nofd) then
-      !analytic gradient only (fast) -- for the direct GPU-vs-CPU analytic comparison
-      if (Glob_ProcID==0) then
-        do idx=1,nv
-          write(*,'(1x,a,i4,a,es22.14)') 'GRADANA i=',idx,' ana=',g_analytic(idx)
-        enddo
-      endif
-    else
-      !h-list spans the truncation side (1e-2, 3e-3) through the roundoff side (1e-6)
-      !so the FD error traces a truncation->roundoff U-curve.
-      hlist(1)=1.0e-2_wp; hlist(2)=3.0e-3_wp; hlist(3)=1.0e-3_wp
-      hlist(4)=1.0e-4_wp; hlist(5)=1.0e-5_wp; hlist(6)=1.0e-6_wp
-      do ih=1,6
-        maxrel=ZERO; maxabs=ZERO
-        do idx=1,nv
-          f=(idx-1)/npt+1; p=mod(idx-1,npt)+1
-          dx=hlist(ih)*max(abs(xc(idx)),ONE)
-          Glob_NonlinParam(p,Glob_nfru+f)=xc(idx)+dx
-          if (methI) then; Eplus =EnergyIA(1,cbs,.true.,ec); else; Eplus =EnergyGA(1,cbs,.true.,ec); endif
-          Glob_NonlinParam(p,Glob_nfru+f)=xc(idx)-dx
-          if (methI) then; Eminus=EnergyIA(1,cbs,.true.,ec); else; Eminus=EnergyGA(1,cbs,.true.,ec); endif
-          Glob_NonlinParam(p,Glob_nfru+f)=xc(idx)      !restore EXACT bit value
-          gfd=(Eplus-Eminus)/(2*dx)
-          rel=abs(g_analytic(idx)-gfd)/(ONE+abs(gfd))
-          if (rel>maxrel) maxrel=rel
-          if (abs(g_analytic(idx)-gfd)>maxabs) maxabs=abs(g_analytic(idx)-gfd)
-          if (Glob_ProcID==0) write(*,'(1x,a,es9.2,a,i4,a,es22.14,a,es22.14,a,es12.4)') &
-            'GRADCHK h=',hlist(ih),' i=',idx,' ana=',g_analytic(idx),' fd=',gfd,' rel=',rel
-        enddo
-        if (Glob_ProcID==0) write(*,'(1x,a,es9.2,a,es12.4,a,es12.4)') &
-          'GRADCHK_MAX h=',hlist(ih),' maxrel=',maxrel,' maxabs=',maxabs
-      enddo
-    endif
-
-    do f=1,nfo
-      do p=1,npt
-        Glob_NonlinParam(p,Glob_nfru+f)=x0((f-1)*npt+p)   !restore original
-      enddo
-    enddo
-    deallocate(x0,xc,g_analytic)
-    deallocate(Glob_WkGR)
-    deallocate(Glob_LastEigvector,Glob_WorkForGSEPIIS,Glob_invD)
-    deallocate(Glob_IWorkForDSYGVX,Glob_WorkForDSYGVX)
-    deallocate(Glob_DlBuff2,Glob_DlBuff1,Glob_DkBuff2,Glob_DkBuff1)
-    deallocate(Glob_SklBuff2,Glob_SklBuff1,Glob_HklBuff2,Glob_HklBuff1)
-    deallocate(Glob_c,Glob_D,Glob_diagS,Glob_diagH,Glob_S,Glob_H)
-    if (Glob_ProcID==0) write(*,*) 'GRADCHECK done'
-
-  end subroutine GradCheck
 
   subroutine OptCycleI(K, FuncBegin, FuncEnd, NumOfFuncToOpt, NumOfFuncToShift, &
                        NumCycles, MaxEnergyEval, OverlapThreshold, LinCoeffThreshold, SavingFreq)
@@ -8863,16 +8656,6 @@ contains
     real(wp)    beta,mu
     logical        AreCorrFuncNeeded,ArePartDensNeeded,AreMCorrFuncNeeded,AreMPartDensNeeded
     logical        IsFile1OK,IsFile3OK
-!Benchmark mode (ECG_BENCH=1): time the fixed-basis ME build + eigensolve
-!and return before the expensive expectation-value suite. Campaign instrument.
-    logical        benchmark
-    character(8)   benchenv
-!Verify mode (ECG_VERIFY=1, method G): dump the full symmetric H, S, the
-!eigenvector and lambda before returning, so a correctness anchor (residual
-!||Hx-lambda*Sx||, x^T S x, CPU-vs-GPU matrix diff) can be computed offline.
-    logical        verify
-    character(8)   verenv
-    real(wp),allocatable :: Hchk(:,:),Schk(:,:)
 
 !Local variables used to store temporary data
 !associated with certain expectation values
@@ -9196,29 +8979,12 @@ contains
     allocate(del2kl(n,n,n,n))
     allocate(rmrmkl(n,n,n,n))
 
-!Read ECG_BENCH once (rank 0) and share it. In benchmark mode the routine
-!stops right after the eigensolve (below), skipping property evaluation.
-    benchmark=.false.
-    if (Glob_ProcID==0) then
-      call get_environment_variable('ECG_BENCH', benchenv, status=OpenFileErr)
-      benchmark=(OpenFileErr==0).and.(benchenv(1:1)=='1')
-    endif
-    call MPI_BCAST(benchmark,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-    verify=.false.
-    if (Glob_ProcID==0) then
-      call get_environment_variable('ECG_VERIFY', verenv, status=OpenFileErr)
-      verify=(OpenFileErr==0).and.(verenv(1:1)=='1')
-    endif
-    call MPI_BCAST(verify,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
-
     call ReadSwapFileAndDistributeData(IsSwapFileOK)
 
     if (.not.IsSwapFileOK) then
       if (Glob_ProcID==0) write(*,'(1x,a52)',advance='no') &
         'Computing Hamiltonian and overlap matrix elements...'
-      call system_clock(tprof0)
       call ComputeMatElem(1,cbs)
-      call ProfAccum(tprof0,.false.)
       if (Glob_ProcID==0) write(*,*) 'done'
     endif
 
@@ -9236,18 +9002,8 @@ contains
         Glob_S(i,i)=ONE
       enddo
 
-      !Verify: snapshot the full symmetric H, S now, before the (destructive)
-      !CPU DSYGVX solve. cuSOLVER leaves the host copies intact, but snapshot
-      !unconditionally so the offline residual uses identical matrices either way.
-      if (verify) then
-        allocate(Hchk(cbs,cbs),Schk(cbs,cbs))
-        Hchk(1:cbs,1:cbs)=Glob_H(1:cbs,1:cbs)
-        Schk(1:cbs,1:cbs)=Glob_S(1:cbs,1:cbs)
-      endif
-
       if (Glob_ProcID==0) then
         write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
-        call system_clock(tprof0)
 #ifdef USE_CUDA
         if (gpu_eig_active()) then
           !cuSOLVER path: returns the WhichEigenvalue-th eigenpair directly.
@@ -9266,7 +9022,6 @@ contains
 #ifdef USE_CUDA
         endif
 #endif
-        call ProfAccum(tprof0,.true.)
       endif
       call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       if (ErrorCode/=0) then
@@ -9281,27 +9036,6 @@ contains
       call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       call MPI_BCAST(Glob_c,cbs,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       Glob_CurrEnergy=Evalue
-
-      !Verify: dump the pre-solve H, S and the eigenpair (x, lambda) to an
-      !unformatted file, then return. The residual ||Hx-lambda*Sx||, x^T S x, and
-      !the CPU-vs-GPU H/S diff are computed offline (see utilities/verify_dump.py).
-      if (verify) then
-        if (Glob_ProcID==0) then
-          open(97,file='verify_dump.bin',form='unformatted',status='replace')
-          write(97) cbs
-          write(97) Evalue
-          write(97) Hchk(1:cbs,1:cbs)
-          write(97) Schk(1:cbs,1:cbs)
-          write(97) Glob_c(1:cbs)
-          close(97)
-          write(*,'(1x,a,i7,a,f18.10,a)') 'VERIFY K=',cbs,' E=',Evalue, &
-            '  -> verify_dump.bin (cbs, lambda, H, S, x)'
-        endif
-        deallocate(Hchk,Schk)
-        if (allocated(Glob_H)) deallocate(Glob_H)
-        if (allocated(Glob_S)) deallocate(Glob_S)
-        return
-      endif
 
       !print the lower part of the spectrum
       if (Glob_ProcID==0) then
@@ -9323,12 +9057,10 @@ contains
         NumOfIterations=1
         ErrorCode=0
       else
-        call system_clock(tprof0)
         call GSEPIIS(1,cbs,Glob_H,Glob_HSLeadDim,Glob_invD,Glob_S,Glob_HSLeadDim, &
                      Glob_ApproxEnergy,Glob_LastEigvector,Glob_WorkForGSEPIIS,Glob_EigvalTol, &
                      Evalue,Glob_c,Glob_LastEigvalTol,Glob_MaxIterForGSEPIIS, &
                      0,NumOfIterations,ErrorCode)
-        call ProfAccum(tprof0,.true.)
         !GSEPIIS(k,n,M,nM,invD,B,nB, &
         !        apprlambda,v,w,Tol, &
         !        lambda,x,RelAcc,MaxIter,SpecifNorm,NumIter,ErrorCode)
@@ -9353,22 +9085,6 @@ contains
         write(*,*) 'done'
         write(*,*) 'Energy: ',Evalue
       endif
-    endif
-
-!Benchmark mode: report the fixed-basis energy and the ME/eigensolve wall
-!times, then return before the (expensive, GPU-irrelevant) property suite.
-!NOTE: this returns without deallocating; benchmark decks are single-step.
-    if (benchmark) then
-      if (Glob_ProcID==0) write(*,'(1x,a,i7,a,f18.10,a,f12.4,a,f12.4,a,e12.4,a,e12.4)') &
-        'BENCH K=',cbs,' E=',Glob_CurrEnergy, &
-        ' cumME=',Glob_TimeME,'s cumEIG=',Glob_TimeEIG, &
-        's lastME=',Glob_LastME,'s lastEIG=',Glob_LastEIG
-      !Free the two K*K giants (the only large allocations -- ~3.6 GB at K=15000).
-      !The remaining setup scratch is O(K) or n^4 (tens of KB) and is reclaimed at
-      !process exit, since benchmark decks are single-step by construction.
-      if (allocated(Glob_H)) deallocate(Glob_H)
-      if (allocated(Glob_S)) deallocate(Glob_S)
-      return
     endif
 
     if (Glob_ProcID==0) write(*,'(1x,a31)',advance='no') 'Computing expectation values...'
