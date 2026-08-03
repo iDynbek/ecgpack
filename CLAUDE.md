@@ -72,3 +72,102 @@ Within each `src/`, the module compile/dependency order (see the Makefile) is:
 - **`main.f90`** — initializes MPI, seeds RNGs, then drives a sequence of **BBOP** (Basis Building and Optimization Program) steps read from the input file. Each step is a `case` in the main `select`: `BASIS_ENL`, `OPT_CYCLE`, `FULL_OPT1`, `ELIM_LCFN`, `ELIM_LND1`, `SEPR_LND1`, `SEPR_FLCF`, `EXPC_VALS`, `DENSITIES`, `MOMT_DENS`, `SAVE_FILE`, `SAVE_HSWF`. Adding a calculation mode means adding a case here plus the corresponding routine in `workproc.f90`.
 
 When editing matrix-element or matform code, changes usually must be mirrored across the analogous `RG_*` directories, since the codes are intentionally near-duplicates specialized to different symmetries.
+
+## GPU backend (RG_0S only)
+
+**Read `kb/README.md` before doing any GPU work.** It is the index; it names the current
+measurements, the archived-and-wrong ones, and the open questions.
+
+- **`RG_0S/src/gpu_backend.f90`** — CUDA Fortran backend. Exists in **RG_0S only**; `RG_1P`,
+  `RG_2P`, `RG_2D` have no GPU path. Two kernels (energy, energy+gradient), one block per
+  (k,l) basis pair, 128 threads striding over permutation terms. Both call the *same*
+  `MatrixElementsHS_RG_0S` in `matelem.f90`, which carries `attributes(host,device)` and takes
+  its physics constants as arguments (device code cannot read `Glob_*` module variables) —
+  so **changing that routine's signature breaks the GPU build**.
+- Runtime is opt-in and off by default: `ECG_GPU=1` (matrix elements on GPU),
+  `ECG_GPU_EIG=1` (cuSOLVER method-G eigensolve; implies `ECG_GPU`), `ECG_GPU_BATCH` (pairs
+  per kernel launch, default 16384), `ECG_DETERM=1` (ordered reduction, reproducible),
+  `ECG_BENCH=1` (print timings and stop), `ECG_VERIFY=1` (dump H/S/eigenvector),
+  `ECG_SEED`, `ECG_GRADCHECK` + `ECG_GC_*`.
+- **`build.bash` cannot build a CUDA binary** — it has no `USE_CUDA` knob. GPU builds must call
+  the Makefile directly:
+  ```bash
+  cd RG_0S && make release COMPILER=nvfortran MACHINE=shabyt USE_CUDA=yes PREC=8 \
+       LINALG=netlib CUF_MAXREG=128 EXEFILE=ecg
+  ```
+  `USE_CUDA=yes` requires `COMPILER=nvfortran` and `PREC=8`. `CUDA_ARCH` comes from `MACHINE`
+  (shabyt→sm_70, aurora→sm_86).
+- The number of particles is compiled in. `make` alone does **not** set it — `sed` it in
+  `src/wp_def_8.f90` (`Glob_AllowedNumOfParticles`) or use `build.bash` for CPU builds.
+
+## Benchmarking discipline
+
+Hard-won; ignoring these has produced wrong conclusions in this project before.
+
+1. **Compare against the production build, not a convenient one.** Production runs
+   **gfortran + OpenBLAS** (`foss-*` toolchain). Benchmarking the GPU against an nvfortran
+   `-Kieee` CPU build overstates it by **~1.75×** — this invalidated six kb documents.
+2. **`OMP_NUM_THREADS=1` always.** Multi-threaded OpenBLAS is dramatically *slower* at these
+   matrix sizes; parallelise with MPI instead.
+3. **Use medians, never means.** The 64-rank CPU arm varies up to 20% within a job and ~28%
+   between jobs; the GPU arm is stable to 4 significant figures. A 2-rep mean has already
+   produced a 10%-wrong headline.
+4. **Time a fixed basis, not a growth run.** `EXPC_VALS` on a stored deck does identical work
+   every time; growth trajectories diverge between backends (~1e-9 differences amplify through
+   accept/reject steps) and are not comparable run-to-run.
+5. **Record the energy in every timing cell.** It is a free correctness gate and has caught
+   real problems.
+6. **Benchmark the workload you actually run.** Production decks alternate `BASIS_ENL` with
+   `OPT_CYCLE`, and the OPT_CYCLE (derivative-ME) half is ~170× the work. Almost all historical
+   benchmarking used `BASIS_ENL`-only decks.
+7. **A cell with zero work is a FAIL, not an OK.** Gate on `me_calls > 0`, and check that every
+   arm of a comparison did the *same* number of calls. Harnesses have twice marked
+   `0.000 s over 0 calls` cells `OK` by testing for an empty field instead of a zero one.
+
+## Deck anatomy (the OPT_CYCLE trap)
+
+An `inout.txt` has four `====`-delimited sections: **header**, a single **state line**, the
+**BBOP block**, the **K-line history**, then the **basis**. The state line and the last history
+line each carry a `CyclesDone` field and **they routinely disagree.**
+
+`main.f90:132-153` guards OPT_CYCLE on the *last history* entry:
+`Glob_History(Glob_CurrBasisSize)%CyclesDone < NumCycles`. A harness that reads `CyclesDone`
+from the *state* line (section 1) can compute a `NumCycles` that fails the guard — and OPT_CYCLE
+is then **silently skipped**: the run completes cleanly, exit 0, zero ME calls. Always take it
+from section 3:
+
+```bash
+c0=$(awk '/^ *=+ *$/{s++;next} s==3{c=$3} END{print c+0}' "$deck"); nc=$(( c0 + 1 ))
+```
+
+This cost three misdiagnoses (blamed the cycle guard, then frozen functions, then "malformed
+decks") before anyone read the deck layout and the guard side by side. See
+`kb/gradient_path.md` §5.
+
+## Cluster workflow (shabyt)
+
+- Two accounts: `shabyt` (your own) and `shabyt-sb` (Bubin's, holds `~/aidyn/`). **Campaigns
+  have been run and left there without ever being copied into `data/`** — always sync results
+  back, or they are invisible to everyone including a fresh checkout. See
+  `kb/cluster_due_diligence.md`.
+- **Never run two build jobs in the same source tree.** Each `sed`s `wp_def_8.f90` and wipes
+  `release/`; concurrent jobs corrupt each other and produce spurious build failures.
+- **Profiling: NVHPC ships no profiler on shabyt.** Its `profilers/` directory is empty, so
+  `which ncu` finds a stub that dies with `ncu-Error-Version 13_0 ... Nsight_Compute is not
+  available in this installation`. The working profilers live in the **standalone `CUDA`
+  modules**. Load NVHPC for the runtime libraries but call `ncu` by absolute path, matching the
+  CUDA version NVHPC was built against:
+  ```bash
+  module load NVHPC/25.9-CUDA-12.9.1
+  NCU=/shared/opt/easybuild/software/CUDA/12.9.1/nsight-compute-2025.2.1/ncu
+  ```
+  (also present: `CUDA/12.8.0` → `nsight-compute-2025.1.0`, `CUDA/12.6.0` → `2024.3.0`.)
+  The same applies to `nsys`.
+- **Do not wrap `ncu` in `mpirun`** — it fails with `hwloc_set_cpubind`. Run the binary
+  directly (OpenMPI singleton init). Shorten profiled launches with `ECG_GPU_BATCH`, or an
+  Oxygen-scale kernel takes far too long to replay.
+- GPU performance counters may need elevated permissions (`ERR_NVGPUCTRPERM`). If shabyt
+  refuses, use the aurora workstation, where counter access can be enabled locally.
+- Do not `module purge` and swap MPI mid-job; it hangs at `MPI_Init`. Set the environment once
+  at job start, or use separate jobs.
+- `kb/` and `data/` are excluded via `.git/info/exclude` — on disk, not in the shared repo.

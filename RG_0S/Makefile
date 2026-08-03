@@ -66,15 +66,16 @@ CUDA_ARCH = $(or $(CUDA_ARCH_$(MACHINE)),sm_86)
 
 # CUF_GPU is the nvfortran -gpu=ccXX arch, derived from CUDA_ARCH (sm_70 -> cc70).
 CUF_GPU=$(subst sm_,cc,$(CUDA_ARCH))
-# CUF_MAXREG: cap registers/thread for the GPU device code. nvfortran otherwise
-# hoards up to 254 regs for the kernels + the shared MatrixElements they call,
-# which starves occupancy (~12%). Capping to 128 lifts occupancy and speeds the
-# kernels up (measured on V100, Carbon energy kernel, total time relative to the
-# 254-reg default: 128regs=-10%, 96regs=-13%; 72regs=-8% as spilling takes over). This is a
-# global -gpu cap (not per-kernel launch_bounds) BECAUSE MatrixElements is a
-# separate non-inlined device function: launch_bounds only limits the kernel
-# entry, so its 254-reg callee would fail nvlink; the flag caps both uniformly.
-CUF_MAXREG=128
+# CUF_MAXREG: cap registers/thread for the GPU device code. This is a global
+# -gpu cap (not per-kernel launch_bounds) BECAUSE MatrixElements is a separate
+# non-inlined device function: launch_bounds only limits the kernel entry, so a
+# 254-reg callee would fail nvlink; the flag caps both uniformly.
+# History: with the original runtime-bound loops the kernel was occupancy-bound
+# and 128 was best (V100, Carbon energy kernel: 128regs=-10%, 96regs=-13%,
+# 72regs=-8% vs the 254-reg default). Since the constant-trip-count rewrite of
+# MatrixElementsHS the kernel is bandwidth-bound and MORE registers win despite
+# lower occupancy: 255 beats 128 by 1.21x (C) to 1.35x (O) on V100.
+CUF_MAXREG=255
 
 # Set the default name for the generated executable file
 EXEFILE=ecg
