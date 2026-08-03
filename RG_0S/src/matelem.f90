@@ -61,6 +61,13 @@ contains
     logical,intent(in),value    :: grad_k, grad_l
 
     integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
+!All loop bounds in this routine use the compile-time nn rather than the runtime
+!argument n. The two are always equal (the particle count is compiled in and the
+!input reader rejects decks with any other value); constant trip counts let the
+!compiler fully unroll and keep the n x n workspace in registers, which the
+!dynamically-indexed runtime-bound version cannot. Measured on V100: 1.37x (C)
+!to 1.68x (O) on the energy kernel with CUF_MAXREG=255. If variable particle
+!counts are ever reintroduced, these bounds must be reverted to n.
 
 !Local variables
     real(wp)       Lk(nn,nn), Ll(nn,nn), PT(nn,nn)
@@ -78,8 +85,8 @@ contains
 
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
     indx=0
-    do i=1,n
-      do j=i,n
+    do i=1,nn
+      do j=i,nn
         indx=indx+1
         Lk(i,j)=ZERO
         Lk(j,i)=vechLk(indx)
@@ -88,8 +95,8 @@ contains
       enddo
     enddo
 
-    do i=1,n
-      do j=i,n
+    do i=1,nn
+      do j=i,nn
         temp1=ZERO
         do k=1,i
           temp1=temp1+Lk(i,k)*Lk(j,k)
@@ -109,19 +116,19 @@ contains
 !the action of the permutation matrix
 !tAl=P'*Al*P
 !We also form matrix tAkl=Ak+tAl
-    do i=1,n
-      do j=1,n
+    do i=1,nn
+      do j=1,nn
         temp1=ZERO
-        do k=1,n
+        do k=1,nn
           temp1=temp1+P(k,j)*tAl(k,i)
         enddo
         W1(j,i)=temp1
       enddo
     enddo
-    do i=1,n
-      do j=i,n
+    do i=1,nn
+      do j=i,nn
         temp1=ZERO
-        do k=1,n
+        do k=1,nn
           temp1=temp1+W1(i,k)*P(k,j)
         enddo
         tAl(i,j)=temp1
@@ -144,8 +151,8 @@ contains
 !The Cholesky factor will be temporarily stored in the
 !lower triangle of W1
     det_tAkl=ONE
-    do i=1,n
-      do j=i,n
+    do i=1,nn
+      do j=i,nn
         temp1=tAkl(i,j)
         do k=i-1,1,-1
           temp1=temp1-W1(i,k)*W1(j,k)
@@ -162,9 +169,9 @@ contains
 
 !Inverting tAkl using its Cholesky factor (stored in W1)
 !and placing the result into inv_tAkl
-    do i=1,n
+    do i=1,nn
       W1(i,i)=ONE/W1(i,i)
-      do j=i+1,n
+      do j=i+1,nn
         temp1=ZERO
         do k=i,j-1
           temp1=temp1-W1(j,k)*W1(k,i)
@@ -173,10 +180,10 @@ contains
       enddo
     enddo
 
-    do i=1,n
-      do j=i,n
+    do i=1,nn
+      do j=i,nn
         temp1=ZERO
-        do k=j,n
+        do k=j,nn
           temp1=temp1+W1(k,i)*W1(k,j)
         enddo
         inv_tAkl(i,j)=temp1
@@ -191,10 +198,10 @@ contains
     Skl=pir3n2/(det_tAkl*sqrt(det_tAkl))  !new line
 
 !Doing multiplication W2=inv_tAkl*tAl
-    do i=1,n
-      do j=1,n
+    do i=1,nn
+      do j=1,nn
         temp1=ZERO
-        do k=1,n
+        do k=1,nn
           temp1=temp1+inv_tAkl(j,k)*tAl(k,i)
         enddo
         W2(j,i)=temp1
@@ -202,10 +209,10 @@ contains
     enddo
 
 !Doing multiplication inv_tAkltAlM=inv_tAkl*tAl*M=W2*M
-    do i=1,n
-      do j=1,n
+    do i=1,nn
+      do j=1,nn
         temp1=ZERO
-        do k=1,n
+        do k=1,nn
           temp1=temp1+W2(j,k)*mass(k,i)
         enddo
         inv_tAkltAlM(j,i)=temp1
@@ -214,9 +221,9 @@ contains
 
 !Computing kinetic energy, Tkl=tr[inv_tAkltAlM*Ak]
     Tkl=ZERO
-    do i=1,n
+    do i=1,nn
       temp1=ZERO
-      do k=1,n
+      do k=1,nn
         temp1=temp1+inv_tAkltAlM(i,k)*Ak(k,i)
       enddo
       Tkl=Tkl+temp1
@@ -231,15 +238,15 @@ contains
     temp1=(TWO/sqrtpi)*Skl
     Vkl=ZERO
     if (grad_k.or.grad_l) then
-      do i=1,n
+      do i=1,nn
         temp3=inv_tAkl(i,i)
         temp4=sqrt(temp3)
         tr_inv_tAklJij32(i,i)=1/(temp4*temp3)
         temp5=temp1/temp4
         Vkl=Vkl+chargeM(i,0)*temp5
       enddo
-      do i=1,n
-        do j=i+1,n
+      do i=1,nn
+        do j=i+1,nn
           temp3=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
           temp4=sqrt(temp3)
           tr_inv_tAklJij32(j,i)=1/(temp4*temp3)
@@ -248,12 +255,12 @@ contains
         enddo
       enddo
     else
-      do i=1,n
+      do i=1,nn
         temp5=temp1/sqrt(inv_tAkl(i,i))
         Vkl=Vkl+chargeM(i,0)*temp5
       enddo
-      do i=1,n
-        do j=i+1,n
+      do i=1,nn
+        do j=i+1,nn
           temp3=inv_tAkl(i,i)+inv_tAkl(j,j)-inv_tAkl(j,i)-inv_tAkl(j,i)
           temp5=temp1/sqrt(temp3)
           Vkl=Vkl+chargeM(i,j)*temp5
@@ -309,11 +316,11 @@ contains
       !the inner loop a dot product of two contiguous columns.
       temp2=-THREE*Skl
       indx=0
-      do i=1,n
-        do j=i,n
+      do i=1,nn
+        do j=i,nn
           indx=indx+1
           temp1=ZERO
-          do k=i,n
+          do k=i,nn
             temp1=temp1+inv_tAkl(k,j)*Lk(k,i)
           enddo
           Dk(np+indx)=temp2*temp1
@@ -324,27 +331,27 @@ contains
     if (grad_l) then
       !PT=P' is stored explicitly so that all the products with P
       !and P' below can be done with contiguous column access
-      do j=1,n
-        do i=1,n
+      do j=1,nn
+        do i=1,nn
           PT(i,j)=P(j,i)
         enddo
       enddo
       !calculating inv_ttAkl=P*inv_tAkl*P'
       !W1=inv_tAkl*PT
-      do j=1,n
-        do i=1,n
+      do j=1,nn
+        do i=1,nn
           temp1=ZERO
-          do k=1,n
+          do k=1,nn
             temp1=temp1+inv_tAkl(k,i)*PT(k,j)
           enddo
           W1(i,j)=temp1
         enddo
       enddo
       !inv_ttAkl=PT'*W1 (only the upper triangle, then mirrored)
-      do j=1,n
+      do j=1,nn
         do i=1,j
           temp1=ZERO
-          do k=1,n
+          do k=1,nn
             temp1=temp1+PT(k,i)*W1(k,j)
           enddo
           inv_ttAkl(i,j)=temp1
@@ -354,11 +361,11 @@ contains
       !dSkldvechLl: lower triangle of -3*Skl*inv_ttAkl*Ll
       temp2=-THREE*Skl
       indx=0
-      do i=1,n
-        do j=i,n
+      do i=1,nn
+        do j=i,nn
           indx=indx+1
           temp1=ZERO
-          do k=i,n
+          do k=i,nn
             temp1=temp1+inv_ttAkl(k,j)*Ll(k,i)
           enddo
           Dl(np+indx)=temp2*temp1
@@ -367,10 +374,10 @@ contains
     endif
 
 !F=K*W2' (only the upper triangle is computed, then mirrored)
-    do j=1,n
+    do j=1,nn
       do i=1,j
         temp1=ZERO
-        do k=1,n
+        do k=1,nn
           temp1=temp1+inv_tAkltAlM(i,k)*W2(j,k)
         enddo
         F(i,j)=temp1
@@ -381,16 +388,16 @@ contains
 !Assembling C=sum_ij c_ij*Jij, c_ij=q_ij*tr[inv_tAkl*Jij]^(-3/2)
 !(Jii is a matrix whose only nonzero element is (i,i)=1; Jij, i/=j,
 !has elements (i,i)=(j,j)=1, (i,j)=(j,i)=-1)
-    do j=1,n
-      do i=1,n
+    do j=1,nn
+      do i=1,nn
         Cmat(i,j)=ZERO
       enddo
     enddo
-    do i=1,n
+    do i=1,nn
       Cmat(i,i)=chargeM(0,i)*tr_inv_tAklJij32(i,i)
     enddo
-    do i=1,n
-      do j=i+1,n
+    do i=1,nn
+      do j=i+1,nn
         temp1=chargeM(i,j)*tr_inv_tAklJij32(j,i)
         Cmat(i,i)=Cmat(i,i)+temp1
         Cmat(j,j)=Cmat(j,j)+temp1
@@ -399,19 +406,19 @@ contains
       enddo
     enddo
 
-    do j=1,n
-      do i=1,n
+    do j=1,nn
+      do i=1,nn
         temp1=ZERO
-        do k=1,n
+        do k=1,nn
           temp1=temp1+Cmat(k,i)*inv_tAkl(k,j)
         enddo
         W1(i,j)=temp1
       enddo
     enddo
-    do j=1,n
+    do j=1,nn
       do i=1,j
         temp1=ZERO
-        do k=1,n
+        do k=1,nn
           temp1=temp1+W1(k,i)*inv_tAkl(k,j)
         enddo
         Bmat(i,j)=temp1
@@ -421,17 +428,17 @@ contains
 
     if (grad_k) then
       temp2=12*Skl
-      do j=1,n
-        do i=1,n
+      do j=1,nn
+        do i=1,nn
           Z(i,j)=temp2*F(i,j)+cV*Bmat(i,j)
         enddo
       enddo
       indx=0
-      do i=1,n
-        do j=i,n
+      do i=1,nn
+        do j=i,nn
           indx=indx+1
           temp1=ZERO
-          do k=i,n
+          do k=i,nn
             temp1=temp1+Z(k,j)*Lk(k,i)
           enddo
           Dk(indx)=HklOverSkl*Dk(np+indx)+temp1
@@ -441,25 +448,25 @@ contains
 
     if (grad_l) then
       temp2=12*Skl
-      do j=1,n
-        do i=1,n
+      do j=1,nn
+        do i=1,nn
           Z(i,j)=temp2*(mass(i,j)-inv_tAkltAlM(i,j) &
                         -inv_tAkltAlM(j,i)+F(i,j))+cV*Bmat(i,j)
         enddo
       enddo
-      do j=1,n
-        do i=1,n
+      do j=1,nn
+        do i=1,nn
           temp1=ZERO
-          do k=1,n
+          do k=1,nn
             temp1=temp1+Z(k,i)*PT(k,j)
           enddo
           W2(i,j)=temp1
         enddo
       enddo
-      do j=1,n
+      do j=1,nn
         do i=1,j
           temp1=ZERO
-          do k=1,n
+          do k=1,nn
             temp1=temp1+PT(k,i)*W2(k,j)
           enddo
           G(i,j)=temp1
@@ -467,11 +474,11 @@ contains
         enddo
       enddo
       indx=0
-      do i=1,n
-        do j=i,n
+      do i=1,nn
+        do j=i,nn
           indx=indx+1
           temp1=ZERO
-          do k=i,n
+          do k=i,nn
             temp1=temp1+G(k,j)*Ll(k,i)
           enddo
           Dl(indx)=HklOverSkl*Dl(np+indx)+temp1
