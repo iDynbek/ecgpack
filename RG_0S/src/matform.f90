@@ -130,10 +130,11 @@ contains
 !Local variables :
     integer     k,l,i,kk,ll,ii,j,q
     integer     kstart,lstart,kstop,lstop,n,np,np1,npt,nb
-    real(wp) Paramk(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1)/2)
-    real(wp) Paraml(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1)/2)
     real(wp) Skl,Hkl
     real(wp) Ssum,Hsum
+!Hoisted per-function inputs of MatrixElementsHS_RG_0S (L, A=L*L', mass*A),
+!precomputed once per sweep instead of rebuilt in every (pair x term) call
+    real(wp),allocatable :: Lh(:,:,:),Ah(:,:,:),MAh(:,:,:)
 !These arrays are not actually used but needed for proper calling
 !of subroutine MatrixElementsHS_RG_0S. Thus, one can set some small size
 !for them
@@ -152,24 +153,26 @@ contains
     endif
 #endif
 
+    allocate(Lh(n,n,Nmax),Ah(n,n,Nmax),MAh(n,n,Nmax))
+    call Precompute_LAMA(n,np,Nmax,Glob_NonlinParam(1:np,1:Nmax),Glob_MassMatrix(1:n,1:n),Lh,Ah,MAh)
+
     Glob_HklBuff1(1:nb)=ZERO
     Glob_SklBuff1(1:nb)=ZERO
     i=0
 
     do k=Nmin,Nmax
-      Paramk(1:npt)=Glob_NonlinParam(1:npt,k)
       do l=k,1,-1
         i=i+1
         if (i==1) then
           kstart=k
           lstart=l
         endif
-        Paraml(1:npt)=Glob_NonlinParam(1:npt,l)
         Hsum=ZERO; Ssum=ZERO
         q=(i-1)*Glob_NumYHYTerms-1
         do j=1,Glob_NumYHYTerms
           if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-            call MatrixElementsHS_RG_0S(n,np,Paramk,Paraml,Glob_YHYMatr(1,1,j), &
+            call MatrixElementsHS_RG_0S(n,np,Lh(1,1,k),Lh(1,1,l),Ah(1,1,k),Ah(1,1,l), &
+                                MAh(1,1,k),Glob_YHYMatr(1,1,j), &
                                 Glob_MassMatrix,Glob_ScaledPseudoChargeMatrix, &
                                 Glob_SqrtPi,Glob_PiRaised3n2,Hkl,Skl,Dk,Dl,.false.,.false.)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
@@ -252,10 +255,10 @@ contains
 !Local variables :
     integer     k,l,i,kk,ll,ii,j,q
     integer     kstart,lstart,kstop,lstop,n,np,npt,npt2,nb
-    real(wp) Paramk(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1)/2)
-    real(wp) Paraml(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1)/2)
     real(wp) Skl,Hkl
     real(wp) Ssum,Hsum
+!Hoisted per-function inputs of MatrixElementsHS_RG_0S (see ComputeMatElem)
+    real(wp),allocatable :: Lh(:,:,:),Ah(:,:,:),MAh(:,:,:)
     real(wp) Dk(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
     real(wp) Dl(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
     real(wp) Dksum(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
@@ -275,6 +278,9 @@ contains
     endif
 #endif
 
+    allocate(Lh(n,n,Nmax),Ah(n,n,Nmax),MAh(n,n,Nmax))
+    call Precompute_LAMA(n,np,Nmax,Glob_NonlinParam(1:np,1:Nmax),Glob_MassMatrix(1:n,1:n),Lh,Ah,MAh)
+
     Glob_HklBuff1(1:nb)=ZERO
     Glob_SklBuff1(1:nb)=ZERO
     Glob_DkBuff1(1:npt2,1:nb)=ZERO
@@ -282,14 +288,12 @@ contains
     i=0
 
     do k=Nmin,Nmax
-      Paramk(1:npt)=Glob_NonlinParam(1:npt,k)
       do l=k,1,-1
         i=i+1
         if (i==1) then
           kstart=k
           lstart=l
         endif
-        Paraml(1:npt)=Glob_NonlinParam(1:npt,l)
         Hsum=ZERO
         Ssum=ZERO
         Dksum(1:npt2)=ZERO
@@ -302,7 +306,8 @@ contains
         q=(i-1)*Glob_NumYHYTerms-1
         do j=1,Glob_NumYHYTerms
           if (mod(q+j,Glob_NumOfProcs)==Glob_ProcID) then
-            call MatrixElementsHS_RG_0S(n,np,Paramk,Paraml,Glob_YHYMatr(1,1,j), &
+            call MatrixElementsHS_RG_0S(n,np,Lh(1,1,k),Lh(1,1,l),Ah(1,1,k),Ah(1,1,l), &
+                                MAh(1,1,k),Glob_YHYMatr(1,1,j), &
                                 Glob_MassMatrix,Glob_ScaledPseudoChargeMatrix, &
                                 Glob_SqrtPi,Glob_PiRaised3n2,Hkl,Skl,Dk,Dl,.true.,grad_l)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl

@@ -16,7 +16,7 @@ module gpu_backend
 !      Physics constants are passed as kernel arguments -- device code cannot read
 !      host module globals.
   use globvars        !Glob_* state, MPI symbols, wp / MPI_WP (via wp_def)
-  use matelem,   only: MatrixElementsHS_RG_0S
+  use matelem,   only: MatrixElementsHS_RG_0S, Precompute_LAMA
   use cudafor
   use cublas
   use cusolverDn
@@ -207,12 +207,16 @@ contains
     integer               :: n,np,k,l,npairs,ipair,nf,ip,batch
     integer, allocatable  :: k_list(:),l_list(:)
     real(wp),allocatable  :: Hout(:),Sout(:),Hout_r(:),Sout_r(:)
+    real(wp),allocatable  :: Lh(:,:,:),Ah(:,:,:),MAh(:,:,:)  !hoisted per-function inputs
     n=Glob_n; np=Glob_np
     npairs = Nmax*(Nmax+1)/2 - (Nmin-1)*Nmin/2
     batch  = min(npairs, batch_cap)
     if ((Glob_ProcID==0).and.(npairs>batch)) &
       write(*,'(1x,a,i0,a,i0,a,i0,a)') 'GPU ME (energy): ',npairs, &
         ' pairs in ',(npairs+batch-1)/batch,' chunks of ',batch,' max'
+    allocate(Lh(n,n,Nmax),Ah(n,n,Nmax),MAh(n,n,Nmax))
+    call Precompute_LAMA(n,np,Nmax,Glob_NonlinParam(1:np,1:Nmax), &
+                         Glob_MassMatrix(1:n,1:n),Lh,Ah,MAh)
     allocate(k_list(batch),l_list(batch),Hout(batch),Sout(batch),Hout_r(batch),Sout_r(batch))
     ipair=0; nf=0
     do k=Nmin,Nmax
@@ -221,7 +225,7 @@ contains
         k_list(nf)=k; l_list(nf)=l
         if ((nf==batch).or.(ipair==npairs)) then
           call cuf_compute_matelem_batch( &
-              Glob_NonlinParam(1:np,1:Nmax), Nmax, k_list, l_list, nf, &
+              Lh, Ah, MAh, Nmax, k_list, l_list, nf, &
               Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &
               n, np, Glob_NumOfProcs, Glob_ProcID, &
               Glob_PiRaised3n2, Glob_MassMatrix(1:n,1:n), &
@@ -237,6 +241,7 @@ contains
       enddo
     enddo
     deallocate(k_list,l_list,Hout,Sout,Hout_r,Sout_r)
+    deallocate(Lh,Ah,MAh)
   end subroutine gpu_build_HS
 
   subroutine gpu_build_HS_deriv(Nmin,Nmax,store)
@@ -249,12 +254,16 @@ contains
     integer, allocatable  :: k_list(:),l_list(:),grad_l(:)
     real(wp),allocatable  :: Hout(:),Sout(:),Hout_r(:),Sout_r(:)
     real(wp),allocatable  :: Dkout(:,:),Dlout(:,:),Dkout_r(:,:),Dlout_r(:,:)
+    real(wp),allocatable  :: Lh(:,:,:),Ah(:,:,:),MAh(:,:,:)  !hoisted per-function inputs
     n=Glob_n; np=Glob_np; npt2=np*2
     npairs = Nmax*(Nmax+1)/2 - (Nmin-1)*Nmin/2
     batch  = min(npairs, batch_cap)
     if ((Glob_ProcID==0).and.(npairs>batch)) &
       write(*,'(1x,a,i0,a,i0,a,i0,a)') 'GPU ME (grad): ',npairs, &
         ' pairs in ',(npairs+batch-1)/batch,' chunks of ',batch,' max'
+    allocate(Lh(n,n,Nmax),Ah(n,n,Nmax),MAh(n,n,Nmax))
+    call Precompute_LAMA(n,np,Nmax,Glob_NonlinParam(1:np,1:Nmax), &
+                         Glob_MassMatrix(1:n,1:n),Lh,Ah,MAh)
     allocate(k_list(batch),l_list(batch),grad_l(batch))
     allocate(Hout(batch),Sout(batch),Hout_r(batch),Sout_r(batch))
     allocate(Dkout(npt2,batch),Dlout(npt2,batch),Dkout_r(npt2,batch),Dlout_r(npt2,batch))
@@ -272,7 +281,7 @@ contains
           Dkout(1:npt2,1:nf)=ZERO
           Dlout(1:npt2,1:nf)=ZERO
           call cuf_compute_matelem_deriv_batch( &
-              Glob_NonlinParam(1:np,1:Nmax), Nmax, k_list, l_list, grad_l, nf, &
+              Lh, Ah, MAh, Nmax, k_list, l_list, grad_l, nf, &
               Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &
               n, np, Glob_NumOfProcs, Glob_ProcID, &
               Glob_PiRaised3n2, Glob_MassMatrix(1:n,1:n), &
@@ -294,6 +303,7 @@ contains
     deallocate(k_list,l_list,grad_l)
     deallocate(Hout,Sout,Hout_r,Sout_r)
     deallocate(Dkout,Dlout,Dkout_r,Dlout_r)
+    deallocate(Lh,Ah,MAh)
   end subroutine gpu_build_HS_deriv
 
   ! ==========================================================================
@@ -303,11 +313,11 @@ contains
 
   !Energy kernel: one block per (k,l) pair; threads STRIDE over the permutation
   !terms. Each thread calls the shared MatrixElements (grad=false) for its terms.
-  attributes(global) subroutine me_energy_kernel(NonlinParam, np, Kmax, &
+  attributes(global) subroutine me_energy_kernel(Lm, Am, MAm, np, Kmax, &
       k_list, l_list, YHYMatr, YHYCoeff, nterms, n, nprocs, procid, &
       mass, chargeM, sqrtpi, pir3n2, determ, Hout, Sout)
     integer, value   :: np, Kmax, nterms, n, nprocs, procid, determ
-    real(wp)         :: NonlinParam(np,Kmax)
+    real(wp)         :: Lm(n,n,Kmax), Am(n,n,Kmax), MAm(n,n,Kmax)
     integer          :: k_list(*), l_list(*)
     real(wp)         :: YHYMatr(*), YHYCoeff(*)
     real(wp)         :: mass(n,n), chargeM(0:n,0:n)
@@ -330,7 +340,8 @@ contains
       !so the result is reproducible run-to-run and matches the CPU sum order.
       do j = threadIdx%x, nterms, blockDim%x
         if (mod(qbase+j, nprocs) == procid) then
-          call MatrixElementsHS_RG_0S(n, np, NonlinParam(1,k0), NonlinParam(1,l0), &
+          call MatrixElementsHS_RG_0S(n, np, Lm(1,1,k0), Lm(1,1,l0), &
+                              Am(1,1,k0), Am(1,1,l0), MAm(1,1,k0), &
                               YHYMatr((j-1)*n*n+1), mass, chargeM, &
                               sqrtpi, pir3n2, &
                               Hkl, Skl, dDk, dDl, .false., .false.)
@@ -359,7 +370,8 @@ contains
       call syncthreads()
       do j = threadIdx%x, nterms, blockDim%x   !STRIDED: block size independent of nterms
         if (mod(qbase+j, nprocs) == procid) then
-          call MatrixElementsHS_RG_0S(n, np, NonlinParam(1,k0), NonlinParam(1,l0), &
+          call MatrixElementsHS_RG_0S(n, np, Lm(1,1,k0), Lm(1,1,l0), &
+                              Am(1,1,k0), Am(1,1,l0), MAm(1,1,k0), &
                               YHYMatr((j-1)*n*n+1), mass, chargeM, &
                               sqrtpi, pir3n2, &
                               Hkl, Skl, dDk, dDl, .false., .false.)
@@ -376,27 +388,30 @@ contains
   end subroutine me_energy_kernel
 
   !Host launcher for the energy build. Stages inputs to the device, launches, copies back.
-  subroutine cuf_compute_matelem_batch(NonlinParam, Kmax, k_list, l_list, npairs, &
+  subroutine cuf_compute_matelem_batch(Lh, Ah, MAh, Kmax, k_list, l_list, npairs, &
       YHYMatr, YHYCoeff, nterms, n, np, nprocs, procid, &
       pir3n2, mass, chargeM, Hout, Sout)
     integer,  intent(in) :: Kmax, npairs, nterms, n, np, nprocs, procid
-    real(wp), intent(in) :: NonlinParam(np,Kmax)
+    real(wp), intent(in) :: Lh(n,n,Kmax), Ah(n,n,Kmax), MAh(n,n,Kmax)
     integer,  intent(in) :: k_list(npairs), l_list(npairs)
     real(wp), intent(in) :: YHYMatr(n*n*nterms), YHYCoeff(nterms)
     real(wp), intent(in) :: pir3n2
     real(wp), intent(in) :: mass(n,n), chargeM(0:n,0:n)
     real(wp), intent(out):: Hout(npairs), Sout(npairs)
-    real(wp), device, allocatable :: d_Nonlin(:,:), d_YHY(:), d_coeff(:), d_H(:), d_S(:)
+    real(wp), device, allocatable :: d_Lm(:,:,:), d_Am(:,:,:), d_MAm(:,:,:)
+    real(wp), device, allocatable :: d_YHY(:), d_coeff(:), d_H(:), d_S(:)
     real(wp), device, allocatable :: d_mass(:,:), d_chargeM(:,:)
     integer,  device, allocatable :: d_k(:), d_l(:)
     real(wp) :: sqrtpi
     integer  :: blk, istat, determ, shmem
 
     sqrtpi = sqrt(4.0_wp*atan(1.0_wp))
-    allocate(d_Nonlin(np,Kmax), d_YHY(n*n*nterms), d_coeff(nterms))
+    allocate(d_Lm(n,n,Kmax), d_Am(n,n,Kmax), d_MAm(n,n,Kmax))
+    allocate(d_YHY(n*n*nterms), d_coeff(nterms))
     allocate(d_mass(n,n), d_chargeM(0:n,0:n))
     allocate(d_k(npairs), d_l(npairs), d_H(npairs), d_S(npairs))
-    d_Nonlin = NonlinParam; d_YHY = YHYMatr; d_coeff = YHYCoeff
+    d_Lm = Lh; d_Am = Ah; d_MAm = MAh
+    d_YHY = YHYMatr; d_coeff = YHYCoeff
     d_mass = mass; d_chargeM = chargeM
     d_k = k_list; d_l = l_list
     call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_batch: H2D staging')
@@ -404,7 +419,7 @@ contains
     blk = min(nterms, CUF_BLK)
     determ = 0; shmem = 0
     if (use_determ) then; determ = 1; shmem = 2*nterms*8; endif   !2*nterms real*8 dynamic shared
-    call me_energy_kernel<<<npairs, blk, shmem>>>(d_Nonlin, np, Kmax, d_k, d_l, &
+    call me_energy_kernel<<<npairs, blk, shmem>>>(d_Lm, d_Am, d_MAm, np, Kmax, d_k, d_l, &
         d_YHY, d_coeff, nterms, n, nprocs, procid, &
         d_mass, d_chargeM, sqrtpi, pir3n2, determ, d_H, d_S)
     call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_batch: energy kernel launch')
@@ -412,18 +427,18 @@ contains
 
     Hout = d_H; Sout = d_S
     call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_batch: D2H H/S')
-    deallocate(d_Nonlin, d_YHY, d_coeff, d_mass, d_chargeM, d_k, d_l, d_H, d_S)
+    deallocate(d_Lm, d_Am, d_MAm, d_YHY, d_coeff, d_mass, d_chargeM, d_k, d_l, d_H, d_S)
   end subroutine cuf_compute_matelem_batch
 
   !Energy+gradient kernel: one block per (k,l) pair; threads STRIDE over the terms.
   !Each thread calls the shared MatrixElements (grad_k=true, grad_l=flag) and
   !atomic-accumulates H,S and the gradient slabs Dk,Dl into shared memory.
-  attributes(global) subroutine me_grad_kernel(NonlinParam, np, Kmax, &
+  attributes(global) subroutine me_grad_kernel(Lm, Am, MAm, np, Kmax, &
       k_list, l_list, grad_l_flag, YHYMatr, YHYCoeff, nterms, n, nprocs, procid, &
       mass, chargeM, sqrtpi, pir3n2, &
       Hout, Sout, Dkout, Dlout)
     integer, value   :: np, Kmax, nterms, n, nprocs, procid
-    real(wp)         :: NonlinParam(np,Kmax)
+    real(wp)         :: Lm(n,n,Kmax), Am(n,n,Kmax), MAm(n,n,Kmax)
     integer          :: k_list(*), l_list(*), grad_l_flag(*)
     real(wp)         :: YHYMatr(*), YHYCoeff(*)
     real(wp)         :: mass(n,n), chargeM(0:n,0:n)
@@ -452,7 +467,8 @@ contains
     gl    = (grad_l_flag(pair_idx)==1)
     do j = threadIdx%x, nterms, nthr        !STRIDED: block size independent of nterms
       if (mod(qbase+j, nprocs) == procid) then
-        call MatrixElementsHS_RG_0S(n, np, NonlinParam(1,k0), NonlinParam(1,l0), &
+        call MatrixElementsHS_RG_0S(n, np, Lm(1,1,k0), Lm(1,1,l0), &
+                            Am(1,1,k0), Am(1,1,l0), MAm(1,1,k0), &
                             YHYMatr((j-1)*n*n+1), mass, chargeM, &
                             sqrtpi, pir3n2, &
                             Hkl, Skl, Dk, Dl, .true., gl)
@@ -477,18 +493,19 @@ contains
   end subroutine me_grad_kernel
 
   !Host launcher for the gradient build.
-  subroutine cuf_compute_matelem_deriv_batch(NonlinParam, Kmax, k_list, l_list, grad_l_flag, &
+  subroutine cuf_compute_matelem_deriv_batch(Lh, Ah, MAh, Kmax, k_list, l_list, grad_l_flag, &
       npairs, YHYMatr, YHYCoeff, nterms, n, np, nprocs, procid, &
       pir3n2, mass, chargeM, Hout, Sout, Dkout, Dlout)
     integer,  intent(in) :: Kmax, npairs, nterms, n, np, nprocs, procid
-    real(wp), intent(in) :: NonlinParam(np,Kmax)
+    real(wp), intent(in) :: Lh(n,n,Kmax), Ah(n,n,Kmax), MAh(n,n,Kmax)
     integer,  intent(in) :: k_list(npairs), l_list(npairs), grad_l_flag(npairs)
     real(wp), intent(in) :: YHYMatr(n*n*nterms), YHYCoeff(nterms)
     real(wp), intent(in) :: pir3n2
     real(wp), intent(in) :: mass(n,n), chargeM(0:n,0:n)
     real(wp), intent(out):: Hout(npairs), Sout(npairs)
     real(wp), intent(out):: Dkout(2*np*npairs), Dlout(2*np*npairs)
-    real(wp), device, allocatable :: d_Nonlin(:,:), d_YHY(:), d_coeff(:), d_H(:), d_S(:)
+    real(wp), device, allocatable :: d_Lm(:,:,:), d_Am(:,:,:), d_MAm(:,:,:)
+    real(wp), device, allocatable :: d_YHY(:), d_coeff(:), d_H(:), d_S(:)
     real(wp), device, allocatable :: d_mass(:,:), d_chargeM(:,:), d_Dk(:), d_Dl(:)
     integer,  device, allocatable :: d_k(:), d_l(:), d_gl(:)
     real(wp) :: sqrtpi
@@ -496,17 +513,19 @@ contains
 
     npt2   = 2*np
     sqrtpi = sqrt(4.0_wp*atan(1.0_wp))
-    allocate(d_Nonlin(np,Kmax), d_YHY(n*n*nterms), d_coeff(nterms))
+    allocate(d_Lm(n,n,Kmax), d_Am(n,n,Kmax), d_MAm(n,n,Kmax))
+    allocate(d_YHY(n*n*nterms), d_coeff(nterms))
     allocate(d_mass(n,n), d_chargeM(0:n,0:n))
     allocate(d_k(npairs), d_l(npairs), d_gl(npairs), d_H(npairs), d_S(npairs))
     allocate(d_Dk(npt2*npairs), d_Dl(npt2*npairs))
-    d_Nonlin = NonlinParam; d_YHY = YHYMatr; d_coeff = YHYCoeff
+    d_Lm = Lh; d_Am = Ah; d_MAm = MAh
+    d_YHY = YHYMatr; d_coeff = YHYCoeff
     d_mass = mass; d_chargeM = chargeM
     d_k = k_list; d_l = l_list; d_gl = grad_l_flag
     call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_deriv_batch: H2D staging')
 
     blk = min(nterms, CUF_BLK)
-    call me_grad_kernel<<<npairs, blk>>>(d_Nonlin, np, Kmax, d_k, d_l, d_gl, &
+    call me_grad_kernel<<<npairs, blk>>>(d_Lm, d_Am, d_MAm, np, Kmax, d_k, d_l, d_gl, &
         d_YHY, d_coeff, nterms, n, nprocs, procid, &
         d_mass, d_chargeM, sqrtpi, pir3n2, &
         d_H, d_S, d_Dk, d_Dl)
@@ -515,7 +534,7 @@ contains
 
     Hout = d_H; Sout = d_S; Dkout = d_Dk; Dlout = d_Dl
     call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_deriv_batch: D2H H/S/grad')
-    deallocate(d_Nonlin, d_YHY, d_coeff, d_mass, d_chargeM, d_k, d_l, d_gl, d_H, d_S, d_Dk, d_Dl)
+    deallocate(d_Lm, d_Am, d_MAm, d_YHY, d_coeff, d_mass, d_chargeM, d_k, d_l, d_gl, d_H, d_S, d_Dk, d_Dl)
   end subroutine cuf_compute_matelem_deriv_batch
 
   !Device lifecycle. gpu_init selects device = node-local-rank % nGPUs and returns

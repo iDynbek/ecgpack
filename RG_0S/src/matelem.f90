@@ -9,7 +9,7 @@ contains
 #ifdef USE_CUDA
   attributes(host,device) &
 #endif
-  subroutine MatrixElementsHS_RG_0S(n, np, vechLk, vechLl, P, mass, chargeM, &
+  subroutine MatrixElementsHS_RG_0S(n, np, Lk, Ll, Ak, Al, MAk, P, mass, chargeM, &
                             sqrtpi, pir3n2, Hkl, Skl, Dk, Dl, grad_k, grad_l)
 !This subroutine computes symmetry adapted matrix element with
 !two real L=0 correlated Gaussians:
@@ -20,7 +20,13 @@ contains
 !permutation matrices Glob_YHYMatr(:,:,1:Glob_NumYHYTerms)
 !
 !Input:
-!   vechLk, vechLl :: Arrays of length (n(n+1)/2) of exponential parameters.
+!   Lk, Ll :: The lower-triangular Cholesky-style parameter matrices (the
+!             unpacked vechLk/vechLl). HOISTED: they depend only on one basis
+!             function, so the caller precomputes them once per function per
+!             sweep (Precompute_LAMA below) instead of this routine unpacking
+!             them for every (pair x term) call.
+!   Ak, Al :: Ak=Lk*Lk', Al=Ll*Ll' -- hoisted for the same reason.
+!   MAk    :: mass*Ak -- hoisted; used by the fused energy-path trace.
 !   P   :: The symmetry permutation matrix of size n x n
 !   grad_k, grad_l :: Gradient flags
 !   grad_k=.true.  means that dHkldvechLk, dSkldvechLk need to be computed.
@@ -52,7 +58,8 @@ contains
 !   device code -- device code cannot read host module variables. The body is
 !   master's, unchanged apart from these substitutions.)
     integer,intent(in),value :: n, np
-    real(wp),intent(in)      :: vechLk(np), vechLl(np)
+    real(wp),intent(in)      :: Lk(n,n), Ll(n,n)
+    real(wp),intent(in)      :: Ak(n,n), Al(n,n), MAk(n,n)
     real(wp),intent(in)      :: P(n,n)
     real(wp),intent(in)      :: mass(n,n), chargeM(0:n,0:n)
     real(wp),intent(in),value :: sqrtpi, pir3n2
@@ -70,8 +77,8 @@ contains
 !counts are ever reintroduced, these bounds must be reverted to n.
 
 !Local variables
-    real(wp)       Lk(nn,nn), Ll(nn,nn), PT(nn,nn)
-    real(wp)       Ak(nn,nn), tAl(nn,nn), tAkl(nn,nn)
+    real(wp)       PT(nn,nn)
+    real(wp)       tAl(nn,nn), tAkl(nn,nn)
     real(wp)       inv_tAkl(nn,nn), inv_ttAkl(nn,nn)
     real(wp)       inv_tAkltAlM(nn,nn)
     real(wp)       tr_inv_tAklJij32(nn,nn)
@@ -86,34 +93,7 @@ contains
     integer           perm(nn), iperm(nn)
     logical           Pisperm
 
-!First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
-    indx=0
-    do i=1,nn
-      do j=i,nn
-        indx=indx+1
-        Lk(i,j)=ZERO
-        Lk(j,i)=vechLk(indx)
-        Ll(i,j)=ZERO
-        Ll(j,i)=vechLl(indx)
-      enddo
-    enddo
-
-    do i=1,nn
-      do j=i,nn
-        temp1=ZERO
-        do k=1,i
-          temp1=temp1+Lk(i,k)*Lk(j,k)
-        enddo
-        Ak(i,j)=temp1
-        Ak(j,i)=temp1
-        temp1=ZERO
-        do k=1,i
-          temp1=temp1+Ll(i,k)*Ll(j,k)
-        enddo
-        tAl(i,j)=temp1
-        tAl(j,i)=temp1
-      enddo
-    enddo
+!Lk, Ll, Ak, Al arrive precomputed (hoisted to once per function per sweep).
 
 !ITEM2 PROBE: decompose P into an index vector when it is a pure
 !permutation matrix, i.e. every column c holds exactly one nonzero,
@@ -152,15 +132,10 @@ contains
 !tAl=P'*Al*P
 !We also form matrix tAkl=Ak+tAl
     if (Pisperm) then
-      !gather form; W1 as scratch because tAl cannot be permuted in place
+      !gather form, straight from the Al argument (no aliasing, no scratch)
       do i=1,nn
         do j=i,nn
-          W1(i,j)=tAl(perm(i),perm(j))
-        enddo
-      enddo
-      do i=1,nn
-        do j=i,nn
-          temp1=W1(i,j)
+          temp1=Al(perm(i),perm(j))
           tAl(i,j)=temp1
           tAl(j,i)=temp1
           tAkl(i,j)=Ak(i,j)+temp1
@@ -172,7 +147,7 @@ contains
       do j=1,nn
         temp1=ZERO
         do k=1,nn
-          temp1=temp1+P(k,j)*tAl(k,i)
+          temp1=temp1+P(k,j)*Al(k,i)
         enddo
         W1(j,i)=temp1
       enddo
@@ -565,6 +540,50 @@ contains
     endif
 
   end subroutine MatrixElementsHS_RG_0S
+
+  subroutine Precompute_LAMA(n, np, Nmax, NonlinParam, mass, Lh, Ah, MAh)
+!Host-side helper for the hoisted MatrixElementsHS_RG_0S arguments: unpack
+!vechL into L, form A=L*L' and MA=mass*A for every basis function 1..Nmax,
+!once per sweep, instead of rebuilding them inside every (pair x term) call.
+!The arithmetic and loop order match the original in-routine code exactly, so
+!the hoisting is bit-identical. Shared by matform (CPU sweeps) and gpu_backend
+!(device staging) -- keep single-source.
+    integer, intent(in)  :: n, np, Nmax
+    real(wp),intent(in)  :: NonlinParam(np,Nmax)
+    real(wp),intent(in)  :: mass(n,n)
+    real(wp),intent(out) :: Lh(n,n,Nmax), Ah(n,n,Nmax), MAh(n,n,Nmax)
+    integer  :: f,i,j,k,indx
+    real(wp) :: temp1
+    do f=1,Nmax
+      indx=0
+      do i=1,n
+        do j=i,n
+          indx=indx+1
+          Lh(i,j,f)=ZERO
+          Lh(j,i,f)=NonlinParam(indx,f)
+        enddo
+      enddo
+      do i=1,n
+        do j=i,n
+          temp1=ZERO
+          do k=1,i
+            temp1=temp1+Lh(i,k,f)*Lh(j,k,f)
+          enddo
+          Ah(i,j,f)=temp1
+          Ah(j,i,f)=temp1
+        enddo
+      enddo
+      do j=1,n
+        do i=1,n
+          temp1=ZERO
+          do k=1,n
+            temp1=temp1+mass(i,k)*Ah(k,j,f)
+          enddo
+          MAh(i,j,f)=temp1
+        enddo
+      enddo
+    enddo
+  end subroutine Precompute_LAMA
 
   subroutine MatrixElementsAll_RG_0S(vechLk, vechLl, Pbra, Pket, &
                                        Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
