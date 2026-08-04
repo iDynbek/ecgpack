@@ -225,6 +225,7 @@ contains
 !Skl=Glob_2Raised3n2*temp1*sqrt(temp1)
     Skl=pir3n2/(det_tAkl*sqrt(det_tAkl))  !new line
 
+    if (grad_k.or.grad_l) then
 !Doing multiplication W2=inv_tAkl*tAl
     do i=1,nn
       do j=1,nn
@@ -256,6 +257,32 @@ contains
       enddo
       Tkl=Tkl+temp1
     enddo
+    else
+!ITEM3 FUSION (energy-only path): W2 and inv_tAkltAlM are needed downstream
+!only by the gradient section; the gradientless path needs just
+!Tkl=tr[inv_tAkl*tAl*mass*Ak]. With MAk=mass*Ak hoisted per function this is
+!tr[inv_tAkl*(tAl*MAk)]: ONE n^3 product plus an n^2 trace instead of two n^3
+!products. This reassociates the kinetic-energy sum, so energy-path H elements
+!differ from the unfused code at roundoff (~1e-16 relative); the gradient path
+!above is bit-identical to the unfused code.
+    do i=1,nn
+      do j=1,nn
+        temp1=ZERO
+        do k=1,nn
+          temp1=temp1+tAl(j,k)*MAk(k,i)
+        enddo
+        W2(j,i)=temp1
+      enddo
+    enddo
+    Tkl=ZERO
+    do i=1,nn
+      temp1=ZERO
+      do k=1,nn
+        temp1=temp1+inv_tAkl(i,k)*W2(k,i)
+      enddo
+      Tkl=Tkl+temp1
+    enddo
+    endif
     Tkl=SIX*Skl*Tkl
 
 !Evaluating potential energy, Vkl, and tr[invCkl*Jij]^(-3/2)
