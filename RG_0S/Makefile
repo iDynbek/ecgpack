@@ -75,6 +75,14 @@ CUF_GPU=$(subst sm_,cc,$(CUDA_ARCH))
 # 72regs=-8% vs the 254-reg default). Since the constant-trip-count rewrite of
 # MatrixElementsHS the kernel is bandwidth-bound and MORE registers win despite
 # lower occupancy: 255 beats 128 by 1.21x (C) to 1.35x (O) on V100.
+#
+# WARNING (2026-08-04, NVHPC 25.9, sweep job 6529): with the hoisted/fused
+# routine, caps BELOW 255 MISCOMPILE the N=9 (n=8, Oxygen) kernels -- the GPU
+# returns numerically wrong H/S with NO CUDA error (168-224 break the energy
+# kernel, everything <255 breaks the gradient kernel; the eigensolver then
+# fails on the garbage matrices). Carbon (n=6) is correct at all caps and only
+# ~3-4% faster at 192, so this stays a single global 255. Do NOT lower this
+# value without rerunning the Oxygen energy+gradient correctness gate.
 CUF_MAXREG=255
 
 # Set the default name for the generated executable file
