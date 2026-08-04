@@ -70,6 +70,17 @@ CUF_GPU=$(subst sm_,cc,$(CUDA_ARCH))
 # -gpu cap (not per-kernel launch_bounds) BECAUSE MatrixElements is a separate
 # non-inlined device function: launch_bounds only limits the kernel entry, so a
 # 254-reg callee would fail nvlink; the flag caps both uniformly.
+#
+# NOTE (2026-08-04): the build now also passes -gpu=lto (device link-time
+# optimization, see the FCFLAGS below). Without LTO, MatrixElementsHS is a
+# CALLED device function with a per-call stack frame (2,888 B Carbon / 6,104 B
+# Oxygen) plus 1-5 KB of spills PER (pair x term) CALL, and the kernels can
+# only use 88-90 registers because the ABI call blocks cross-call allocation.
+# With LTO the routine inlines into the kernels, the frame drops ~3x and the
+# full register budget spans the term loop: measured V100 gains 1.91x/1.51x
+# (C/O energy) and 1.47x/1.40x (C/O gradient), all correctness gates green
+# (job 6535, data/results/tipprof/lto_results.csv). Do not remove ,lto without
+# rerunning the Oxygen gates.
 # History: with the original runtime-bound loops the kernel was occupancy-bound
 # and 128 was best (V100, Carbon energy kernel: 128regs=-10%, 96regs=-13%,
 # 72regs=-8% vs the 254-reg default). Since the constant-trip-count rewrite of
@@ -266,8 +277,8 @@ ifeq ($(USE_CUDA), yes)
   # nvfortran -cuda. cuSOLVER/cuBLAS are linked for the eigensolver. -DUSE_CUDA guards BOTH
   # the backend (gpu_backend.f90 + the dispatch touchpoints) and the
   # attributes(host,device) on MatrixElements so the shared physics is device-capable.
-  export FCFLAGS+=-DUSE_CUDA -cuda -gpu=$(CUF_GPU),maxregcount:$(CUF_MAXREG)
-  export LINKFLAGS+=-cuda -gpu=$(CUF_GPU),maxregcount:$(CUF_MAXREG) -cudalib=cusolver,cublas
+  export FCFLAGS+=-DUSE_CUDA -cuda -gpu=$(CUF_GPU),maxregcount:$(CUF_MAXREG),lto
+  export LINKFLAGS+=-cuda -gpu=$(CUF_GPU),maxregcount:$(CUF_MAXREG),lto -cudalib=cusolver,cublas
   export BARE_OBJS+=gpu_backend.o
   export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS)) $(OBJS_LPKBLS)
   GPU_DEP=$(CONFIG)/gpu_backend.o
