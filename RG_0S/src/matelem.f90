@@ -82,6 +82,9 @@ contains
     real(wp)       det_tAkl
     real(wp)       Tkl, Vkl, cV, HklOverSkl
     integer           i, j, k, indx
+!ITEM2 PROBE: index-vector representation of P (see derivation below)
+    integer           perm(nn), iperm(nn)
+    logical           Pisperm
 
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
     indx=0
@@ -112,10 +115,59 @@ contains
       enddo
     enddo
 
+!ITEM2 PROBE: decompose P into an index vector when it is a pure
+!permutation matrix, i.e. every column c holds exactly one nonzero,
+!equal to +1, at row r=perm(c). This holds for every atomic symmetry
+!projection (products of Pij with i,j>=2). Then, writing iperm for the
+!inverse permutation (iperm(perm(c))=c),
+!  (P'*A*P)(i,j) = sum_rs P(r,i)*A(r,s)*P(s,j) = A(perm(i),perm(j))
+!  (P*A*P')(i,j) = A(iperm(i),iperm(j))
+!so each O(n^3) congruence pair below collapses to an O(n^2) gather.
+!If ANY column fails the test (e.g. the -1 column of a P1i matrix in
+!molecular/positronic systems, workproc.f90 Glob_Transposit build),
+!Pisperm=.false. and every site falls back to the dense congruence.
+    Pisperm=.true.
+    do j=1,nn
+      k=0
+      do i=1,nn
+        if (P(i,j)==ONE) then
+          if (k/=0) Pisperm=.false.
+          k=i
+        elseif (P(i,j)/=ZERO) then
+          Pisperm=.false.
+        endif
+      enddo
+      if (k==0) then
+        Pisperm=.false.
+        k=j
+      endif
+      perm(j)=k
+    enddo
+    do j=1,nn
+      iperm(perm(j))=j
+    enddo
+
 !Then we permute elements of Al to account for
 !the action of the permutation matrix
 !tAl=P'*Al*P
 !We also form matrix tAkl=Ak+tAl
+    if (Pisperm) then
+      !gather form; W1 as scratch because tAl cannot be permuted in place
+      do i=1,nn
+        do j=i,nn
+          W1(i,j)=tAl(perm(i),perm(j))
+        enddo
+      enddo
+      do i=1,nn
+        do j=i,nn
+          temp1=W1(i,j)
+          tAl(i,j)=temp1
+          tAl(j,i)=temp1
+          tAkl(i,j)=Ak(i,j)+temp1
+          tAkl(j,i)=tAkl(i,j)
+        enddo
+      enddo
+    else
     do i=1,nn
       do j=1,nn
         temp1=ZERO
@@ -137,6 +189,7 @@ contains
         tAkl(j,i)=tAkl(i,j)
       enddo
     enddo
+    endif
 
 !The determinants of Lk and Ll are just
 !the products of their diagonal elements
@@ -329,6 +382,18 @@ contains
     endif
 
     if (grad_l) then
+      !calculating inv_ttAkl=P*inv_tAkl*P'
+      if (Pisperm) then
+        !ITEM2 PROBE: gather form, (P*A*P')(i,j)=A(iperm(i),iperm(j));
+        !inv_tAkl is symmetric so filling the upper triangle suffices
+        do j=1,nn
+          do i=1,j
+            temp1=inv_tAkl(iperm(i),iperm(j))
+            inv_ttAkl(i,j)=temp1
+            inv_ttAkl(j,i)=temp1
+          enddo
+        enddo
+      else
       !PT=P' is stored explicitly so that all the products with P
       !and P' below can be done with contiguous column access
       do j=1,nn
@@ -336,7 +401,6 @@ contains
           PT(i,j)=P(j,i)
         enddo
       enddo
-      !calculating inv_ttAkl=P*inv_tAkl*P'
       !W1=inv_tAkl*PT
       do j=1,nn
         do i=1,nn
@@ -358,6 +422,7 @@ contains
           inv_ttAkl(j,i)=temp1
         enddo
       enddo
+      endif
       !dSkldvechLl: lower triangle of -3*Skl*inv_ttAkl*Ll
       temp2=-THREE*Skl
       indx=0
@@ -454,6 +519,18 @@ contains
                         -inv_tAkltAlM(j,i)+F(i,j))+cV*Bmat(i,j)
         enddo
       enddo
+      !G=P*Z*P' (this ket-side Z is symmetric: M, F, B are symmetric
+      !and K+K' symmetrizes)
+      if (Pisperm) then
+        !ITEM2 PROBE: gather form, (P*Z*P')(i,j)=Z(iperm(i),iperm(j))
+        do j=1,nn
+          do i=1,j
+            temp1=Z(iperm(i),iperm(j))
+            G(i,j)=temp1
+            G(j,i)=temp1
+          enddo
+        enddo
+      else
       do j=1,nn
         do i=1,nn
           temp1=ZERO
@@ -473,6 +550,7 @@ contains
           G(j,i)=temp1
         enddo
       enddo
+      endif
       indx=0
       do i=1,nn
         do j=i,nn
