@@ -60,6 +60,31 @@ module gpu_backend
   integer,  device, allocatable, save :: dinfo(:)
   real(wp), allocatable, save    :: hA(:,:), hB(:,:)   !host staging (heap)
 
+  !PERSISTENT MATRIX-ELEMENT WORKSPACE.
+  !Everything below used to be allocated, filled and freed on EVERY call to the
+  !chunk launchers. That is ruinous for the regime production actually runs in:
+  !during an optimization sweep the changed functions are permuted to the end of
+  !the basis, so one objective evaluation rebuilds only ~K pairs -- yet the old
+  !code paid ~11 cudaMalloc + 11 cudaFree (cudaFree SYNCHRONIZES the device) and
+  !re-uploaded the whole basis, all NumYHYTerms permutation matrices and the
+  !physics constants for that small amount of work. Measured effect: 64 CPU ranks
+  !beat one V100 by ~7x on small-K growth (see data/results/rg2p_h2h).
+  !Now: allocated once, grown on demand, released in gpu_finalize. The constants
+  !are uploaded once; the basis once per build instead of once per chunk.
+  real(wp), device, allocatable, save :: d_Param(:,:)
+  integer,  device, allocatable, save :: d_im(:), d_imm(:)
+  real(wp), device, allocatable, save :: d_YHY(:), d_coeff(:)
+  real(wp), device, allocatable, save :: d_mass(:,:), d_chargeM(:,:)
+  integer,  device, allocatable, save :: d_k(:), d_l(:), d_gl(:)
+  real(wp), device, allocatable, save :: d_H(:), d_S(:), d_Dk(:), d_Dl(:)
+  integer,  allocatable, save         :: im(:), imm(:)   !host index workspace
+  real(wp), allocatable, save         :: ph(:,:)         !host packed parameters
+  integer, save :: cap_basis = 0    !2nd extent of the staged parameter array
+  integer, save :: cap_pairs = 0    !length of the per-pair buffers
+  integer, save :: cap_grad  = 0    !length of the gradient slabs
+  integer, save :: cap_terms = 0    !NumYHYTerms the constants were staged for
+  logical, save :: consts_ready = .false.
+
   integer, parameter :: NN  = Glob_AllowedNumOfPseudoParticles
   integer, parameter :: NNP = NN*(NN+1)/2   !max packed vech length; Dk/Dl are 2*np long (np=n(n+1)/2)
   integer, parameter :: CUF_BLK = 128       !threads/block. The term loop STRIDES (see the kernels), so
@@ -206,6 +231,67 @@ contains
     gpu_eig_active = use_eig
   end function gpu_eig_active
 
+  subroutine stage_constants()
+  !Upload the per-run invariants: the Y+Y permutation matrices and their
+  !coefficients, the mass matrix, and the scaled charge matrix. None of these
+  !change while a basis is being built, so this runs once. The term count is
+  !remembered because the symmetry block can be rebuilt mid-run, which would
+  !make the staged copy the wrong size.
+    integer :: n, nterms
+    n = Glob_n; nterms = Glob_NumYHYTerms
+    if (consts_ready .and. (cap_terms == nterms)) return
+    if (allocated(d_YHY)) deallocate(d_YHY, d_coeff)
+    allocate(d_YHY(n*n*nterms), d_coeff(nterms))
+    if (.not.allocated(d_mass)) allocate(d_mass(n,n), d_chargeM(0:n,0:n))
+    call cuda_check(cudaMemcpy(d_YHY,   Glob_YHYMatr,  n*n*nterms), 'stage_constants: YHY matrices')
+    call cuda_check(cudaMemcpy(d_coeff, Glob_YHYCoeff, nterms),     'stage_constants: YHY coefficients')
+    call cuda_check(cudaMemcpy(d_mass,  Glob_MassMatrix, n*n),      'stage_constants: mass matrix')
+    call cuda_check(cudaMemcpy(d_chargeM, Glob_ScaledPseudoChargeMatrix, (n+1)*(n+1)), &
+                    'stage_constants: charge matrix')
+    cap_terms = nterms; consts_ready = .true.
+  end subroutine stage_constants
+
+  subroutine stage_basis(np, Kmax)
+  !Upload the nonlinear parameters and the two L=1 prefactor index arrays ONCE
+  !per build. (They used to be re-uploaded for every chunk, so a multi-chunk
+  !build shipped the whole basis repeatedly.) The buffers only ever grow.
+    integer, intent(in) :: np, Kmax
+    if (Kmax > cap_basis) then
+      if (allocated(im))      deallocate(im, imm, ph)
+      if (allocated(d_Param)) deallocate(d_Param, d_im, d_imm)
+      allocate(im(Kmax), imm(Kmax), ph(np,Kmax))
+      allocate(d_Param(np,Kmax), d_im(Kmax), d_imm(Kmax))
+      cap_basis = Kmax
+    endif
+    !Pack into a buffer whose leading dimension is exactly np rather than
+    !cudaMemcpy-ing Glob_NonlinParam directly: its leading dimension is Glob_npt,
+    !which equals np for this code but the transfer must not silently depend on it.
+    ph(1:np,1:Kmax) = Glob_NonlinParam(1:np,1:Kmax)
+    im(1:Kmax)      = Glob_Index(1:Kmax,1)
+    imm(1:Kmax)     = Glob_Index(1:Kmax,2)
+    call cuda_check(cudaMemcpy(d_Param, ph,  np*Kmax), 'stage_basis: parameters')
+    call cuda_check(cudaMemcpy(d_im,    im,  Kmax),    'stage_basis: index m')
+    call cuda_check(cudaMemcpy(d_imm,   imm, Kmax),    'stage_basis: index mm')
+  end subroutine stage_basis
+
+  subroutine ensure_pair_capacity(npairs, npt2, need_grad)
+  !Grow the per-pair buffers if this build needs more room than the last one.
+    integer, intent(in) :: npairs, npt2
+    logical, intent(in) :: need_grad
+    if (npairs > cap_pairs) then
+      if (allocated(d_k)) deallocate(d_k, d_l, d_gl, d_H, d_S)
+      allocate(d_k(npairs), d_l(npairs), d_gl(npairs), d_H(npairs), d_S(npairs))
+      cap_pairs = npairs
+    endif
+    if (need_grad) then
+      if (npairs*npt2 > cap_grad) then
+        if (allocated(d_Dk)) deallocate(d_Dk, d_Dl)
+        allocate(d_Dk(npairs*npt2), d_Dl(npairs*npt2))
+        cap_grad = npairs*npt2
+      endif
+    endif
+  end subroutine ensure_pair_capacity
+
   subroutine gpu_build_HS(Nmin,Nmax,store)
   !Energy-only matrix-element build over the basis pair triangle [Nmin,Nmax],
   !processed in fixed-size chunks so neither host nor device memory scales with
@@ -216,7 +302,6 @@ contains
     procedure(store_hs_cb) :: store
     integer               :: n,np,k,l,npairs,ipair,nf,ip,batch
     integer, allocatable  :: k_list(:),l_list(:)
-    integer, allocatable  :: im(:),imm(:)               !per-function prefactor indices
     real(wp),allocatable  :: Hout(:),Sout(:),Hout_r(:),Sout_r(:)
     n=Glob_n; np=Glob_np
     npairs = Nmax*(Nmax+1)/2 - (Nmin-1)*Nmin/2
@@ -224,9 +309,9 @@ contains
     if ((Glob_ProcID==0).and.(npairs>batch)) &
       write(*,'(1x,a,i0,a,i0,a,i0,a)') 'GPU ME (energy): ',npairs, &
         ' pairs in ',(npairs+batch-1)/batch,' chunks of ',batch,' max'
-    allocate(im(Nmax),imm(Nmax))
-    im(1:Nmax)  = Glob_Index(1:Nmax,1)
-    imm(1:Nmax) = Glob_Index(1:Nmax,2)
+    call stage_constants()                      !once per run
+    call stage_basis(np, Nmax)                  !once per build, not per chunk
+    call ensure_pair_capacity(batch, 0, .false.)
     allocate(k_list(batch),l_list(batch),Hout(batch),Sout(batch),Hout_r(batch),Sout_r(batch))
     ipair=0; nf=0
     do k=Nmin,Nmax
@@ -234,13 +319,9 @@ contains
         ipair=ipair+1; nf=nf+1
         k_list(nf)=k; l_list(nf)=l
         if ((nf==batch).or.(ipair==npairs)) then
-          call cuf_compute_matelem_batch( &
-              Glob_NonlinParam(1:np,1:Nmax), im, imm, Nmax, k_list, l_list, nf, &
-              Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &
-              n, np, Glob_NumOfProcs, Glob_ProcID, &
-              Glob_PiRaised3n2, Glob_MassMatrix(1:n,1:n), &
-              Glob_ScaledPseudoChargeMatrix(0:n,0:n), &
-              Hout, Sout)
+          call cuf_compute_matelem_batch(Nmax, k_list, l_list, nf, &
+              Glob_NumYHYTerms, n, np, Glob_NumOfProcs, Glob_ProcID, &
+              Glob_PiRaised3n2, Hout, Sout)
           call MPI_ALLREDUCE(Hout,Hout_r,nf,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           call MPI_ALLREDUCE(Sout,Sout_r,nf,MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           do ip=1,nf
@@ -251,7 +332,6 @@ contains
       enddo
     enddo
     deallocate(k_list,l_list,Hout,Sout,Hout_r,Sout_r)
-    deallocate(im,imm)
   end subroutine gpu_build_HS
 
   subroutine gpu_build_HS_deriv(Nmin,Nmax,store)
@@ -262,7 +342,6 @@ contains
     procedure(store_hsd_cb) :: store
     integer               :: n,np,npt2,k,l,npairs,ipair,nf,ip,batch
     integer, allocatable  :: k_list(:),l_list(:),grad_l(:)
-    integer, allocatable  :: im(:),imm(:)               !per-function prefactor indices
     real(wp),allocatable  :: Hout(:),Sout(:),Hout_r(:),Sout_r(:)
     real(wp),allocatable  :: Dkout(:,:),Dlout(:,:),Dkout_r(:,:),Dlout_r(:,:)
     n=Glob_n; np=Glob_np; npt2=np*2
@@ -271,9 +350,9 @@ contains
     if ((Glob_ProcID==0).and.(npairs>batch)) &
       write(*,'(1x,a,i0,a,i0,a,i0,a)') 'GPU ME (grad): ',npairs, &
         ' pairs in ',(npairs+batch-1)/batch,' chunks of ',batch,' max'
-    allocate(im(Nmax),imm(Nmax))
-    im(1:Nmax)  = Glob_Index(1:Nmax,1)
-    imm(1:Nmax) = Glob_Index(1:Nmax,2)
+    call stage_constants()                      !once per run
+    call stage_basis(np, Nmax)                  !once per build, not per chunk
+    call ensure_pair_capacity(batch, npt2, .true.)
     allocate(k_list(batch),l_list(batch),grad_l(batch))
     allocate(Hout(batch),Sout(batch),Hout_r(batch),Sout_r(batch))
     allocate(Dkout(npt2,batch),Dlout(npt2,batch),Dkout_r(npt2,batch),Dlout_r(npt2,batch))
@@ -290,13 +369,9 @@ contains
         if ((nf==batch).or.(ipair==npairs)) then
           Dkout(1:npt2,1:nf)=ZERO
           Dlout(1:npt2,1:nf)=ZERO
-          call cuf_compute_matelem_deriv_batch( &
-              Glob_NonlinParam(1:np,1:Nmax), im, imm, Nmax, k_list, l_list, grad_l, nf, &
-              Glob_YHYMatr(1,1,1), Glob_YHYCoeff, Glob_NumYHYTerms, &
-              n, np, Glob_NumOfProcs, Glob_ProcID, &
-              Glob_PiRaised3n2, Glob_MassMatrix(1:n,1:n), &
-              Glob_ScaledPseudoChargeMatrix(0:n,0:n), &
-              Hout, Sout, Dkout, Dlout)
+          call cuf_compute_matelem_deriv_batch(Nmax, k_list, l_list, grad_l, nf, &
+              Glob_NumYHYTerms, n, np, Glob_NumOfProcs, Glob_ProcID, &
+              Glob_PiRaised3n2, Hout, Sout, Dkout, Dlout)
           call MPI_ALLREDUCE(Hout, Hout_r, nf,      MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           call MPI_ALLREDUCE(Sout, Sout_r, nf,      MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
           call MPI_ALLREDUCE(Dkout,Dkout_r,nf*npt2, MPI_WP,MPI_SUM,MPI_COMM_WORLD,Glob_MPIErrCode)
@@ -313,7 +388,6 @@ contains
     deallocate(k_list,l_list,grad_l)
     deallocate(Hout,Sout,Hout_r,Sout_r)
     deallocate(Dkout,Dlout,Dkout_r,Dlout_r)
-    deallocate(im,imm)
   end subroutine gpu_build_HS_deriv
 
   ! ==========================================================================
@@ -400,34 +474,18 @@ contains
   end subroutine me_energy_kernel
 
   !Host launcher for the energy build. Stages inputs to the device, launches, copies back.
-  subroutine cuf_compute_matelem_batch(Params, im, imm, Kmax, k_list, l_list, npairs, &
-      YHYMatr, YHYCoeff, nterms, n, np, nprocs, procid, &
-      pir3n2, mass, chargeM, Hout, Sout)
+  subroutine cuf_compute_matelem_batch(Kmax, k_list, l_list, npairs, &
+      nterms, n, np, nprocs, procid, pir3n2, Hout, Sout)
     integer,  intent(in) :: Kmax, npairs, nterms, n, np, nprocs, procid
-    real(wp), intent(in) :: Params(np,Kmax)
-    integer,  intent(in) :: im(Kmax), imm(Kmax)
     integer,  intent(in) :: k_list(npairs), l_list(npairs)
-    real(wp), intent(in) :: YHYMatr(n*n*nterms), YHYCoeff(nterms)
     real(wp), intent(in) :: pir3n2
-    real(wp), intent(in) :: mass(n,n), chargeM(0:n,0:n)
     real(wp), intent(out):: Hout(npairs), Sout(npairs)
-    real(wp), device, allocatable :: d_Param(:,:)
-    real(wp), device, allocatable :: d_YHY(:), d_coeff(:), d_H(:), d_S(:)
-    real(wp), device, allocatable :: d_mass(:,:), d_chargeM(:,:)
-    integer,  device, allocatable :: d_k(:), d_l(:), d_im(:), d_imm(:)
     real(wp) :: sqrtpi
-    integer  :: blk, istat, determ, shmem
+    integer  :: blk, determ, shmem
 
     sqrtpi = sqrt(4.0_wp*atan(1.0_wp))
-    allocate(d_Param(np,Kmax))
-    allocate(d_YHY(n*n*nterms), d_coeff(nterms))
-    allocate(d_mass(n,n), d_chargeM(0:n,0:n))
-    allocate(d_k(npairs), d_l(npairs), d_im(Kmax), d_imm(Kmax), d_H(npairs), d_S(npairs))
-    d_Param = Params
-    d_YHY = YHYMatr; d_coeff = YHYCoeff
-    d_mass = mass; d_chargeM = chargeM
-    d_k = k_list; d_l = l_list; d_im = im; d_imm = imm
-    call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_batch: H2D staging')
+    call cuda_check(cudaMemcpy(d_k, k_list, npairs), 'cuf_compute_matelem_batch: H2D k list')
+    call cuda_check(cudaMemcpy(d_l, l_list, npairs), 'cuf_compute_matelem_batch: H2D l list')
 
     blk = min(nterms, CUF_BLK)
     determ = 0; shmem = 0
@@ -438,9 +496,8 @@ contains
     call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_batch: energy kernel launch')
     call cuda_check(cudaDeviceSynchronize(), 'cuf_compute_matelem_batch: energy kernel execution')
 
-    Hout = d_H; Sout = d_S
-    call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_batch: D2H H/S')
-    deallocate(d_Param, d_YHY, d_coeff, d_mass, d_chargeM, d_k, d_l, d_im, d_imm, d_H, d_S)
+    call cuda_check(cudaMemcpy(Hout, d_H, npairs), 'cuf_compute_matelem_batch: D2H H')
+    call cuda_check(cudaMemcpy(Sout, d_S, npairs), 'cuf_compute_matelem_batch: D2H S')
   end subroutine cuf_compute_matelem_batch
 
   !Energy+gradient kernel: one block per (k,l) pair; threads STRIDE over the terms.
@@ -507,37 +564,21 @@ contains
   end subroutine me_grad_kernel
 
   !Host launcher for the gradient build.
-  subroutine cuf_compute_matelem_deriv_batch(Params, im, imm, Kmax, k_list, l_list, grad_l_flag, &
-      npairs, YHYMatr, YHYCoeff, nterms, n, np, nprocs, procid, &
-      pir3n2, mass, chargeM, Hout, Sout, Dkout, Dlout)
+  subroutine cuf_compute_matelem_deriv_batch(Kmax, k_list, l_list, grad_l_flag, &
+      npairs, nterms, n, np, nprocs, procid, pir3n2, Hout, Sout, Dkout, Dlout)
     integer,  intent(in) :: Kmax, npairs, nterms, n, np, nprocs, procid
-    real(wp), intent(in) :: Params(np,Kmax)
-    integer,  intent(in) :: im(Kmax), imm(Kmax)
     integer,  intent(in) :: k_list(npairs), l_list(npairs), grad_l_flag(npairs)
-    real(wp), intent(in) :: YHYMatr(n*n*nterms), YHYCoeff(nterms)
     real(wp), intent(in) :: pir3n2
-    real(wp), intent(in) :: mass(n,n), chargeM(0:n,0:n)
     real(wp), intent(out):: Hout(npairs), Sout(npairs)
     real(wp), intent(out):: Dkout(2*np*npairs), Dlout(2*np*npairs)
-    real(wp), device, allocatable :: d_Param(:,:)
-    real(wp), device, allocatable :: d_YHY(:), d_coeff(:), d_H(:), d_S(:)
-    real(wp), device, allocatable :: d_mass(:,:), d_chargeM(:,:), d_Dk(:), d_Dl(:)
-    integer,  device, allocatable :: d_k(:), d_l(:), d_gl(:), d_im(:), d_imm(:)
     real(wp) :: sqrtpi
-    integer  :: npt2, blk, istat
+    integer  :: npt2, blk
 
     npt2   = 2*np
     sqrtpi = sqrt(4.0_wp*atan(1.0_wp))
-    allocate(d_Param(np,Kmax))
-    allocate(d_YHY(n*n*nterms), d_coeff(nterms))
-    allocate(d_mass(n,n), d_chargeM(0:n,0:n))
-    allocate(d_k(npairs), d_l(npairs), d_gl(npairs), d_im(Kmax), d_imm(Kmax), d_H(npairs), d_S(npairs))
-    allocate(d_Dk(npt2*npairs), d_Dl(npt2*npairs))
-    d_Param = Params
-    d_YHY = YHYMatr; d_coeff = YHYCoeff
-    d_mass = mass; d_chargeM = chargeM
-    d_k = k_list; d_l = l_list; d_gl = grad_l_flag; d_im = im; d_imm = imm
-    call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_deriv_batch: H2D staging')
+    call cuda_check(cudaMemcpy(d_k,  k_list,      npairs), 'cuf_compute_matelem_deriv_batch: H2D k list')
+    call cuda_check(cudaMemcpy(d_l,  l_list,      npairs), 'cuf_compute_matelem_deriv_batch: H2D l list')
+    call cuda_check(cudaMemcpy(d_gl, grad_l_flag, npairs), 'cuf_compute_matelem_deriv_batch: H2D grad flags')
 
     blk = min(nterms, CUF_BLK)
     call me_grad_kernel<<<npairs, blk>>>(d_Param, d_im, d_imm, np, Kmax, d_k, d_l, d_gl, &
@@ -547,9 +588,10 @@ contains
     call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_deriv_batch: grad kernel launch')
     call cuda_check(cudaDeviceSynchronize(), 'cuf_compute_matelem_deriv_batch: grad kernel execution')
 
-    Hout = d_H; Sout = d_S; Dkout = d_Dk; Dlout = d_Dl
-    call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_deriv_batch: D2H H/S/grad')
-    deallocate(d_Param, d_YHY, d_coeff, d_mass, d_chargeM, d_k, d_l, d_gl, d_im, d_imm, d_H, d_S, d_Dk, d_Dl)
+    call cuda_check(cudaMemcpy(Hout,  d_H,  npairs),      'cuf_compute_matelem_deriv_batch: D2H H')
+    call cuda_check(cudaMemcpy(Sout,  d_S,  npairs),      'cuf_compute_matelem_deriv_batch: D2H S')
+    call cuda_check(cudaMemcpy(Dkout, d_Dk, npt2*npairs), 'cuf_compute_matelem_deriv_batch: D2H Dk')
+    call cuda_check(cudaMemcpy(Dlout, d_Dl, npt2*npairs), 'cuf_compute_matelem_deriv_batch: D2H Dl')
   end subroutine cuf_compute_matelem_deriv_batch
 
   !Device lifecycle. gpu_init selects device = node-local-rank % nGPUs and returns
@@ -587,6 +629,14 @@ contains
     if (allocated(dinfo)) deallocate(dinfo)
     if (allocated(hA))    deallocate(hA)
     if (allocated(hB))    deallocate(hB)
+    !persistent matrix-element workspace
+    if (allocated(d_Param))deallocate(d_Param, d_im, d_imm)
+    if (allocated(d_YHY)) deallocate(d_YHY, d_coeff)
+    if (allocated(d_mass))deallocate(d_mass, d_chargeM)
+    if (allocated(d_k))   deallocate(d_k, d_l, d_gl, d_H, d_S)
+    if (allocated(d_Dk))  deallocate(d_Dk, d_Dl)
+    if (allocated(im))    deallocate(im, imm, ph)
+    cap_basis=0; cap_pairs=0; cap_grad=0; cap_terms=0; consts_ready=.false.
     istat = cudaDeviceReset()
   end subroutine gpu_finalize
 
