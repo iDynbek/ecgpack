@@ -256,7 +256,7 @@ endif
 export OBJS_LPKBLS=$(addprefix $(CONFIG)/,$(BARE_OBJS_LPKBLS))
 
 export BARE_OBJS=wp_def_$(PREC).o X1MACH.o dmng.o globvars.o misc.o linalg.o \
-              matelem.o matform.o workproc.o main.o spin.o
+              matelem.o matform.o opttrace.o workproc.o main.o spin.o
 export OBJS=$(addprefix $(CONFIG)/,$(BARE_OBJS))
 export OBJS+=$(OBJS_LPKBLS)
 
@@ -368,7 +368,10 @@ $(CONFIG)/gpu_backend.o: $(SRC_DIR)/gpu_backend.f90 $(CONFIG)/globvars.o $(GPUBA
 $(CONFIG)/matform.o: $(SRC_DIR)/matform.f90 $(CONFIG)/matelem.o $(GPU_DEP)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/matform.f90 -o $(CONFIG)/matform.o
 
-$(CONFIG)/workproc.o: $(SRC_DIR)/workproc.f90 $(CONFIG)/misc.o $(CONFIG)/linalg.o $(CONFIG)/matform.o $(CONFIG)/matelem.o $(CONFIG)/dmng.o $(GPU_DEP) $(OBJS_LPKBLS)
+$(CONFIG)/opttrace.o: $(SRC_DIR)/opttrace.f90 $(CONFIG)/globvars.o
+	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/opttrace.f90 -o $(CONFIG)/opttrace.o
+
+$(CONFIG)/workproc.o: $(SRC_DIR)/workproc.f90 $(CONFIG)/misc.o $(CONFIG)/linalg.o $(CONFIG)/matform.o $(CONFIG)/matelem.o $(CONFIG)/dmng.o $(CONFIG)/opttrace.o $(GPU_DEP) $(OBJS_LPKBLS)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/workproc.f90 -o $(CONFIG)/workproc.o
 
 $(CONFIG)/main.o: $(SRC_DIR)/main.f90 $(CONFIG)/workproc.o $(GPU_DEP)

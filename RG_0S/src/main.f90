@@ -31,6 +31,7 @@ program main
   call ReadIOFile()
   if (Glob_IsOptCycleScripted) call ReadBlackList()
   call ProgramDataInit()
+  call opttrace_init()   !ECG_OPTTRACE=1: record the optimizer trajectory for animation
 
 !Seed the random number generators
   call random_seed()
@@ -271,6 +272,8 @@ program main
     write(*,*) 'Basis Building and Optimization Program is completed'
     write(*,*) 'Program has stopped'
   endif
+
+  call opttrace_finalize()
 
 #ifdef USE_CUDA
   call gpu_finalize()   !release cuSOLVER handle + device buffers, reset device

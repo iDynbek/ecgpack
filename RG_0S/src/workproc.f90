@@ -4,6 +4,7 @@ module workproc
   use matform
   use matelem
   use linalg
+  use opttrace
 #ifdef USE_CUDA
   use gpu_backend
 #endif
@@ -5204,6 +5205,7 @@ contains
             enddo
             Evalue=EnergyGA(nfrup1,cbs,.true.,ErrCode)
             NumOfEnergyEval=NumOfEnergyEval+1
+            if (opttrace_active()) call opttrace_record('OPTCYCLE_G',cbs,nfo,nfru,npt,1,ErrCode,Evalue,x)
             if (ErrCode/=0) then
               NumOfFailures=NumOfFailures+1
               IV(2)=0
@@ -5221,6 +5223,7 @@ contains
             enddo
             call EnergyGB(Evalue,grad,.true.,ErrCode)
             NumOfGradEval=NumOfGradEval+1
+            if (opttrace_active()) call opttrace_record('OPTCYCLE_G',cbs,nfo,nfru,npt,2,ErrCode,Evalue,x)
             if (ErrCode/=0) then
               NumOfFailures=NumOfFailures+1
               IV(2)=0
@@ -5763,6 +5766,7 @@ contains
             enddo
             Evalue=EnergyIA(nfrup1,cbs,.true.,ErrCode)
             NumOfEnergyEval=NumOfEnergyEval+1
+            if (opttrace_active()) call opttrace_record('OPTCYCLE_I',cbs,nfo,nfru,npt,1,ErrCode,Evalue,x)
             if (ErrCode/=0) then
               NumOfFailures=NumOfFailures+1
               IV(2)=0
@@ -5783,6 +5787,7 @@ contains
             enddo
             call EnergyIB(Evalue,grad,.true.,ErrCode)
             NumOfGradEval=NumOfGradEval+1
+            if (opttrace_active()) call opttrace_record('OPTCYCLE_I',cbs,nfo,nfru,npt,2,ErrCode,Evalue,x)
             if (ErrCode/=0) then
               NumOfFailures=NumOfFailures+1
               IV(2)=0
