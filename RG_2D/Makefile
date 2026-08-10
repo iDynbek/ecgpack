@@ -161,13 +161,15 @@ ifneq ($(filter $(MACHINE),linux-generic ubuntu-generic irgetas shabyt aurora mu
       endif
     endif
   endif
-  # NVIDIA HPC SDK (nvfortran) and Open MPI
+  # NVIDIA HPC SDK (nvfortran) and Open MPI. Also the host toolchain for the CUDA
+  # backend (USE_CUDA); -Mpreprocess handles the #ifdef directives in matform.f90
+  # and the -DUSE_CUDA flag the backend adds. (nvfortran has no -fpp switch.)
   ifeq ($(COMPILER), nvfortran)
     FC=mpif90
     export MPICOMPFLAGS=
     export MPILINKFLAGS=
-    export FCFLAGS=-module $(CONFIG) -fpp
-    export LINKFLAGS=-module $(CONFIG)
+    export FCFLAGS=-module $(CONFIG) -Mpreprocess -Kieee
+    export LINKFLAGS=-module $(CONFIG) -Kieee
     ifeq ($(CONFIG), debug)
       export FCFLAGS+=-O0 -g -Mbounds -Ktrap=fp -traceback
       export LINKFLAGS+=-O0 -g -Mbounds -Ktrap=fp -traceback
