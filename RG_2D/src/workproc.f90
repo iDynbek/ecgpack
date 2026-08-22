@@ -2339,10 +2339,19 @@ contains
         Glob_S(i,i)=ONE
       enddo
       if (Glob_ProcID==0) then
+#ifdef USE_CUDA
+        if (gpu_eig_active()) then
+          call gpu_dsygvx(1,Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
+                          Glob_WhichEigenvalue,EVs(1),Glob_c,ErrorCode)
+        else
+#endif
         call   DSYGVX(1,'V','I','U',Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,   &
                       ZERO,ZERO,Glob_WhichEigenvalue,Glob_WhichEigenvalue,Glob_AbsTolForDSYGVX, &
                       NumOfEigvalsFound,EVs,Glob_c,Nmax,Glob_WorkForDSYGVX,  &
                       Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
+#ifdef USE_CUDA
+        endif
+#endif
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
 !$      LWORK, IWORK, IFAIL, INFO )
@@ -2432,10 +2441,19 @@ contains
       enddo
 
       if (Glob_ProcID==0) then
+#ifdef USE_CUDA
+        if (gpu_eig_active()) then
+          call gpu_dsygvx(1,nfa,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
+                          Glob_WhichEigenvalue,EVs(1),Glob_c,ErrorCode)
+        else
+#endif
         call   DSYGVX(1,'V','I','U',nfa,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,   &
                       ZERO,ZERO,Glob_WhichEigenvalue,Glob_WhichEigenvalue,Glob_AbsTolForDSYGVX, &
                       NumOfEigvalsFound,EVs,Glob_c,nfa,Glob_WorkForDSYGVX,  &
                       Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
+#ifdef USE_CUDA
+        endif
+#endif
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
 !$      LWORK, IWORK, IFAIL, INFO )
@@ -9537,6 +9555,15 @@ contains
 
       if (Glob_ProcID==0) then
         write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
+#ifdef USE_CUDA
+        if (gpu_eig_active()) then
+          !cuSOLVER path: returns the WhichEigenvalue-th eigenpair directly.
+          !This is what makes fixed-basis method-G measurable on the GPU.
+          call gpu_dsygvx(1,cbs,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
+                          Glob_WhichEigenvalue,Evalue,Glob_c,ErrorCode)
+          NumOfEigvalsFound=1; Eigvals(1)=Evalue
+        else
+#endif
         call DSYGVX(1,'V','I','U',cbs,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,  &
                     ZERO,ZERO,1,NumOfEigvecs,Glob_AbsTolForDSYGVX, &
                     NumOfEigvalsFound,Eigvals,Eigvecs,cbs,Glob_WorkForDSYGVX,Glob_LWorkForDSYGVX, &
@@ -9545,6 +9572,11 @@ contains
 !$      VL, VU, IL, IU, ABSTOL,
 !$      M, W, Z, LDZ, WORK, LWORK,
 !$      IWORK, IFAIL, INFO )
+        Evalue=Eigvals(Glob_WhichEigenvalue)
+        Glob_c(1:cbs)=Eigvecs(1:cbs,Glob_WhichEigenvalue)
+#ifdef USE_CUDA
+        endif
+#endif
       endif
       call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       if (ErrorCode/=0) then
@@ -9556,11 +9588,7 @@ contains
         call MPI_Abort(MPI_COMM_WORLD, 1, Glob_MPIErrCode) !stop
       endif
 
-      !sending the eigenvalue and the eigenvector to all processes
-      if (Glob_ProcID==0) then
-        Evalue=Eigvals(Glob_WhichEigenvalue)
-        Glob_c(1:cbs)=Eigvecs(1:cbs,Glob_WhichEigenvalue)
-      endif
+      !eigenvalue and eigenvector are already set on rank 0 above; broadcast them
       call MPI_BCAST(Evalue,1,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       call MPI_BCAST(Glob_c,cbs,MPI_WP,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       Glob_CurrEnergy=Evalue
