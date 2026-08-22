@@ -79,6 +79,36 @@ All energy codes (`CG_0S`, `RG_0S`, `RG_1P`, `RG_2D`, `RG_2P`) as an option can 
 
 Note that an optimized BLAS/LAPACK library can be used only when `PREC=8`. For `PREC=10` and `PREC=16` only the `LINALG=netlib` option is available, because vendor-provided optimized BLAS/LAPACK libraries do not support extended or quadruple precision. In the off-diagonal matrix-element codes the `LINALG` argument is accepted for convenience in the `make` command but it has no effect because those codes do not use and do not link any BLAS/LAPACK library.
 
+### GPU acceleration (CUDA Fortran)
+
+The four energy codes (`RG_0S`, `RG_1P`, `RG_2D`, `RG_2P`) can additionally be compiled with a native CUDA Fortran GPU backend (`src/gpu_backend.f90`). It moves the two hot phases of a run onto an NVIDIA GPU: the assembly of the $H$ and $S$ matrices (with and without gradients), and — optionally — the generalized symmetric eigensolve, through cuSOLVER. The physics itself is *not* duplicated: `MatrixElementsHS_*` in `src/matelem.f90` is compiled twice from the same source, once for the host and once for the device (`attributes(host,device)`), so the CPU and GPU paths cannot drift apart.
+
+The backend is enabled with `USE_CUDA=yes`, which requires `COMPILER=nvfortran` and `PREC=8`:
+
+```bash
+cd RG_2D
+make release COMPILER=nvfortran MACHINE=shabyt PREC=8 LINALG=netlib USE_CUDA=yes EXEFILE=mybinaryfile
+```
+
+or, through the batch script, with the `cuda=yes` argument (the binary then gets a `_cuda` suffix):
+
+```bash
+./build.bash machine=shabyt toolchain=nvhpc-25.9 config=release code=RG_0S,RG_1P,RG_2D,RG_2P nparticles=6 cuda=yes
+```
+
+The GPU compute capability is inferred from `MACHINE` (see the `CUDA_ARCH_*` table at the top of each `Makefile`); pass `CUDA_ARCH=sm_XX` to `make` (or `cuda_arch=sm_XX` to `build.bash`) for a machine that is not listed. Device link-time optimization is on, and `maxregcount:255` is **not** a tuning choice — lower register caps have been observed to miscompile the matrix-element kernel, so do not lower it.
+
+A CUDA-enabled binary is still an ordinary CPU MPI binary and behaves identically to one until GPU execution is requested at runtime through environment variables:
+
+| Variable | Effect |
+| :--- | :--- |
+| `ECG_GPU=1` | Build $H$ and $S$ (and their gradients) on the GPU |
+| `ECG_GPU_EIG=1` | Also run the generalized eigensolve on the GPU through cuSOLVER (implies `ECG_GPU=1`) |
+| `ECG_GPU_BATCH=<n>` | Maximum number of basis-function pairs per GPU call (default 16384) |
+| `ECG_DETERM=1` | Sum the symmetry terms of each matrix element in a fixed order instead of with `atomicAdd`. Slower, but makes a GPU run bit-reproducible and lets it be compared against the CPU term by term |
+
+Each MPI rank takes the device `(node-local rank) mod (number of visible GPUs)`, so `mpirun -np 2` on a two-GPU node uses both, and the mapping stays correct when a job spans several nodes. Because the GPU path is selected at runtime and not from the input file, the same binary serves CPU-only and GPU users.
+
 ### Number of particles
 
 It is very important to keep in mind that the number of particles is hardcoded at compile-time rather than passed as a runtime argument. An executable compiled for a specific number of particles will fail to run if the input file specifies a different count. This design constraint is strictly enforced for performance optimization, ensuring the code runs at maximum efficiency.
