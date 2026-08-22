@@ -2,6 +2,9 @@ module matform
 !Module matform contains procedures that form Hamiltonian
 !and overlap matrices and related routines
   use matelem
+#ifdef USE_CUDA
+  use gpu_backend
+#endif
   implicit none
 
 contains
@@ -142,6 +145,14 @@ contains
     np1=np+1
     npt=Glob_npt
     nb=Glob_HSBuffLen
+
+#ifdef USE_CUDA
+    if (gpu_active()) then
+      call gpu_build_HS(Nmin,Nmax,StoreHS)   !chunked GPU build; hands results back through StoreHS
+      return
+    endif
+#endif
+
     Glob_HklBuff1(1:nb)=ZERO
     Glob_SklBuff1(1:nb)=ZERO
     i=0
@@ -176,7 +187,10 @@ contains
 !                Skl=2*Skl1-2*Skl2!-Skl3+Skl4
 !                Dk=2*Dk1-2*Dk2!-Dk3+Dk4
 !                Dl=2*Dl1-2*Dl2!-Dl3+Dl4
-            call MatrixElementsHS_RG_2P(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+            call MatrixElementsHS_RG_2P(n,np,mk,ml,mmk,mml,Paramk,Paraml, &
+                                  Glob_YHYMatr(1,1,j), &
+                                  Glob_MassMatrix,Glob_ScaledPseudoChargeMatrix, &
+                                  Glob_SqrtPi,Glob_PiRaised3n2, &
                                   Hkl,Skl,Dk,Dl,.false.,.false.)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl
@@ -283,6 +297,13 @@ contains
     npt2=np*2
     nb=Glob_HSBuffLen
 
+#ifdef USE_CUDA
+    if (gpu_active()) then
+      call gpu_build_HS_deriv(Nmin,Nmax,StoreHSD)   !chunked GPU build; hands results back through StoreHSD
+      return
+    endif
+#endif
+
     Glob_HklBuff1(1:nb)=ZERO
     Glob_SklBuff1(1:nb)=ZERO
     Glob_DkBuff1(1:npt2,1:nb)=ZERO
@@ -326,7 +347,10 @@ contains
 !                Skl=2*Skl1-2*Skl2!-Skl3+Skl4
 !                Dk=2*Dk1-2*Dk2!-Dk3+Dk4
 !                Dl=2*Dl1-2*Dl2!-Dl3+Dl4
-            call MatrixElementsHS_RG_2P(mk,ml,mmk,mml,Paramk,Paraml,Glob_YHYMatr(1:n,1:n,j), &
+            call MatrixElementsHS_RG_2P(n,np,mk,ml,mmk,mml,Paramk,Paraml, &
+                                  Glob_YHYMatr(1,1,j), &
+                                  Glob_MassMatrix,Glob_ScaledPseudoChargeMatrix, &
+                                  Glob_SqrtPi,Glob_PiRaised3n2, &
                                   Hkl,Skl,Dk,Dl,.true.,grad_l)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl

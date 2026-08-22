@@ -4,6 +4,9 @@ module workproc
   use matform
   use matelem
   use linalg
+#ifdef USE_CUDA
+  use gpu_backend
+#endif
   implicit none
 
 contains
@@ -2162,10 +2165,19 @@ contains
         Glob_S(i,i)=ONE
       enddo
       if (Glob_ProcID==0) then
+#ifdef USE_CUDA
+        if (gpu_eig_active()) then
+          call gpu_dsygvx(0,Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim, &
+                          Glob_WhichEigenvalue,EVs(1),Z,ErrorCode)
+        else
+#endif
         call DSYGVX(1,'N','I','U',Nmax,Glob_H,Glob_HSLeadDim,Glob_S,Glob_HSLeadDim,   &
                     ZERO,ZERO,Glob_WhichEigenvalue,Glob_WhichEigenvalue,Glob_AbsTolForDSYGVX, &
                     NumOfEigvalsFound,EVs,Z,Nmax,Glob_WorkForDSYGVX,  &
                     Glob_LWorkForDSYGVX,Glob_IWorkForDSYGVX,IFAIL,ErrorCode)
+#ifdef USE_CUDA
+        endif
+#endif
         ! SUBROUTINE DSYGVX( ITYPE, JOBZ, RANGE, UPLO, N, A, LDA, B, LDB,
 !$      VL, VU, IL, IU, ABSTOL, M, W, Z, LDZ, WORK,
 !$      LWORK, IWORK, IFAIL, INFO )

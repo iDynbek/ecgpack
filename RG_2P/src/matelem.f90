@@ -5,7 +5,11 @@ module matelem
   implicit none
 
 contains
-  subroutine MatrixElementsHS_RG_2P(m_k, m_l, mm_k, mm_l, vechLk, vechLl, P, &
+#ifdef USE_CUDA
+  attributes(host,device) &
+#endif
+  subroutine MatrixElementsHS_RG_2P(n, np, m_k, m_l, mm_k, mm_l, vechLk, vechLl, P, &
+                              mass, chargeM, sqrtpi, pir3n2, &
                               Hkl, Skl, Dk, Dl, grad_k, grad_l)
 !This subroutine computes symmetry adapted matrix element with
 !two real L=1 correlated Gaussians:
@@ -35,12 +39,19 @@ contains
 !           Dl=(dHkldvechLl,dSkldvechLl)
 
 !Arguments
-    integer,intent(in)          :: m_k,m_l,mm_k,mm_l
-    real(wp),intent(in)      :: vechLk(Glob_np), vechLl(Glob_np)
-    real(wp),intent(in)      :: P(Glob_n,Glob_n)
+!  (n, np and the physics constants are passed in rather than read from the
+!   Glob_* module globals so this routine can also compile as CUDA Fortran
+!   device code -- device code cannot read host module variables. The body is
+!   master's, unchanged apart from these substitutions.)
+    integer,intent(in),value :: n, np
+    integer,intent(in),value :: m_k,m_l,mm_k,mm_l
+    real(wp),intent(in)      :: vechLk(np), vechLl(np)
+    real(wp),intent(in)      :: P(n,n)
+    real(wp),intent(in)      :: mass(n,n), chargeM(0:n,0:n)
+    real(wp),intent(in),value :: sqrtpi, pir3n2
     real(wp),intent(out)     :: Skl,Hkl
-    real(wp),intent(out)     :: Dk(2*Glob_np),Dl(2*Glob_np)
-    logical,intent(in)          :: grad_k, grad_l
+    real(wp),intent(out)     :: Dk(2*np),Dl(2*np)
+    logical,intent(in),value :: grad_k, grad_l
 
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
@@ -50,7 +61,6 @@ contains
     logical        Pisperm
 
 !Local variables
-    integer           n, np
     integer           vl(nn),bl(nn)
     real(wp)       Lk(nn,nn),Ll(nn,nn)
     real(wp)       Ak(nn,nn),tAl(nn,nn),tAkl(nn,nn)
@@ -80,8 +90,6 @@ contains
     real(wp)       alv,alb,gav,gab,c1w,t3m,t5m,HklOverSkl
     integer           i,j,k,indx
 
-    n=Glob_n
-    np=Glob_np
 !First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
     indx=0
     do i=1,nn
@@ -267,7 +275,7 @@ contains
 !Evaluating overlap
 !temp1=ZERO
     temp1=FOUR*det_tAkl*sqrt(det_tAkl)
-    Skl=Glob_PiRaised3n2*m/temp1
+    Skl=pir3n2*m/temp1
 
 !Doing multiplication inv_tAkltAl=inv_tAkl*tAl
 !(the matrices inv_tAklAk and inv_tAklAkM, which the original code
@@ -290,7 +298,7 @@ contains
       do j=1,nn
         temp1=ZERO
         do k=1,nn
-          temp1=temp1+inv_tAkltAl(j,k)*Glob_MassMatrix(k,i)
+          temp1=temp1+inv_tAkltAl(j,k)*mass(k,i)
         enddo
         inv_tAkltAlM(j,i)=temp1
       enddo
@@ -348,7 +356,7 @@ contains
 !of eta1, sqrt_eta1, eta2, and Rkl are filled.
 !temp1=ZERO
     Vkl=ZERO
-    temp1=Skl*(TWO/Glob_SqrtPi)
+    temp1=Skl*(TWO/sqrtpi)
 !temp1=Glob_PiRaised3n2/(TWO*Glob_SqrtPi*det_tAkl*sqrt(det_tAkl))
     do i=1,nn
       temp2=inv_tAkl(i,i)
@@ -369,7 +377,7 @@ contains
       eta(i,i)=temp4*temp44-temp443*temp444
       Rkl(i,i)=temp1*(ONE-ONETHIRD*(tau3*temp44+tau33*temp4-tau333*temp444-tau334*temp443)/(m*temp2) &
                       + ONEFIFTH*(temp4*temp44-temp443*temp444)/(m*temp2*temp2))/temp3
-      Vkl=Vkl+Glob_ScaledPseudoChargeMatrix(i,0)*Rkl(i,i)
+      Vkl=Vkl+chargeM(i,0)*Rkl(i,i)
     enddo
     do i=1,nn
       do j=i+1,nn
@@ -395,7 +403,7 @@ contains
         eta(j,i)=temp4*temp44-temp443*temp444
         Rkl(j,i)=temp1*(ONE-ONETHIRD*(tau3*temp44+tau33*temp4-tau333*temp444-tau334*temp443)/(m*temp2)+ &
                         ONEFIFTH*(temp4*temp44-temp443*temp444)/(m*temp2*temp2))/temp3
-        Vkl=Vkl+Glob_ScaledPseudoChargeMatrix(i,j)*Rkl(j,i)
+        Vkl=Vkl+chargeM(i,j)*Rkl(j,i)
       enddo
     enddo
 !Hkl=ZERO
@@ -488,7 +496,7 @@ contains
             temp1=temp1-twosym_tFkl(k,j)*Lk(k,i)
           enddo
           indx=indx+1
-          Dk(Glob_np+indx)=Skl*temp1
+          Dk(np+indx)=Skl*temp1
         enddo
       enddo
     endif
@@ -541,7 +549,7 @@ contains
             temp1=temp1-twosym_tGkl(k,j)*Ll(k,i)
           enddo
           indx=indx+1
-          Dl(Glob_np+indx)=Skl*temp1
+          Dl(np+indx)=Skl*temp1
         enddo
       enddo
     endif
@@ -568,7 +576,7 @@ contains
       !terms with Jii (interaction with the reference particle)
       do i=1,nn
         temp_n=tau3*eta2(i,i)+tau33*eta22(i,i)-tau333*eta223(i,i)-tau334*eta224(i,i)
-        c1w=Glob_ScaledPseudoChargeMatrix(i,0)*(TWO/Glob_SqrtPi)/(eta1(i,i)*sqrt_eta1(i,i))
+        c1w=chargeM(i,0)*(TWO/sqrtpi)/(eta1(i,i)*sqrt_eta1(i,i))
         t5m=ONEFIFTH/(eta1(i,i)*m)
         !a*a' weight (the "first term")
         Cmat(i,i)=Cmat(i,i)+c1w*(ONE+(eta(i,i)/eta1(i,i)-temp_n)/(eta1(i,i)*m))
@@ -597,7 +605,7 @@ contains
       do i=1,nn
         do j=i+1,nn
           temp_n=tau3*eta2(j,i)+tau33*eta22(j,i)-tau333*eta223(j,i)-tau334*eta224(j,i)
-          c1w=Glob_ScaledPseudoChargeMatrix(i,j)*(TWO/Glob_SqrtPi)/(eta1(j,i)*sqrt_eta1(j,i))
+          c1w=chargeM(i,j)*(TWO/sqrtpi)/(eta1(j,i)*sqrt_eta1(j,i))
           t5m=ONEFIFTH/(eta1(j,i)*m)
           temp4=c1w*(ONE+(eta(j,i)/eta1(j,i)-temp_n)/(eta1(j,i)*m))
           Cmat(i,i)=Cmat(i,i)+temp4
@@ -754,7 +762,7 @@ contains
             temp1=temp1+Zsym(k,j)*Lk(k,i)
           enddo
           indx=indx+1
-          Dk(indx)=Skl*temp1+HklOverSkl*Dk(Glob_np+indx)
+          Dk(indx)=Skl*temp1+HklOverSkl*Dk(np+indx)
         enddo
       enddo
     endif
@@ -768,7 +776,7 @@ contains
       do i=1,nn
         do j=1,nn
           inv_tAklAk(j,i)=-inv_tAkltAl(j,i)
-          inv_tAklAkM(j,i)=Glob_MassMatrix(j,i)-inv_tAkltAlM(j,i)
+          inv_tAklAkM(j,i)=mass(j,i)-inv_tAkltAlM(j,i)
         enddo
         inv_tAklAk(i,i)=inv_tAklAk(i,i)+ONE
       enddo
@@ -811,7 +819,7 @@ contains
       temp2=temp1*h/m
       do j=1,nn
         do i=1,nn
-          Zsym(i,j)=12*(Glob_MassMatrix(i,j)-inv_tAkltAlM(i,j) &
+          Zsym(i,j)=12*(mass(i,j)-inv_tAkltAlM(i,j) &
                         -inv_tAkltAlM(j,i)+Fkl(i,j)) &
                     +temp2*(tKkll(i,j)+tKkll(j,i)) &
                     +temp1*(gkl(i,j)+gkl(j,i) &
@@ -855,7 +863,7 @@ contains
             temp1=temp1+W3(k,j)*Ll(k,i)
           enddo
           indx=indx+1
-          Dl(indx)=Skl*temp1+HklOverSkl*Dl(Glob_np+indx)
+          Dl(indx)=Skl*temp1+HklOverSkl*Dl(np+indx)
         enddo
       enddo
     endif
