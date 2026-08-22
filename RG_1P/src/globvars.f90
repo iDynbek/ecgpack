@@ -566,4 +566,32 @@ module globvars
   real(wp), external :: DLAMCH
   integer, external  :: ILAENV
 
+!=============================================================
+!Per-phase wall-clock instrumentation (GPU benchmark campaign).
+!Cumulative time, time of the most recent call, and call count for
+!each phase. Each MPI rank keeps its own copy (ranks are separate
+!processes); the summary printed at exit is rank 0's.
+!=============================================================
+  integer,parameter :: PROF_MEE=1   !matrix elements, energy path
+  integer,parameter :: PROF_MEG=2   !matrix elements, gradient path
+  integer,parameter :: PROF_EIG=3   !generalized eigensolve
+  real(wp)   :: Glob_ProfTime(3)=0.0_wp
+  real(wp)   :: Glob_ProfLast(3)=0.0_wp
+  integer(8) :: Glob_ProfCnt(3)=0
+
+contains
+
+subroutine ProfAccum(t0,which)
+!Accumulate the wall time elapsed since tick t0 into phase `which`.
+  integer(8),intent(in) :: t0
+  integer,intent(in)    :: which
+  integer(8)            :: t1,rate
+  real(wp)              :: dt
+  call system_clock(t1,rate)
+  dt=real(t1-t0,wp)/real(rate,wp)
+  Glob_ProfTime(which)=Glob_ProfTime(which)+dt
+  Glob_ProfLast(which)=dt
+  Glob_ProfCnt(which) =Glob_ProfCnt(which)+1
+end subroutine ProfAccum
+
 end module globvars

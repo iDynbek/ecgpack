@@ -110,6 +110,7 @@ contains
   end subroutine StoreHSD
 
   subroutine ComputeMatElem(Nmin,Nmax)
+    integer(8)  tprof   !instrumentation tick (see ProfAccum)
 !Subroutine ComputeMatElem computes matrix elements of the
 !Hamiltonian and the overlap with basis functions whose number
 !ranges from Nmin to Nmax. The derivatives of H and S are NOT
@@ -144,6 +145,7 @@ contains
     real(wp)  Dk(2),Dl(2),Dk1(2),Dl1(2),Dk2(2),Dl2(2),Dk3(2),Dl3(2),Dk4(2),Dl4(2)
     real(wp)  Dk5(2),Dl5(2),Dk6(2),Dl6(2),Dk7(2),Dl7(2),Dk8(2),Dl8(2)
 
+    call system_clock(tprof)
     n=Glob_n
     np=Glob_np
     np1=np+1
@@ -153,6 +155,7 @@ contains
 #ifdef USE_CUDA
     if (gpu_active()) then
       call gpu_build_HS(Nmin,Nmax,StoreHS)   !chunked GPU build; hands results back through StoreHS
+      call ProfAccum(tprof,PROF_MEE)
       return
     endif
 #endif
@@ -248,9 +251,11 @@ contains
       enddo
     endif
 
+    call ProfAccum(tprof,PROF_MEE)
   end subroutine ComputeMatElem
 
   subroutine ComputeMatElemAndDeriv(Nmin,Nmax)
+    integer(8)  tprof   !instrumentation tick (see ProfAccum)
 !Subroutine ComputeMatElem computes matrix elements of the
 !Hamiltonian and the overlap as well as their derivatives with
 !basis functions whose number ranges from Nmin to Nmax. Routine
@@ -302,6 +307,7 @@ contains
 !real(wp) Dl8(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
     logical     grad_l
 
+    call system_clock(tprof)
     n=Glob_n
     np=Glob_np
     npt=Glob_npt
@@ -311,6 +317,7 @@ contains
 #ifdef USE_CUDA
     if (gpu_active()) then
       call gpu_build_HS_deriv(Nmin,Nmax,StoreHSD)   !chunked GPU build; hands results back through StoreHSD
+      call ProfAccum(tprof,PROF_MEG)
       return
     endif
 #endif
@@ -434,6 +441,7 @@ contains
       enddo
     endif
 
+    call ProfAccum(tprof,PROF_MEG)
   end subroutine ComputeMatElemAndDeriv
 
 end module matform

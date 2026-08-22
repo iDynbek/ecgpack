@@ -9199,6 +9199,11 @@ contains
     real(wp)    beta,mu
     logical        AreCorrFuncNeeded,ArePartDensNeeded
     logical        IsFile1OK,IsFile3OK
+!Benchmark mode (ECG_BENCH=1): time the fixed-basis eigensolve and return
+!before the property suite, which is expensive and has no GPU path.
+    integer(8)     tprof
+    logical        benchmark
+    character(8)   benchenv
 
 !Local variables used to store temporary data
 !associated with certain expectation values
@@ -9555,6 +9560,7 @@ contains
 
       if (Glob_ProcID==0) then
         write(*,'(1x,a29)',advance='no') 'Solving eigenvalue problem...'
+        call system_clock(tprof)
 #ifdef USE_CUDA
         if (gpu_eig_active()) then
           !cuSOLVER path: returns the WhichEigenvalue-th eigenpair directly.
@@ -9577,6 +9583,7 @@ contains
 #ifdef USE_CUDA
         endif
 #endif
+        call ProfAccum(tprof,PROF_EIG)
       endif
       call MPI_BCAST(ErrorCode,1,MPI_INTEGER,0,MPI_COMM_WORLD,Glob_MPIErrCode)
       if (ErrorCode/=0) then
@@ -9641,6 +9648,26 @@ contains
         write(*,*) 'done'
         write(*,*) 'Energy: ',Evalue
       endif
+    endif
+
+!Benchmark mode: report the fixed-basis energy and the per-phase wall times,
+!then return before the property suite. Benchmark decks are single-step, so
+!the remaining setup scratch is reclaimed at process exit; the two K*K giants
+!are freed explicitly because they dominate memory at large K.
+    benchmark=.false.
+    if (Glob_ProcID==0) then
+      call get_environment_variable('ECG_BENCH', benchenv, status=OpenFileErr)
+      benchmark=(OpenFileErr==0).and.(benchenv(1:1)=='1')
+    endif
+    call MPI_BCAST(benchmark,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
+    if (benchmark) then
+      if (Glob_ProcID==0) write(*,'(1x,a,i7,a,f20.12,a,f12.4,a,f12.4,a,f12.4)') &
+        'BENCH K=',cbs,' E=',Glob_CurrEnergy, &
+        ' MEE=',Glob_ProfTime(PROF_MEE),'s MEG=',Glob_ProfTime(PROF_MEG), &
+        's EIG=',Glob_ProfTime(PROF_EIG)
+      if (allocated(Glob_H)) deallocate(Glob_H)
+      if (allocated(Glob_S)) deallocate(Glob_S)
+      return
     endif
 
     if (Glob_ProcID==0) write(*,'(1x,a31)',advance='no') 'Computing expectation values...'

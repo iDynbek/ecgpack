@@ -270,6 +270,17 @@ program main
     write(*,*) ' '
     write(*,*) 'Basis Building and Optimization Program is completed'
     write(*,*) 'Program has stopped'
+
+    write(*,*)
+    write(*,*) '=============== PER-PHASE WALL TIME ==============='
+    write(*,'(1x,a,f12.3,a,i10,a)') 'Matrix elements, energy   : ', &
+        Glob_ProfTime(PROF_MEE),' s over ',Glob_ProfCnt(PROF_MEE),' builds'
+    write(*,'(1x,a,f12.3,a,i10,a)') 'Matrix elements, gradient : ', &
+        Glob_ProfTime(PROF_MEG),' s over ',Glob_ProfCnt(PROF_MEG),' builds'
+    write(*,'(1x,a,f12.3,a,i10,a)') 'Eigensolve (method G)     : ', &
+        Glob_ProfTime(PROF_EIG),' s over ',Glob_ProfCnt(PROF_EIG),' solves'
+    write(*,*) '=================================================='
+    write(*,*)
   endif
 
 #ifdef USE_CUDA
