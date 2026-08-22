@@ -10492,7 +10492,7 @@ contains
           !write to file
           a=Glob_EqvPairList(1,1,i)
           b=Glob_EqvPairList(2,1,i)
-          if (a/=b) write(2,'(a,i1,i1.1x)',advance='no') '                 r^2_',a,b
+          if (a/=b) write(2,'(a,i1,i1,1x)',advance='no') '                 r^2_',a,b
           if (a==b) write(2,'(a,i1,1x)',advance='no')    '                  r^2_',a
           call writerealadv(2,beta/k)
         enddo
