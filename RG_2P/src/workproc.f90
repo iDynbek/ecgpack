@@ -9521,7 +9521,7 @@ contains
     endif
     call MPI_BCAST(benchmark,1,MPI_LOGICAL,0,MPI_COMM_WORLD,Glob_MPIErrCode)
     if (benchmark) then
-      if (Glob_ProcID==0) write(*,'(1x,a,i7,a,f20.12,a,f12.4,a,f12.4,a,f12.4)') &
+      if (Glob_ProcID==0) write(*,'(1x,a,i7,a,es42.33e3,a,f12.4,a,f12.4,a,f12.4)') &
         'BENCH K=',cbs,' E=',Glob_CurrEnergy, &
         ' MEE=',Glob_ProfTime(PROF_MEE),'s MEG=',Glob_ProfTime(PROF_MEG), &
         's EIG=',Glob_ProfTime(PROF_EIG)
