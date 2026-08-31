@@ -317,14 +317,7 @@ contains
 !We do it by multiplying twice the row-vector on the left
 !by a matrix on the right and computing a dot product in the end.
 
-!vkinv_tAkltAlM'=vk'*inv_tAkltAlM ,  bkinv_tAkltAlM'=bk'*inv_tAkltAlM
-
-    do i=1,nn
-      vkinv_tAkltAlM(i)=inv_tAkltAlM(m_k,i)
-      bkinv_tAkltAlM(i)=inv_tAkltAlM(mm_k,i)
-    enddo
-
-!u1=vkinv_tAkltAlM'*Ak, u11=bkinv_tAkltAlM'*Ak
+!u1=inv_tAkltAlM(m_k,:)*Ak, u11=inv_tAkltAlM(mm_k,:)*Ak
 !tau2=u1'*inv_tAklvl (storage for u1 as such is not needed, we use temp1=u1(i))
 !tau22=u11'*inv_tAklbl
     tau2=ZERO
@@ -334,13 +327,9 @@ contains
     do i=1,nn
       temp1=ZERO
       temp2=ZERO
-      !nvfortran 25.9/26.3/26.5 miscompile this nest when BOTH bounds are the
-      !compile-time nn: at nparticles=5, -O2/-O3, Hkl comes back ~50% wrong
-      !with no warning. Either bound as the runtime n avoids it, and n == nn
-      !always. Measured cost ~0.5% (gfortran, median over 42 cells).
-      do j=1,n
-        temp1=temp1+vkinv_tAkltAlM(j)*Ak(j,i)
-        temp2=temp2+bkinv_tAkltAlM(j)*Ak(j,i)
+      do j=1,nn
+        temp1=temp1+inv_tAkltAlM(m_k,j)*Ak(j,i)
+        temp2=temp2+inv_tAkltAlM(mm_k,j)*Ak(j,i)
       enddo
       tau2=tau2+temp1*inv_tAklvl(i)
       tau22=tau22+temp2*inv_tAklbl(i)
@@ -451,6 +440,12 @@ contains
 !  dHkl/dvechLl = (Hkl/Skl)*dSkl/dvechLl + Skl*vech[(P*Zsym*P')*Ll]
 
     if (grad_k.or.grad_l) then
+      !Materialize these rows only for gradients. The energy path reads them
+      !directly above, avoiding a temporary producer loop between reductions.
+      do i=1,nn
+        vkinv_tAkltAlM(i)=inv_tAkltAlM(m_k,i)
+        bkinv_tAkltAlM(i)=inv_tAkltAlM(mm_k,i)
+      enddo
       !Evaluating the four rank-one matrices tKklx, their combinations
       !tKkll and gkl, and twosym_tFkl
       do i=1,nn

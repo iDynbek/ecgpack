@@ -334,21 +334,13 @@ contains
 !We do it by multiplying twice the row-vector on the left
 !by a matrix on the right and computing a dot product in the end.
 
-!vkinv_tAkltAlM'=vk'*inv_tAkltAlM
-    do i=1,nn
-      vkinv_tAkltAlM(i)=inv_tAkltAlM(m_k,i)
-    enddo
-!u1=vkinv_tAkltAlM'*Ak
+!u1=inv_tAkltAlM(m_k,:)*Ak
 !tau2=u1'*inv_tAkltvl (storage for u1 as such is not needed, we use temp1=u1(i))
     tau2=ZERO
     do i=1,nn
       temp1=ZERO
-      !nvfortran 25.9/26.3/26.5 miscompile this nest when BOTH bounds are the
-      !compile-time nn: at nparticles=5, -O2/-O3, Hkl comes back ~50% wrong
-      !with no warning. Either bound as the runtime n avoids it, and n == nn
-      !always. Measured cost ~0.5% (gfortran, median over 42 cells).
-      do j=1,n
-        temp1=temp1+vkinv_tAkltAlM(j)*Ak(j,i)
+      do j=1,nn
+        temp1=temp1+inv_tAkltAlM(m_k,j)*Ak(j,i)
       enddo
       tau2=tau2+temp1*inv_tAkltvl(i)
     enddo
@@ -428,6 +420,11 @@ contains
 !  dHkl/dvechLl = (Hkl/Skl)*dSkl/dvechLl + Skl*vech[(P*Zsym*P')*Ll]
 
     if (grad_k.or.grad_l) then
+      !Materialize this row only for gradients. The energy path reads the row
+      !directly above, avoiding a temporary producer loop between reductions.
+      do i=1,nn
+        vkinv_tAkltAlM(i)=inv_tAkltAlM(m_k,i)
+      enddo
       !Evaluating matrix tKkl = inv_tAkltvl * vkinv_tAkl'
       !which will be used a lot below, and its symmetrization Ssym
       do i=1,nn
@@ -604,26 +601,19 @@ contains
 !Gradient of Hkl with respect to vechLk
 
     if (grad_k) then
-      !Computing u1'=vkinv_tAkltAlM'*inv_tAkltAl'
+      !Compute the independent u1 and u3 matvecs in one pass.
       do i=1,nn
         temp1=ZERO
+        temp2=ZERO
         do j=1,nn
           temp1=temp1+vkinv_tAkltAlM(j)*inv_tAkltAl(i,j)
+          temp2=temp2+Ak(i,j)*inv_tAkltvl(j)
         enddo
         u1(i)=temp1
+        u3(i)=temp2
       enddo
-      !Computing u2=inv_tAkltAlM*Ak*inv_tAkltvl
+      !Computing u2=inv_tAkltAlM*u3
       do i=1,nn
-        temp1=ZERO
-        do j=1,nn
-          temp1=temp1+Ak(i,j)*inv_tAkltvl(j)
-        enddo
-        u3(i)=temp1
-      enddo
-      !nvfortran 25.9/26.5 miscompile RG_1P's gradient path when this and three
-      !neighbouring nests are all constant-bound (nparticles>=7, -cuda builds
-      !only). Any one of the four as the runtime n avoids it.
-      do i=1,n
         temp1=ZERO
         do j=1,nn
           temp1=temp1+inv_tAkltAlM(i,j)*u3(j)
