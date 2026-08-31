@@ -96,7 +96,24 @@ or, through the batch script, with the `cuda=yes` argument (the binary then gets
 ./build.bash machine=shabyt toolchain=nvhpc-25.9 config=release code=RG_0S,RG_1P,RG_2D,RG_2P nparticles=6 cuda=yes
 ```
 
-The GPU compute capability is inferred from `MACHINE` (see the `CUDA_ARCH_*` table at the top of each `Makefile`); pass `CUDA_ARCH=sm_XX` to `make` (or `cuda_arch=sm_XX` to `build.bash`) for a machine that is not listed. Device link-time optimization is on, and `maxregcount:255` is **not** a tuning choice — lower register caps have been observed to miscompile the matrix-element kernel, so do not lower it.
+On Irgetas/H100, NVHPC 26.5 is available directly:
+
+```bash
+./build.bash machine=irgetas toolchain=nvhpc-26.5 config=release code=RG_0S,RG_1P,RG_2D,RG_2P nparticles=6 cuda=yes
+```
+
+The GPU compute capability is inferred from `MACHINE`: Shabyt targets `sm_70`
+(V100), Aurora targets `sm_86`, and Irgetas targets `sm_90` (H100). Pass
+`CUDA_ARCH=sm_XX` to `make` (or `cuda_arch=sm_XX` to `build.bash`) for an
+unlisted machine. Device link-time optimization is on, and `maxregcount:255`
+is **not** a tuning choice — lower register caps have been observed to
+miscompile the matrix-element kernel, so do not lower it.
+
+The backend frees every application-owned CUDA allocation at shutdown but does
+not call `cudaDeviceReset()`. NVHPC 26.5/CUDA 13.2 performs CUDA Fortran runtime
+cleanup after the application finalizer; resetting the context first makes that
+cleanup fail with CUDA error 709 (`CONTEXT_IS_DESTROYED`). Normal process
+teardown releases the context safely.
 
 A CUDA-enabled binary is still an ordinary CPU MPI binary and behaves identically to one until GPU execution is requested at runtime through environment variables:
 
@@ -140,6 +157,7 @@ Script `build.bash` can use some common toolchains available in HPC systems/envi
 | intel-2025a | intel/2025a | Intel compilers and libraries |
 | intel-2024a | intel/2024a | Intel compilers and libraries |  
 | intel-2023b | intel/2023b | Intel compilers and libraries |
+| nvhpc-26.5 | NVHPC/26.5-CUDA-13.2.0 | Nvidia compilers and libraries included in NVHPC SDK |
 | nvhpc-25.9 | NVHPC/25.9-CUDA-12.9.1 | Nvidia compilers and libraries included in NVHPC SDK |
 | nvhpc-25.3 | NVHPC/25.3-CUDA-12.8.0 | Nvidia compilers and libraries included in NVHPC SDK |
 

@@ -599,8 +599,12 @@ contains
   end function gpu_init
 
   subroutine gpu_finalize()
-  !Release the cuSOLVER handle and device/host buffers, then reset the device.
+  !Release the cuSOLVER handle and application-owned device/host buffers.
   !Called once at shutdown (main, before MPI_FINALIZE).
+  !Do not call cudaDeviceReset here. NVHPC 26.5/CUDA 13.2 performs additional
+  !CUDA Fortran runtime cleanup after this routine; destroying the context first
+  !makes that cleanup fail with CUDA error 709 (CONTEXT_IS_DESTROYED). Process
+  !teardown releases the context after the compiler runtime has finished.
     integer :: istat
     if (.not. ctx_ready) return
     if (eig_created) then
@@ -621,7 +625,6 @@ contains
     if (allocated(d_Dk))  deallocate(d_Dk, d_Dl)
     if (allocated(Lh))    deallocate(Lh, Ah, MAh)
     cap_basis=0; cap_pairs=0; cap_grad=0; cap_terms=0; consts_ready=.false.
-    istat = cudaDeviceReset()
   end subroutine gpu_finalize
 
   !cuSOLVER generalized symmetric eigensolver. Solves H x = lambda S x (itype 1),

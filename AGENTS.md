@@ -96,7 +96,7 @@ Common Makefile parameters:
 - `USE_CUDA`: `yes` enables the native CUDA Fortran backend in the four real-ECG
   energy codes; this requires `COMPILER=nvfortran` and `PREC=8`
 - `CUDA_ARCH`: optional explicit GPU target such as `sm_70`; machine profiles provide
-  a default for known clusters
+  a default for known clusters (`shabyt=sm_70` for V100 and `irgetas=sm_90` for H100)
 
 Precision notes:
 
@@ -174,6 +174,10 @@ that device code needs explicitly rather than reading host module variables, and
 host I/O or unsupported allocatable operations. Runtime selection uses `ECG_GPU=1` for H/S
 and gradient assembly and `ECG_GPU_EIG=1` for the optional cuSOLVER path; CUDA-enabled
 binaries remain CPU-only by default.
+
+GPU shutdown explicitly frees application-owned device allocations but must not call
+`cudaDeviceReset()`: NVHPC 26.5 performs later CUDA Fortran runtime cleanup, and an early
+reset makes that cleanup fail with CUDA error 709 (`CONTEXT_IS_DESTROYED`).
 
 Common BBOP steps handled from `main.f90` include:
 

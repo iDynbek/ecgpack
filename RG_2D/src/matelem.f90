@@ -334,7 +334,7 @@ contains
     do i=1,nn
       temp1=ZERO
       temp2=ZERO
-      !nvfortran 25.9/26.3 miscompile this nest when BOTH bounds are the
+      !nvfortran 25.9/26.3/26.5 miscompile this nest when BOTH bounds are the
       !compile-time nn: at nparticles=5, -O2/-O3, Hkl comes back ~50% wrong
       !with no warning. Either bound as the runtime n avoids it, and n == nn
       !always. Measured cost ~0.5% (gfortran, median over 42 cells).

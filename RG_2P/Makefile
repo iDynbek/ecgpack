@@ -59,9 +59,10 @@ USE_CUDA=no
 # CUDA_ARCH: the GPU compute capability (nvfortran -gpu=ccXX). It defaults
 # from MACHINE so you don't have to remember it per host; override by passing
 # CUDA_ARCH=... explicitly for any other GPU.
-#   sm_70 = V100 (shabyt)   sm_80 = A100   sm_86 = RTX 3060 Ti (aurora)   sm_90 = H100
+#   sm_70 = V100 (shabyt)   sm_80 = A100   sm_86 = RTX 3060 Ti (aurora)   sm_90 = H100 (irgetas)
 CUDA_ARCH_shabyt = sm_70
 CUDA_ARCH_aurora = sm_86
+CUDA_ARCH_irgetas = sm_90
 CUDA_ARCH = $(or $(CUDA_ARCH_$(MACHINE)),sm_86)
 
 # CUF_GPU is the nvfortran -gpu=ccXX arch, derived from CUDA_ARCH (sm_70 -> cc70).
@@ -352,4 +353,3 @@ $(CONFIG)/workproc.o: $(SRC_DIR)/workproc.f90 $(CONFIG)/misc.o $(CONFIG)/linalg.
 
 $(CONFIG)/main.o: $(SRC_DIR)/main.f90 $(CONFIG)/workproc.o $(GPU_DEP)
 	$(FC) $(FCFLAGS) $(MPICOMPFLAGS) -c $(SRC_DIR)/main.f90 -o $(CONFIG)/main.o
-
