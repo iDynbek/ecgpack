@@ -131,6 +131,8 @@ contains
     real(wp) Skl,Hkl,Skl1,Hkl1,Skl2,Hkl2,Skl3,Hkl3,Skl4,Hkl4
     real(wp) Ssum,Hsum
     real(wp),allocatable :: Lh(:,:,:),Ah(:,:,:),MAh(:,:,:)
+    integer,allocatable :: perm(:,:),iperm(:,:)
+    logical,allocatable :: Pisperm(:)
 !These arrays are not actually used but needed for proper calling
 !of subroutine MatrixElementsHS_RG_0S. Thus, one can set some small size
 !for them
@@ -143,6 +145,9 @@ contains
     allocate(Lh(n,n,Nmax),Ah(n,n,Nmax),MAh(n,n,Nmax))
     call Precompute_LAMA(n,np,Nmax,Glob_NonlinParam(1:np,1:Nmax), &
                         Glob_MassMatrix(1:n,1:n),Lh,Ah,MAh)
+    allocate(perm(n,Glob_NumYHYTerms),iperm(n,Glob_NumYHYTerms),Pisperm(Glob_NumYHYTerms))
+    call Precompute_PermutationMaps(n,Glob_NumYHYTerms,Glob_YHYMatr(1:n,1:n,1:Glob_NumYHYTerms), &
+                                    perm,iperm,Pisperm)
     Glob_HklBuff1(1:nb)=ZERO
     Glob_SklBuff1(1:nb)=ZERO
     i=0
@@ -177,6 +182,7 @@ contains
 !                Dl=2*Dl1-2*Dl2!-Dl3+Dl4
             call MatrixElementsHS_RG_2P(mk,ml,mmk,mml,Lh(1,1,k),Lh(1,1,l), &
                                   Ah(1,1,k),Ah(1,1,l),MAh(1,1,k),Glob_YHYMatr(1:n,1:n,j), &
+                                  perm(1,j),iperm(1,j),Pisperm(j), &
                                   Hkl,Skl,Dk,Dl,.false.,.false.)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl
@@ -262,6 +268,8 @@ contains
     real(wp) Skl,Hkl,Skl1,Hkl1,Skl2,Hkl2,Skl3,Hkl3,Skl4,Hkl4
     real(wp) Ssum,Hsum
     real(wp),allocatable :: Lh(:,:,:),Ah(:,:,:),MAh(:,:,:)
+    integer,allocatable :: perm(:,:),iperm(:,:)
+    logical,allocatable :: Pisperm(:)
     real(wp) Dk(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
     real(wp) Dl(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
     real(wp) Dk1(Glob_AllowedNumOfPseudoParticles*(Glob_AllowedNumOfPseudoParticles+1))
@@ -284,6 +292,9 @@ contains
     allocate(Lh(n,n,Nmax),Ah(n,n,Nmax),MAh(n,n,Nmax))
     call Precompute_LAMA(n,np,Nmax,Glob_NonlinParam(1:np,1:Nmax), &
                         Glob_MassMatrix(1:n,1:n),Lh,Ah,MAh)
+    allocate(perm(n,Glob_NumYHYTerms),iperm(n,Glob_NumYHYTerms),Pisperm(Glob_NumYHYTerms))
+    call Precompute_PermutationMaps(n,Glob_NumYHYTerms,Glob_YHYMatr(1:n,1:n,1:Glob_NumYHYTerms), &
+                                    perm,iperm,Pisperm)
 
     Glob_HklBuff1(1:nb)=ZERO
     Glob_SklBuff1(1:nb)=ZERO
@@ -328,6 +339,7 @@ contains
 !                Dl=2*Dl1-2*Dl2!-Dl3+Dl4
             call MatrixElementsHS_RG_2P(mk,ml,mmk,mml,Lh(1,1,k),Lh(1,1,l), &
                                   Ah(1,1,k),Ah(1,1,l),MAh(1,1,k),Glob_YHYMatr(1:n,1:n,j), &
+                                  perm(1,j),iperm(1,j),Pisperm(j), &
                                   Hkl,Skl,Dk,Dl,.true.,grad_l)
             Hsum=Hsum+Glob_YHYCoeff(j)*Hkl
             Ssum=Ssum+Glob_YHYCoeff(j)*Skl

@@ -6,7 +6,7 @@ module matelem
 
 contains
 
-  subroutine MatrixElementsHS_RG_0S(Lk, Ll, Ak, Al, MAk, P, &
+  subroutine MatrixElementsHS_RG_0S(Lk, Ll, Ak, Al, MAk, P, perm, iperm, Pisperm, &
                             Hkl, Skl, Dk, Dl, grad_k, grad_l)
 !This subroutine computes symmetry adapted matrix element with
 !two real L=0 correlated Gaussians:
@@ -54,14 +54,13 @@ contains
     real(wp),intent(in)      :: Ak(Glob_n,Glob_n), Al(Glob_n,Glob_n)
     real(wp),intent(in)      :: MAk(Glob_n,Glob_n)
     real(wp),intent(in)      :: P(Glob_n,Glob_n)
+    integer,intent(in)       :: perm(Glob_n), iperm(Glob_n)
+    logical,intent(in)       :: Pisperm
     real(wp),intent(out)     :: Skl,Hkl
     real(wp),intent(out)     :: Dk(2*Glob_np),Dl(2*Glob_np)
     logical,intent(in)          :: grad_k, grad_l
 
     integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
-    integer        perm(nn), iperm(nn)
-    logical        Pisperm
-
 !Local variables
     integer           n, np
     real(wp)       PT(nn,nn)
@@ -90,26 +89,9 @@ contains
 !not compute anything, it shuffles rows and columns:
 !  (P'*A*P)(i,j) = A(perm(i),perm(j))
 !so the two O(n^3) congruences below collapse into an O(n^2) gather. The
-!scan that builds perm costs n^2 comparisons. If ANY column is not a single
-!+1 (the -1 columns that occur in molecular/positronic systems) the original
+!caller decodes perm/iperm once per symmetry term. If a matrix is not a pure
+!permutation (for example, signed molecular/positronic terms), the original
 !dense congruence is used instead, so the routine stays fully general.
-    Pisperm=.true.
-    do j=1,nn
-      k=0
-      do i=1,nn
-        if (P(i,j)==ONE) then
-          if (k/=0) Pisperm=.false.
-          k=i
-        elseif (P(i,j)/=ZERO) then
-          Pisperm=.false.
-        endif
-      enddo
-      if (k==0) then
-        Pisperm=.false.
-        k=j
-      endif
-      perm(j)=k
-    enddo
     if (Pisperm) then
       !Gather directly from Al; tAl is the output, so no scratch is needed.
       do i=1,nn
@@ -336,20 +318,8 @@ contains
     endif
 
     if (grad_l) then
-      !PT=P' is stored explicitly so that all the products with P
-      !and P' below can be done with contiguous column access
-      do j=1,nn
-        do i=1,nn
-          PT(i,j)=P(j,i)
-        enddo
-      enddo
       !calculating inv_ttAkl=P*inv_tAkl*P'
       if (Pisperm) then
-        !iperm is the inverse permutation, needed only here, so it is built
-        !inside this branch rather than on every call.
-        do j=1,nn
-          iperm(perm(j))=j
-        enddo
         !The same identity applies here: with P a permutation, (P*A*P')(i,j) = A(iperm(i),iperm(j)),
         !so this congruence pair is an O(n^2) gather as well.
         do j=1,nn
@@ -360,6 +330,13 @@ contains
           enddo
         enddo
       else
+      !PT=P' is stored explicitly so that the fallback products with P and P'
+      !use contiguous column access.
+      do j=1,nn
+        do i=1,nn
+          PT(i,j)=P(j,i)
+        enddo
+      enddo
       !W1=inv_tAkl*PT
       do j=1,nn
         do i=1,nn
@@ -478,25 +455,35 @@ contains
                         -inv_tAkltAlM(j,i)+F(i,j))+cV*Bmat(i,j)
         enddo
       enddo
-      do j=1,nn
-        do i=1,nn
-          temp1=ZERO
-          do k=1,nn
-            temp1=temp1+Z(k,i)*PT(k,j)
+      if (Pisperm) then
+        do j=1,nn
+          do i=1,j
+            temp1=Z(iperm(i),iperm(j))
+            G(i,j)=temp1
+            G(j,i)=temp1
           enddo
-          W2(i,j)=temp1
         enddo
-      enddo
-      do j=1,nn
-        do i=1,j
-          temp1=ZERO
-          do k=1,nn
-            temp1=temp1+PT(k,i)*W2(k,j)
+      else
+        do j=1,nn
+          do i=1,nn
+            temp1=ZERO
+            do k=1,nn
+              temp1=temp1+Z(k,i)*PT(k,j)
+            enddo
+            W2(i,j)=temp1
           enddo
-          G(i,j)=temp1
-          G(j,i)=temp1
         enddo
-      enddo
+        do j=1,nn
+          do i=1,j
+            temp1=ZERO
+            do k=1,nn
+              temp1=temp1+PT(k,i)*W2(k,j)
+            enddo
+            G(i,j)=temp1
+            G(j,i)=temp1
+          enddo
+        enddo
+      endif
       indx=0
       do i=1,nn
         do j=i,nn
@@ -553,6 +540,53 @@ contains
       enddo
     enddo
   end subroutine Precompute_LAMA
+
+  subroutine Precompute_PermutationMaps(n, nterms, Pmat, perm, iperm, isperm)
+!Decode each symmetry matrix once per matrix-build sweep. Atomic symmetry
+!matrices are pure permutations; callers pass these maps into the hot
+!matrix-element loop so it does not rescan P for every (basis pair x term).
+!Non-permutation matrices keep identity placeholder maps and use the original
+!dense-matrix fallback inside MatrixElementsHS_RG_0S.
+    integer, intent(in)  :: n, nterms
+    real(wp), intent(in) :: Pmat(n,n,nterms)
+    integer, intent(out) :: perm(n,nterms), iperm(n,nterms)
+    logical, intent(out) :: isperm(nterms)
+    integer :: i, j, q, row
+    logical :: seen(n)
+
+    do q=1,nterms
+      isperm(q)=.true.
+      perm(:,q)=[(i,i=1,n)]
+      iperm(:,q)=[(i,i=1,n)]
+      do j=1,n
+        row=0
+        do i=1,n
+          if (Pmat(i,j,q)==ONE) then
+            if (row/=0) isperm(q)=.false.
+            row=i
+          elseif (Pmat(i,j,q)/=ZERO) then
+            isperm(q)=.false.
+          endif
+        enddo
+        if (row==0) then
+          isperm(q)=.false.
+        else
+          perm(j,q)=row
+        endif
+      enddo
+      if (isperm(q)) then
+        seen=.false.
+        do j=1,n
+          if (seen(perm(j,q))) then
+            isperm(q)=.false.
+            exit
+          endif
+          seen(perm(j,q))=.true.
+          iperm(perm(j,q),q)=j
+        enddo
+      endif
+    enddo
+  end subroutine Precompute_PermutationMaps
 
   subroutine MatrixElementsAll_RG_0S(vechLk, vechLl, Pbra, Pket, &
                                        Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
