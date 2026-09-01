@@ -6,7 +6,7 @@ module matelem
 
 contains
 
-  subroutine MatrixElementsHS_RG_0S(vechLk, vechLl, P, &
+  subroutine MatrixElementsHS_RG_0S(Lk, Ll, Ak, Al, MAk, P, &
                             Hkl, Skl, Dk, Dl, grad_k, grad_l)
 !This subroutine computes symmetry adapted matrix element with
 !two real L=0 correlated Gaussians:
@@ -17,7 +17,13 @@ contains
 !permutation matrices Glob_YHYMatr(:,:,1:Glob_NumYHYTerms)
 !
 !Input:
-!   vechLk, vechLl :: Arrays of length (n(n+1)/2) of exponential parameters.
+!   Lk, Ll :: The lower-triangular Cholesky-style parameter matrices (the
+!             unpacked vechLk/vechLl). They depend only on one basis
+!             function, so the caller precomputes them once per function per
+!             sweep (Precompute_LAMA below) instead of this routine unpacking
+!             them for every (pair x term) call.
+!   Ak, Al :: Ak=Lk*Lk', Al=Ll*Ll' -- precomputed for the same reason.
+!   MAk    :: Glob_MassMatrix*Ak -- precomputed for the kinetic-energy path.
 !   P   :: The symmetry permutation matrix of size n x n
 !   grad_k, grad_l :: Gradient flags
 !   grad_k=.true.  means that dHkldvechLk, dSkldvechLk need to be computed.
@@ -44,7 +50,9 @@ contains
 !O(n^3). Details are explained in the comments in the body.
 
 !Arguments
-    real(wp),intent(in)      :: vechLk(Glob_np), vechLl(Glob_np)
+    real(wp),intent(in)      :: Lk(Glob_n,Glob_n), Ll(Glob_n,Glob_n)
+    real(wp),intent(in)      :: Ak(Glob_n,Glob_n), Al(Glob_n,Glob_n)
+    real(wp),intent(in)      :: MAk(Glob_n,Glob_n)
     real(wp),intent(in)      :: P(Glob_n,Glob_n)
     real(wp),intent(out)     :: Skl,Hkl
     real(wp),intent(out)     :: Dk(2*Glob_np),Dl(2*Glob_np)
@@ -56,8 +64,8 @@ contains
 
 !Local variables
     integer           n, np
-    real(wp)       Lk(nn,nn), Ll(nn,nn), PT(nn,nn)
-    real(wp)       Ak(nn,nn), tAl(nn,nn), tAkl(nn,nn)
+    real(wp)       PT(nn,nn)
+    real(wp)       tAl(nn,nn), tAkl(nn,nn)
     real(wp)       inv_tAkl(nn,nn), inv_ttAkl(nn,nn)
     real(wp)       inv_tAkltAlM(nn,nn)
     real(wp)       tr_inv_tAklJij32(nn,nn)
@@ -71,34 +79,7 @@ contains
 
     n=Glob_n
     np=Glob_np
-!First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
-    indx=0
-    do i=1,nn
-      do j=i,nn
-        indx=indx+1
-        Lk(i,j)=ZERO
-        Lk(j,i)=vechLk(indx)
-        Ll(i,j)=ZERO
-        Ll(j,i)=vechLl(indx)
-      enddo
-    enddo
-
-    do i=1,nn
-      do j=i,nn
-        temp1=ZERO
-        do k=1,i
-          temp1=temp1+Lk(i,k)*Lk(j,k)
-        enddo
-        Ak(i,j)=temp1
-        Ak(j,i)=temp1
-        temp1=ZERO
-        do k=1,i
-          temp1=temp1+Ll(i,k)*Ll(j,k)
-        enddo
-        tAl(i,j)=temp1
-        tAl(j,i)=temp1
-      enddo
-    enddo
+!Lk, Ll, Ak, Al arrive precomputed (hoisted to once per function per sweep).
 
 !Then we permute elements of Al to account for
 !the action of the permutation matrix
@@ -130,15 +111,10 @@ contains
       perm(j)=k
     enddo
     if (Pisperm) then
-      !W1 is scratch: tAl cannot be permuted in place
+      !Gather directly from Al; tAl is the output, so no scratch is needed.
       do i=1,nn
         do j=i,nn
-          W1(i,j)=tAl(perm(i),perm(j))
-        enddo
-      enddo
-      do i=1,nn
-        do j=i,nn
-          temp1=W1(i,j)
+          temp1=Al(perm(i),perm(j))
           tAl(i,j)=temp1
           tAl(j,i)=temp1
           tAkl(i,j)=Ak(i,j)+temp1
@@ -150,7 +126,7 @@ contains
       do j=1,nn
         temp1=ZERO
         do k=1,nn
-          temp1=temp1+P(k,j)*tAl(k,i)
+          temp1=temp1+P(k,j)*Al(k,i)
         enddo
         W1(j,i)=temp1
       enddo
@@ -535,6 +511,48 @@ contains
     endif
 
   end subroutine MatrixElementsHS_RG_0S
+
+  subroutine Precompute_LAMA(n, np, Nmax, NonlinParam, mass, Lh, Ah, MAh)
+!Host-side helper for the hoisted MatrixElementsHS_RG_0S arguments: unpack
+!vechL into L, form A=L*L' and MA=mass*A for every basis function 1..Nmax,
+!once per sweep, instead of rebuilding them inside every (pair x term) call.
+!The arithmetic and loop order match the original in-routine code exactly.
+    integer, intent(in)  :: n, np, Nmax
+    real(wp),intent(in)  :: NonlinParam(np,Nmax)
+    real(wp),intent(in)  :: mass(n,n)
+    real(wp),intent(out) :: Lh(n,n,Nmax), Ah(n,n,Nmax), MAh(n,n,Nmax)
+    integer  :: f,i,j,k,indx
+    real(wp) :: temp1
+    do f=1,Nmax
+      indx=0
+      do i=1,n
+        do j=i,n
+          indx=indx+1
+          Lh(i,j,f)=ZERO
+          Lh(j,i,f)=NonlinParam(indx,f)
+        enddo
+      enddo
+      do i=1,n
+        do j=i,n
+          temp1=ZERO
+          do k=1,i
+            temp1=temp1+Lh(i,k,f)*Lh(j,k,f)
+          enddo
+          Ah(i,j,f)=temp1
+          Ah(j,i,f)=temp1
+        enddo
+      enddo
+      do j=1,n
+        do i=1,n
+          temp1=ZERO
+          do k=1,n
+            temp1=temp1+mass(i,k)*Ah(k,j,f)
+          enddo
+          MAh(i,j,f)=temp1
+        enddo
+      enddo
+    enddo
+  end subroutine Precompute_LAMA
 
   subroutine MatrixElementsAll_RG_0S(vechLk, vechLl, Pbra, Pket, &
                                        Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &
