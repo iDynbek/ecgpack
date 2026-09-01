@@ -9,7 +9,7 @@ contains
 #ifdef USE_CUDA
   attributes(host,device) &
 #endif
-  subroutine MatrixElementsHS_RG_1P(n, np, m_k, m_l, vechLk, vechLl, P, &
+  subroutine MatrixElementsHS_RG_1P(n, np, m_k, m_l, Lk, Ll, Ak, Al, MAk, P, perm, iperm, Pisperm, &
                               mass, chargeM, sqrtpi, pir3n2, &
                               Hkl, Skl, Dk, Dl, grad_k, grad_l)
 !This subroutine computes symmetry adapted matrix element with
@@ -24,8 +24,9 @@ contains
 !Input:
 !   m_k, m_l :: integers that determine which z-component is in the
 !                premultiplier of the Gaussian
-!   vechLk, vechLl :: Arrays of length (n(n+1)/2) of
-!     exponential parameters.
+!   Lk, Ll :: Precomputed lower-triangular parameter matrices.
+!   Ak, Al :: Precomputed Ak=Lk*Lk' and Al=Ll*Ll'.
+!   MAk    :: Precomputed Glob_MassMatrix*Ak.
 !   P  :: The symmetry permutation matrix of size n x n
 !   grad_k, grad_l :: Gradient flags
 !   grad_k=.true.  means that dHkldvechLk, dSkldvechLk need to be computed.
@@ -40,14 +41,14 @@ contains
 !           Dl=(dHkldvechLl,dSkldvechLl)
 
 !Arguments
-!  (n, np and the physics constants are passed in rather than read from the
-!   Glob_* module globals so this routine can also compile as CUDA Fortran
-!   device code -- device code cannot read host module variables. The body is
-!   master's, unchanged apart from these substitutions.)
+!  n, np and the physics constants are explicit because CUDA device code
+!  cannot read host module variables.
     integer,intent(in),value :: n, np
     integer,intent(in),value :: m_k,m_l
-    real(wp),intent(in)      :: vechLk(np), vechLl(np)
+    real(wp),intent(in)      :: Lk(n,n), Ll(n,n), Ak(n,n), Al(n,n), MAk(n,n)
     real(wp),intent(in)      :: P(n,n)
+    integer,intent(in)       :: perm(n), iperm(n)
+    logical,intent(in),value :: Pisperm
     real(wp),intent(in)      :: mass(n,n), chargeM(0:n,0:n)
     real(wp),intent(in),value :: sqrtpi, pir3n2
     real(wp),intent(out)     :: Skl,Hkl
@@ -58,13 +59,9 @@ contains
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
     integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
-    integer        perm(nn)
-    logical        Pisperm
-
 !Local variables
     integer           tvl(nn)
-    real(wp)       Lk(nn,nn),Ll(nn,nn)
-    real(wp)       Ak(nn,nn),tAl(nn,nn),tAkl(nn,nn)
+    real(wp)       tAl(nn,nn),tAkl(nn,nn)
     real(wp)       inv_tAkl(nn,nn)
     real(wp)       inv_tAkltAl(nn,nn),inv_tAkltAlM(nn,nn)
     real(wp)       inv_tAklAk(nn,nn),inv_tAklAkM(nn,nn)
@@ -81,34 +78,7 @@ contains
     real(wp)       Tkl, Vkl
     integer           i,j,k,indx
 
-!First we build matrices Lk, Ll, Ak, Al from vechLk, vechLl.
-    indx=0
-    do i=1,nn
-      do j=i,nn
-        indx=indx+1
-        Lk(i,j)=ZERO
-        Lk(j,i)=vechLk(indx)
-        Ll(i,j)=ZERO
-        Ll(j,i)=vechLl(indx)
-      enddo
-    enddo
-
-    do i=1,nn
-      do j=i,nn
-        temp1=ZERO
-        do k=1,i
-          temp1=temp1+Lk(i,k)*Lk(j,k)
-        enddo
-        Ak(i,j)=temp1
-        Ak(j,i)=temp1
-        temp1=ZERO
-        do k=1,i
-          temp1=temp1+Ll(i,k)*Ll(j,k)
-        enddo
-        tAl(i,j)=temp1
-        tAl(j,i)=temp1
-      enddo
-    enddo
+!Lk, Ll, Ak, Al arrive precomputed once per basis-function sweep.
 
 !Then we permute elements of Al to account for
 !the action of the permutation matrix
@@ -119,36 +89,14 @@ contains
 !not compute anything, it shuffles rows and columns:
 !  (P'*A*P)(i,j) = A(perm(i),perm(j))
 !so the two O(n^3) congruences below collapse into an O(n^2) gather. The
-!scan that builds perm costs n^2 comparisons. If ANY column is not a single
-!+1 (the -1 columns that occur in molecular/positronic systems) the original
+!caller decodes perm/iperm once per symmetry term. If a matrix is not a pure
+!permutation (for example, signed molecular/positronic terms), the original
 !dense congruence is used instead, so the routine stays fully general.
-    Pisperm=.true.
-    do j=1,nn
-      k=0
-      do i=1,nn
-        if (P(i,j)==ONE) then
-          if (k/=0) Pisperm=.false.
-          k=i
-        elseif (P(i,j)/=ZERO) then
-          Pisperm=.false.
-        endif
-      enddo
-      if (k==0) then
-        Pisperm=.false.
-        k=j
-      endif
-      perm(j)=k
-    enddo
     if (Pisperm) then
-      !W1 is scratch: tAl cannot be permuted in place
+      !Gather directly from Al; tAl is the output.
       do i=1,nn
         do j=i,nn
-          W1(i,j)=tAl(perm(i),perm(j))
-        enddo
-      enddo
-      do i=1,nn
-        do j=i,nn
-          temp1=W1(i,j)
+          temp1=Al(perm(i),perm(j))
           tAl(i,j)=temp1
           tAl(j,i)=temp1
           tAkl(i,j)=Ak(i,j)+temp1
@@ -160,7 +108,7 @@ contains
       do j=1,nn
         temp1=ZERO
         do k=1,nn
-          temp1=temp1+P(k,j)*tAl(k,i)
+          temp1=temp1+P(k,j)*Al(k,i)
         enddo
         W1(j,i)=temp1
       enddo
@@ -269,9 +217,14 @@ contains
 !enddo
 
 !Computing tvl=P'*vl
-    do i=1,nn
-      tvl(i)=P(m_l,i)
-    enddo
+    if (Pisperm) then
+      tvl=0
+      tvl(iperm(m_l))=1
+    else
+      do i=1,nn
+        tvl(i)=P(m_l,i)
+      enddo
+    endif
 
 !Compute inv_tAkltvl = inv_tAkl * tvl
     do i=1,nn
@@ -479,25 +432,35 @@ contains
 
     if (grad_l) then
       !Evaluating twosym_tGkl = P * twosym_tFkl *P'
-      do i=1,nn
-        do j=1,nn
-          temp1=ZERO
-          do k=1,nn
-            temp1=temp1+P(i,k)*twosym_tFkl(k,j)
+      if (Pisperm) then
+        do i=1,nn
+          do j=1,i
+            temp1=twosym_tFkl(iperm(i),iperm(j))
+            twosym_tGkl(i,j)=temp1
+            twosym_tGkl(j,i)=temp1
           enddo
-          W1(i,j)=temp1
         enddo
-      enddo
-      do i=1,nn
-        do j=1,i
-          temp1=ZERO
-          do k=1,nn
-            temp1=temp1+W1(i,k)*P(j,k)
+      else
+        do i=1,nn
+          do j=1,nn
+            temp1=ZERO
+            do k=1,nn
+              temp1=temp1+P(i,k)*twosym_tFkl(k,j)
+            enddo
+            W1(i,j)=temp1
           enddo
-          twosym_tGkl(i,j)=temp1
-          twosym_tGkl(j,i)=temp1
         enddo
-      enddo
+        do i=1,nn
+          do j=1,i
+            temp1=ZERO
+            do k=1,nn
+              temp1=temp1+W1(i,k)*P(j,k)
+            enddo
+            twosym_tGkl(i,j)=temp1
+            twosym_tGkl(j,i)=temp1
+          enddo
+        enddo
+      endif
       !Evaluating -Skl*vech((twosym_tGkl)*Ll)'
       indx=0
       do i=1,nn
@@ -698,25 +661,35 @@ contains
         enddo
       enddo
       !Congruence W3=P*Zsym*P' (only the lower triangle, then mirrored)
-      do i=1,nn
-        do j=1,nn
-          temp1=ZERO
-          do k=1,nn
-            temp1=temp1+P(i,k)*Zsym(k,j)
+      if (Pisperm) then
+        do i=1,nn
+          do j=1,i
+            temp1=Zsym(iperm(i),iperm(j))
+            W3(i,j)=temp1
+            W3(j,i)=temp1
           enddo
-          W1(i,j)=temp1
         enddo
-      enddo
-      do i=1,nn
-        do j=1,i
-          temp1=ZERO
-          do k=1,nn
-            temp1=temp1+W1(i,k)*P(j,k)
+      else
+        do i=1,nn
+          do j=1,nn
+            temp1=ZERO
+            do k=1,nn
+              temp1=temp1+P(i,k)*Zsym(k,j)
+            enddo
+            W1(i,j)=temp1
           enddo
-          W3(i,j)=temp1
-          W3(j,i)=temp1
         enddo
-      enddo
+        do i=1,nn
+          do j=1,i
+            temp1=ZERO
+            do k=1,nn
+              temp1=temp1+W1(i,k)*P(j,k)
+            enddo
+            W3(i,j)=temp1
+            W3(j,i)=temp1
+          enddo
+        enddo
+      endif
       !Evaluating (Hkl/Skl)*dSkldvechLl' + Skl*vech(W3*Ll)'
       indx=0
       do i=1,nn
@@ -732,6 +705,88 @@ contains
     endif
 
   end subroutine MatrixElementsHS_RG_1P
+
+  subroutine Precompute_LAMA(n, np, Nmax, NonlinParam, mass, Lh, Ah, MAh)
+!Unpack L, form A=L*L', and form MA=mass*A once for each basis function.
+    integer, intent(in)  :: n, np, Nmax
+    real(wp),intent(in)  :: NonlinParam(np,Nmax), mass(n,n)
+    real(wp),intent(out) :: Lh(n,n,Nmax), Ah(n,n,Nmax), MAh(n,n,Nmax)
+    integer  :: f,i,j,k,indx
+    real(wp) :: temp1
+    do f=1,Nmax
+      indx=0
+      do i=1,n
+        do j=i,n
+          indx=indx+1
+          Lh(i,j,f)=ZERO
+          Lh(j,i,f)=NonlinParam(indx,f)
+        enddo
+      enddo
+      do i=1,n
+        do j=i,n
+          temp1=ZERO
+          do k=1,i
+            temp1=temp1+Lh(i,k,f)*Lh(j,k,f)
+          enddo
+          Ah(i,j,f)=temp1
+          Ah(j,i,f)=temp1
+        enddo
+      enddo
+      do j=1,n
+        do i=1,n
+          temp1=ZERO
+          do k=1,n
+            temp1=temp1+mass(i,k)*Ah(k,j,f)
+          enddo
+          MAh(i,j,f)=temp1
+        enddo
+      enddo
+    enddo
+  end subroutine Precompute_LAMA
+
+  subroutine Precompute_PermutationMaps(n, nterms, Pmat, perm, iperm, isperm)
+!Decode symmetry matrices once per matrix-build sweep. The maps drive the
+!atomic permutation fast path; non-permutation terms retain the dense fallback.
+    integer, intent(in)  :: n, nterms
+    real(wp), intent(in) :: Pmat(n,n,nterms)
+    integer, intent(out) :: perm(n,nterms), iperm(n,nterms)
+    logical, intent(out) :: isperm(nterms)
+    integer :: i, j, q, row
+    logical :: seen(n)
+
+    do q=1,nterms
+      isperm(q)=.true.
+      perm(:,q)=[(i,i=1,n)]
+      iperm(:,q)=[(i,i=1,n)]
+      do j=1,n
+        row=0
+        do i=1,n
+          if (Pmat(i,j,q)==ONE) then
+            if (row/=0) isperm(q)=.false.
+            row=i
+          elseif (Pmat(i,j,q)/=ZERO) then
+            isperm(q)=.false.
+          endif
+        enddo
+        if (row==0) then
+          isperm(q)=.false.
+        else
+          perm(j,q)=row
+        endif
+      enddo
+      if (isperm(q)) then
+        seen=.false.
+        do j=1,n
+          if (seen(perm(j,q))) then
+            isperm(q)=.false.
+            exit
+          endif
+          seen(perm(j,q))=.true.
+          iperm(perm(j,q),q)=j
+        enddo
+      endif
+    enddo
+  end subroutine Precompute_PermutationMaps
 
   subroutine MatrixElementsAll_RG_1P(m_k, m_l, vechLk, vechLl, Pbra, Pket, &
                                          Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &

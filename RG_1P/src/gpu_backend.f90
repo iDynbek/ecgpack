@@ -9,11 +9,9 @@ module gpu_backend
 !    integer prefactor indices (Glob_Index(:,1:2)) selecting the components of
 !    the L=1 angular premultiplier -- these are staged to the device alongside
 !    the parameters and passed per pair into the shared matrix-element routine;
-!  * this is the BASELINE port: the kernels hand the packed vech parameters to
-!    MatrixElementsHS_RG_1P, which unpacks L and forms A per (pair x term) call
-!    exactly like the CPU path. The RG_0S ladder optimizations (per-function
-!    hoisting, permutation gather, trace fusion) are follow-up rungs, applied
-!    only after this version is verified against the CPU path.
+!  * the CPU/GPU paths share the same optimized kernel inputs: L, A=L*L', and
+!    mass*A are precomputed per basis function, while symmetry permutation maps
+!    are decoded once per term and staged beside the dense fallback matrices.
 !
 !Two layers live here, separated by the section banners below:
 !  (1) ORCHESTRATION -- run-time selection (env vars), the device-context
@@ -27,7 +25,7 @@ module gpu_backend
 !      eigensolver. Physics constants are passed as kernel arguments -- device
 !      code cannot read host module globals.
   use globvars        !Glob_* state, MPI symbols, wp / MPI_WP (via wp_def)
-  use matelem,   only: MatrixElementsHS_RG_1P
+  use matelem,   only: MatrixElementsHS_RG_1P, Precompute_LAMA, Precompute_PermutationMaps
   use cudafor
   use cublas
   use cusolverDn
@@ -71,15 +69,17 @@ module gpu_backend
   !beat one V100 by ~7x on small-K growth (see data/results/rg2p_h2h).
   !Now: allocated once, grown on demand, released in gpu_finalize. The constants
   !are uploaded once; the basis once per build instead of once per chunk.
-  real(wp), device, allocatable, save :: d_Param(:,:)
+  real(wp), device, allocatable, save :: d_Lm(:,:,:), d_Am(:,:,:), d_MAm(:,:,:)
   integer,  device, allocatable, save :: d_im(:)
   real(wp), device, allocatable, save :: d_YHY(:), d_coeff(:)
+  integer,  device, allocatable, save :: d_perm(:), d_iperm(:)
+  logical,  device, allocatable, save :: d_isperm(:)
   real(wp), device, allocatable, save :: d_mass(:,:), d_chargeM(:,:)
   integer,  device, allocatable, save :: d_k(:), d_l(:), d_gl(:)
   real(wp), device, allocatable, save :: d_H(:), d_S(:), d_Dk(:), d_Dl(:)
   integer,  allocatable, save         :: im(:)           !host index workspace
-  real(wp), allocatable, save         :: ph(:,:)         !host packed parameters
-  integer, save :: cap_basis = 0    !2nd extent of the staged parameter array
+  real(wp), allocatable, save         :: Lh(:,:,:), Ah(:,:,:), MAh(:,:,:)
+  integer, save :: cap_basis = 0    !3rd extent of the staged basis arrays
   integer, save :: cap_pairs = 0    !length of the per-pair buffers
   integer, save :: cap_grad  = 0    !length of the gradient slabs
   integer, save :: cap_terms = 0    !NumYHYTerms the constants were staged for
@@ -238,37 +238,46 @@ contains
   !remembered because the symmetry block can be rebuilt mid-run, which would
   !make the staged copy the wrong size.
     integer :: n, nterms
+    integer, allocatable :: perm(:,:), iperm(:,:)
+    logical, allocatable :: isperm(:)
     n = Glob_n; nterms = Glob_NumYHYTerms
     if (consts_ready .and. (cap_terms == nterms)) return
-    if (allocated(d_YHY)) deallocate(d_YHY, d_coeff)
+    if (allocated(d_YHY)) deallocate(d_YHY, d_coeff, d_perm, d_iperm, d_isperm)
     allocate(d_YHY(n*n*nterms), d_coeff(nterms))
+    allocate(d_perm(n*nterms), d_iperm(n*nterms), d_isperm(nterms))
+    allocate(perm(n,nterms), iperm(n,nterms), isperm(nterms))
+    call Precompute_PermutationMaps(n,nterms,Glob_YHYMatr(1:n,1:n,1:nterms), &
+                                    perm,iperm,isperm)
     if (.not.allocated(d_mass)) allocate(d_mass(n,n), d_chargeM(0:n,0:n))
     call cuda_check(cudaMemcpy(d_YHY,   Glob_YHYMatr,  n*n*nterms), 'stage_constants: YHY matrices')
     call cuda_check(cudaMemcpy(d_coeff, Glob_YHYCoeff, nterms),     'stage_constants: YHY coefficients')
+    call cuda_check(cudaMemcpy(d_perm, perm, n*nterms),             'stage_constants: permutation maps')
+    call cuda_check(cudaMemcpy(d_iperm, iperm, n*nterms),           'stage_constants: inverse permutation maps')
+    call cuda_check(cudaMemcpy(d_isperm, isperm, nterms),           'stage_constants: permutation flags')
     call cuda_check(cudaMemcpy(d_mass,  Glob_MassMatrix, n*n),      'stage_constants: mass matrix')
     call cuda_check(cudaMemcpy(d_chargeM, Glob_ScaledPseudoChargeMatrix, (n+1)*(n+1)), &
                     'stage_constants: charge matrix')
     cap_terms = nterms; consts_ready = .true.
   end subroutine stage_constants
 
-  subroutine stage_basis(np, Kmax)
-  !Upload the nonlinear parameters and the two L=1 prefactor index arrays ONCE
+  subroutine stage_basis(n, np, Kmax)
+  !Precompute and upload L, A=L*L', mass*A and the L=1 prefactor index ONCE
   !per build. (They used to be re-uploaded for every chunk, so a multi-chunk
   !build shipped the whole basis repeatedly.) The buffers only ever grow.
-    integer, intent(in) :: np, Kmax
+    integer, intent(in) :: n, np, Kmax
     if (Kmax > cap_basis) then
-      if (allocated(im))      deallocate(im, ph)
-      if (allocated(d_Param)) deallocate(d_Param, d_im)
-      allocate(im(Kmax), ph(np,Kmax))
-      allocate(d_Param(np,Kmax), d_im(Kmax))
+      if (allocated(im))   deallocate(im, Lh, Ah, MAh)
+      if (allocated(d_Lm)) deallocate(d_Lm, d_Am, d_MAm, d_im)
+      allocate(im(Kmax), Lh(n,n,Kmax), Ah(n,n,Kmax), MAh(n,n,Kmax))
+      allocate(d_Lm(n,n,Kmax), d_Am(n,n,Kmax), d_MAm(n,n,Kmax), d_im(Kmax))
       cap_basis = Kmax
     endif
-    !Pack into a buffer whose leading dimension is exactly np rather than
-    !cudaMemcpy-ing Glob_NonlinParam directly: its leading dimension is Glob_npt,
-    !which equals np for this code but the transfer must not silently depend on it.
-    ph(1:np,1:Kmax) = Glob_NonlinParam(1:np,1:Kmax)
+    call Precompute_LAMA(n,np,Kmax,Glob_NonlinParam(1:np,1:Kmax), &
+                         Glob_MassMatrix(1:n,1:n),Lh,Ah,MAh)
     im(1:Kmax)      = Glob_ZIndex(1:Kmax)
-    call cuda_check(cudaMemcpy(d_Param, ph,  np*Kmax), 'stage_basis: parameters')
+    call cuda_check(cudaMemcpy(d_Lm,  Lh,  n*n*Kmax), 'stage_basis: L')
+    call cuda_check(cudaMemcpy(d_Am,  Ah,  n*n*Kmax), 'stage_basis: A')
+    call cuda_check(cudaMemcpy(d_MAm, MAh, n*n*Kmax), 'stage_basis: MA')
     call cuda_check(cudaMemcpy(d_im,    im,  Kmax),    'stage_basis: index m')
   end subroutine stage_basis
 
@@ -308,7 +317,7 @@ contains
       write(*,'(1x,a,i0,a,i0,a,i0,a)') 'GPU ME (energy): ',npairs, &
         ' pairs in ',(npairs+batch-1)/batch,' chunks of ',batch,' max'
     call stage_constants()                      !once per run
-    call stage_basis(np, Nmax)                  !once per build, not per chunk
+    call stage_basis(n, np, Nmax)               !once per build, not per chunk
     call ensure_pair_capacity(batch, 0, .false.)
     allocate(k_list(batch),l_list(batch),Hout(batch),Sout(batch),Hout_r(batch),Sout_r(batch))
     ipair=0; nf=0
@@ -349,7 +358,7 @@ contains
       write(*,'(1x,a,i0,a,i0,a,i0,a)') 'GPU ME (grad): ',npairs, &
         ' pairs in ',(npairs+batch-1)/batch,' chunks of ',batch,' max'
     call stage_constants()                      !once per run
-    call stage_basis(np, Nmax)                  !once per build, not per chunk
+    call stage_basis(n, np, Nmax)               !once per build, not per chunk
     call ensure_pair_capacity(batch, npt2, .true.)
     allocate(k_list(batch),l_list(batch),grad_l(batch))
     allocate(Hout(batch),Sout(batch),Hout_r(batch),Sout_r(batch))
@@ -396,14 +405,16 @@ contains
   !Energy kernel: one block per (k,l) pair; threads STRIDE over the permutation
   !terms. Each thread calls the shared MatrixElementsHS_RG_1P (grad=false) for
   !its terms.
-  attributes(global) subroutine me_energy_kernel(Param, im, np, Kmax, &
-      k_list, l_list, YHYMatr, YHYCoeff, nterms, n, nprocs, procid, &
+  attributes(global) subroutine me_energy_kernel(Lm, Am, MAm, im, np, Kmax, &
+      k_list, l_list, YHYMatr, YHYCoeff, perm, iperm, isperm, nterms, n, nprocs, procid, &
       mass, chargeM, sqrtpi, pir3n2, determ, Hout, Sout)
     integer, value   :: np, Kmax, nterms, n, nprocs, procid, determ
-    real(wp)         :: Param(np,Kmax)
+    real(wp)         :: Lm(n,n,Kmax), Am(n,n,Kmax), MAm(n,n,Kmax)
     integer          :: im(*)
     integer          :: k_list(*), l_list(*)
     real(wp)         :: YHYMatr(*), YHYCoeff(*)
+    integer          :: perm(*), iperm(*)
+    logical          :: isperm(*)
     real(wp)         :: mass(n,n), chargeM(0:n,0:n)
     real(wp), value  :: sqrtpi, pir3n2
     real(wp)         :: Hout(*), Sout(*)
@@ -425,8 +436,9 @@ contains
       do j = threadIdx%x, nterms, blockDim%x
         if (mod(qbase+j, nprocs) == procid) then
           call MatrixElementsHS_RG_1P(n, np, im(k0), im(l0), &
-                              Param(1,k0), Param(1,l0), &
-                              YHYMatr((j-1)*n*n+1), mass, chargeM, &
+                              Lm(1,1,k0), Lm(1,1,l0), Am(1,1,k0), Am(1,1,l0), MAm(1,1,k0), &
+                              YHYMatr((j-1)*n*n+1), perm((j-1)*n+1), iperm((j-1)*n+1), isperm(j), &
+                              mass, chargeM, &
                               sqrtpi, pir3n2, &
                               Hkl, Skl, dDk, dDl, .false., .false.)
           coeff = YHYCoeff(j)
@@ -455,8 +467,9 @@ contains
       do j = threadIdx%x, nterms, blockDim%x   !STRIDED: block size independent of nterms
         if (mod(qbase+j, nprocs) == procid) then
           call MatrixElementsHS_RG_1P(n, np, im(k0), im(l0), &
-                              Param(1,k0), Param(1,l0), &
-                              YHYMatr((j-1)*n*n+1), mass, chargeM, &
+                              Lm(1,1,k0), Lm(1,1,l0), Am(1,1,k0), Am(1,1,l0), MAm(1,1,k0), &
+                              YHYMatr((j-1)*n*n+1), perm((j-1)*n+1), iperm((j-1)*n+1), isperm(j), &
+                              mass, chargeM, &
                               sqrtpi, pir3n2, &
                               Hkl, Skl, dDk, dDl, .false., .false.)
           coeff = YHYCoeff(j)
@@ -488,8 +501,8 @@ contains
     blk = min(nterms, CUF_BLK)
     determ = 0; shmem = 0
     if (use_determ) then; determ = 1; shmem = 2*nterms*8; endif   !2*nterms real*8 dynamic shared
-    call me_energy_kernel<<<npairs, blk, shmem>>>(d_Param, d_im, np, Kmax, d_k, d_l, &
-        d_YHY, d_coeff, nterms, n, nprocs, procid, &
+    call me_energy_kernel<<<npairs, blk, shmem>>>(d_Lm, d_Am, d_MAm, d_im, np, Kmax, d_k, d_l, &
+        d_YHY, d_coeff, d_perm, d_iperm, d_isperm, nterms, n, nprocs, procid, &
         d_mass, d_chargeM, sqrtpi, pir3n2, determ, d_H, d_S)
     call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_batch: energy kernel launch')
     call cuda_check(cudaDeviceSynchronize(), 'cuf_compute_matelem_batch: energy kernel execution')
@@ -501,15 +514,17 @@ contains
   !Energy+gradient kernel: one block per (k,l) pair; threads STRIDE over the terms.
   !Each thread calls the shared MatrixElementsHS_RG_1P (grad_k=true, grad_l=flag)
   !and atomic-accumulates H,S and the gradient slabs Dk,Dl into shared memory.
-  attributes(global) subroutine me_grad_kernel(Param, im, np, Kmax, &
-      k_list, l_list, grad_l_flag, YHYMatr, YHYCoeff, nterms, n, nprocs, procid, &
+  attributes(global) subroutine me_grad_kernel(Lm, Am, MAm, im, np, Kmax, &
+      k_list, l_list, grad_l_flag, YHYMatr, YHYCoeff, perm, iperm, isperm, nterms, n, nprocs, procid, &
       mass, chargeM, sqrtpi, pir3n2, &
       Hout, Sout, Dkout, Dlout)
     integer, value   :: np, Kmax, nterms, n, nprocs, procid
-    real(wp)         :: Param(np,Kmax)
+    real(wp)         :: Lm(n,n,Kmax), Am(n,n,Kmax), MAm(n,n,Kmax)
     integer          :: im(*)
     integer          :: k_list(*), l_list(*), grad_l_flag(*)
     real(wp)         :: YHYMatr(*), YHYCoeff(*)
+    integer          :: perm(*), iperm(*)
+    logical          :: isperm(*)
     real(wp)         :: mass(n,n), chargeM(0:n,0:n)
     real(wp), value  :: sqrtpi, pir3n2
     real(wp)         :: Hout(*), Sout(*), Dkout(*), Dlout(*)   !Dk/Dl slabs (2*np,npairs) flattened
@@ -537,8 +552,9 @@ contains
     do j = threadIdx%x, nterms, nthr        !STRIDED: block size independent of nterms
       if (mod(qbase+j, nprocs) == procid) then
         call MatrixElementsHS_RG_1P(n, np, im(k0), im(l0), &
-                            Param(1,k0), Param(1,l0), &
-                            YHYMatr((j-1)*n*n+1), mass, chargeM, &
+                            Lm(1,1,k0), Lm(1,1,l0), Am(1,1,k0), Am(1,1,l0), MAm(1,1,k0), &
+                            YHYMatr((j-1)*n*n+1), perm((j-1)*n+1), iperm((j-1)*n+1), isperm(j), &
+                            mass, chargeM, &
                             sqrtpi, pir3n2, &
                             Hkl, Skl, Dk, Dl, .true., gl)
         coeff = YHYCoeff(j)
@@ -579,8 +595,8 @@ contains
     call cuda_check(cudaMemcpy(d_gl, grad_l_flag, npairs), 'cuf_compute_matelem_deriv_batch: H2D grad flags')
 
     blk = min(nterms, CUF_BLK)
-    call me_grad_kernel<<<npairs, blk>>>(d_Param, d_im, np, Kmax, d_k, d_l, d_gl, &
-        d_YHY, d_coeff, nterms, n, nprocs, procid, &
+    call me_grad_kernel<<<npairs, blk>>>(d_Lm, d_Am, d_MAm, d_im, np, Kmax, d_k, d_l, d_gl, &
+        d_YHY, d_coeff, d_perm, d_iperm, d_isperm, nterms, n, nprocs, procid, &
         d_mass, d_chargeM, sqrtpi, pir3n2, &
         d_H, d_S, d_Dk, d_Dl)
     call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_deriv_batch: grad kernel launch')
@@ -632,12 +648,12 @@ contains
     if (allocated(hA))    deallocate(hA)
     if (allocated(hB))    deallocate(hB)
     !persistent matrix-element workspace
-    if (allocated(d_Param))deallocate(d_Param, d_im)
-    if (allocated(d_YHY)) deallocate(d_YHY, d_coeff)
+    if (allocated(d_Lm))  deallocate(d_Lm, d_Am, d_MAm, d_im)
+    if (allocated(d_YHY)) deallocate(d_YHY, d_coeff, d_perm, d_iperm, d_isperm)
     if (allocated(d_mass))deallocate(d_mass, d_chargeM)
     if (allocated(d_k))   deallocate(d_k, d_l, d_gl, d_H, d_S)
     if (allocated(d_Dk))  deallocate(d_Dk, d_Dl)
-    if (allocated(im))    deallocate(im, ph)
+    if (allocated(im))    deallocate(im, Lh, Ah, MAh)
     cap_basis=0; cap_pairs=0; cap_grad=0; cap_terms=0; consts_ready=.false.
   end subroutine gpu_finalize
 

@@ -9,7 +9,8 @@ contains
 #ifdef USE_CUDA
   attributes(host,device) &
 #endif
-  subroutine MatrixElementsHS_RG_0S(n, np, Lk, Ll, Ak, Al, MAk, P, mass, chargeM, &
+  subroutine MatrixElementsHS_RG_0S(n, np, Lk, Ll, Ak, Al, MAk, P, perm, iperm, Pisperm, &
+                            mass, chargeM, &
                             sqrtpi, pir3n2, Hkl, Skl, Dk, Dl, grad_k, grad_l)
 !This subroutine computes symmetry adapted matrix element with
 !two real L=0 correlated Gaussians:
@@ -61,6 +62,8 @@ contains
     real(wp),intent(in)      :: Lk(n,n), Ll(n,n)
     real(wp),intent(in)      :: Ak(n,n), Al(n,n), MAk(n,n)
     real(wp),intent(in)      :: P(n,n)
+    integer,intent(in)       :: perm(n), iperm(n)
+    logical,intent(in),value :: Pisperm
     real(wp),intent(in)      :: mass(n,n), chargeM(0:n,0:n)
     real(wp),intent(in),value :: sqrtpi, pir3n2
     real(wp),intent(out)     :: Skl,Hkl
@@ -89,13 +92,9 @@ contains
     real(wp)       det_tAkl
     real(wp)       Tkl, Vkl, cV, HklOverSkl
     integer           i, j, k, indx
-!index-vector representation of P (see derivation below)
-    integer           perm(nn), iperm(nn)
-    logical           Pisperm
-
 !Lk, Ll, Ak, Al arrive precomputed (hoisted to once per function per sweep).
 
-!decompose P into an index vector when it is a pure
+!The caller decomposes P once per symmetry term when it is a pure
 !permutation matrix, i.e. every column c holds exactly one nonzero,
 !equal to +1, at row r=perm(c). This holds for every atomic symmetry
 !projection (products of Pij with i,j>=2). Then, writing iperm for the
@@ -106,26 +105,6 @@ contains
 !If ANY column fails the test (e.g. the -1 column of a P1i matrix in
 !molecular/positronic systems, workproc.f90 Glob_Transposit build),
 !Pisperm=.false. and every site falls back to the dense congruence.
-    Pisperm=.true.
-    do j=1,nn
-      k=0
-      do i=1,nn
-        if (P(i,j)==ONE) then
-          if (k/=0) Pisperm=.false.
-          k=i
-        elseif (P(i,j)/=ZERO) then
-          Pisperm=.false.
-        endif
-      enddo
-      if (k==0) then
-        Pisperm=.false.
-        k=j
-      endif
-      perm(j)=k
-    enddo
-    do j=1,nn
-      iperm(perm(j))=j
-    enddo
 
 !Then we permute elements of Al to account for
 !the action of the permutation matrix
@@ -611,6 +590,53 @@ contains
       enddo
     enddo
   end subroutine Precompute_LAMA
+
+  subroutine Precompute_PermutationMaps(n, nterms, Pmat, perm, iperm, isperm)
+!Decode each symmetry matrix once per matrix-build sweep. Atomic symmetry
+!matrices are pure permutations; callers pass these maps into the hot
+!matrix-element loop so it does not rescan P for every (basis pair x term).
+!Non-permutation matrices keep identity placeholder maps and use the original
+!dense-matrix fallback inside MatrixElementsHS_RG_0S.
+    integer, intent(in)  :: n, nterms
+    real(wp), intent(in) :: Pmat(n,n,nterms)
+    integer, intent(out) :: perm(n,nterms), iperm(n,nterms)
+    logical, intent(out) :: isperm(nterms)
+    integer :: i, j, q, row
+    logical :: seen(n)
+
+    do q=1,nterms
+      isperm(q)=.true.
+      perm(:,q)=[(i,i=1,n)]
+      iperm(:,q)=[(i,i=1,n)]
+      do j=1,n
+        row=0
+        do i=1,n
+          if (Pmat(i,j,q)==ONE) then
+            if (row/=0) isperm(q)=.false.
+            row=i
+          elseif (Pmat(i,j,q)/=ZERO) then
+            isperm(q)=.false.
+          endif
+        enddo
+        if (row==0) then
+          isperm(q)=.false.
+        else
+          perm(j,q)=row
+        endif
+      enddo
+      if (isperm(q)) then
+        seen=.false.
+        do j=1,n
+          if (seen(perm(j,q))) then
+            isperm(q)=.false.
+            exit
+          endif
+          seen(perm(j,q))=.true.
+          iperm(perm(j,q),q)=j
+        enddo
+      endif
+    enddo
+  end subroutine Precompute_PermutationMaps
 
   subroutine MatrixElementsAll_RG_0S(vechLk, vechLl, Pbra, Pket, &
                                        Hkl, Skl, Tkl, Vkl, rm2kl, rmkl, rkl, r2kl, deltarkl, drach_deltarkl, &

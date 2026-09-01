@@ -16,7 +16,7 @@ module gpu_backend
 !      Physics constants are passed as kernel arguments -- device code cannot read
 !      host module globals.
   use globvars        !Glob_* state, MPI symbols, wp / MPI_WP (via wp_def)
-  use matelem,   only: MatrixElementsHS_RG_0S, Precompute_LAMA
+  use matelem,   only: MatrixElementsHS_RG_0S, Precompute_LAMA, Precompute_PermutationMaps
   use cudafor
   use cublas
   use cusolverDn
@@ -62,6 +62,8 @@ module gpu_backend
   !are uploaded once; the basis once per build instead of once per chunk.
   real(wp), device, allocatable, save :: d_Lm(:,:,:), d_Am(:,:,:), d_MAm(:,:,:)
   real(wp), device, allocatable, save :: d_YHY(:), d_coeff(:)
+  integer,  device, allocatable, save :: d_perm(:), d_iperm(:)
+  logical,  device, allocatable, save :: d_isperm(:)
   real(wp), device, allocatable, save :: d_mass(:,:), d_chargeM(:,:)
   integer,  device, allocatable, save :: d_k(:), d_l(:), d_gl(:)
   real(wp), device, allocatable, save :: d_H(:), d_S(:), d_Dk(:), d_Dl(:)
@@ -226,13 +228,22 @@ contains
   !remembered because the symmetry block can be rebuilt mid-run, which would
   !make the staged copy the wrong size.
     integer :: n, nterms
+    integer, allocatable :: perm(:,:), iperm(:,:)
+    logical, allocatable :: isperm(:)
     n = Glob_n; nterms = Glob_NumYHYTerms
     if (consts_ready .and. (cap_terms == nterms)) return
-    if (allocated(d_YHY)) deallocate(d_YHY, d_coeff)
+    if (allocated(d_YHY)) deallocate(d_YHY, d_coeff, d_perm, d_iperm, d_isperm)
     allocate(d_YHY(n*n*nterms), d_coeff(nterms))
+    allocate(d_perm(n*nterms), d_iperm(n*nterms), d_isperm(nterms))
+    allocate(perm(n,nterms), iperm(n,nterms), isperm(nterms))
+    call Precompute_PermutationMaps(n,nterms,Glob_YHYMatr(1:n,1:n,1:nterms), &
+                                    perm,iperm,isperm)
     if (.not.allocated(d_mass)) allocate(d_mass(n,n), d_chargeM(0:n,0:n))
     call cuda_check(cudaMemcpy(d_YHY,   Glob_YHYMatr,  n*n*nterms), 'stage_constants: YHY matrices')
     call cuda_check(cudaMemcpy(d_coeff, Glob_YHYCoeff, nterms),     'stage_constants: YHY coefficients')
+    call cuda_check(cudaMemcpy(d_perm, perm, n*nterms),             'stage_constants: permutation maps')
+    call cuda_check(cudaMemcpy(d_iperm, iperm, n*nterms),           'stage_constants: inverse permutation maps')
+    call cuda_check(cudaMemcpy(d_isperm, isperm, nterms),           'stage_constants: permutation flags')
     call cuda_check(cudaMemcpy(d_mass,  Glob_MassMatrix, n*n),      'stage_constants: mass matrix')
     call cuda_check(cudaMemcpy(d_chargeM, Glob_ScaledPseudoChargeMatrix, (n+1)*(n+1)), &
                     'stage_constants: charge matrix')
@@ -382,12 +393,14 @@ contains
   !Energy kernel: one block per (k,l) pair; threads STRIDE over the permutation
   !terms. Each thread calls the shared MatrixElements (grad=false) for its terms.
   attributes(global) subroutine me_energy_kernel(Lm, Am, MAm, np, Kmax, &
-      k_list, l_list, YHYMatr, YHYCoeff, nterms, n, nprocs, procid, &
+      k_list, l_list, YHYMatr, YHYCoeff, perm, iperm, isperm, nterms, n, nprocs, procid, &
       mass, chargeM, sqrtpi, pir3n2, determ, Hout, Sout)
     integer, value   :: np, Kmax, nterms, n, nprocs, procid, determ
     real(wp)         :: Lm(n,n,Kmax), Am(n,n,Kmax), MAm(n,n,Kmax)
     integer          :: k_list(*), l_list(*)
     real(wp)         :: YHYMatr(*), YHYCoeff(*)
+    integer          :: perm(*), iperm(*)
+    logical          :: isperm(*)
     real(wp)         :: mass(n,n), chargeM(0:n,0:n)
     real(wp), value  :: sqrtpi, pir3n2
     real(wp)         :: Hout(*), Sout(*)
@@ -410,7 +423,8 @@ contains
         if (mod(qbase+j, nprocs) == procid) then
           call MatrixElementsHS_RG_0S(n, np, Lm(1,1,k0), Lm(1,1,l0), &
                               Am(1,1,k0), Am(1,1,l0), MAm(1,1,k0), &
-                              YHYMatr((j-1)*n*n+1), mass, chargeM, &
+                              YHYMatr((j-1)*n*n+1), perm((j-1)*n+1), iperm((j-1)*n+1), isperm(j), &
+                              mass, chargeM, &
                               sqrtpi, pir3n2, &
                               Hkl, Skl, dDk, dDl, .false., .false.)
           coeff = YHYCoeff(j)
@@ -440,7 +454,8 @@ contains
         if (mod(qbase+j, nprocs) == procid) then
           call MatrixElementsHS_RG_0S(n, np, Lm(1,1,k0), Lm(1,1,l0), &
                               Am(1,1,k0), Am(1,1,l0), MAm(1,1,k0), &
-                              YHYMatr((j-1)*n*n+1), mass, chargeM, &
+                              YHYMatr((j-1)*n*n+1), perm((j-1)*n+1), iperm((j-1)*n+1), isperm(j), &
+                              mass, chargeM, &
                               sqrtpi, pir3n2, &
                               Hkl, Skl, dDk, dDl, .false., .false.)
           coeff = YHYCoeff(j)
@@ -475,7 +490,7 @@ contains
     determ = 0; shmem = 0
     if (use_determ) then; determ = 1; shmem = 2*nterms*8; endif   !2*nterms real*8 dynamic shared
     call me_energy_kernel<<<npairs, blk, shmem>>>(d_Lm, d_Am, d_MAm, np, Kmax, d_k, d_l, &
-        d_YHY, d_coeff, nterms, n, nprocs, procid, &
+        d_YHY, d_coeff, d_perm, d_iperm, d_isperm, nterms, n, nprocs, procid, &
         d_mass, d_chargeM, sqrtpi, pir3n2, determ, d_H, d_S)
     call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_batch: energy kernel launch')
     call cuda_check(cudaDeviceSynchronize(), 'cuf_compute_matelem_batch: energy kernel execution')
@@ -488,13 +503,15 @@ contains
   !Each thread calls the shared MatrixElements (grad_k=true, grad_l=flag) and
   !atomic-accumulates H,S and the gradient slabs Dk,Dl into shared memory.
   attributes(global) subroutine me_grad_kernel(Lm, Am, MAm, np, Kmax, &
-      k_list, l_list, grad_l_flag, YHYMatr, YHYCoeff, nterms, n, nprocs, procid, &
+      k_list, l_list, grad_l_flag, YHYMatr, YHYCoeff, perm, iperm, isperm, nterms, n, nprocs, procid, &
       mass, chargeM, sqrtpi, pir3n2, &
       Hout, Sout, Dkout, Dlout)
     integer, value   :: np, Kmax, nterms, n, nprocs, procid
     real(wp)         :: Lm(n,n,Kmax), Am(n,n,Kmax), MAm(n,n,Kmax)
     integer          :: k_list(*), l_list(*), grad_l_flag(*)
     real(wp)         :: YHYMatr(*), YHYCoeff(*)
+    integer          :: perm(*), iperm(*)
+    logical          :: isperm(*)
     real(wp)         :: mass(n,n), chargeM(0:n,0:n)
     real(wp), value  :: sqrtpi, pir3n2
     real(wp)         :: Hout(*), Sout(*), Dkout(*), Dlout(*)   !Dk/Dl slabs (2*np,npairs) flattened
@@ -523,7 +540,8 @@ contains
       if (mod(qbase+j, nprocs) == procid) then
         call MatrixElementsHS_RG_0S(n, np, Lm(1,1,k0), Lm(1,1,l0), &
                             Am(1,1,k0), Am(1,1,l0), MAm(1,1,k0), &
-                            YHYMatr((j-1)*n*n+1), mass, chargeM, &
+                            YHYMatr((j-1)*n*n+1), perm((j-1)*n+1), iperm((j-1)*n+1), isperm(j), &
+                            mass, chargeM, &
                             sqrtpi, pir3n2, &
                             Hkl, Skl, Dk, Dl, .true., gl)
         coeff = YHYCoeff(j)
@@ -566,7 +584,7 @@ contains
 
     blk = min(nterms, CUF_BLK)
     call me_grad_kernel<<<npairs, blk>>>(d_Lm, d_Am, d_MAm, np, Kmax, d_k, d_l, d_gl, &
-        d_YHY, d_coeff, nterms, n, nprocs, procid, &
+        d_YHY, d_coeff, d_perm, d_iperm, d_isperm, nterms, n, nprocs, procid, &
         d_mass, d_chargeM, sqrtpi, pir3n2, &
         d_H, d_S, d_Dk, d_Dl)
     call cuda_check(cudaGetLastError(),      'cuf_compute_matelem_deriv_batch: grad kernel launch')
@@ -619,7 +637,7 @@ contains
     if (allocated(hB))    deallocate(hB)
     !persistent matrix-element workspace
     if (allocated(d_Lm))  deallocate(d_Lm, d_Am, d_MAm)
-    if (allocated(d_YHY)) deallocate(d_YHY, d_coeff)
+    if (allocated(d_YHY)) deallocate(d_YHY, d_coeff, d_perm, d_iperm, d_isperm)
     if (allocated(d_mass))deallocate(d_mass, d_chargeM)
     if (allocated(d_k))   deallocate(d_k, d_l, d_gl, d_H, d_S)
     if (allocated(d_Dk))  deallocate(d_Dk, d_Dl)
