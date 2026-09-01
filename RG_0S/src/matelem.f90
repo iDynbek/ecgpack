@@ -186,6 +186,7 @@ contains
 !Skl=Glob_2Raised3n2*temp1*sqrt(temp1)
     Skl=Glob_PiRaised3n2/(det_tAkl*sqrt(det_tAkl))  !new line
 
+    if (grad_k.or.grad_l) then
 !Doing multiplication W2=inv_tAkl*tAl
     do i=1,nn
       do j=1,nn
@@ -217,6 +218,29 @@ contains
       enddo
       Tkl=Tkl+temp1
     enddo
+    else
+!Energy-only fusion: W2 and inv_tAkltAlM are needed downstream only by
+!gradients. Reassociate the scalar trace as
+!  tr[inv_tAkl*tAl*mass*Ak] = tr[inv_tAkl*(tAl*MAk)]
+!with MAk=mass*Ak precomputed per function. This removes one n^3 product.
+    do i=1,nn
+      do j=1,nn
+        temp1=ZERO
+        do k=1,nn
+          temp1=temp1+tAl(j,k)*MAk(k,i)
+        enddo
+        W2(j,i)=temp1
+      enddo
+    enddo
+    Tkl=ZERO
+    do i=1,nn
+      temp1=ZERO
+      do k=1,nn
+        temp1=temp1+inv_tAkl(i,k)*W2(k,i)
+      enddo
+      Tkl=Tkl+temp1
+    enddo
+    endif
     Tkl=SIX*Skl*Tkl
 
 !Evaluating potential energy, Vkl, and tr[invCkl*Jij]^(-3/2)
