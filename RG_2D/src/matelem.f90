@@ -37,12 +37,14 @@ contains
 !           Dl=(dHkldvechLl,dSkldvechLl)
 
 !Arguments
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
+!The input reader enforces n == nn; fixed extents give constant matrix strides.
     integer,intent(in)          :: m_k,m_l,mm_k,mm_l
-    real(wp),intent(in)      :: Lk(Glob_n,Glob_n), Ll(Glob_n,Glob_n)
-    real(wp),intent(in)      :: Ak(Glob_n,Glob_n), Al(Glob_n,Glob_n)
-    real(wp),intent(in)      :: MAk(Glob_n,Glob_n)
-    real(wp),intent(in)      :: P(Glob_n,Glob_n)
-    integer,intent(in)       :: perm(Glob_n), iperm(Glob_n)
+    real(wp),intent(in)      :: Lk(nn,nn), Ll(nn,nn)
+    real(wp),intent(in)      :: Ak(nn,nn), Al(nn,nn)
+    real(wp),intent(in)      :: MAk(nn,nn)
+    real(wp),intent(in)      :: P(nn,nn)
+    integer,intent(in)       :: perm(nn), iperm(nn)
     logical,intent(in)       :: Pisperm
     real(wp),intent(out)     :: Skl,Hkl,Tkl, Vkl
     real(wp),intent(out)     :: Dk(2*Glob_np),Dl(2*Glob_np)
@@ -51,7 +53,6 @@ contains
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
-    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Local variables
     integer           n, np
     integer           vl(nn),bl(nn)

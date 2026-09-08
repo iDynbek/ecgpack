@@ -50,17 +50,18 @@ contains
 !O(n^3). Details are explained in the comments in the body.
 
 !Arguments
-    real(wp),intent(in)      :: Lk(Glob_n,Glob_n), Ll(Glob_n,Glob_n)
-    real(wp),intent(in)      :: Ak(Glob_n,Glob_n), Al(Glob_n,Glob_n)
-    real(wp),intent(in)      :: MAk(Glob_n,Glob_n)
-    real(wp),intent(in)      :: P(Glob_n,Glob_n)
-    integer,intent(in)       :: perm(Glob_n), iperm(Glob_n)
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
+!The input reader enforces n == nn; fixed extents give constant matrix strides.
+    real(wp),intent(in)      :: Lk(nn,nn), Ll(nn,nn)
+    real(wp),intent(in)      :: Ak(nn,nn), Al(nn,nn)
+    real(wp),intent(in)      :: MAk(nn,nn)
+    real(wp),intent(in)      :: P(nn,nn)
+    integer,intent(in)       :: perm(nn), iperm(nn)
     logical,intent(in)       :: Pisperm
     real(wp),intent(out)     :: Skl,Hkl
     real(wp),intent(out)     :: Dk(2*Glob_np),Dl(2*Glob_np)
     logical,intent(in)          :: grad_k, grad_l
 
-    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Local variables
     integer           n, np
     real(wp)       PT(nn,nn)
