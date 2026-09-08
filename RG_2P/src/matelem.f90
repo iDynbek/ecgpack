@@ -424,7 +424,10 @@ contains
       enddo
       !Evaluating Fkl=inv_tAkltAlM*inv_tAkltAl'
       !(only the upper triangle, then mirrored)
-      do j=1,nn
+      !Keep this bound runtime: nvfortran 25.9 can fuse this producer with
+      !the following grad_k-only loop, corrupting dH/dLl when only grad_l
+      !is requested. n == nn; the runtime bound prevents that wrong-code.
+      do j=1,n
         do i=1,j
           temp1=ZERO
           do k=1,nn
