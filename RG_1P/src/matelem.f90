@@ -41,10 +41,14 @@ contains
 !           Dl=(dHkldvechLl,dSkldvechLl)
 
 !Arguments
+!Runtime dimensions and physics data are explicit inputs: device code cannot
+!read ordinary host module variables. Module PARAMETER constants (wp, nn,
+!ZERO, ONE, etc.) are compile-time values and remain valid on both targets.
+!n must equal nn; np is the number of packed lower-triangular parameters.
+!mass and chargeM are the mass and pre-scaled pseudocharge matrices.
+!sqrtpi = sqrt(pi); pir3n2 = pi**(3*n/2).
     integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !The input reader enforces n == nn; fixed extents give constant matrix strides.
-!  n, np and the physics constants are explicit because CUDA device code
-!  cannot read host module variables.
     integer,intent(in),value :: n, np
     integer,intent(in),value :: m_k,m_l
     real(wp),intent(in)      :: Lk(nn,nn), Ll(nn,nn), Ak(nn,nn), Al(nn,nn), MAk(nn,nn)
@@ -57,10 +61,7 @@ contains
     real(wp),intent(out)     :: Dk(2*np),Dl(2*np)
     logical,intent(in),value :: grad_k, grad_l
 
-!Parameters (These are needed to declare static arrays. Using static
-!arrays makes the function call a little faster in comparison with
-!the case when arrays are dynamically allocated in stack)
-!Local variables
+!Local variables (fixed extents keep matrix workspace sizes compile-time known).
     integer           tvl(nn)
     real(wp)       tAl(nn,nn),tAkl(nn,nn)
     real(wp)       inv_tAkl(nn,nn)

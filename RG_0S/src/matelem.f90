@@ -18,7 +18,7 @@ contains
 !fk =  exp[-r'(Lk*Lk')r]
 !
 !Symmetry adaption is applied to the ket using
-!permutation matrices Glob_YHYMatr(:,:,1:Glob_NumYHYTerms)
+!permutation matrix P (one symmetry term per call)
 !
 !Input:
 !   Lk, Ll :: The lower-triangular Cholesky-style parameter matrices (the
@@ -54,12 +54,14 @@ contains
 !O(n^3). Details are explained in the comments in the body.
 
 !Arguments
+!Runtime dimensions and physics data are explicit inputs: device code cannot
+!read ordinary host module variables. Module PARAMETER constants (wp, nn,
+!ZERO, ONE, etc.) are compile-time values and remain valid on both targets.
+!n must equal nn; np is the number of packed lower-triangular parameters.
+!mass and chargeM are the mass and pre-scaled pseudocharge matrices.
+!sqrtpi = sqrt(pi); pir3n2 = pi**(3*n/2).
     integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !The input reader enforces n == nn; fixed extents give constant matrix strides.
-!  (n, np and the physics constants are passed in rather than read from the
-!   Glob_* module globals so this routine can also compile as CUDA Fortran
-!   device code -- device code cannot read host module variables. The body is
-!   master's, unchanged apart from these substitutions.)
     integer,intent(in),value :: n, np
     real(wp),intent(in)      :: Lk(nn,nn), Ll(nn,nn)
     real(wp),intent(in)      :: Ak(nn,nn), Al(nn,nn), MAk(nn,nn)
