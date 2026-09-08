@@ -40,15 +40,17 @@ contains
 !           Dl=(dHkldvechLl,dSkldvechLl)
 
 !Arguments
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
+!The input reader enforces n == nn; fixed extents give constant matrix strides.
 !  n, np and the physics constants are explicit because CUDA device code
 !  cannot read host module variables.
     integer,intent(in),value :: n, np
     integer,intent(in),value :: m_k,m_l,mm_k,mm_l
-    real(wp),intent(in)      :: Lk(n,n), Ll(n,n), Ak(n,n), Al(n,n), MAk(n,n)
-    real(wp),intent(in)      :: P(n,n)
-    integer,intent(in)       :: perm(n), iperm(n)
+    real(wp),intent(in)      :: Lk(nn,nn), Ll(nn,nn), Ak(nn,nn), Al(nn,nn), MAk(nn,nn)
+    real(wp),intent(in)      :: P(nn,nn)
+    integer,intent(in)       :: perm(nn), iperm(nn)
     logical,intent(in),value :: Pisperm
-    real(wp),intent(in)      :: mass(n,n), chargeM(0:n,0:n)
+    real(wp),intent(in)      :: mass(nn,nn), chargeM(0:nn,0:nn)
     real(wp),intent(in),value :: sqrtpi, pir3n2
     real(wp),intent(out)     :: Skl,Hkl
     real(wp),intent(out)     :: Dk(2*np),Dl(2*np)
@@ -57,7 +59,6 @@ contains
 !Parameters (These are needed to declare static arrays. Using static
 !arrays makes the function call a little faster in comparison with
 !the case when arrays are dynamically allocated in stack)
-    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !Local variables
     integer           vl(nn),bl(nn)
     real(wp)       tAl(nn,nn),tAkl(nn,nn)

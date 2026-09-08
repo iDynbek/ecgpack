@@ -54,23 +54,24 @@ contains
 !O(n^3). Details are explained in the comments in the body.
 
 !Arguments
+    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
+!The input reader enforces n == nn; fixed extents give constant matrix strides.
 !  (n, np and the physics constants are passed in rather than read from the
 !   Glob_* module globals so this routine can also compile as CUDA Fortran
 !   device code -- device code cannot read host module variables. The body is
 !   master's, unchanged apart from these substitutions.)
     integer,intent(in),value :: n, np
-    real(wp),intent(in)      :: Lk(n,n), Ll(n,n)
-    real(wp),intent(in)      :: Ak(n,n), Al(n,n), MAk(n,n)
-    real(wp),intent(in)      :: P(n,n)
-    integer,intent(in)       :: perm(n), iperm(n)
+    real(wp),intent(in)      :: Lk(nn,nn), Ll(nn,nn)
+    real(wp),intent(in)      :: Ak(nn,nn), Al(nn,nn), MAk(nn,nn)
+    real(wp),intent(in)      :: P(nn,nn)
+    integer,intent(in)       :: perm(nn), iperm(nn)
     logical,intent(in),value :: Pisperm
-    real(wp),intent(in)      :: mass(n,n), chargeM(0:n,0:n)
+    real(wp),intent(in)      :: mass(nn,nn), chargeM(0:nn,0:nn)
     real(wp),intent(in),value :: sqrtpi, pir3n2
     real(wp),intent(out)     :: Skl,Hkl
     real(wp),intent(out)     :: Dk(2*np),Dl(2*np)
     logical,intent(in),value    :: grad_k, grad_l
 
-    integer,parameter :: nn=Glob_AllowedNumOfPseudoParticles
 !All loop bounds in this routine use the compile-time nn rather than the runtime
 !argument n. The two are always equal (the particle count is compiled in and the
 !input reader rejects decks with any other value); constant trip counts let the
