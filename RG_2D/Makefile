@@ -56,9 +56,10 @@ LINALG=netlib
 # nvfortran -cuda) -- orchestration, matrix-element kernels, device lifecycle, and
 # the cuSOLVER eigensolver, all Fortran in one module. Ported from RG_0S.
 USE_CUDA=no
-# CUDA_ARCH: the GPU compute capability (nvfortran -gpu=ccXX). It defaults
-# from MACHINE so you don't have to remember it per host; override by passing
-# CUDA_ARCH=... explicitly for any other GPU.
+# CUDA_ARCH: target compute capability (CC 8.0 -> sm_80 -> nvfortran -gpu=cc80).
+# Find the GPU model with nvidia-smi and its CC at https://developer.nvidia.com/cuda/gpus
+# (legacy GPUs are linked there). MACHINE sets the default; override with
+# CUDA_ARCH=sm_XX if needed, using a target supported by your NVHPC version.
 #   sm_70 = V100 (shabyt)   sm_80 = A100   sm_86 = RTX 3060 Ti (aurora)   sm_90 = H100 (irgetas)
 CUDA_ARCH_shabyt = sm_70
 CUDA_ARCH_aurora = sm_86

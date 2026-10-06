@@ -102,11 +102,16 @@ On Irgetas/H100, NVHPC 26.5 is available directly:
 ./build.bash machine=irgetas toolchain=nvhpc-26.5 config=release code=RG_0S,RG_1P,RG_2D,RG_2P nparticles=6 cuda=yes
 ```
 
-The GPU compute capability is inferred from `MACHINE`: Shabyt targets `sm_70`
-(V100), Aurora targets `sm_86`, and Irgetas targets `sm_90` (H100). Pass
-`CUDA_ARCH=sm_XX` to `make` (or `cuda_arch=sm_XX` to `build.bash`) for an
-unlisted machine. Device link-time optimization is on, and `maxregcount:255`
-is **not** a tuning choice — lower register caps have been observed to
+`CUDA_ARCH` is the target GPU's compute capability in `sm_XX` form: for example,
+compute capability 8.0 becomes `sm_80`, which the Makefiles pass to nvfortran as
+`-gpu=cc80`. Find the GPU model with `nvidia-smi`, then look up its compute
+capability in [NVIDIA's GPU table](https://developer.nvidia.com/cuda/gpus)
+(or its linked legacy table). The value defaults from `MACHINE`: Shabyt uses
+`sm_70` (V100), Aurora `sm_86`, and Irgetas `sm_90` (H100). Override it with
+`CUDA_ARCH=sm_XX` for `make` or `cuda_arch=sm_XX` for `build.bash`, using a
+target supported by the installed NVHPC version.
+
+Device link-time optimization is on, and `maxregcount:255` is **not** a tuning choice — lower register caps have been observed to
 miscompile the matrix-element kernel, so do not lower it.
 
 The backend frees every application-owned CUDA allocation at shutdown but does
@@ -125,6 +130,46 @@ A CUDA-enabled binary is still an ordinary CPU MPI binary and behaves identicall
 | `ECG_DETERM=1` | Sum the symmetry terms of each energy-path H/S matrix element in a fixed order instead of with `atomicAdd`. This makes fixed-basis H/S builds bit-reproducible and lets them be compared against the CPU term by term; performance depends on the system. The derivative kernel still uses `atomicAdd`, so optimization runs are not bit-reproducible. The ordered reduction also needs `16 * NumYHYTerms` bytes of dynamic shared memory per block and cannot run when that exceeds the device limit (for example, Oxygen with 40,320 terms). |
 
 Each MPI rank takes the device `(node-local rank) mod (number of visible GPUs)`, so `mpirun -np 2` on a two-GPU node uses both, and the mapping stays correct when a job spans several nodes. Because the GPU path is selected at runtime and not from the input file, the same binary serves CPU-only and GPU users.
+
+To run on Shabyt, submit the calculation from the work directory containing
+`inout.txt` with a Slurm script such as:
+
+```bash
+#!/bin/bash
+#SBATCH --partition=NVIDIA
+#SBATCH --gres=gpu:v100:1
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --time=01:00:00
+
+export ECG_GPU=1
+# Optional for method G: export ECG_GPU_EIG=1
+mpirun -np 1 /absolute/path/to/RG_0S_cuda_binary
+```
+
+On Irgetas, use the H100 partition, GPU type, and NVHPC runtime:
+
+```bash
+#!/bin/bash
+#SBATCH --account=hpcnc
+#SBATCH --partition=H100
+#SBATCH --qos=hpcnc-h100
+#SBATCH --gres=gpu:h100:1
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --time=01:00:00
+
+module load NVHPC/26.5-CUDA-13.2.0
+export ECG_GPU=1
+# Optional for method G: export ECG_GPU_EIG=1
+mpirun -np 1 /absolute/path/to/RG_0S_cuda_binary
+```
+
+Submit either script with `sbatch run.sbatch` from the work directory containing
+`inout.txt`. Adjust account, QoS, memory, and time to your allocation. The
+partition and `--gres` request a GPU compute node; `CUDA_ARCH` only selects the
+build target and does not reserve a GPU. Run calculations inside the Slurm
+allocation, never on the login node.
 
 ### Number of particles
 

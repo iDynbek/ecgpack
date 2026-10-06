@@ -21,7 +21,8 @@ usage_print() {
   echo "<nparticles> defines for how many particles each code must be build for. There is no default value. This argument must be present."
   echo "<precisions> is the kind parameter for real type. 8 corresponds to double precision (fp64), 10 corresponds to extended precision (fp80), 16 corresponds to quadruple precision. Different compilers/toolchain support different kinds. For example, Intel compilers supports only 8 and 16, while modern GNU compilers support 8, 10, and 16. The default value is 8."
   echo "<linalgnames> specifies which BLAS/LAPACK implementation to link against. Possible values are: netlib (default; non-optimized reference BLAS/LAPACK built from the bundled source), mkl (Intel Math Kernel Library), lblas (optimized BLAS/LAPACK exposed through the -lblas/-llapack symbolic links), openblas (OpenBLAS), and aocl (AMD AOCL-BLAS and AOCL-LAPACK). For precision=10 and precision=16 only netlib is available, so any other value is skipped because optimized BLAS/LAPACK is unavailable for these two precisions."
-  echo "cuda=yes additionally compiles the native CUDA Fortran GPU backend into the binary (default is no). It requires an nvhpc toolchain (nvfortran) and precision=8, and currently only the four energy codes (RG_0S, RG_1P, RG_2D, RG_2P) have a GPU backend; any other combination is skipped. The binary gets a _cuda suffix. A CUDA-enabled binary behaves exactly like a regular CPU binary until GPU execution is requested at runtime by setting the environment variable ECG_GPU=1 (see <code>/src/gpu_backend.f90 for the other ECG_GPU* runtime options). The GPU architecture is inferred from the machine name; pass cuda_arch=sm_XX to override it for machines whose GPU model is not known to the Makefile."
+  echo "cuda=yes additionally compiles the native CUDA Fortran GPU backend into the binary (default is no). It requires an nvhpc toolchain (nvfortran) and precision=8, and currently only the four energy codes (RG_0S, RG_1P, RG_2D, RG_2P) have a GPU backend; any other combination is skipped. The binary gets a _cuda suffix. A CUDA-enabled binary behaves exactly like a regular CPU binary until GPU execution is requested at runtime by setting the environment variable ECG_GPU=1 (see <code>/src/gpu_backend.f90 for the other ECG_GPU* runtime options)."
+  echo "cuda_arch=sm_XX selects the target GPU compute capability (for example, capability 8.0 is sm_80). It defaults from machine=; for another GPU, find its model with nvidia-smi and look up its capability at https://developer.nvidia.com/cuda/gpus. Choose a target supported by the loaded NVHPC version."
   echo "" 
   echo "Supported toolchains on different machines are listed below."
   echo ""   
@@ -86,6 +87,7 @@ nparticles=""
 precision="8"
 linalg="netlib"
 cuda="no"
+# Optional override of the Makefile's machine-specific GPU target (CC 8.0 -> sm_80).
 cuda_arch=""
 
 # Parse the arguments
